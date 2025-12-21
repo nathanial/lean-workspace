@@ -143,6 +143,7 @@ lake build
 
 ## Dependency Graph
 
+### Internal Dependencies
 ```
 afferent ───────► collimator    (profunctor optics)
          ├──────► wisp          (HTTP client)
@@ -151,29 +152,39 @@ afferent ───────► collimator    (profunctor optics)
          ├──────► arbor         (widgets)
          └──────► tincture      (color)
 arbor ──────────► trellis       (layout)
-      └────────► tincture      (color)
+         └─────► tincture       (color)
 canopy ─────────► arbor         (widgets)
 chroma ─────────► afferent      (rendering)
-      ├────────► arbor          (widgets)
-      ├────────► trellis        (layout)
-      └────────► tincture       (color)
+         ├─────► arbor          (widgets)
+         ├─────► trellis        (layout)
+         └─────► tincture       (color)
 legate ─────────► protolean     (protobuf serialization)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client for AI APIs)
-collimator ─────► crucible      (test framework)
-trellis ─────────► crucible     (test framework)
-tincture ────────► crucible     (test framework)
-wisp ───────────► crucible      (test framework)
+```
+
+### Test Framework Dependencies
+Almost all projects depend on **crucible** for testing:
+`afferent`, `arbor`, `chroma`, `collimator`, `enchiridion`, `ledger`, `legate`, `protolean`, `terminus`, `tincture`, `trellis`, `wisp`
+
+### External Dependencies
+```
+collimator ─────► mathlib       (Lean mathematical library)
+ledger ─────────► batteries     (leanprover-community/batteries)
+chroma ─────────► plausible     (property-based testing)
+tincture ───────► plausible     (property-based testing)
 ```
 
 ## Architecture by Project
 
 ### terminus
 Immediate-mode terminal rendering with buffer diffing:
-- `Terminus/Core/` - Cell, Buffer, Rect, Style, Color
-- `Terminus/Widgets/` - Block, Paragraph, List, Table, Gauge, Charts, Tree, etc.
+- `Terminus/Core/` - Cell, Buffer, Rect, Style, Base64
+- `Terminus/Widgets/` - Block, Paragraph, List, Table, Gauge, Charts, Tree, Calendar, Menu, Popup, TextArea, TextInput, Form, Spinner, and more
 - `Terminus/Layout/` - Constraint-based layout (fixed, percent, ratio, fill)
 - `Terminus/Input/` - Key events, polling
+- `Terminus/Backend/` - Terminal backend abstraction
+- `Terminus/Frame.lean` - Frame timing and rendering
 - `ffi/terminus.c` - termios bindings for raw terminal mode
 
 ### afferent
@@ -193,6 +204,7 @@ Renderer-agnostic widget system with render command output:
 - `Arbor/Render/` - RenderCommand definitions and command collection
 - `Arbor/Event/` - Input events, hit testing, scroll state
 - `Arbor/Text/` - ASCII canvas and debug renderer
+- `Arbor/App/` - Application-level UI abstractions
 
 ### canopy
 Desktop widget framework built on Arbor:
@@ -206,6 +218,7 @@ Pure CSS layout engine:
 - `Trellis/Grid.lean` - Grid layout algorithm
 - `Trellis/Algorithm.lean` - Layout entry point
 - `Trellis/Node.lean` / `Result.lean` - Layout tree and results
+- `Trellis/Axis.lean` - Main/cross axis abstractions
 
 ### tincture
 Color representation and utilities:
@@ -285,7 +298,7 @@ Disk cache with LRU eviction:
 
 ## Lean Version
 
-All projects target Lean 4.25.x or 4.26.x (check individual `lean-toolchain` files).
+Most projects target Lean 4.26.0, with ledger on 4.27.0-rc1. Check individual `lean-toolchain` files for exact versions.
 
 ## FFI Patterns
 
@@ -324,17 +337,60 @@ Each project has its own test suite. Run from the project directory:
 - `./build.sh chroma_tests && .lake/build/bin/chroma_tests` - Direct executable (chroma)
 - `.lake/build/bin/collimator_tests` - Direct executable (collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, chroma, collimator, trellis, tincture, wisp
-Projects without a test target: canopy, cellar
+Projects using the **Crucible** test framework: afferent, arbor, chroma, collimator, enchiridion, ledger, legate, protolean, terminus, tincture, trellis, wisp
+Projects without a test target: canopy, cellar, crucible (crucible is the test framework itself)
 
-## Workspace Scripts
+## Workspace Management
 
-Helper scripts for managing multiple git repositories:
+### Justfile (Recommended)
+
+The workspace includes a `justfile` for common operations. Run `just` to see all available recipes:
 
 ```bash
-./scripts/git-status.sh         # Check which projects have changes
-./scripts/git-status.sh -v      # Verbose mode with change details
-./scripts/git-commit-all.sh "message"   # Commit staged changes in all repos
-./scripts/git-push-all.sh       # Push all repos with unpushed commits
-./scripts/git-add-commit-push.sh "message"  # Stage, commit, and push all
+# Git/submodule operations
+just status              # Show status of all submodules
+just status-verbose      # Detailed status with changes
+just fetch               # Fetch from all remotes
+just pull                # Pull latest in all submodules
+just push                # Push submodules with unpushed commits
+just unpushed            # Show which submodules have unpushed commits
+
+# Building
+just build <project>     # Build a specific project (uses ./build.sh if present)
+just build-all           # Build all projects
+just clean <project>     # Clean a specific project
+just clean-all           # Clean all projects
+
+# Testing
+just test <project>      # Test a specific project
+just test-all            # Test all projects with test targets
+
+# Dependency mode (local dev vs git)
+just dev-mode            # Switch to local dependencies (sibling directories)
+just prod-mode           # Switch to git URL dependencies
+just dep-mode            # Show current dependency mode for each project
+
+# Lake operations
+just lake-update <project>   # Run lake update in a project
+just lake-update-all         # Run lake update in all projects
+
+# Utilities
+just versions            # Show Lean versions across all projects
+just deps                # Show dependency graph
+just foreach "cmd"       # Run a command in all submodules
+```
+
+### Shell Scripts
+
+Helper scripts in `scripts/` for advanced operations:
+
+```bash
+./scripts/git-status.sh              # Check which projects have changes
+./scripts/git-status.sh -v           # Verbose mode with change details
+./scripts/git-commit-all.sh "msg"    # Commit staged changes in all repos
+./scripts/git-push-all.sh            # Push all repos with unpushed commits
+./scripts/git-add-commit-push.sh "msg"  # Stage, commit, and push all
+./scripts/lake-update.sh             # Run lake update in all projects
+./scripts/generate-local-overrides.sh   # Enable local dev mode
+./scripts/remove-local-overrides.sh     # Disable local dev mode
 ```
