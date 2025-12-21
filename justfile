@@ -37,6 +37,42 @@ push:
 unpushed:
     @git submodule foreach --quiet 'ahead=$(git rev-list @{u}..HEAD 2>/dev/null | wc -l | tr -d " "); if [ "$ahead" -gt 0 ]; then echo "$name: $ahead commit(s) ahead"; fi'
 
+# Add and commit all changes in subprojects, then commit workspace
+commit-all msg:
+    #!/usr/bin/env bash
+    set -e
+    committed=()
+
+    # Commit changes in each submodule that has modifications
+    for dir in afferent arbor canopy cellar chroma collimator crucible enchiridion ledger legate protolean terminus tincture trellis wisp; do
+        cd "$dir"
+        if [[ -n $(git status --porcelain) ]]; then
+            echo "=== Committing $dir ==="
+            git add -A
+            git commit -m "{{msg}}"
+            committed+=("$dir")
+        fi
+        cd ..
+    done
+
+    # Report what was committed
+    if [[ ${#committed[@]} -eq 0 ]]; then
+        echo "No changes in subprojects to commit"
+    else
+        echo ""
+        echo "Committed in: ${committed[*]}"
+    fi
+
+    # Update workspace with new submodule refs
+    git add -A
+    if [[ -n $(git status --porcelain) ]]; then
+        echo ""
+        echo "=== Committing workspace ==="
+        git commit -m "{{msg}}"
+    else
+        echo "No workspace changes to commit"
+    fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Building
 # ─────────────────────────────────────────────────────────────────────────────
