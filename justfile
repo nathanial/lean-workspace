@@ -205,3 +205,21 @@ foreach cmd:
 # Open a project in the current shell
 cd project:
     @echo "Run: cd {{project}}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Documentation
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Generate PDF documentation from ROADMAP.md files
+generate-docs:
+    #!/usr/bin/env bash
+    set -e
+    for dir in afferent arbor canopy cellar chroma collimator crucible enchiridion ledger legate protolean terminus tincture trellis wisp; do
+        mkdir -p "docs/$dir"
+        echo "Converting $dir/ROADMAP.md → docs/$dir/ROADMAP.pdf"
+        pandoc "$dir/ROADMAP.md" -o "docs/$dir/ROADMAP.pdf" \
+            --pdf-engine=xelatex \
+            -V geometry:margin=1in \
+            -V colorlinks=true
+    done
+    echo "Done. PDFs generated in docs/"
