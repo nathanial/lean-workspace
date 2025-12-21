@@ -110,6 +110,29 @@ test-all:
     cd collimator && lake build collimator_tests && .lake/build/bin/collimator_tests && cd ..
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Development Mode (Local vs Git Dependencies)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Switch to local development mode (use sibling directories for deps)
+dev-mode:
+    @./scripts/generate-local-overrides.sh
+
+# Switch to production mode (use git URLs for deps)
+prod-mode:
+    @./scripts/remove-local-overrides.sh
+
+# Show current dependency mode for each project
+dep-mode:
+    #!/usr/bin/env bash
+    for project in afferent canopy chroma enchiridion; do
+        if [ -f "$project/.lake/package-overrides.json" ]; then
+            printf "%-15s local (dev mode)\n" "$project:"
+        else
+            printf "%-15s git (prod mode)\n" "$project:"
+        fi
+    done
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Lake Operations
 # ─────────────────────────────────────────────────────────────────────────────
 
