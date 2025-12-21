@@ -1,0 +1,45 @@
+[submodule "afferent"]
+	path = afferent
+	url = git@github.com:nathanial/afferent.git
+[submodule "arbor"]
+	path = arbor
+	url = git@github.com:nathanial/arbor.git
+[submodule "canopy"]
+	path = canopy
+	url = git@github.com:nathanial/canopy.git
+[submodule "cellar"]
+	path = cellar
+	url = git@github.com:nathanial/cellar.git
+[submodule "chroma"]
+	path = chroma
+	url = git@github.com:nathanial/chroma.git
+[submodule "collimator"]
+	path = collimator
+	url = git@github.com:nathanial/collimator.git
+[submodule "crucible"]
+	path = crucible
+	url = git@github.com:nathanial/crucible.git
+[submodule "enchiridion"]
+	path = enchiridion
+	url = git@github.com:nathanial/enchiridion.git
+[submodule "ledger"]
+	path = ledger
+	url = git@github.com:nathanial/ledger.git
+[submodule "legate"]
+	path = legate
+	url = git@github.com:nathanial/legate.git
+[submodule "protolean"]
+	path = protolean
+	url = git@github.com:nathanial/protolean.git
+[submodule "terminus"]
+	path = terminus
+	url = git@github.com:nathanial/terminus.git
+[submodule "tincture"]
+	path = tincture
+	url = git@github.com:nathanial/tincture.git
+[submodule "trellis"]
+	path = trellis
+	url = git@github.com:nathanial/trellis.git
+[submodule "wisp"]
+	path = wisp
+	url = git@github.com:nathanial/wisp.git
