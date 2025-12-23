@@ -52,3 +52,6 @@
 [submodule "citadel"]
 	path = citadel
 	url = git@github.com:nathanial/citadel.git
+[submodule "scribe"]
+	path = scribe
+	url = git@github.com:nathanial/scribe.git
