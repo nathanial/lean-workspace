@@ -49,3 +49,6 @@
 [submodule "herald"]
 	path = herald
 	url = git@github.com:nathanial/herald.git
+[submodule "citadel"]
+	path = citadel
+	url = git@github.com:nathanial/citadel.git
