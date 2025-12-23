@@ -46,3 +46,6 @@
 [submodule "assimptor"]
 	path = assimptor
 	url = git@github.com:nathanial/assimptor.git
+[submodule "herald"]
+	path = herald
+	url = git@github.com:nathanial/herald.git
