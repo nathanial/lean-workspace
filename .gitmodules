@@ -55,3 +55,6 @@
 [submodule "scribe"]
 	path = scribe
 	url = git@github.com:nathanial/scribe.git
+[submodule "loom"]
+	path = loom
+	url = git@github.com:nathanial/loom.git
