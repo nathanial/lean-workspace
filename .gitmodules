@@ -58,3 +58,6 @@
 [submodule "loom"]
 	path = loom
 	url = git@github.com:nathanial/loom.git
+[submodule "todo-app"]
+	path = todo-app
+	url = git@github.com:nathanial/todo-app.git
