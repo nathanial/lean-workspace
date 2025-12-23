@@ -47,3 +47,6 @@ After any change, build and run tests. Note that `lake build` only builds the de
 ## Toolchain & Configuration Notes
 - Each project pins its own `lean-toolchain` (Lean 4.25/4.26). Run `lake` per project directory to avoid version mismatches.
 - `afferent` and `chroma` require `./build.sh` to set the macOS toolchain correctly.
+
+
+ALWAYS VERIFY THAT THE CODE COMPILES!!
