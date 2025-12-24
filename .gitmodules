@@ -61,3 +61,6 @@
 [submodule "todo-app"]
 	path = todo-app
 	url = git@github.com:nathanial/todo-app.git
+[submodule "homebase-app"]
+	path = homebase-app
+	url = git@github.com:nathanial/homebase-app
