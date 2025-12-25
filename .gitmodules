@@ -1,66 +1,88 @@
 [submodule "afferent"]
 	path = afferent
 	url = git@github.com:nathanial/afferent.git
+	branch = master
 [submodule "arbor"]
 	path = arbor
 	url = git@github.com:nathanial/arbor.git
+	branch = master
 [submodule "canopy"]
 	path = canopy
 	url = git@github.com:nathanial/canopy.git
+	branch = master
 [submodule "cellar"]
 	path = cellar
 	url = git@github.com:nathanial/cellar.git
+	branch = master
 [submodule "chroma"]
 	path = chroma
 	url = git@github.com:nathanial/chroma.git
+	branch = master
 [submodule "collimator"]
 	path = collimator
 	url = git@github.com:nathanial/collimator.git
+	branch = master
 [submodule "crucible"]
 	path = crucible
 	url = git@github.com:nathanial/crucible.git
+	branch = master
 [submodule "enchiridion"]
 	path = enchiridion
 	url = git@github.com:nathanial/enchiridion.git
+	branch = master
 [submodule "ledger"]
 	path = ledger
 	url = git@github.com:nathanial/ledger.git
+	branch = master
 [submodule "legate"]
 	path = legate
 	url = git@github.com:nathanial/legate.git
+	branch = master
 [submodule "protolean"]
 	path = protolean
 	url = git@github.com:nathanial/protolean.git
+	branch = master
 [submodule "terminus"]
 	path = terminus
 	url = git@github.com:nathanial/terminus.git
+	branch = master
 [submodule "tincture"]
 	path = tincture
 	url = git@github.com:nathanial/tincture.git
+	branch = master
 [submodule "trellis"]
 	path = trellis
 	url = git@github.com:nathanial/trellis.git
+	branch = master
 [submodule "wisp"]
 	path = wisp
 	url = git@github.com:nathanial/wisp.git
+	branch = master
 [submodule "assimptor"]
 	path = assimptor
 	url = git@github.com:nathanial/assimptor.git
+	branch = master
 [submodule "herald"]
 	path = herald
 	url = git@github.com:nathanial/herald.git
+	branch = master
 [submodule "citadel"]
 	path = citadel
 	url = git@github.com:nathanial/citadel.git
+	branch = master
 [submodule "scribe"]
 	path = scribe
 	url = git@github.com:nathanial/scribe.git
+	branch = master
 [submodule "loom"]
 	path = loom
 	url = git@github.com:nathanial/loom.git
+	branch = master
 [submodule "todo-app"]
 	path = todo-app
 	url = git@github.com:nathanial/todo-app.git
+	branch = master
 [submodule "homebase-app"]
 	path = homebase-app
 	url = git@github.com:nathanial/homebase-app
+	branch = master
