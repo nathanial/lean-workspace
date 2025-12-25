@@ -92,3 +92,6 @@
 [submodule "chronicle"]
 	path = chronicle
 	url = git@github.com:nathanial/chronicle.git
+[submodule "quarry"]
+	path = quarry
+	url = git@github.com:nathanial/quarry
