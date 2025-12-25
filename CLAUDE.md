@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 22 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 25 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -25,6 +25,7 @@ This is a Lean 4 workspace containing 22 interconnected projects organized into 
 | **citadel** | HTTP/1.1 server with routing, middleware, and SSE support |
 | **herald** | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
+| **chronicle** | File-based logging library with text/JSON formats and Loom integration |
 
 ### Networking & Protocols
 | Project | Description |
@@ -37,6 +38,7 @@ This is a Lean 4 workspace containing 22 interconnected projects organized into 
 | Project | Description |
 |---------|-------------|
 | **ledger** | Datomic-like fact-based database with time-travel queries |
+| **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
 | **cellar** | Generic disk cache library with LRU eviction |
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
 
@@ -46,6 +48,7 @@ This is a Lean 4 workspace containing 22 interconnected projects organized into 
 | **homebase-app** | Personal dashboard with Kanban, auth, and multiple sections |
 | **todo-app** | Demo todo list application built with Loom |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
+| **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
 
 ### Testing
 | Project | Description |
@@ -221,6 +224,30 @@ cd cellar
 lake build
 ```
 
+### chronicle (Logging Library)
+```bash
+cd chronicle
+lake build
+lake test
+```
+
+### lighthouse (Database Debugger)
+```bash
+cd lighthouse
+lake build
+.lake/build/bin/lighthouse <database.jsonl>  # Inspect a Ledger database
+lake test
+```
+
+### quarry (SQLite Library)
+**Important:** Use `./build.sh` to download SQLite amalgamation on first run.
+```bash
+cd quarry
+./build.sh           # Downloads SQLite and builds
+lake build           # Build library (after SQLite is downloaded)
+lake test            # Run tests
+```
+
 ## Dependency Graph
 
 ### Web Stack Dependencies
@@ -257,6 +284,8 @@ chroma ─────────► afferent      (rendering)
 legate ─────────► protolean     (protobuf serialization)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
+lighthouse ────► terminus       (terminal UI)
+           └───► ledger         (database)
 ```
 
 ### Test Framework Dependencies
@@ -444,6 +473,32 @@ Disk cache with LRU eviction:
 - `Cellar/LRU.lean` - LRU index logic
 - `Cellar/IO.lean` - File IO helpers
 
+### chronicle
+File-based logging with Loom integration:
+- `Chronicle/Level.lean` - Log levels (trace, debug, info, warn, error)
+- `Chronicle/Config.lean` - Logger configuration (path, level, format, stderr)
+- `Chronicle/Format.lean` - Text and JSON output formatters
+- `Chronicle/Logger.lean` - Logger handle, logging methods, withLogger RAII pattern
+- Loom integration via `Loom.Chronicle` module (in loom package)
+
+### lighthouse
+Terminal debugger for Ledger databases:
+- `Lighthouse/Core/` - Database loading and data types
+- `Lighthouse/State/` - Application state and navigation history
+- `Lighthouse/UI/` - View rendering (Entity Browser, Transaction Log, Attribute Index, Query Interface)
+- `Main.lean` - Entry point, key handling, view switching
+
+### quarry
+SQLite library with vendored amalgamation:
+- `Quarry/Core/` - Value, Row, Column, Error types
+- `Quarry/FFI/` - Low-level SQLite bindings
+- `Quarry/Database.lean` - High-level database API (open, exec, query)
+- `Quarry/Bind.lean` - Parameter binding (ToSql typeclass)
+- `Quarry/Extract.lean` - Result extraction (FromSql typeclass)
+- `Quarry/Transaction.lean` - Transaction and savepoint support
+- `native/sqlite/` - SQLite amalgamation (downloaded by build.sh)
+- `native/src/quarry_ffi.c` - C FFI bridge
+
 ## Lean Version
 
 Most projects target Lean 4.26.0. Check individual `lean-toolchain` files for exact versions.
@@ -484,7 +539,7 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, chroma, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, loom, protolean, scribe, terminus, tincture, todo-app, trellis, wisp
+Projects using the **Crucible** test framework: afferent, arbor, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
 
 Projects without a test target: canopy, cellar, crucible (crucible is the test framework itself), assimptor
 

@@ -25,6 +25,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [citadel](citadel/) | HTTP/1.1 server with routing, middleware, and SSE support |
 | [herald](herald/) | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | [scribe](scribe/) | Type-safe monadic HTML builder with HTMX integration |
+| [chronicle](chronicle/) | File-based logging library with text/JSON formats and Loom integration |
 
 ### Networking & Protocols
 
@@ -39,6 +40,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | Project | Description |
 |---------|-------------|
 | [ledger](ledger/) | Datomic-like fact-based database with time-travel queries |
+| [quarry](quarry/) | SQLite library with vendored amalgamation (no system dependencies) |
 | [cellar](cellar/) | Generic disk cache library with LRU eviction |
 | [collimator](collimator/) | Profunctor optics library (lenses, prisms, traversals) |
 
@@ -49,6 +51,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [homebase-app](homebase-app/) | Personal dashboard with Kanban, auth, and multiple sections |
 | [todo-app](todo-app/) | Demo todo list application built with Loom |
 | [enchiridion](enchiridion/) | Terminal novel writing assistant with AI integration |
+| [lighthouse](lighthouse/) | Terminal UI debugger/inspector for Ledger databases |
 
 ### Testing
 
@@ -88,6 +91,8 @@ Other:
 legate ─────────► protolean     (protobuf serialization)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
+lighthouse ────► terminus       (terminal UI)
+           └───► ledger         (database)
 ```
 
 ## Quick Start
@@ -100,7 +105,7 @@ lake build
 lake test  # if available
 ```
 
-Some projects require custom scripts (notably `afferent`, `chroma`, and `assimptor` use `./build.sh` to set the macOS toolchain). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, and `quarry` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 

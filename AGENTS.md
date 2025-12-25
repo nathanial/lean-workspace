@@ -2,17 +2,17 @@
 
 ## Overview
 
-This workspace contains 22 independent Lean 4 projects organized into several stacks:
+This workspace contains 25 independent Lean 4 projects organized into several stacks:
 
 **Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`
 
-**Web Framework:** `loom`, `citadel`, `herald`, `scribe`
+**Web Framework:** `loom`, `citadel`, `herald`, `scribe`, `chronicle`
 
 **Networking:** `wisp`, `legate`, `protolean`
 
-**Data & Storage:** `ledger`, `cellar`, `collimator`
+**Data & Storage:** `ledger`, `quarry`, `cellar`, `collimator`
 
-**Applications:** `homebase-app`, `todo-app`, `enchiridion`
+**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`
 
 **Testing:** `crucible`
 
@@ -28,6 +28,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **canopy** | Desktop widget framework built on top of Arbor |
 | **cellar** | Generic disk cache library with LRU eviction |
 | **chroma** | Color picker application built on afferent/arbor |
+| **chronicle** | File-based logging library with text/JSON formats and Loom integration |
 | **citadel** | HTTP/1.1 server with routing, middleware, and SSE support |
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
 | **crucible** | Lightweight test framework with declarative test macros |
@@ -36,8 +37,10 @@ Each project is built and tested from its own directory. Architectural details l
 | **homebase-app** | Personal dashboard with Kanban, auth, and multiple sections |
 | **ledger** | Datomic-like fact-based database with time-travel queries |
 | **legate** | Generic gRPC library with all streaming modes |
+| **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
 | **loom** | Rails-like web framework integrating Citadel, Scribe, and Ledger |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
+| **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
 | **terminus** | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | **tincture** | Color library with RGBA/HSV support and color operations |
@@ -69,6 +72,7 @@ These projects require `./build.sh` instead of `lake build` directly:
 - **afferent**: `./build.sh`, `./run.sh`, `./test.sh`
 - **chroma**: `./build.sh`, `./run.sh`
 - **assimptor**: `./build.sh` (builds vendored Assimp on first run)
+- **quarry**: `./build.sh` (downloads SQLite amalgamation on first run)
 
 ### Web Applications
 ```bash
@@ -109,7 +113,7 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, chroma, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, loom, protolean, scribe, terminus, tincture, todo-app, trellis, wisp
+**Projects with tests:** afferent, arbor, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
 
 **Projects without tests:** assimptor, canopy, cellar, crucible (crucible is the test framework itself)
 
@@ -138,6 +142,7 @@ chroma ─────────► afferent, arbor, trellis, tincture
 ```
 legate ─────────► protolean
 enchiridion ───► terminus, wisp
+lighthouse ────► terminus, ledger
 ```
 
 ### External Dependencies
