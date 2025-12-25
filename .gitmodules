@@ -95,3 +95,6 @@
 [submodule "quarry"]
 	path = quarry
 	url = git@github.com:nathanial/quarry
+[submodule "worldmap"]
+	path = worldmap
+	url = git@github.com:nathanial/worldmap.git
