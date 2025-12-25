@@ -198,6 +198,10 @@ deps:
 versions:
     @git submodule foreach --quiet 'printf "%-15s %s\n" "$name:" "$(cat lean-toolchain 2>/dev/null || echo "no toolchain")"'
 
+# Count lines of Lean code across all projects
+lines:
+    @./scripts/count-lean-lines.sh
+
 # Run a command in all submodules
 foreach cmd:
     git submodule foreach '{{cmd}}'

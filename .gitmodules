@@ -86,3 +86,6 @@
 	path = homebase-app
 	url = git@github.com:nathanial/homebase-app
 	branch = master
+[submodule "lighthouse"]
+	path = lighthouse
+	url = git@github.com:nathanial/lighthouse.git

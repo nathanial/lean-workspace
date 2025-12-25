@@ -1,50 +1,93 @@
 # Lean Workspace
 
-A collection of Lean 4 libraries for building applications with terminal UIs, graphics, networking, and data management.
+A collection of Lean 4 libraries for building applications with terminal UIs, graphics, networking, web frameworks, and data management.
 
 ## Projects
 
-| Project | Description | Links |
-|---------|-------------|-------|
-| [afferent](afferent/) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS) | |
-| [arbor](arbor/) | Renderer-agnostic widget library that emits render commands | |
-| [canopy](canopy/) | Desktop widget framework built on top of Arbor | |
-| [cellar](cellar/) | Generic disk cache library with LRU eviction | |
-| [chroma](chroma/) | Color picker application built on afferent/arbor | |
-| [collimator](collimator/) | Profunctor optics library (lenses, prisms, traversals) | |
-| [crucible](crucible/) | Lightweight test framework with declarative test macros | |
-| [enchiridion](enchiridion/) | Terminal novel writing assistant with AI integration | |
-| [ledger](ledger/) | Datomic-like fact-based database with time-travel queries | |
-| [legate](legate/) | Generic gRPC library with all streaming modes | |
-| [protolean](protolean/) | Protocol Buffers implementation with compile-time `proto_import` | |
-| [terminus](terminus/) | Terminal UI library (ratatui-style) with widgets, layouts, and styling | |
-| [tincture](tincture/) | Color library with RGBA/HSV support and color operations | |
-| [trellis](trellis/) | Pure CSS layout computation (Flexbox and Grid) | |
-| [wisp](wisp/) | HTTP client library with libcurl FFI bindings | |
+### Graphics & UI
+
+| Project | Description |
+|---------|-------------|
+| [afferent](afferent/) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS) |
+| [arbor](arbor/) | Renderer-agnostic widget library that emits render commands |
+| [canopy](canopy/) | Desktop widget framework built on top of Arbor |
+| [terminus](terminus/) | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
+| [trellis](trellis/) | Pure CSS layout computation (Flexbox and Grid) |
+| [tincture](tincture/) | Color library with RGBA/HSV support and color operations |
+| [chroma](chroma/) | Color picker application built on afferent/arbor |
+| [assimptor](assimptor/) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
+
+### Web Framework Stack
+
+| Project | Description |
+|---------|-------------|
+| [loom](loom/) | Rails-like web framework integrating Citadel, Scribe, and Ledger |
+| [citadel](citadel/) | HTTP/1.1 server with routing, middleware, and SSE support |
+| [herald](herald/) | HTTP/1.1 message parser (requests, responses, chunked encoding) |
+| [scribe](scribe/) | Type-safe monadic HTML builder with HTMX integration |
+
+### Networking & Protocols
+
+| Project | Description |
+|---------|-------------|
+| [wisp](wisp/) | HTTP client library with libcurl FFI bindings |
+| [legate](legate/) | Generic gRPC library with all streaming modes |
+| [protolean](protolean/) | Protocol Buffers implementation with compile-time `proto_import` |
+
+### Data & Storage
+
+| Project | Description |
+|---------|-------------|
+| [ledger](ledger/) | Datomic-like fact-based database with time-travel queries |
+| [cellar](cellar/) | Generic disk cache library with LRU eviction |
+| [collimator](collimator/) | Profunctor optics library (lenses, prisms, traversals) |
+
+### Applications
+
+| Project | Description |
+|---------|-------------|
+| [homebase-app](homebase-app/) | Personal dashboard with Kanban, auth, and multiple sections |
+| [todo-app](todo-app/) | Demo todo list application built with Loom |
+| [enchiridion](enchiridion/) | Terminal novel writing assistant with AI integration |
+
+### Testing
+
+| Project | Description |
+|---------|-------------|
+| [crucible](crucible/) | Lightweight test framework with declarative test macros |
 
 ## Dependency Graph
 
 ```
+Web Stack:
+loom ───────────► citadel       (HTTP server)
+     ├──────────► scribe        (HTML builder)
+     ├──────────► ledger        (database)
+     └──────────► herald        (HTTP parser, via citadel)
+citadel ────────► herald        (HTTP parser)
+homebase-app ───► loom          (web framework)
+todo-app ───────► loom          (web framework)
+
+Graphics Stack:
 afferent ───────► collimator    (profunctor optics)
          ├──────► wisp          (HTTP client)
          ├──────► cellar        (disk cache)
          ├──────► trellis       (layout)
          ├──────► arbor         (widgets)
-         └──────► tincture      (color)
+         ├──────► tincture      (color)
+         └──────► assimptor     (3D models)
 arbor ──────────► trellis       (layout)
-      └────────► tincture      (color)
+      └─────────► tincture      (color)
 canopy ─────────► arbor         (widgets)
 chroma ─────────► afferent      (rendering)
-      ├────────► arbor          (widgets)
-      ├────────► trellis        (layout)
-      └────────► tincture       (color)
+       ├────────► arbor         (widgets)
+       ├────────► trellis       (layout)
+       └────────► tincture      (color)
+
+Other:
 legate ─────────► protolean     (protobuf serialization)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
-collimator ─────► crucible      (test framework)
-trellis ─────────► crucible     (test framework)
-tincture ────────► crucible     (test framework)
-wisp ───────────► crucible      (test framework)
 ```
 
 ## Quick Start
@@ -57,28 +100,46 @@ lake build
 lake test  # if available
 ```
 
-Some projects require custom scripts (notably `afferent` and `chroma` use `./build.sh` to set the macOS toolchain). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `afferent`, `chroma`, and `assimptor` use `./build.sh` to set the macOS toolchain). See individual project READMEs for specific build instructions.
 
-## Workspace Scripts
+## Workspace Management
 
-Helper scripts for managing multiple git repositories:
+### Justfile (Recommended)
+
+The workspace includes a `justfile` for common operations. Run `just` to see all recipes:
 
 ```bash
-# Check which projects have uncommitted changes
-./scripts/git-status.sh
-./scripts/git-status.sh -v  # verbose
+# Git/submodule operations
+just status              # Show status of all submodules
+just fetch               # Fetch from all remotes
+just pull                # Pull latest in all submodules
+just push                # Push submodules with unpushed commits
 
-# Commit and push all projects at once
-./scripts/git-add-commit-push.sh "Your commit message"
+# Building and testing
+just build <project>     # Build a specific project
+just build-all           # Build all projects
+just test <project>      # Test a specific project
+just test-all            # Test all projects
 
-# Or step by step:
-./scripts/git-commit-all.sh "message"  # commit staged changes
-./scripts/git-push-all.sh              # push all
+# Utilities
+just versions            # Show Lean versions across all projects
+just lines               # Count lines of Lean code
+just deps                # Show dependency graph
+```
+
+### Shell Scripts
+
+Helper scripts in `scripts/` for advanced operations:
+
+```bash
+./scripts/git-status.sh              # Check which projects have changes
+./scripts/git-add-commit-push.sh "msg"  # Stage, commit, and push all
+./scripts/count-lean-lines.sh        # Count Lean code lines
 ```
 
 ## Requirements
 
-- Lean 4.25.x or 4.26.x (check individual `lean-toolchain` files)
+- Lean 4.26.x (check individual `lean-toolchain` files)
 - Platform-specific dependencies vary by project (see individual READMEs)
 
 ## License
