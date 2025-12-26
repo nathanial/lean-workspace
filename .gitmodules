@@ -98,3 +98,6 @@
 [submodule "worldmap"]
 	path = worldmap
 	url = git@github.com:nathanial/worldmap.git
+[submodule "staple"]
+	path = staple
+	url = git@github.com:nathanial/staple.git
