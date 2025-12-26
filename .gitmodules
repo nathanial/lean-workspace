@@ -107,3 +107,6 @@
 [submodule "chisel"]
 	path = chisel
 	url = git@github.com:nathanial/chisel.git
+[submodule "parlance"]
+	path = parlance
+	url = git@github.com:nathanial/parlance.git
