@@ -104,3 +104,6 @@
 [submodule "oracle"]
 	path = oracle
 	url = git@github.com:nathanial/oracle.git
+[submodule "chisel"]
+	path = chisel
+	url = git@github.com:nathanial/chisel.git
