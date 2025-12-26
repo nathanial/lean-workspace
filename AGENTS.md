@@ -2,17 +2,19 @@
 
 ## Overview
 
-This workspace contains 25 independent Lean 4 projects organized into several stacks:
+This workspace contains 30 independent Lean 4 projects organized into several stacks:
 
-**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`
+**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`
 
 **Web Framework:** `loom`, `citadel`, `herald`, `scribe`, `chronicle`
 
-**Networking:** `wisp`, `legate`, `protolean`
+**Networking:** `wisp`, `legate`, `protolean`, `oracle`
 
-**Data & Storage:** `ledger`, `quarry`, `cellar`, `collimator`
+**Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`
 
 **Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`
+
+**CLI & Utilities:** `parlance`, `staple`
 
 **Testing:** `crucible`
 
@@ -27,6 +29,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | **canopy** | Desktop widget framework built on top of Arbor |
 | **cellar** | Generic disk cache library with LRU eviction |
+| **chisel** | Type-safe SQL DSL with compile-time validation |
 | **chroma** | Color picker application built on afferent/arbor |
 | **chronicle** | File-based logging library with text/JSON formats and Loom integration |
 | **citadel** | HTTP/1.1 server with routing, middleware, and SSE support |
@@ -39,14 +42,18 @@ Each project is built and tested from its own directory. Architectural details l
 | **legate** | Generic gRPC library with all streaming modes |
 | **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
 | **loom** | Rails-like web framework integrating Citadel, Scribe, and Ledger |
+| **oracle** | OpenRouter API client with streaming and tool calling |
+| **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
 | **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
+| **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
 | **terminus** | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | **tincture** | Color library with RGBA/HSV support and color operations |
 | **todo-app** | Demo todo list application built with Loom |
 | **trellis** | Pure CSS layout computation (Flexbox and Grid) |
 | **wisp** | HTTP client library with libcurl FFI bindings |
+| **worldmap** | Tile-based map viewer with Web Mercator projection |
 
 ## Project Structure & Module Organization
 
@@ -73,6 +80,7 @@ These projects require `./build.sh` instead of `lake build` directly:
 - **chroma**: `./build.sh`, `./run.sh`
 - **assimptor**: `./build.sh` (builds vendored Assimp on first run)
 - **quarry**: `./build.sh` (downloads SQLite amalgamation on first run)
+- **worldmap**: `./build.sh`, `./run.sh` (depends on afferent for Metal rendering)
 
 ### Web Applications
 ```bash
@@ -113,9 +121,9 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
+**Projects with tests:** afferent, arbor, chisel, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
 
-**Projects without tests:** assimptor, canopy, cellar, crucible (crucible is the test framework itself)
+**Projects without tests:** assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
 ## Dependency Graph
 
@@ -136,11 +144,13 @@ afferent ───────► collimator, wisp, cellar, trellis, arbor, tinc
 arbor ──────────► trellis, tincture
 canopy ─────────► arbor
 chroma ─────────► afferent, arbor, trellis, tincture
+worldmap ───────► afferent, wisp, cellar
 ```
 
 ### Other
 ```
 legate ─────────► protolean
+oracle ─────────► wisp
 enchiridion ───► terminus, wisp
 lighthouse ────► terminus, ledger
 ```

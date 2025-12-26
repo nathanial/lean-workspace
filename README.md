@@ -16,6 +16,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [tincture](tincture/) | Color library with RGBA/HSV support and color operations |
 | [chroma](chroma/) | Color picker application built on afferent/arbor |
 | [assimptor](assimptor/) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
+| [worldmap](worldmap/) | Tile-based map viewer with Web Mercator projection |
 
 ### Web Framework Stack
 
@@ -34,6 +35,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [wisp](wisp/) | HTTP client library with libcurl FFI bindings |
 | [legate](legate/) | Generic gRPC library with all streaming modes |
 | [protolean](protolean/) | Protocol Buffers implementation with compile-time `proto_import` |
+| [oracle](oracle/) | OpenRouter API client with streaming and tool calling |
 
 ### Data & Storage
 
@@ -41,6 +43,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 |---------|-------------|
 | [ledger](ledger/) | Datomic-like fact-based database with time-travel queries |
 | [quarry](quarry/) | SQLite library with vendored amalgamation (no system dependencies) |
+| [chisel](chisel/) | Type-safe SQL DSL with compile-time validation |
 | [cellar](cellar/) | Generic disk cache library with LRU eviction |
 | [collimator](collimator/) | Profunctor optics library (lenses, prisms, traversals) |
 
@@ -52,6 +55,13 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [todo-app](todo-app/) | Demo todo list application built with Loom |
 | [enchiridion](enchiridion/) | Terminal novel writing assistant with AI integration |
 | [lighthouse](lighthouse/) | Terminal UI debugger/inspector for Ledger databases |
+
+### CLI & Utilities
+
+| Project | Description |
+|---------|-------------|
+| [parlance](parlance/) | CLI library with argument parsing, styled output, and progress indicators |
+| [staple](staple/) | Essential utilities and macros (include_str% for compile-time file embedding) |
 
 ### Testing
 
@@ -86,9 +96,13 @@ chroma ─────────► afferent      (rendering)
        ├────────► arbor         (widgets)
        ├────────► trellis       (layout)
        └────────► tincture      (color)
+worldmap ───────► afferent      (rendering)
+         ├──────► wisp          (HTTP client)
+         └──────► cellar        (disk cache)
 
 Other:
 legate ─────────► protolean     (protobuf serialization)
+oracle ─────────► wisp          (HTTP client)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
 lighthouse ────► terminus       (terminal UI)

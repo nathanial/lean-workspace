@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 25 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 30 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -17,6 +17,7 @@ This is a Lean 4 workspace containing 25 interconnected projects organized into 
 | **tincture** | Color library with RGBA/HSV support and color utilities |
 | **chroma** | Color picker application built on afferent/arbor |
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
+| **worldmap** | Tile-based map viewer with Web Mercator projection |
 
 ### Web Framework Stack
 | Project | Description |
@@ -33,12 +34,14 @@ This is a Lean 4 workspace containing 25 interconnected projects organized into 
 | **wisp** | HTTP client library with libcurl FFI bindings |
 | **legate** | Generic gRPC library with all streaming modes |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
+| **oracle** | OpenRouter API client with streaming and tool calling |
 
 ### Data & Storage
 | Project | Description |
 |---------|-------------|
 | **ledger** | Datomic-like fact-based database with time-travel queries |
 | **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
+| **chisel** | Type-safe SQL DSL with compile-time validation |
 | **cellar** | Generic disk cache library with LRU eviction |
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
 
@@ -49,6 +52,12 @@ This is a Lean 4 workspace containing 25 interconnected projects organized into 
 | **todo-app** | Demo todo list application built with Loom |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
 | **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
+
+### CLI & Utilities
+| Project | Description |
+|---------|-------------|
+| **parlance** | CLI library with argument parsing, styled output, and progress indicators |
+| **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
 
 ### Testing
 | Project | Description |
@@ -120,6 +129,14 @@ cd chroma
 ```bash
 cd assimptor
 ./build.sh           # Build the project (first run builds Assimp)
+```
+
+### worldmap (Map Viewer)
+**Important:** Use `./build.sh` instead of `lake build` directly.
+```bash
+cd worldmap
+./build.sh           # Build the project
+./run.sh             # Build and run the map viewer
 ```
 
 ### loom (Web Framework)
@@ -248,6 +265,33 @@ lake build           # Build library (after SQLite is downloaded)
 lake test            # Run tests
 ```
 
+### chisel (SQL DSL)
+```bash
+cd chisel
+lake build
+lake test
+```
+
+### oracle (OpenRouter Client)
+```bash
+cd oracle
+lake build
+lake test
+```
+
+### parlance (CLI Library)
+```bash
+cd parlance
+lake build
+lake test
+```
+
+### staple (Utilities)
+```bash
+cd staple
+lake build
+```
+
 ## Dependency Graph
 
 ### Web Stack Dependencies
@@ -277,11 +321,15 @@ chroma ─────────► afferent      (rendering)
        ├────────► arbor         (widgets)
        ├────────► trellis       (layout)
        └────────► tincture      (color)
+worldmap ───────► afferent      (rendering)
+         ├──────► wisp          (HTTP client)
+         └──────► cellar        (disk cache)
 ```
 
 ### Other Dependencies
 ```
 legate ─────────► protolean     (protobuf serialization)
+oracle ─────────► wisp          (HTTP client)
 enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
 lighthouse ────► terminus       (terminal UI)
@@ -355,6 +403,17 @@ Color picker application using afferent, arbor, trellis, and tincture.
 - `native/src/common/assimp_loader.cpp` - C++ Assimp integration
 - `native/src/lean_bridge.c` - Lean FFI bridge
 - Supports FBX, OBJ, COLLADA, and other formats
+
+### worldmap
+Tile-based map viewer with Web Mercator projection:
+- `Worldmap/TileCoord.lean` - Tile coordinates, Web Mercator projection
+- `Worldmap/Viewport.lean` - Screen to geographic coordinate transforms
+- `Worldmap/Zoom.lean` - Zoom-to-point (cursor anchoring)
+- `Worldmap/TileCache.lean` - In-memory tile cache with retry state
+- `Worldmap/TileDiskCache.lean` - Disk cache using Cellar library
+- `Worldmap/State.lean` - Complete map application state
+- `Worldmap/Input.lean` - Mouse/keyboard input handling
+- `Worldmap/Render.lean` - Async tile loading and rendering
 
 ### loom
 Rails-like web framework:
@@ -499,6 +558,42 @@ SQLite library with vendored amalgamation:
 - `native/sqlite/` - SQLite amalgamation (downloaded by build.sh)
 - `native/src/quarry_ffi.c` - C FFI bridge
 
+### chisel
+Type-safe SQL DSL with compile-time validation:
+- `Chisel/Expr.lean` - SQL expressions (columns, literals, operators)
+- `Chisel/Select.lean` - SELECT query builder
+- `Chisel/Insert.lean` - INSERT statement builder
+- `Chisel/Update.lean` - UPDATE statement builder
+- `Chisel/Delete.lean` - DELETE statement builder
+- `Chisel/DDL.lean` - CREATE TABLE, INDEX, ALTER, DROP
+- `Chisel/Render.lean` - SQL string rendering with dialect support
+- Supports SQLite, PostgreSQL, MySQL parameter styles
+
+### oracle
+OpenRouter API client with streaming and tool calling:
+- `Oracle/Config.lean` - Client configuration (API key, model, timeout)
+- `Oracle/Message.lean` - Message types (system, user, assistant, tool)
+- `Oracle/Request.lean` - ChatRequest builder with parameters
+- `Oracle/Response.lean` - ChatResponse parsing
+- `Oracle/Tool.lean` - Tool/function calling definitions
+- `Oracle/Stream.lean` - SSE streaming support
+- `Oracle/Client.lean` - High-level client API (prompt, complete, chat)
+- `Oracle/Error.lean` - Error types with retry detection
+
+### parlance
+CLI library with argument parsing and styled output:
+- `Parlance/Core/` - ArgType, Flag, Arg, Command, ParseResult, ParseError
+- `Parlance/Parse/` - Tokenizer, Parser, Extractor
+- `Parlance/Command/` - CommandM builder monad, help text generation
+- `Parlance/Style/` - ANSI colors (16/256/RGB), modifiers, styled text
+- `Parlance/Output/` - Spinner, Progress bar, Table rendering
+- Semantic helpers: printError, printWarning, printSuccess, printInfo
+
+### staple
+Essential utilities and macros:
+- `Staple/IncludeStr.lean` - `include_str%` macro for compile-time file embedding
+- Paths resolved relative to source file
+
 ## Lean Version
 
 Most projects target Lean 4.26.0. Check individual `lean-toolchain` files for exact versions.
@@ -539,9 +634,9 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
+Projects using the **Crucible** test framework: afferent, arbor, chisel, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
 
-Projects without a test target: canopy, cellar, crucible (crucible is the test framework itself), assimptor
+Projects without a test target: assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
 ## Workspace Management
 
