@@ -101,3 +101,6 @@
 [submodule "staple"]
 	path = staple
 	url = git@github.com:nathanial/staple.git
+[submodule "oracle"]
+	path = oracle
+	url = git@github.com:nathanial/oracle.git
