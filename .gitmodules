@@ -116,3 +116,6 @@
 [submodule "fugue"]
 	path = fugue
 	url = git@github.com:nathanial/fugue.git
+[submodule "linalg"]
+	path = linalg
+	url = git@github.com:nathanial/linalg.git
