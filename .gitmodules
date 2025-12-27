@@ -119,3 +119,6 @@
 [submodule "linalg"]
 	path = linalg
 	url = git@github.com:nathanial/linalg.git
+[submodule "twenty48"]
+	path = twenty48
+	url = git@github.com:nathanial/twenty48.git
