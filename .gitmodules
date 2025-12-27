@@ -122,3 +122,9 @@
 [submodule "twenty48"]
 	path = twenty48
 	url = git@github.com:nathanial/twenty48.git
+[submodule "measures"]
+	path = measures
+	url = git@github.com:nathanial/measures.git
+[submodule "vane"]
+	path = vane
+	url = git@github.com:nathanial/vane.git

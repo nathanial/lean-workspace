@@ -18,6 +18,13 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [assimptor](assimptor/) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | [worldmap](worldmap/) | Tile-based map viewer with Web Mercator projection |
 
+### Scientific & Math
+
+| Project | Description |
+|---------|-------------|
+| [linalg](linalg/) | Linear algebra library for game math (vectors, matrices, quaternions) |
+| [measures](measures/) | Type-safe units of measure with compile-time dimension checking |
+
 ### Web Framework Stack
 
 | Project | Description |
@@ -37,6 +44,12 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [protolean](protolean/) | Protocol Buffers implementation with compile-time `proto_import` |
 | [oracle](oracle/) | OpenRouter API client with streaming and tool calling |
 
+### Audio
+
+| Project | Description |
+|---------|-------------|
+| [fugue](fugue/) | Functional sound synthesis library with macOS AudioToolbox FFI |
+
 ### Data & Storage
 
 | Project | Description |
@@ -55,6 +68,8 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [todo-app](todo-app/) | Demo todo list application built with Loom |
 | [enchiridion](enchiridion/) | Terminal novel writing assistant with AI integration |
 | [lighthouse](lighthouse/) | Terminal UI debugger/inspector for Ledger databases |
+| [blockfall](blockfall/) | Terminal Tetris-like falling block puzzle game |
+| [twenty48](twenty48/) | Terminal 2048 sliding puzzle game |
 
 ### CLI & Utilities
 
@@ -107,6 +122,8 @@ enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
 lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
+blockfall ─────► terminus       (terminal UI)
+twenty48 ──────► terminus       (terminal UI)
 ```
 
 ## Quick Start
@@ -119,7 +136,7 @@ lake build
 lake test  # if available
 ```
 
-Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, and `quarry` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, `quarry`, and `fugue` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 

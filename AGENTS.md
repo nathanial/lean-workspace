@@ -2,9 +2,11 @@
 
 ## Overview
 
-This workspace contains 30 independent Lean 4 projects organized into several stacks:
+This workspace contains 35 independent Lean 4 projects organized into several stacks:
 
 **Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`
+
+**Scientific & Math:** `linalg`, `measures`
 
 **Web Framework:** `loom`, `citadel`, `herald`, `scribe`, `chronicle`
 
@@ -12,7 +14,9 @@ This workspace contains 30 independent Lean 4 projects organized into several st
 
 **Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`
 
-**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`
+**Audio:** `fugue`
+
+**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`, `blockfall`, `twenty48`
 
 **CLI & Utilities:** `parlance`, `staple`
 
@@ -27,6 +31,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **afferent** | 2D/3D graphics and UI framework with Metal GPU rendering (macOS) |
 | **arbor** | Renderer-agnostic widget library that emits render commands |
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
+| **blockfall** | Terminal Tetris-like falling block puzzle game |
 | **canopy** | Desktop widget framework built on top of Arbor |
 | **cellar** | Generic disk cache library with LRU eviction |
 | **chisel** | Type-safe SQL DSL with compile-time validation |
@@ -36,12 +41,15 @@ Each project is built and tested from its own directory. Architectural details l
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
 | **crucible** | Lightweight test framework with declarative test macros |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
+| **fugue** | Functional sound synthesis library with macOS AudioToolbox FFI |
 | **herald** | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | **homebase-app** | Personal dashboard with Kanban, auth, and multiple sections |
 | **ledger** | Datomic-like fact-based database with time-travel queries |
 | **legate** | Generic gRPC library with all streaming modes |
 | **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
+| **linalg** | Linear algebra library for game math (vectors, matrices, quaternions) |
 | **loom** | Rails-like web framework integrating Citadel, Scribe, and Ledger |
+| **measures** | Type-safe units of measure with compile-time dimension checking |
 | **oracle** | OpenRouter API client with streaming and tool calling |
 | **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
@@ -52,6 +60,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **tincture** | Color library with RGBA/HSV support and color operations |
 | **todo-app** | Demo todo list application built with Loom |
 | **trellis** | Pure CSS layout computation (Flexbox and Grid) |
+| **twenty48** | Terminal 2048 sliding puzzle game |
 | **wisp** | HTTP client library with libcurl FFI bindings |
 | **worldmap** | Tile-based map viewer with Web Mercator projection |
 
@@ -81,6 +90,7 @@ These projects require `./build.sh` instead of `lake build` directly:
 - **assimptor**: `./build.sh` (builds vendored Assimp on first run)
 - **quarry**: `./build.sh` (downloads SQLite amalgamation on first run)
 - **worldmap**: `./build.sh`, `./run.sh` (depends on afferent for Metal rendering)
+- **fugue**: `./build.sh`, `./test.sh` (macOS AudioToolbox FFI)
 
 ### Web Applications
 ```bash
@@ -121,7 +131,7 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, chisel, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
+**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, wisp
 
 **Projects without tests:** assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
@@ -153,6 +163,8 @@ legate ─────────► protolean
 oracle ─────────► wisp
 enchiridion ───► terminus, wisp
 lighthouse ────► terminus, ledger
+blockfall ─────► terminus
+twenty48 ──────► terminus
 ```
 
 ### External Dependencies

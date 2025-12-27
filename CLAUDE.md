@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 30 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 35 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -18,6 +18,12 @@ This is a Lean 4 workspace containing 30 interconnected projects organized into 
 | **chroma** | Color picker application built on afferent/arbor |
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | **worldmap** | Tile-based map viewer with Web Mercator projection |
+
+### Scientific & Math
+| Project | Description |
+|---------|-------------|
+| **linalg** | Linear algebra library for game math (vectors, matrices, quaternions) |
+| **measures** | Type-safe units of measure with compile-time dimension checking |
 
 ### Web Framework Stack
 | Project | Description |
@@ -36,6 +42,11 @@ This is a Lean 4 workspace containing 30 interconnected projects organized into 
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
 | **oracle** | OpenRouter API client with streaming and tool calling |
 
+### Audio
+| Project | Description |
+|---------|-------------|
+| **fugue** | Functional sound synthesis library with macOS AudioToolbox FFI |
+
 ### Data & Storage
 | Project | Description |
 |---------|-------------|
@@ -52,6 +63,8 @@ This is a Lean 4 workspace containing 30 interconnected projects organized into 
 | **todo-app** | Demo todo list application built with Loom |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
 | **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
+| **blockfall** | Terminal Tetris-like falling block puzzle game |
+| **twenty48** | Terminal 2048 sliding puzzle game |
 
 ### CLI & Utilities
 | Project | Description |
@@ -292,6 +305,45 @@ cd staple
 lake build
 ```
 
+### linalg (Linear Algebra)
+```bash
+cd linalg
+lake build
+lake test
+```
+
+### measures (Units of Measure)
+```bash
+cd measures
+lake build
+lake test
+```
+
+### fugue (Sound Synthesis)
+**Important:** Use `./build.sh` instead of `lake build` directly (macOS AudioToolbox FFI).
+```bash
+cd fugue
+./build.sh           # Build the project
+./build.sh demo      # Build demo
+./test.sh            # Run tests
+```
+
+### blockfall (Tetris Game)
+```bash
+cd blockfall
+lake build
+.lake/build/bin/blockfall  # Run the game
+lake test
+```
+
+### twenty48 (2048 Game)
+```bash
+cd twenty48
+lake build
+.lake/build/bin/twenty48   # Run the game
+lake test
+```
+
 ## Dependency Graph
 
 ### Web Stack Dependencies
@@ -334,6 +386,8 @@ enchiridion ───► terminus       (terminal UI)
             └──► wisp           (HTTP client)
 lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
+blockfall ─────► terminus       (terminal UI)
+twenty48 ──────► terminus       (terminal UI)
 ```
 
 ### Test Framework Dependencies
@@ -594,6 +648,59 @@ Essential utilities and macros:
 - `Staple/IncludeStr.lean` - `include_str%` macro for compile-time file embedding
 - Paths resolved relative to source file
 
+### linalg
+Linear algebra library for game math:
+- `Linalg/Vec2.lean`, `Vec3.lean`, `Vec4.lean` - Vector types with algebra operations
+- `Linalg/Mat2.lean`, `Mat3.lean`, `Mat4.lean` - Column-major matrices (GPU-compatible)
+- `Linalg/Quat.lean` - Quaternion rotation with slerp interpolation
+- `Linalg/Transform.lean` - Composite transformations
+- `Linalg/Geometry/` - Ray, AABB, Sphere, Plane primitives and intersection tests
+- `Linalg/Affine2D.lean`, `Rotation2D.lean` - 2D affine transforms
+- `Linalg/Curves.lean` - Parametric curves (Bezier, splines)
+- `Linalg/Easing.lean` - Animation easing functions
+- `Linalg/Noise.lean` - Procedural noise generation
+
+### measures
+Type-safe units of measure with compile-time dimension checking:
+- `Measures/Core/Dimension.lean` - Dimension type with 7 SI base dimension exponents
+- `Measures/Core/Quantity.lean` - Quantity type parameterized by dimension
+- `Measures/Core/Unit.lean` - Unit type with scale factors and offsets
+- `Measures/Dimensions.lean` - Common dimension constants (Length, Mass, Velocity, etc.)
+- `Measures/Ops/Arithmetic.lean` - Add, Sub, Mul, Div for quantities
+- `Measures/Ops/Comparison.lean` - Equality and ordering
+- `Measures/Units/SI.lean` - SI base units, derived units, and SI prefixes
+- `Measures/Units/Imperial.lean` - Imperial length, mass, and volume units
+- `Measures/Units/Temperature.lean` - Celsius, Fahrenheit with offset handling
+- `Measures/Units/Angle.lean` - Radian, degree (dimensionless)
+- `Measures/Units/Time.lean` - Extended time units (minute, hour, day, week)
+
+### fugue
+Functional sound synthesis library:
+- `Fugue/Core/` - Signal type (time → amplitude functions)
+- `Fugue/Osc/` - Oscillators (sine, square, sawtooth, triangle, noise)
+- `Fugue/Env/` - ADSR envelope shaping
+- `Fugue/Combine/` - Signal combinators (mix, scale, sequence)
+- `Fugue/Filter/` - Audio filters
+- `Fugue/Effects/` - Audio effects processing
+- `Fugue/Render/` - Sample rendering at configurable quality
+- `Fugue/Theory/` - Music theory helpers (notes, scales, chords)
+- `Fugue/FFI/` - macOS AudioQueue integration
+- `native/src/fugue_ffi.c` - C audio playback bindings
+
+### blockfall
+Terminal Tetris-like game:
+- `Blockfall/Core/` - Tetromino definitions, board state, collision detection
+- `Blockfall/Game/` - Game loop, scoring, level progression, 7-bag randomizer
+- `Blockfall/UI/` - Terminal rendering with ghost pieces and colors
+- Uses terminus for terminal UI
+
+### twenty48
+Terminal 2048 game:
+- `Twenty48/Core/` - Tile grid, merge logic, move validation
+- `Twenty48/Game/` - Game state, scoring, undo stack, win/lose detection
+- `Twenty48/UI/` - Colored tile rendering, animations
+- Uses terminus for terminal UI
+
 ## Lean Version
 
 Most projects target Lean 4.26.0. Check individual `lean-toolchain` files for exact versions.
@@ -634,7 +741,7 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, chisel, chroma, chronicle, citadel, collimator, enchiridion, herald, homebase-app, ledger, legate, lighthouse, loom, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, wisp
+Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, wisp
 
 Projects without a test target: assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
