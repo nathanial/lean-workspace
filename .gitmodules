@@ -110,3 +110,9 @@
 [submodule "parlance"]
 	path = parlance
 	url = git@github.com:nathanial/parlance.git
+[submodule "blockfall"]
+	path = blockfall
+	url = git@github.com:nathanial/blockfall.git
+[submodule "fugue"]
+	path = fugue
+	url = git@github.com:nathanial/fugue.git
