@@ -17,6 +17,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [chroma](chroma/) | Color picker application built on afferent/arbor |
 | [assimptor](assimptor/) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | [worldmap](worldmap/) | Tile-based map viewer with Web Mercator projection |
+| [vane](vane/) | Hardware-accelerated terminal emulator using Metal (WIP) |
 
 ### Scientific & Math
 
@@ -70,6 +71,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [lighthouse](lighthouse/) | Terminal UI debugger/inspector for Ledger databases |
 | [blockfall](blockfall/) | Terminal Tetris-like falling block puzzle game |
 | [twenty48](twenty48/) | Terminal 2048 sliding puzzle game |
+| [ask](ask/) | Minimal CLI for talking to AI models on OpenRouter |
 
 ### CLI & Utilities
 
@@ -77,6 +79,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 |---------|-------------|
 | [parlance](parlance/) | CLI library with argument parsing, styled output, and progress indicators |
 | [staple](staple/) | Essential utilities and macros (include_str% for compile-time file embedding) |
+| [chronos](chronos/) | Wall clock time library with nanosecond precision (POSIX FFI) |
 
 ### Testing
 
@@ -114,6 +117,7 @@ chroma ─────────► afferent      (rendering)
 worldmap ───────► afferent      (rendering)
          ├──────► wisp          (HTTP client)
          └──────► cellar        (disk cache)
+vane ───────────► afferent      (rendering)
 
 Other:
 legate ─────────► protolean     (protobuf serialization)
@@ -124,6 +128,8 @@ lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
 blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
+ask ───────────► parlance       (CLI library)
+    └──────────► oracle         (OpenRouter client)
 ```
 
 ## Quick Start
@@ -136,7 +142,7 @@ lake build
 lake test  # if available
 ```
 
-Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, `quarry`, and `fugue` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, `quarry`, `fugue`, and `vane` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 

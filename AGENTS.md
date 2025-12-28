@@ -2,9 +2,9 @@
 
 ## Overview
 
-This workspace contains 35 independent Lean 4 projects organized into several stacks:
+This workspace contains 38 independent Lean 4 projects organized into several stacks:
 
-**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`
+**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`, `vane`
 
 **Scientific & Math:** `linalg`, `measures`
 
@@ -16,9 +16,9 @@ This workspace contains 35 independent Lean 4 projects organized into several st
 
 **Audio:** `fugue`
 
-**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`, `blockfall`, `twenty48`
+**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`, `blockfall`, `twenty48`, `ask`
 
-**CLI & Utilities:** `parlance`, `staple`
+**CLI & Utilities:** `parlance`, `staple`, `chronos`
 
 **Testing:** `crucible`
 
@@ -63,6 +63,9 @@ Each project is built and tested from its own directory. Architectural details l
 | **twenty48** | Terminal 2048 sliding puzzle game |
 | **wisp** | HTTP client library with libcurl FFI bindings |
 | **worldmap** | Tile-based map viewer with Web Mercator projection |
+| **vane** | Hardware-accelerated terminal emulator using Metal (WIP) |
+| **ask** | Minimal CLI for talking to AI models on OpenRouter |
+| **chronos** | Wall clock time library with nanosecond precision (POSIX FFI) |
 
 ## Project Structure & Module Organization
 
@@ -91,6 +94,7 @@ These projects require `./build.sh` instead of `lake build` directly:
 - **quarry**: `./build.sh` (downloads SQLite amalgamation on first run)
 - **worldmap**: `./build.sh`, `./run.sh` (depends on afferent for Metal rendering)
 - **fugue**: `./build.sh`, `./test.sh` (macOS AudioToolbox FFI)
+- **vane**: `./build.sh`, `./test.sh` (depends on afferent for Metal rendering)
 
 ### Web Applications
 ```bash
@@ -131,9 +135,9 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, wisp
+**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
 
-**Projects without tests:** assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
+**Projects without tests:** ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
 ## Dependency Graph
 
@@ -155,6 +159,7 @@ arbor ──────────► trellis, tincture
 canopy ─────────► arbor
 chroma ─────────► afferent, arbor, trellis, tincture
 worldmap ───────► afferent, wisp, cellar
+vane ───────────► afferent
 ```
 
 ### Other
@@ -165,6 +170,7 @@ enchiridion ───► terminus, wisp
 lighthouse ────► terminus, ledger
 blockfall ─────► terminus
 twenty48 ──────► terminus
+ask ───────────► parlance, oracle
 ```
 
 ### External Dependencies

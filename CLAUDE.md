@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 35 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 38 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -18,6 +18,7 @@ This is a Lean 4 workspace containing 35 interconnected projects organized into 
 | **chroma** | Color picker application built on afferent/arbor |
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | **worldmap** | Tile-based map viewer with Web Mercator projection |
+| **vane** | Hardware-accelerated terminal emulator using Metal (WIP) |
 
 ### Scientific & Math
 | Project | Description |
@@ -65,12 +66,14 @@ This is a Lean 4 workspace containing 35 interconnected projects organized into 
 | **lighthouse** | Terminal UI debugger/inspector for Ledger databases |
 | **blockfall** | Terminal Tetris-like falling block puzzle game |
 | **twenty48** | Terminal 2048 sliding puzzle game |
+| **ask** | Minimal CLI for talking to AI models on OpenRouter |
 
 ### CLI & Utilities
 | Project | Description |
 |---------|-------------|
 | **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
+| **chronos** | Wall clock time library with nanosecond precision (POSIX FFI) |
 
 ### Testing
 | Project | Description |
@@ -344,6 +347,30 @@ lake build
 lake test
 ```
 
+### ask (OpenRouter CLI)
+```bash
+cd ask
+lake build
+.lake/build/bin/ask "Hello"  # Query AI model
+.lake/build/bin/ask --help   # Show usage
+```
+
+### chronos (Time Library)
+```bash
+cd chronos
+lake build
+lake test
+```
+
+### vane (Terminal Emulator)
+**Important:** Use `./build.sh` instead of `lake build` directly (depends on afferent/Metal).
+```bash
+cd vane
+./build.sh           # Build the project
+lake exe vane        # Run the terminal emulator
+./test.sh            # Run tests
+```
+
 ## Dependency Graph
 
 ### Web Stack Dependencies
@@ -376,6 +403,7 @@ chroma ─────────► afferent      (rendering)
 worldmap ───────► afferent      (rendering)
          ├──────► wisp          (HTTP client)
          └──────► cellar        (disk cache)
+vane ───────────► afferent      (rendering)
 ```
 
 ### Other Dependencies
@@ -388,6 +416,8 @@ lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
 blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
+ask ───────────► parlance       (CLI library)
+    └──────────► oracle         (OpenRouter client)
 ```
 
 ### Test Framework Dependencies
@@ -701,6 +731,28 @@ Terminal 2048 game:
 - `Twenty48/UI/` - Colored tile rendering, animations
 - Uses terminus for terminal UI
 
+### ask
+Minimal OpenRouter CLI:
+- `Main.lean` - Command-line argument parsing and API calls
+- Uses parlance for CLI interface and oracle for OpenRouter API
+- Supports model selection, stdin piping, and streaming responses
+
+### chronos
+Wall clock time library with nanosecond precision:
+- `Chronos/Timestamp.lean` - Unix timestamp with nanoseconds since epoch
+- `Chronos/DateTime.lean` - Broken-down date/time components and conversions
+- `ffi/chronos_ffi.c` - POSIX time FFI (clock_gettime, gmtime_r, localtime_r)
+
+### vane
+Hardware-accelerated terminal emulator (work in progress):
+- `Vane/Core/` - Cell, Buffer, Style, Color types
+- `Vane/Parser/` - VT500-compatible ANSI/VT100 escape sequence parser
+- `Vane/Terminal/` - Terminal state machine with scrollback buffer
+- `Vane/PTY/` - Pseudo-terminal FFI bindings (forkpty)
+- `Vane/Input/` - Keyboard/mouse input encoding
+- `Vane/Render/` - GPU rendering integration via afferent
+- `native/src/pty.c` - PTY FFI implementation
+
 ## Lean Version
 
 Most projects target Lean 4.26.0. Check individual `lean-toolchain` files for exact versions.
@@ -741,9 +793,9 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, wisp
+Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
 
-Projects without a test target: assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
+Projects without a test target: ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
 ## Workspace Management
 
