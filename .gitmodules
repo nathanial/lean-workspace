@@ -137,3 +137,6 @@
 [submodule "grove"]
 	path = grove
 	url = git@github.com:nathanial/grove.git
+[submodule "rune"]
+	path = rune
+	url = git@github.com:nathanial/rune.git
