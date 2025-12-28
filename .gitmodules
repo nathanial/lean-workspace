@@ -134,3 +134,6 @@
 [submodule "ask"]
 	path = ask
 	url = git@github.com:nathanial/ask.git
+[submodule "grove"]
+	path = grove
+	url = git@github.com:nathanial/grove.git
