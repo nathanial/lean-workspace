@@ -140,3 +140,6 @@
 [submodule "rune"]
 	path = rune
 	url = git@github.com:nathanial/rune.git
+[submodule "timeout"]
+	path = timeout
+	url = git@github.com:nathanial/timeout.git
