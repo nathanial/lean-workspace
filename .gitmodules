@@ -128,3 +128,6 @@
 [submodule "vane"]
 	path = vane
 	url = git@github.com:nathanial/vane.git
+[submodule "chronos"]
+	path = chronos
+	url = git@github.com:nathanial/chronos-lean.git
