@@ -134,7 +134,7 @@ test-all:
     for dir in terminus protolean legate wisp enchiridion ledger arbor trellis tincture crucible; do
         echo "=== Testing $dir ==="
         cd "$dir"
-        lake test || true
+        lake test
         cd ..
     done
     # Projects with custom test scripts
