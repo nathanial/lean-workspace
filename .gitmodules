@@ -131,3 +131,6 @@
 [submodule "chronos"]
 	path = chronos
 	url = git@github.com:nathanial/chronos-lean.git
+[submodule "ask"]
+	path = ask
+	url = git@github.com:nathanial/ask.git
