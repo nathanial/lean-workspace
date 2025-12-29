@@ -821,3 +821,124 @@ just deps                # Show dependency graph
 ./scripts/generate-local-overrides.sh   # Enable local dev mode
 ./scripts/remove-local-overrides.sh     # Disable local dev mode
 ```
+
+## Versioning and Releases
+
+All projects use GitHub-based dependencies with semantic version tags. This allows each library to be used independently without requiring the full workspace.
+
+### Dependency Reference Format
+
+Each project's `lakefile.lean` references dependencies via GitHub:
+
+```lean
+require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
+require staple from git "https://github.com/nathanial/staple" @ "v0.0.1"
+```
+
+### Dependency Tiers
+
+Projects are organized into tiers based on their dependencies. **When releasing a new version, projects must be tagged in tier order** (dependencies before dependents):
+
+| Tier | Projects | Dependencies |
+|------|----------|--------------|
+| **0** | crucible, staple, cellar, assimptor | None (leaf nodes) |
+| **1** | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry | Only Tier 0 |
+| **2** | citadel, legate, oracle, parlance, arbor, blockfall, twenty48 | Tier 0-1 |
+| **3** | loom, afferent, canopy, ask, lighthouse, enchiridion | Tier 0-2 |
+| **4** | todo-app, homebase-app, chroma, vane, worldmap, grove | Tier 0-3 |
+
+### Releasing a New Version
+
+When making changes to a library that other projects depend on:
+
+#### 1. Update the Library
+```bash
+cd <project>
+# Make your changes
+lake build && lake test
+git add -A && git commit -m "Description of changes"
+git push origin master
+```
+
+#### 2. Tag the New Version
+```bash
+git tag v0.0.2  # Increment version appropriately
+git push origin v0.0.2
+```
+
+#### 3. Update Downstream Projects
+For each project that depends on the updated library:
+```bash
+cd <downstream-project>
+# Edit lakefile.lean to update the version tag
+# Change: @ "v0.0.1" → @ "v0.0.2"
+lake update  # Fetch new dependency
+lake build && lake test
+git add lakefile.lean && git commit -m "Update <dep> to v0.0.2"
+git push origin master
+```
+
+#### 4. Tag Downstream Projects (if releasing them too)
+If you're releasing new versions of downstream projects:
+```bash
+git tag v0.0.2
+git push origin v0.0.2
+```
+
+### Example: Updating crucible
+
+Since `crucible` is a Tier 0 dependency used by almost all projects, updating it requires updating many downstream projects:
+
+```bash
+# 1. Update crucible
+cd crucible
+# ... make changes ...
+git add -A && git commit -m "Add new assertion helper"
+git push origin master
+git tag v0.0.2 && git push origin v0.0.2
+
+# 2. Update Tier 1 projects that use crucible
+for project in herald trellis collimator protolean scribe chronicle terminus fugue linalg chronos measures rune tincture wisp chisel ledger quarry; do
+  cd /Users/Shared/Projects/lean-workspace/$project
+  # Edit lakefile.lean: crucible @ "v0.0.1" → @ "v0.0.2"
+  lake update
+  git add lakefile.lean && git commit -m "Update crucible to v0.0.2"
+  git push origin master
+done
+
+# 3. Continue with Tier 2, 3, 4 as needed...
+```
+
+### Local Development Mode
+
+For active development, you can temporarily switch back to local dependencies:
+
+```bash
+# Generate lakefile.local.lean files that use local paths
+./scripts/generate-local-overrides.sh
+
+# Work with local dependencies (faster iteration)
+cd <project>
+lake build  # Uses local dependencies via lakefile.local.lean
+
+# When done, remove overrides and switch back to GitHub refs
+./scripts/remove-local-overrides.sh
+```
+
+### Version Numbering Convention
+
+- **v0.0.x** - Initial development, API may change
+- **v0.x.0** - Feature additions, backwards compatible
+- **vx.0.0** - Breaking changes
+
+Current baseline: All projects tagged at **v0.0.1**
+
+### Special Repository Names
+
+Some projects have different GitHub repository names than their directory names:
+
+| Directory | GitHub Repository |
+|-----------|-------------------|
+| chronos | nathanial/chronos-lean |
+
+All others use the directory name as the repository name (e.g., `crucible` → `nathanial/crucible`).
