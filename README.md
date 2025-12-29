@@ -15,6 +15,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [trellis](https://github.com/nathanial/trellis) | Pure CSS layout computation (Flexbox and Grid) |
 | [tincture](https://github.com/nathanial/tincture) | Color library with RGBA/HSV support and color operations |
 | [chroma](https://github.com/nathanial/chroma) | Color picker application built on afferent/arbor |
+| [grove](https://github.com/nathanial/grove) | Desktop file browser using afferent/arbor/canopy |
 | [assimptor](https://github.com/nathanial/assimptor) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | [worldmap](https://github.com/nathanial/worldmap) | Tile-based map viewer with Web Mercator projection |
 | [vane](https://github.com/nathanial/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
@@ -73,6 +74,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [blockfall](https://github.com/nathanial/blockfall) | Terminal Tetris-like falling block puzzle game |
 | [twenty48](https://github.com/nathanial/twenty48) | Terminal 2048 sliding puzzle game |
 | [ask](https://github.com/nathanial/ask) | Minimal CLI for talking to AI models on OpenRouter |
+| [cairn](https://github.com/nathanial/cairn) | Minecraft-style voxel game with Metal rendering |
 
 ### CLI & Utilities
 
@@ -81,6 +83,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [parlance](https://github.com/nathanial/parlance) | CLI library with argument parsing, styled output, and progress indicators |
 | [staple](https://github.com/nathanial/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
 | [chronos](https://github.com/nathanial/chronos-lean) | Wall clock time library with nanosecond precision (POSIX FFI) |
+| [rune](https://github.com/nathanial/rune) | Regular expression library with Thompson NFA simulation |
 
 ### Testing
 
