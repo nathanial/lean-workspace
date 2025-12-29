@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 38 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 39 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -33,6 +33,7 @@ This is a Lean 4 workspace containing 38 interconnected projects organized into 
 | **citadel** | HTTP/1.1 server with routing, middleware, and SSE support |
 | **herald** | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
+| **markup** | Strict HTML parser producing Scribe `Html` values |
 | **chronicle** | File-based logging library with text/JSON formats and Loom integration |
 
 ### Networking & Protocols
@@ -180,6 +181,13 @@ lake test
 ### scribe (HTML Builder)
 ```bash
 cd scribe
+lake build
+lake test
+```
+
+### markup (HTML Parser)
+```bash
+cd markup
 lake build
 lake test
 ```
@@ -380,6 +388,7 @@ loom ───────────► citadel       (HTTP server)
      ├──────────► ledger        (database)
      └──────────► herald        (HTTP parser, via citadel)
 citadel ────────► herald        (HTTP parser)
+markup ─────────► scribe        (HTML types)
 homebase-app ───► loom          (web framework)
 todo-app ───────► loom          (web framework)
 ```
@@ -539,6 +548,18 @@ Type-safe HTML builder:
 - `Scribe/Elements.lean` - 60+ HTML element builders
 - `Scribe/Attr.lean` - 50+ attribute helpers including HTMX
 - `Scribe/RouteAttrs.lean` - Type-safe route-based attributes
+
+### markup
+Strict HTML parser producing Scribe `Html` values:
+- `Markup/Core/Error.lean` - ParseError, Position types
+- `Markup/Core/Ascii.lean` - Character classification predicates
+- `Markup/Parser/State.lean` - Parser monad (ExceptT + StateM)
+- `Markup/Parser/Primitives.lean` - Low-level parsing helpers
+- `Markup/Parser/Entities.lean` - Named and numeric entity decoding
+- `Markup/Parser/Attributes.lean` - Attribute parsing (quoted, unquoted, boolean)
+- `Markup/Parser/Elements.lean` - Tag parsing, void elements
+- `Markup/Parser/Document.lean` - Document and fragment parsing
+- `Markup/Html.lean` - Public API (parse, parseFragment)
 
 ### homebase-app
 Personal dashboard application:

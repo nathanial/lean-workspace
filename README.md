@@ -34,6 +34,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [citadel](citadel/) | HTTP/1.1 server with routing, middleware, and SSE support |
 | [herald](herald/) | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | [scribe](scribe/) | Type-safe monadic HTML builder with HTMX integration |
+| [markup](markup/) | Strict HTML parser producing Scribe `Html` values |
 | [chronicle](chronicle/) | File-based logging library with text/JSON formats and Loom integration |
 
 ### Networking & Protocols
@@ -96,6 +97,7 @@ loom ───────────► citadel       (HTTP server)
      ├──────────► ledger        (database)
      └──────────► herald        (HTTP parser, via citadel)
 citadel ────────► herald        (HTTP parser)
+markup ─────────► scribe        (HTML types)
 homebase-app ───► loom          (web framework)
 todo-app ───────► loom          (web framework)
 

@@ -2,13 +2,13 @@
 
 ## Overview
 
-This workspace contains 38 independent Lean 4 projects organized into several stacks:
+This workspace contains 39 independent Lean 4 projects organized into several stacks:
 
 **Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`, `vane`
 
 **Scientific & Math:** `linalg`, `measures`
 
-**Web Framework:** `loom`, `citadel`, `herald`, `scribe`, `chronicle`
+**Web Framework:** `loom`, `citadel`, `herald`, `scribe`, `markup`, `chronicle`
 
 **Networking:** `wisp`, `legate`, `protolean`, `oracle`
 
@@ -55,6 +55,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
 | **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
+| **markup** | Strict HTML parser producing Scribe `Html` values |
 | **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
 | **terminus** | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | **tincture** | Color library with RGBA/HSV support and color operations |
@@ -135,7 +136,7 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
+**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, markup, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
 
 **Projects without tests:** ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
@@ -148,6 +149,7 @@ loom ───────────► citadel       (HTTP server)
      ├──────────► ledger        (database)
      └──────────► herald        (via citadel)
 citadel ────────► herald        (HTTP parser)
+markup ─────────► scribe        (HTML types)
 homebase-app ───► loom
 todo-app ───────► loom
 ```
