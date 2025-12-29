@@ -143,3 +143,6 @@
 [submodule "timeout"]
 	path = timeout
 	url = git@github.com:nathanial/timeout.git
+[submodule "markup"]
+	path = markup
+	url = git@github.com:nathanial/markup.git
