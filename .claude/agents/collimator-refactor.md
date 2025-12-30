@@ -29,9 +29,12 @@ Module/
 ```lean
 import Collimator
 import Collimator.Derive.Lenses
+import Collimator.Indexed           -- for atLens (HashMap access)
+import Collimator.Instances.Option  -- for somePrism'
 import MyModule.Types
 
 namespace MyModule.Optics
+open Collimator
 open Collimator.Derive
 
 makeLenses MyStruct
@@ -39,6 +42,10 @@ makeLenses OtherStruct
 
 -- Prisms for sum types
 def _someVariant : Prism' MySumType PayloadType := ctorPrism% MySumType.someVariant
+
+-- Affine traversals for indexed access (HashMap, etc.)
+def itemAt (k : Key) : AffineTraversal' Container Item :=
+  containerItems ∘ Collimator.Indexed.atLens k ∘ Collimator.Instances.Option.somePrism' Item
 
 end MyModule.Optics
 ```
@@ -64,6 +71,10 @@ let nested := record ^. (outerLens ∘ innerLens)
 
 -- Prism preview
 let maybeVal := sumVal ^? _variant
+
+-- Affine traversal (indexed access)
+let maybeItem := container ^? itemAt key
+if (container ^? itemAt key).isSome then ...
 ```
 
 ## Process

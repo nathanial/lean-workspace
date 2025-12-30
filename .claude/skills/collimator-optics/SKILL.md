@@ -44,6 +44,23 @@ either ^? _left          -- Option A
 either & _left %~ f      -- modify if Left
 ```
 
+## Affine Traversals (0-or-1 Focus)
+
+For HashMap/collection access where a key may or may not exist:
+
+```lean
+import Collimator.Indexed
+import Collimator.Instances.Option
+
+-- Compose: field lens → index lens → some prism
+def itemAt (k : Key) : AffineTraversal' Container Item :=
+  containerItems ∘ Collimator.Indexed.atLens k ∘ Collimator.Instances.Option.somePrism' Item
+
+-- Usage
+container ^? itemAt key           -- Option Item
+(container ^? itemAt key).isSome  -- exists check
+```
+
 ## Common Patterns
 
 ```lean
