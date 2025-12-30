@@ -1,151 +1,151 @@
 [submodule "afferent"]
-	path = afferent
+	path = graphics/afferent
 	url = git@github.com:nathanial/afferent.git
 	branch = master
 [submodule "arbor"]
-	path = arbor
+	path = graphics/arbor
 	url = git@github.com:nathanial/arbor.git
 	branch = master
 [submodule "canopy"]
-	path = canopy
+	path = graphics/canopy
 	url = git@github.com:nathanial/canopy.git
 	branch = master
 [submodule "cellar"]
-	path = cellar
+	path = data/cellar
 	url = git@github.com:nathanial/cellar.git
 	branch = master
 [submodule "chroma"]
-	path = chroma
+	path = graphics/chroma
 	url = git@github.com:nathanial/chroma.git
 	branch = master
 [submodule "collimator"]
-	path = collimator
+	path = data/collimator
 	url = git@github.com:nathanial/collimator.git
 	branch = master
 [submodule "crucible"]
-	path = crucible
+	path = testing/crucible
 	url = git@github.com:nathanial/crucible.git
 	branch = master
 [submodule "enchiridion"]
-	path = enchiridion
+	path = apps/enchiridion
 	url = git@github.com:nathanial/enchiridion.git
 	branch = master
 [submodule "ledger"]
-	path = ledger
+	path = data/ledger
 	url = git@github.com:nathanial/ledger.git
 	branch = master
 [submodule "legate"]
-	path = legate
+	path = network/legate
 	url = git@github.com:nathanial/legate.git
 	branch = master
 [submodule "protolean"]
-	path = protolean
+	path = network/protolean
 	url = git@github.com:nathanial/protolean.git
 	branch = master
 [submodule "terminus"]
-	path = terminus
+	path = graphics/terminus
 	url = git@github.com:nathanial/terminus.git
 	branch = master
 [submodule "tincture"]
-	path = tincture
+	path = graphics/tincture
 	url = git@github.com:nathanial/tincture.git
 	branch = master
 [submodule "trellis"]
-	path = trellis
+	path = graphics/trellis
 	url = git@github.com:nathanial/trellis.git
 	branch = master
 [submodule "wisp"]
-	path = wisp
+	path = network/wisp
 	url = git@github.com:nathanial/wisp.git
 	branch = master
 [submodule "assimptor"]
-	path = assimptor
+	path = graphics/assimptor
 	url = git@github.com:nathanial/assimptor.git
 	branch = master
 [submodule "herald"]
-	path = herald
+	path = web/herald
 	url = git@github.com:nathanial/herald.git
 	branch = master
 [submodule "citadel"]
-	path = citadel
+	path = web/citadel
 	url = git@github.com:nathanial/citadel.git
 	branch = master
 [submodule "scribe"]
-	path = scribe
+	path = web/scribe
 	url = git@github.com:nathanial/scribe.git
 	branch = master
 [submodule "loom"]
-	path = loom
+	path = web/loom
 	url = git@github.com:nathanial/loom.git
 	branch = master
 [submodule "todo-app"]
-	path = todo-app
+	path = apps/todo-app
 	url = git@github.com:nathanial/todo-app.git
 	branch = master
 [submodule "homebase-app"]
-	path = homebase-app
+	path = apps/homebase-app
 	url = git@github.com:nathanial/homebase-app
 	branch = master
 [submodule "lighthouse"]
-	path = lighthouse
+	path = apps/lighthouse
 	url = git@github.com:nathanial/lighthouse.git
 [submodule "chronicle"]
-	path = chronicle
+	path = web/chronicle
 	url = git@github.com:nathanial/chronicle.git
 [submodule "quarry"]
-	path = quarry
+	path = data/quarry
 	url = git@github.com:nathanial/quarry
 [submodule "worldmap"]
-	path = worldmap
+	path = graphics/worldmap
 	url = git@github.com:nathanial/worldmap.git
 [submodule "staple"]
-	path = staple
+	path = util/staple
 	url = git@github.com:nathanial/staple.git
 [submodule "oracle"]
-	path = oracle
+	path = network/oracle
 	url = git@github.com:nathanial/oracle.git
 [submodule "chisel"]
-	path = chisel
+	path = data/chisel
 	url = git@github.com:nathanial/chisel.git
 [submodule "parlance"]
-	path = parlance
+	path = util/parlance
 	url = git@github.com:nathanial/parlance.git
 [submodule "blockfall"]
-	path = blockfall
+	path = apps/blockfall
 	url = git@github.com:nathanial/blockfall.git
 [submodule "fugue"]
-	path = fugue
+	path = audio/fugue
 	url = git@github.com:nathanial/fugue.git
 [submodule "linalg"]
-	path = linalg
+	path = math/linalg
 	url = git@github.com:nathanial/linalg.git
 [submodule "twenty48"]
-	path = twenty48
+	path = apps/twenty48
 	url = git@github.com:nathanial/twenty48.git
 [submodule "measures"]
-	path = measures
+	path = math/measures
 	url = git@github.com:nathanial/measures.git
 [submodule "vane"]
-	path = vane
+	path = graphics/vane
 	url = git@github.com:nathanial/vane.git
 [submodule "chronos"]
-	path = chronos
+	path = util/chronos
 	url = git@github.com:nathanial/chronos-lean.git
 [submodule "ask"]
-	path = ask
+	path = apps/ask
 	url = git@github.com:nathanial/ask.git
 [submodule "grove"]
-	path = grove
+	path = graphics/grove
 	url = git@github.com:nathanial/grove.git
 [submodule "rune"]
-	path = rune
+	path = util/rune
 	url = git@github.com:nathanial/rune.git
 [submodule "timeout"]
-	path = timeout
+	path = util/timeout
 	url = git@github.com:nathanial/timeout.git
 [submodule "markup"]
-	path = markup
+	path = web/markup
 	url = git@github.com:nathanial/markup.git
 [submodule "cairn"]
-	path = cairn
+	path = apps/cairn
 	url = git@github.com:nathanial/cairn.git
