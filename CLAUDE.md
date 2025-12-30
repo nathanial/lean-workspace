@@ -856,6 +856,8 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 require staple from git "https://github.com/nathanial/staple" @ "v0.0.1"
 ```
 
+**Important:** Never use local path imports (`require X from ".." / "name"`). All dependencies must use GitHub URLs. This ensures each library can be built independently without requiring the full workspace.
+
 ### Dependency Tiers
 
 Projects are organized into tiers based on their dependencies. **When releasing a new version, projects must be tagged in tier order** (dependencies before dependents):
