@@ -97,7 +97,7 @@ build-all:
     set -e
     for category in graphics math web network audio data apps util testing; do
         for dir in "$category"/*; do
-            if [[ -d "$dir" ]]; then
+            if [[ -d "$dir" && -f "$dir/lakefile.lean" ]]; then
                 echo "=== Building $dir ==="
                 cd "$dir"
                 if [[ -f build.sh ]]; then
