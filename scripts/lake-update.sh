@@ -19,12 +19,14 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Auto-discover Lean projects: find all immediate subdirectories with lakefile.lean
+# Auto-discover Lean projects: find all subdirectories in category folders with lakefile.lean
 discover_projects() {
-    for dir in "$WORKSPACE_DIR"/*/; do
-        if [[ -f "${dir}lakefile.lean" ]]; then
-            basename "$dir"
-        fi
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$WORKSPACE_DIR/$category"/*/; do
+            if [[ -f "${dir}lakefile.lean" ]]; then
+                echo "$category/$(basename "$dir")"
+            fi
+        done
     done | sort
 }
 

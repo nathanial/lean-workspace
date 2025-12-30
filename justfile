@@ -44,15 +44,19 @@ commit-all msg:
     committed=()
 
     # Commit changes in each submodule that has modifications
-    for dir in afferent arbor canopy cellar chroma collimator crucible enchiridion ledger legate protolean terminus tincture trellis wisp; do
-        cd "$dir"
-        if [[ -n $(git status --porcelain) ]]; then
-            echo "=== Committing $dir ==="
-            git add -A
-            git commit -m "{{msg}}"
-            committed+=("$dir")
-        fi
-        cd ..
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" ]]; then
+                cd "$dir"
+                if [[ -n $(git status --porcelain) ]]; then
+                    echo "=== Committing $dir ==="
+                    git add -A
+                    git commit -m "{{msg}}"
+                    committed+=("$dir")
+                fi
+                cd ../..
+            fi
+        done
     done
 
     # Report what was committed
@@ -91,15 +95,19 @@ build project:
 build-all:
     #!/usr/bin/env bash
     set -e
-    for dir in afferent arbor canopy cellar chroma collimator crucible enchiridion ledger legate protolean terminus tincture trellis wisp; do
-        echo "=== Building $dir ==="
-        cd "$dir"
-        if [[ -f build.sh ]]; then
-            ./build.sh
-        else
-            lake build
-        fi
-        cd ..
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" ]]; then
+                echo "=== Building $dir ==="
+                cd "$dir"
+                if [[ -f build.sh ]]; then
+                    ./build.sh
+                else
+                    lake build
+                fi
+                cd ../..
+            fi
+        done
     done
 
 # Clean build artifacts in a specific project
@@ -131,19 +139,19 @@ test-all:
     #!/usr/bin/env bash
     set -e
     # Projects with lake test
-    for dir in terminus protolean legate wisp enchiridion ledger arbor trellis tincture crucible; do
+    for dir in graphics/terminus network/protolean network/legate network/wisp apps/enchiridion data/ledger graphics/arbor graphics/trellis graphics/tincture testing/crucible; do
         echo "=== Testing $dir ==="
         cd "$dir"
         lake test
-        cd ..
+        cd ../..
     done
     # Projects with custom test scripts
-    echo "=== Testing afferent ==="
-    cd afferent && ./test.sh && cd ..
-    echo "=== Testing chroma ==="
-    cd chroma && ./build.sh chroma_tests && .lake/build/bin/chroma_tests && cd ..
-    echo "=== Testing collimator ==="
-    cd collimator && lake build collimator_tests && .lake/build/bin/collimator_tests && cd ..
+    echo "=== Testing graphics/afferent ==="
+    cd graphics/afferent && ./test.sh && cd ../..
+    echo "=== Testing graphics/chroma ==="
+    cd graphics/chroma && ./build.sh chroma_tests && .lake/build/bin/chroma_tests && cd ../..
+    echo "=== Testing data/collimator ==="
+    cd data/collimator && lake build collimator_tests && .lake/build/bin/collimator_tests && cd ../..
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Development Mode (Local vs Git Dependencies)
@@ -160,11 +168,11 @@ prod-mode:
 # Show current dependency mode for each project
 dep-mode:
     #!/usr/bin/env bash
-    for project in afferent canopy chroma enchiridion; do
+    for project in graphics/afferent graphics/canopy graphics/chroma apps/enchiridion; do
         if [ -f "$project/.lake/package-overrides.json" ]; then
-            printf "%-15s local (dev mode)\n" "$project:"
+            printf "%-25s local (dev mode)\n" "$project:"
         else
-            printf "%-15s git (prod mode)\n" "$project:"
+            printf "%-25s git (prod mode)\n" "$project:"
         fi
     done
 
@@ -218,12 +226,16 @@ cd project:
 generate-docs:
     #!/usr/bin/env bash
     set -e
-    for dir in afferent arbor canopy cellar chroma collimator crucible enchiridion ledger legate protolean terminus tincture trellis wisp; do
-        mkdir -p "docs/$dir"
-        echo "Converting $dir/ROADMAP.md → docs/$dir/ROADMAP.pdf"
-        pandoc "$dir/ROADMAP.md" -o "docs/$dir/ROADMAP.pdf" \
-            --pdf-engine=xelatex \
-            -V geometry:margin=1in \
-            -V colorlinks=true
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" && -f "$dir/ROADMAP.md" ]]; then
+                mkdir -p "docs/$dir"
+                echo "Converting $dir/ROADMAP.md → docs/$dir/ROADMAP.pdf"
+                pandoc "$dir/ROADMAP.md" -o "docs/$dir/ROADMAP.pdf" \
+                    --pdf-engine=xelatex \
+                    -V geometry:margin=1in \
+                    -V colorlinks=true
+            fi
+        done
     done
     echo "Done. PDFs generated in docs/"

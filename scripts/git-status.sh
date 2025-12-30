@@ -18,12 +18,14 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Auto-discover projects: find all immediate subdirectories that are git repos
+# Auto-discover projects: find all subdirectories in category folders that are git repos
 discover_projects() {
-    for dir in "$WORKSPACE_DIR"/*/; do
-        if [[ -d "${dir}.git" ]]; then
-            basename "$dir"
-        fi
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$WORKSPACE_DIR/$category"/*/; do
+            if [[ -d "${dir}.git" ]]; then
+                echo "$category/$(basename "$dir")"
+            fi
+        done
     done | sort
 }
 

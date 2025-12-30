@@ -10,12 +10,14 @@ echo "Removing package-overrides.json files..."
 echo ""
 
 count=0
-for override_file in "$WORKSPACE_DIR"/*/.lake/package-overrides.json; do
-    if [ -f "$override_file" ]; then
-        rm "$override_file"
-        echo "Removed: $override_file"
-        ((count++))
-    fi
+for category in graphics math web network audio data apps util testing; do
+    for override_file in "$WORKSPACE_DIR/$category"/*/.lake/package-overrides.json; do
+        if [ -f "$override_file" ]; then
+            rm "$override_file"
+            echo "Removed: $override_file"
+            ((count++))
+        fi
+    done
 done
 
 if [ $count -eq 0 ]; then

@@ -83,11 +83,20 @@ This is a Lean 4 workspace containing 39 interconnected projects organized into 
 
 ## Build Commands
 
-Each project is built independently from its directory:
+Each project is built independently from its directory. Projects are organized into category folders:
+- `graphics/` - Graphics & UI
+- `math/` - Scientific & Math
+- `web/` - Web Framework Stack
+- `network/` - Networking & Protocols
+- `audio/` - Audio
+- `data/` - Data & Storage
+- `apps/` - Applications
+- `util/` - CLI & Utilities
+- `testing/` - Testing
 
 ### terminus (Terminal UI)
 ```bash
-cd terminus
+cd graphics/terminus
 lake build           # Build library and examples
 lake exe hello       # Run hello world example
 lake exe counter     # Interactive counter demo
@@ -98,7 +107,7 @@ lake test            # Run tests
 ### afferent (Graphics Framework)
 **Important:** Use `./build.sh` instead of `lake build` directly (sets `LEAN_CC=/usr/bin/clang` for macOS framework linking).
 ```bash
-cd afferent
+cd graphics/afferent
 ./build.sh           # Build the project
 ./run.sh             # Build and run demos
 ./test.sh            # Run tests
@@ -106,7 +115,7 @@ cd afferent
 
 ### arbor (Widget Library)
 ```bash
-cd arbor
+cd graphics/arbor
 lake build
 lake test
 lake build ascii_demo
@@ -114,20 +123,20 @@ lake build ascii_demo
 
 ### canopy (Widget Framework)
 ```bash
-cd canopy
+cd graphics/canopy
 lake build
 ```
 
 ### trellis (Layout Library)
 ```bash
-cd trellis
+cd graphics/trellis
 lake build
 lake test
 ```
 
 ### tincture (Color Library)
 ```bash
-cd tincture
+cd graphics/tincture
 lake build
 lake test
 ```
@@ -135,7 +144,7 @@ lake test
 ### chroma (Color Picker App)
 **Important:** Use `./build.sh` instead of `lake build` directly.
 ```bash
-cd chroma
+cd graphics/chroma
 ./build.sh           # Build the project
 ./run.sh             # Build and run the app
 ./build.sh chroma_tests && .lake/build/bin/chroma_tests
@@ -144,28 +153,28 @@ cd chroma
 ### assimptor (3D Model Loading)
 **Important:** Use `./build.sh` (builds vendored Assimp from source on first run).
 ```bash
-cd assimptor
+cd graphics/assimptor
 ./build.sh           # Build the project (first run builds Assimp)
 ```
 
 ### worldmap (Map Viewer)
 **Important:** Use `./build.sh` instead of `lake build` directly.
 ```bash
-cd worldmap
+cd graphics/worldmap
 ./build.sh           # Build the project
 ./run.sh             # Build and run the map viewer
 ```
 
 ### loom (Web Framework)
 ```bash
-cd loom
+cd web/loom
 lake build
 lake test
 ```
 
 ### citadel (HTTP Server)
 ```bash
-cd citadel
+cd web/citadel
 lake build
 lake test
 lake exe static_site  # Run example server
@@ -173,28 +182,28 @@ lake exe static_site  # Run example server
 
 ### herald (HTTP Parser)
 ```bash
-cd herald
+cd web/herald
 lake build
 lake test
 ```
 
 ### scribe (HTML Builder)
 ```bash
-cd scribe
+cd web/scribe
 lake build
 lake test
 ```
 
 ### markup (HTML Parser)
 ```bash
-cd markup
+cd web/markup
 lake build
 lake test
 ```
 
 ### homebase-app (Dashboard App)
 ```bash
-cd homebase-app
+cd apps/homebase-app
 lake build
 .lake/build/bin/homebaseApp  # Run on port 3000
 lake test
@@ -202,7 +211,7 @@ lake test
 
 ### todo-app (Todo Demo)
 ```bash
-cd todo-app
+cd apps/todo-app
 lake build
 .lake/build/bin/todoApp  # Run on port 3000
 lake test
@@ -210,14 +219,14 @@ lake test
 
 ### collimator (Optics Library)
 ```bash
-cd collimator
+cd data/collimator
 lake build
 lake build collimator_tests && .lake/build/bin/collimator_tests
 ```
 
 ### legate (gRPC Library)
 ```bash
-cd legate
+cd network/legate
 lake run buildFfi    # First time: builds gRPC from source (slow)
 lake build
 lake test            # Unit tests
@@ -226,27 +235,27 @@ lake test            # Unit tests
 
 ### protolean (Protocol Buffers)
 ```bash
-cd protolean
+cd network/protolean
 lake build
 lake test
 ```
 
 ### wisp (HTTP Client)
 ```bash
-cd wisp
+cd network/wisp
 lake build
 lake test
 ```
 
 ### crucible (Test Framework)
 ```bash
-cd crucible
+cd testing/crucible
 lake build
 ```
 
 ### enchiridion (Novel Writing TUI)
 ```bash
-cd enchiridion
+cd apps/enchiridion
 lake build
 lake exe enchiridion
 lake test
@@ -254,27 +263,27 @@ lake test
 
 ### ledger (Fact-based Database)
 ```bash
-cd ledger
+cd data/ledger
 lake build
 lake test
 ```
 
 ### cellar (Disk Cache Library)
 ```bash
-cd cellar
+cd data/cellar
 lake build
 ```
 
 ### chronicle (Logging Library)
 ```bash
-cd chronicle
+cd web/chronicle
 lake build
 lake test
 ```
 
 ### lighthouse (Database Debugger)
 ```bash
-cd lighthouse
+cd apps/lighthouse
 lake build
 .lake/build/bin/lighthouse <database.jsonl>  # Inspect a Ledger database
 lake test
@@ -283,7 +292,7 @@ lake test
 ### quarry (SQLite Library)
 **Important:** Use `./build.sh` to download SQLite amalgamation on first run.
 ```bash
-cd quarry
+cd data/quarry
 ./build.sh           # Downloads SQLite and builds
 lake build           # Build library (after SQLite is downloaded)
 lake test            # Run tests
@@ -291,41 +300,41 @@ lake test            # Run tests
 
 ### chisel (SQL DSL)
 ```bash
-cd chisel
+cd data/chisel
 lake build
 lake test
 ```
 
 ### oracle (OpenRouter Client)
 ```bash
-cd oracle
+cd network/oracle
 lake build
 lake test
 ```
 
 ### parlance (CLI Library)
 ```bash
-cd parlance
+cd util/parlance
 lake build
 lake test
 ```
 
 ### staple (Utilities)
 ```bash
-cd staple
+cd util/staple
 lake build
 ```
 
 ### linalg (Linear Algebra)
 ```bash
-cd linalg
+cd math/linalg
 lake build
 lake test
 ```
 
 ### measures (Units of Measure)
 ```bash
-cd measures
+cd math/measures
 lake build
 lake test
 ```
@@ -333,7 +342,7 @@ lake test
 ### fugue (Sound Synthesis)
 **Important:** Use `./build.sh` instead of `lake build` directly (macOS AudioToolbox FFI).
 ```bash
-cd fugue
+cd audio/fugue
 ./build.sh           # Build the project
 ./build.sh demo      # Build demo
 ./test.sh            # Run tests
@@ -341,7 +350,7 @@ cd fugue
 
 ### blockfall (Tetris Game)
 ```bash
-cd blockfall
+cd apps/blockfall
 lake build
 .lake/build/bin/blockfall  # Run the game
 lake test
@@ -349,7 +358,7 @@ lake test
 
 ### twenty48 (2048 Game)
 ```bash
-cd twenty48
+cd apps/twenty48
 lake build
 .lake/build/bin/twenty48   # Run the game
 lake test
@@ -357,7 +366,7 @@ lake test
 
 ### ask (OpenRouter CLI)
 ```bash
-cd ask
+cd apps/ask
 lake build
 .lake/build/bin/ask "Hello"  # Query AI model
 .lake/build/bin/ask --help   # Show usage
@@ -365,7 +374,7 @@ lake build
 
 ### chronos (Time Library)
 ```bash
-cd chronos
+cd util/chronos
 lake build
 lake test
 ```
@@ -373,7 +382,7 @@ lake test
 ### vane (Terminal Emulator)
 **Important:** Use `./build.sh` instead of `lake build` directly (depends on afferent/Metal).
 ```bash
-cd vane
+cd graphics/vane
 ./build.sh           # Build the project
 lake exe vane        # Run the terminal emulator
 ./test.sh            # Run tests
@@ -914,7 +923,7 @@ Since `crucible` is a Tier 0 dependency used by almost all projects, updating it
 
 ```bash
 # 1. Update crucible
-cd crucible
+cd testing/crucible
 # ... make changes ...
 git add -A && git commit -m "Add new assertion helper"
 git push origin master

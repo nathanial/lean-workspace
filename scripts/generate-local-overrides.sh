@@ -65,15 +65,19 @@ generate_overrides_file() {
 main() {
     echo "Generating package-overrides.json for local development..."
     echo ""
-
-    generate_overrides_file "afferent" "trellis" "arbor"
-    generate_overrides_file "canopy" "arbor"
-    generate_overrides_file "chroma" "tincture" "trellis" "arbor" "afferent"
-    generate_overrides_file "enchiridion" "terminus" "wisp"
-
+    echo "NOTE: With the new category folder structure, this script needs updating."
+    echo "All dependencies now use GitHub references (per CLAUDE.md policy)."
+    echo "Local development mode is deprecated."
     echo ""
-    echo "Done! Projects will now use local dependencies."
-    echo "Run 'lake update' in each project to apply changes."
+
+    # These paths are now in category subfolders and relative path logic needs updating
+    # generate_overrides_file "graphics/afferent" "trellis" "arbor"
+    # generate_overrides_file "graphics/canopy" "arbor"
+    # generate_overrides_file "graphics/chroma" "tincture" "trellis" "arbor" "afferent"
+    # generate_overrides_file "apps/enchiridion" "terminus" "wisp"
+
+    echo "Script disabled - all projects use GitHub-based dependencies."
+    exit 0
 }
 
 main "$@"

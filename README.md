@@ -2,6 +2,21 @@
 
 A collection of Lean 4 libraries for building applications with terminal UIs, graphics, networking, web frameworks, and data management.
 
+## Folder Structure
+
+```
+lean-workspace/
+├── graphics/    # Graphics & UI (11 projects)
+├── math/        # Scientific & Math (2 projects)
+├── web/         # Web Framework Stack (6 projects)
+├── network/     # Networking & Protocols (4 projects)
+├── audio/       # Audio (1 project)
+├── data/        # Data & Storage (5 projects)
+├── apps/        # Applications (8 projects)
+├── util/        # CLI & Utilities (5 projects)
+└── testing/     # Testing (1 project)
+```
+
 ## Projects
 
 ### Graphics & UI
@@ -84,6 +99,7 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 | [staple](https://github.com/nathanial/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
 | [chronos](https://github.com/nathanial/chronos-lean) | Wall clock time library with nanosecond precision (POSIX FFI) |
 | [rune](https://github.com/nathanial/rune) | Regular expression library with Thompson NFA simulation |
+| [timeout](https://github.com/nathanial/timeout) | Command timeout utility |
 
 ### Testing
 
@@ -142,12 +158,19 @@ ask ───────────► parlance       (CLI library)
 Each project is built independently from its directory:
 
 ```bash
-cd <project>
+cd <category>/<project>
 lake build
 lake test  # if available
 ```
 
-Some projects require custom scripts (notably `afferent`, `chroma`, `assimptor`, `quarry`, `fugue`, and `vane` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Examples:
+```bash
+cd graphics/terminus && lake build   # Build terminus
+cd web/loom && lake build            # Build loom
+cd apps/blockfall && lake build      # Build blockfall
+```
+
+Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `data/quarry`, `audio/fugue`, and `graphics/vane` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 
@@ -163,10 +186,10 @@ just pull                # Pull latest in all submodules
 just push                # Push submodules with unpushed commits
 
 # Building and testing
-just build <project>     # Build a specific project
-just build-all           # Build all projects
-just test <project>      # Test a specific project
-just test-all            # Test all projects
+just build <category>/<project>  # Build a specific project
+just build-all                   # Build all projects
+just test <category>/<project>   # Test a specific project
+just test-all                    # Test all projects
 
 # Utilities
 just versions            # Show Lean versions across all projects
