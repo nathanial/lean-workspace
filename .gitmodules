@@ -149,3 +149,12 @@
 [submodule "cairn"]
 	path = apps/cairn
 	url = git@github.com:nathanial/cairn.git
+[submodule "data/convergent"]
+	path = data/convergent
+	url = git@github.com:nathanial/convergent.git
+[submodule "data/reactive"]
+	path = data/reactive
+	url = git@github.com:nathanial/reactive.git
+[submodule "data/tabular"]
+	path = data/tabular
+	url = git@github.com:nathanial/tabular.git
