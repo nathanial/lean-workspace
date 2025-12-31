@@ -76,6 +76,10 @@ release-status:
         done
     done
 
+# Release all projects with unreleased commits (tag and push)
+release-all *args:
+    @./scripts/release-all.sh {{args}}
+
 # Add and commit all changes in subprojects, then commit workspace
 commit-all msg:
     #!/usr/bin/env bash
