@@ -6,14 +6,14 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 
 ```
 lean-workspace/
-├── graphics/    # Graphics & UI (11 projects)
+├── graphics/    # Graphics & UI (12 projects)
 ├── math/        # Scientific & Math (2 projects)
 ├── web/         # Web Framework Stack (6 projects)
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
-├── data/        # Data & Storage (8 projects)
-├── apps/        # Applications (8 projects)
-├── util/        # CLI & Utilities (5 projects)
+├── data/        # Data & Storage (10 projects)
+├── apps/        # Applications (9 projects)
+├── util/        # CLI & Utilities (8 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -34,6 +34,7 @@ lean-workspace/
 | [assimptor](https://github.com/nathanial/assimptor) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | [worldmap](https://github.com/nathanial/worldmap) | Tile-based map viewer with Web Mercator projection |
 | [vane](https://github.com/nathanial/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
+| [raster](https://github.com/nathanial/raster) | Image loading, saving, and manipulation via stb_image |
 
 ### Scientific & Math
 
@@ -80,6 +81,8 @@ lean-workspace/
 | [convergent](https://github.com/nathanial/convergent) | Operation-based CRDTs for distributed systems |
 | [reactive](https://github.com/nathanial/reactive) | Reflex-style functional reactive programming (FRP) |
 | [tabular](https://github.com/nathanial/tabular) | CSV/TSV parser with typed column extraction |
+| [entity](https://github.com/nathanial/entity) | Archetypal Entity-Component-System (ECS) library |
+| [totem](https://github.com/nathanial/totem) | TOML configuration parser with typed extraction |
 
 ### Applications
 
@@ -93,6 +96,7 @@ lean-workspace/
 | [twenty48](https://github.com/nathanial/twenty48) | Terminal 2048 sliding puzzle game |
 | [ask](https://github.com/nathanial/ask) | Minimal CLI for talking to AI models on OpenRouter |
 | [cairn](https://github.com/nathanial/cairn) | Minecraft-style voxel game with Metal rendering |
+| [minefield](https://github.com/nathanial/minefield) | Terminal Minesweeper game with keyboard controls |
 
 ### CLI & Utilities
 
@@ -102,7 +106,10 @@ lean-workspace/
 | [staple](https://github.com/nathanial/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
 | [chronos](https://github.com/nathanial/chronos-lean) | Wall clock time library with nanosecond precision (POSIX FFI) |
 | [rune](https://github.com/nathanial/rune) | Regular expression library with Thompson NFA simulation |
-| [timeout](https://github.com/nathanial/timeout) | Command timeout utility |
+| [conduit](https://github.com/nathanial/conduit) | Go-style typed channels for concurrency |
+| [docgen](https://github.com/nathanial/docgen) | Documentation generator for Lean 4 projects |
+| [tracer](https://github.com/nathanial/tracer) | Distributed tracing with W3C Trace Context support |
+| [timeout](https://github.com/nathanial/timeout) | Command timeout utility (shell script) |
 
 ### Testing
 
@@ -152,8 +159,12 @@ lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
 blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
+minefield ─────► terminus       (terminal UI)
 ask ───────────► parlance       (CLI library)
     └──────────► oracle         (OpenRouter client)
+docgen ────────► parlance       (CLI library)
+       ├───────► scribe         (HTML generation)
+       └───────► staple         (file embedding)
 ```
 
 ## Quick Start
@@ -173,7 +184,7 @@ cd web/loom && lake build            # Build loom
 cd apps/blockfall && lake build      # Build blockfall
 ```
 
-Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `data/quarry`, `audio/fugue`, and `graphics/vane` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, and `apps/cairn` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 

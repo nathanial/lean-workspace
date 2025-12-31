@@ -2,9 +2,9 @@
 
 ## Overview
 
-This workspace contains 42 independent Lean 4 projects organized into several stacks:
+This workspace contains 53 independent Lean 4 projects organized into several stacks:
 
-**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`, `vane`
+**Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`, `vane`, `raster`, `grove`
 
 **Scientific & Math:** `linalg`, `measures`
 
@@ -12,13 +12,13 @@ This workspace contains 42 independent Lean 4 projects organized into several st
 
 **Networking:** `wisp`, `legate`, `protolean`, `oracle`
 
-**Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`, `convergent`, `reactive`, `tabular`
+**Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`, `convergent`, `reactive`, `tabular`, `entity`, `totem`
 
 **Audio:** `fugue`
 
-**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`, `blockfall`, `twenty48`, `ask`
+**Applications:** `homebase-app`, `todo-app`, `enchiridion`, `lighthouse`, `blockfall`, `twenty48`, `ask`, `cairn`, `minefield`
 
-**CLI & Utilities:** `parlance`, `staple`, `chronos`
+**CLI & Utilities:** `parlance`, `staple`, `chronos`, `rune`, `conduit`, `docgen`, `tracer`
 
 **Testing:** `crucible`
 
@@ -32,8 +32,10 @@ Each project is built and tested from its own directory. Architectural details l
 | **arbor** | Renderer-agnostic widget library that emits render commands |
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | **blockfall** | Terminal Tetris-like falling block puzzle game |
+| **cairn** | Minecraft-style voxel game with Metal rendering |
 | **canopy** | Desktop widget framework built on top of Arbor |
 | **cellar** | Generic disk cache library with LRU eviction |
+| **conduit** | Go-style typed channels for concurrency |
 | **chisel** | Type-safe SQL DSL with compile-time validation |
 | **chroma** | Color picker application built on afferent/arbor |
 | **chronicle** | File-based logging library with text/JSON formats and Loom integration |
@@ -41,8 +43,11 @@ Each project is built and tested from its own directory. Architectural details l
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
 | **convergent** | Operation-based CRDTs for distributed systems |
 | **crucible** | Lightweight test framework with declarative test macros |
+| **docgen** | Documentation generator for Lean 4 projects |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
+| **entity** | Archetypal Entity-Component-System (ECS) library |
 | **fugue** | Functional sound synthesis library with macOS AudioToolbox FFI |
+| **grove** | Desktop file browser using afferent/arbor/canopy |
 | **herald** | HTTP/1.1 message parser (requests, responses, chunked encoding) |
 | **homebase-app** | Personal dashboard with Kanban, auth, and multiple sections |
 | **ledger** | Datomic-like fact-based database with time-travel queries |
@@ -51,18 +56,23 @@ Each project is built and tested from its own directory. Architectural details l
 | **linalg** | Linear algebra library for game math (vectors, matrices, quaternions) |
 | **loom** | Rails-like web framework integrating Citadel, Scribe, and Ledger |
 | **measures** | Type-safe units of measure with compile-time dimension checking |
+| **minefield** | Terminal Minesweeper game with keyboard controls |
 | **oracle** | OpenRouter API client with streaming and tool calling |
 | **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
 | **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
 | **reactive** | Reflex-style functional reactive programming (FRP) |
+| **raster** | Image loading, saving, and manipulation via stb_image |
+| **rune** | Regular expression library with Thompson NFA simulation |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
 | **markup** | Strict HTML parser producing Scribe `Html` values |
 | **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
 | **tabular** | CSV/TSV parser with typed column extraction |
 | **terminus** | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | **tincture** | Color library with RGBA/HSV support and color operations |
+| **totem** | TOML configuration parser with typed extraction |
 | **todo-app** | Demo todo list application built with Loom |
+| **tracer** | Distributed tracing with W3C Trace Context support |
 | **trellis** | Pure CSS layout computation (Flexbox and Grid) |
 | **twenty48** | Terminal 2048 sliding puzzle game |
 | **wisp** | HTTP client library with libcurl FFI bindings |
@@ -93,9 +103,12 @@ lake test            # Run tests (if available)
 ### Projects with Custom Build Scripts
 These projects require `./build.sh` instead of `lake build` directly:
 - **afferent**: `./build.sh`, `./run.sh`, `./test.sh`
+- **cairn**: `./build.sh`, `./run.sh` (depends on afferent for Metal rendering)
 - **chroma**: `./build.sh`, `./run.sh`
 - **assimptor**: `./build.sh` (builds vendored Assimp on first run)
+- **grove**: `./build.sh`, `./run.sh`, `./test.sh` (depends on afferent for Metal rendering)
 - **quarry**: `./build.sh` (downloads SQLite amalgamation on first run)
+- **raster**: `./build.sh` (downloads stb headers on first run)
 - **worldmap**: `./build.sh`, `./run.sh` (depends on afferent for Metal rendering)
 - **fugue**: `./build.sh`, `./test.sh` (macOS AudioToolbox FFI)
 - **vane**: `./build.sh`, `./test.sh` (depends on afferent for Metal rendering)
@@ -139,7 +152,7 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, convergent, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, markup, measures, oracle, parlance, protolean, quarry, reactive, scribe, tabular, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
+**Projects with tests:** afferent, arbor, blockfall, cairn, chisel, chroma, chronos, chronicle, citadel, collimator, conduit, convergent, docgen, enchiridion, entity, fugue, grove, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, markup, measures, minefield, oracle, parlance, protolean, quarry, raster, reactive, rune, scribe, tabular, terminus, tincture, todo-app, totem, tracer, trellis, twenty48, vane, wisp
 
 **Projects without tests:** ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
@@ -165,6 +178,8 @@ canopy ─────────► arbor
 chroma ─────────► afferent, arbor, trellis, tincture
 worldmap ───────► afferent, wisp, cellar
 vane ───────────► afferent
+grove ──────────► afferent, arbor, canopy, trellis, tincture
+cairn ──────────► afferent, collimator
 ```
 
 ### Other
@@ -175,7 +190,9 @@ enchiridion ───► terminus, wisp
 lighthouse ────► terminus, ledger
 blockfall ─────► terminus
 twenty48 ──────► terminus
+minefield ─────► terminus
 ask ───────────► parlance, oracle
+docgen ────────► parlance, scribe, staple
 ```
 
 ### External Dependencies

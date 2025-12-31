@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 42 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 53 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -19,6 +19,8 @@ This is a Lean 4 workspace containing 42 interconnected projects organized into 
 | **assimptor** | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | **worldmap** | Tile-based map viewer with Web Mercator projection |
 | **vane** | Hardware-accelerated terminal emulator using Metal (WIP) |
+| **raster** | Image loading, saving, and manipulation via stb_image |
+| **grove** | Desktop file browser using afferent/arbor/canopy |
 
 ### Scientific & Math
 | Project | Description |
@@ -60,6 +62,8 @@ This is a Lean 4 workspace containing 42 interconnected projects organized into 
 | **convergent** | Operation-based CRDTs for distributed systems |
 | **reactive** | Reflex-style functional reactive programming (FRP) |
 | **tabular** | CSV/TSV parser with typed column extraction |
+| **entity** | Archetypal Entity-Component-System (ECS) library |
+| **totem** | TOML configuration parser with typed extraction |
 
 ### Applications
 | Project | Description |
@@ -71,6 +75,8 @@ This is a Lean 4 workspace containing 42 interconnected projects organized into 
 | **blockfall** | Terminal Tetris-like falling block puzzle game |
 | **twenty48** | Terminal 2048 sliding puzzle game |
 | **ask** | Minimal CLI for talking to AI models on OpenRouter |
+| **cairn** | Minecraft-style voxel game with Metal rendering |
+| **minefield** | Terminal Minesweeper game with keyboard controls |
 
 ### CLI & Utilities
 | Project | Description |
@@ -78,6 +84,10 @@ This is a Lean 4 workspace containing 42 interconnected projects organized into 
 | **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
 | **chronos** | Wall clock time library with nanosecond precision (POSIX FFI) |
+| **rune** | Regular expression library with Thompson NFA simulation |
+| **conduit** | Go-style typed channels for concurrency |
+| **docgen** | Documentation generator for Lean 4 projects |
+| **tracer** | Distributed tracing with W3C Trace Context support |
 
 ### Testing
 | Project | Description |
@@ -412,6 +422,85 @@ lake exe vane        # Run the terminal emulator
 ./test.sh            # Run tests
 ```
 
+### raster (Image Library)
+**Important:** Use `./build.sh` to download stb headers on first run.
+```bash
+cd graphics/raster
+./build.sh           # Downloads stb and builds
+lake build           # Build library (after stb is downloaded)
+lake test            # Run tests
+```
+
+### grove (File Browser)
+**Important:** Use `./build.sh` instead of `lake build` directly (depends on afferent/Metal).
+```bash
+cd graphics/grove
+./build.sh           # Build the project
+./run.sh             # Build and run
+./test.sh            # Run tests
+```
+
+### entity (ECS Library)
+```bash
+cd data/entity
+lake build
+lake test
+```
+
+### totem (TOML Parser)
+```bash
+cd data/totem
+lake build
+lake test
+```
+
+### cairn (Voxel Game)
+**Important:** Use `./build.sh` instead of `lake build` directly (depends on afferent/Metal).
+```bash
+cd apps/cairn
+./build.sh           # Build the project
+./run.sh             # Build and run
+./build.sh cairn_tests && .lake/build/bin/cairn_tests
+```
+
+### minefield (Minesweeper)
+```bash
+cd apps/minefield
+lake build minefield
+.lake/build/bin/minefield  # Run the game
+lake test
+```
+
+### rune (Regex Library)
+```bash
+cd util/rune
+lake build
+lake test
+```
+
+### conduit (Channels)
+```bash
+cd util/conduit
+lake build
+lake test
+```
+
+### docgen (Documentation Generator)
+```bash
+cd util/docgen
+lake build
+lake build docgen:exe    # Build CLI
+.lake/build/bin/docgen --help
+lake test
+```
+
+### tracer (Distributed Tracing)
+```bash
+cd util/tracer
+lake build
+lake test
+```
+
 ## Dependency Graph
 
 ### Web Stack Dependencies
@@ -446,6 +535,13 @@ worldmap ───────► afferent      (rendering)
          ├──────► wisp          (HTTP client)
          └──────► cellar        (disk cache)
 vane ───────────► afferent      (rendering)
+grove ──────────► afferent      (rendering)
+       ├────────► arbor         (widgets)
+       ├────────► canopy        (widget framework)
+       ├────────► trellis       (layout)
+       └────────► tincture      (color)
+cairn ──────────► afferent      (rendering)
+      └─────────► collimator    (optics)
 ```
 
 ### Other Dependencies
@@ -458,8 +554,12 @@ lighthouse ────► terminus       (terminal UI)
            └───► ledger         (database)
 blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
+minefield ─────► terminus       (terminal UI)
 ask ───────────► parlance       (CLI library)
     └──────────► oracle         (OpenRouter client)
+docgen ────────► parlance       (CLI library)
+       ├───────► scribe         (HTML generation)
+       └───────► staple         (file embedding)
 ```
 
 ### Test Framework Dependencies
@@ -834,6 +934,93 @@ Hardware-accelerated terminal emulator (work in progress):
 - `Vane/Render/` - GPU rendering integration via afferent
 - `native/src/pty.c` - PTY FFI implementation
 
+### raster
+Image loading, saving, and manipulation via stb_image:
+- `Raster/Core/` - Image, PixelFormat, OutputFormat, RasterError types
+- `Raster/FFI/` - stb_image, stb_image_write, stb_image_resize2 bindings
+- `Raster/Image.lean` - High-level load/save API
+- `Raster/Transform.lean` - Resize, crop, flip, rotate operations
+- `Raster/Color.lean` - Pixel access utilities
+- Supports PNG, JPEG, BMP, GIF formats
+
+### grove
+Desktop file browser using afferent/arbor/canopy:
+- `Grove/Core/` - FileItem, Selection, SortOrder, FocusPanel types
+- `Grove/Core/FileSystem.lean` - Directory reading utilities
+- `Grove/State/` - NavigationHistory, AppState management
+- `Grove/App.lean` - Msg type, update function, view rendering
+- `Grove/Main.lean` - Entry point, app loop
+
+### entity
+Archetypal Entity-Component-System (ECS) library:
+- `Entity/Core/` - EntityId (with generation), ComponentId, ArchetypeId
+- `Entity/Storage/` - ComponentStore, Archetype, ArchetypeRegistry
+- `Entity/World/` - EntityMeta, World container
+- `Entity/Query/` - QuerySpec, type-safe Query builder with filters
+- `Entity/System/` - WorldM monad (StateT World IO), System type
+- `Entity/Schedule/` - SystemSet, Schedule, App builder
+
+### totem
+TOML configuration parser with typed extraction:
+- `Totem/Core/` - Value, Table types
+- `Totem/Parser/` - TOML 1.0 parser with position-aware errors
+- `Totem/Extract.lean` - FromConfig typeclass for typed extraction
+- `Totem/Env.lean` - Environment variable interpolation (`${VAR}` syntax)
+- Supports all TOML types: strings, numbers, booleans, datetime, arrays, tables
+
+### cairn
+Minecraft-style voxel game with Metal rendering:
+- `Cairn/Core/` - Block types, coordinate systems (BlockPos, ChunkPos, LocalPos)
+- `Cairn/World/` - Chunk, World, terrain generation, raycast
+- `Cairn/Render/` - Mesh generation with face culling
+- `Cairn/Physics/` - Player AABB collision and movement
+- `Cairn/Optics/` - Collimator lenses for nested state access
+- Uses afferent for Metal GPU rendering
+
+### minefield
+Terminal Minesweeper game:
+- `Minefield/Core/` - Cell, Grid, Random, mine generation
+- `Minefield/Game/` - GameState, reveal/flag/chord logic
+- `Minefield/UI/` - App loop, rendering, input handling
+- Three difficulty levels: Beginner, Intermediate, Expert
+- Uses terminus for terminal UI
+
+### rune
+Regular expression library with Thompson NFA simulation:
+- `Rune/Parser/` - Recursive descent parser producing AST
+- `Rune/NFA/` - Thompson NFA construction from AST
+- `Rune/Match/` - NFA simulation with capture tracking
+- POSIX ERE syntax: `.` `*` `+` `?` `|` `()` `[]` `{n,m}`
+- Named groups: `(?<name>pattern)`
+- Replace with backreferences: `\1`, `\g<name>`
+
+### conduit
+Go-style typed channels for concurrency:
+- `Conduit/Core/` - SendResult, TryResult, Channel handle
+- `Conduit/Channel.lean` - Core operations (send, recv, close)
+- `Conduit/Channel/Combinators.lean` - forEach, drain, map, filter
+- `Conduit/Select/` - SelectCase, poll multiple channels
+- `native/src/conduit_ffi.c` - POSIX pthread implementation
+- Unbuffered and buffered modes
+
+### docgen
+Documentation generator for Lean 4 projects:
+- `Docgen/Core/` - DocItem, DocModule, DocProject, Config types
+- `Docgen/Extract/` - Environment loading, doc string extraction
+- `Docgen/Render/` - HTML templates using Scribe
+- `Docgen/Generate/` - Site generation, search index
+- `Docgen/CLI.lean` - Parlance CLI definitions
+- Generates static HTML documentation with search
+
+### tracer
+Distributed tracing with W3C Trace Context support:
+- `Tracer/Core/` - TraceId (128-bit), SpanId (64-bit), TraceContext, Span
+- `Tracer/W3C.lean` - traceparent header parsing/formatting
+- `Tracer/Sampler.lean` - alwaysOn, probability, parentBased, rateLimited
+- `Tracer/Config.lean` - TracerConfig, Exporter typeclass
+- `Tracer/Tracer.lean` - withSpan API for creating spans
+- `Tracer/Export/Console.lean` - Console exporter for development
+
 ## Lean Version
 
 Most projects target Lean 4.26.0. Check individual `lean-toolchain` files for exact versions.
@@ -874,7 +1061,7 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, convergent, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, reactive, scribe, tabular, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
+Projects using the **Crucible** test framework: afferent, arbor, blockfall, cairn, chisel, chroma, chronos, chronicle, citadel, collimator, conduit, convergent, docgen, enchiridion, entity, fugue, grove, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, minefield, oracle, parlance, protolean, quarry, raster, reactive, rune, scribe, tabular, terminus, tincture, todo-app, totem, tracer, trellis, twenty48, vane, wisp
 
 Projects without a test target: ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
@@ -924,11 +1111,11 @@ Projects are organized into tiers based on their dependencies. **When releasing 
 
 | Tier | Projects | Dependencies |
 |------|----------|--------------|
-| **0** | crucible, staple, cellar, assimptor | None (leaf nodes) |
-| **1** | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular | Only Tier 0 |
-| **2** | citadel, legate, oracle, parlance, arbor, blockfall, twenty48 | Tier 0-1 |
-| **3** | loom, afferent, canopy, ask, lighthouse, enchiridion | Tier 0-2 |
-| **4** | todo-app, homebase-app, chroma, vane, worldmap, grove | Tier 0-3 |
+| **0** | crucible, staple, cellar, assimptor, raster | None (leaf nodes) |
+| **1** | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer | Only Tier 0 |
+| **2** | citadel, legate, oracle, parlance, arbor, blockfall, twenty48, minefield | Tier 0-1 |
+| **3** | loom, afferent, canopy, ask, lighthouse, enchiridion, docgen | Tier 0-2 |
+| **4** | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn | Tier 0-3 |
 
 ### Releasing a New Version
 
