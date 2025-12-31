@@ -2,7 +2,7 @@
 
 ## Overview
 
-This workspace contains 39 independent Lean 4 projects organized into several stacks:
+This workspace contains 42 independent Lean 4 projects organized into several stacks:
 
 **Graphics & UI:** `afferent`, `arbor`, `canopy`, `terminus`, `trellis`, `tincture`, `chroma`, `assimptor`, `worldmap`, `vane`
 
@@ -12,7 +12,7 @@ This workspace contains 39 independent Lean 4 projects organized into several st
 
 **Networking:** `wisp`, `legate`, `protolean`, `oracle`
 
-**Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`
+**Data & Storage:** `ledger`, `quarry`, `chisel`, `cellar`, `collimator`, `convergent`, `reactive`, `tabular`
 
 **Audio:** `fugue`
 
@@ -39,6 +39,7 @@ Each project is built and tested from its own directory. Architectural details l
 | **chronicle** | File-based logging library with text/JSON formats and Loom integration |
 | **citadel** | HTTP/1.1 server with routing, middleware, and SSE support |
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
+| **convergent** | Operation-based CRDTs for distributed systems |
 | **crucible** | Lightweight test framework with declarative test macros |
 | **enchiridion** | Terminal novel writing assistant with AI integration |
 | **fugue** | Functional sound synthesis library with macOS AudioToolbox FFI |
@@ -54,9 +55,11 @@ Each project is built and tested from its own directory. Architectural details l
 | **parlance** | CLI library with argument parsing, styled output, and progress indicators |
 | **protolean** | Protocol Buffers implementation with compile-time `proto_import` |
 | **quarry** | SQLite library with vendored amalgamation (no system dependencies) |
+| **reactive** | Reflex-style functional reactive programming (FRP) |
 | **scribe** | Type-safe monadic HTML builder with HTMX integration |
 | **markup** | Strict HTML parser producing Scribe `Html` values |
 | **staple** | Essential utilities and macros (include_str% for compile-time file embedding) |
+| **tabular** | CSV/TSV parser with typed column extraction |
 | **terminus** | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | **tincture** | Color library with RGBA/HSV support and color operations |
 | **todo-app** | Demo todo list application built with Loom |
@@ -136,7 +139,7 @@ After any change, build and run tests. Note that `lake build` only builds the de
 - Run targeted `lake test` before cross-project changes.
 - Always run `lake test` when the project supports it.
 
-**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, markup, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
+**Projects with tests:** afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, convergent, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, markup, measures, oracle, parlance, protolean, quarry, reactive, scribe, tabular, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
 
 **Projects without tests:** ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 

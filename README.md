@@ -11,7 +11,7 @@ lean-workspace/
 ├── web/         # Web Framework Stack (6 projects)
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
-├── data/        # Data & Storage (5 projects)
+├── data/        # Data & Storage (8 projects)
 ├── apps/        # Applications (8 projects)
 ├── util/        # CLI & Utilities (5 projects)
 └── testing/     # Testing (1 project)
@@ -77,6 +77,9 @@ lean-workspace/
 | [chisel](https://github.com/nathanial/chisel) | Type-safe SQL DSL with compile-time validation |
 | [cellar](https://github.com/nathanial/cellar) | Generic disk cache library with LRU eviction |
 | [collimator](https://github.com/nathanial/collimator) | Profunctor optics library (lenses, prisms, traversals) |
+| [convergent](https://github.com/nathanial/convergent) | Operation-based CRDTs for distributed systems |
+| [reactive](https://github.com/nathanial/reactive) | Reflex-style functional reactive programming (FRP) |
+| [tabular](https://github.com/nathanial/tabular) | CSV/TSV parser with typed column extraction |
 
 ### Applications
 

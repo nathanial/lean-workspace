@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a Lean 4 workspace containing 39 interconnected projects organized into several stacks:
+This is a Lean 4 workspace containing 42 interconnected projects organized into several stacks:
 
 ### Graphics & UI Stack
 | Project | Description |
@@ -57,6 +57,9 @@ This is a Lean 4 workspace containing 39 interconnected projects organized into 
 | **chisel** | Type-safe SQL DSL with compile-time validation |
 | **cellar** | Generic disk cache library with LRU eviction |
 | **collimator** | Profunctor optics library (lenses, prisms, traversals) |
+| **convergent** | Operation-based CRDTs for distributed systems |
+| **reactive** | Reflex-style functional reactive programming (FRP) |
+| **tabular** | CSV/TSV parser with typed column extraction |
 
 ### Applications
 | Project | Description |
@@ -301,6 +304,27 @@ lake test            # Run tests
 ### chisel (SQL DSL)
 ```bash
 cd data/chisel
+lake build
+lake test
+```
+
+### convergent (CRDTs)
+```bash
+cd data/convergent
+lake build
+lake test
+```
+
+### reactive (FRP)
+```bash
+cd data/reactive
+lake build
+lake build reactive_tests && .lake/build/bin/reactive_tests
+```
+
+### tabular (CSV Parser)
+```bash
+cd data/tabular
 lake build
 lake test
 ```
@@ -683,6 +707,33 @@ Type-safe SQL DSL with compile-time validation:
 - `Chisel/Render.lean` - SQL string rendering with dialect support
 - Supports SQLite, PostgreSQL, MySQL parameter styles
 
+### convergent
+Operation-based CRDTs for distributed systems:
+- `Convergent/Core/` - ReplicaId, Timestamp (Lamport/vector clocks), UniqueId, CmRDT typeclass
+- `Convergent/Counter/` - GCounter (grow-only), PNCounter (positive-negative)
+- `Convergent/Register/` - LWWRegister (last-writer-wins), MVRegister (multi-value)
+- `Convergent/Set/` - GSet (grow-only), TwoPSet (add/remove), ORSet (observed-remove)
+- `Convergent/Map/` - LWWMap (last-writer-wins map)
+- `Convergent/Sequence/` - RGA (replicated growable array)
+
+### reactive
+Reflex-style functional reactive programming:
+- `Reactive/Core/` - Event (push-based), Behavior (pull-based), Dynamic (both)
+- `Reactive/Class/` - MonadSample, MonadHold, TriggerEvent, PostBuild, Adjustable typeclasses
+- `Reactive/Combinators/` - Event/Behavior/Dynamic combinators, switching
+- `Reactive/Host/` - Spider IO-based push runtime
+- Timeline phantom type for type-safe separation
+- Height-based ordering to prevent glitches
+
+### tabular
+CSV/TSV parser with typed extraction:
+- `Tabular/Config.lean` - Parser configuration (delimiter, headers, trimming)
+- `Tabular/Parser.lean` - RFC 4180-compliant CSV parser
+- `Tabular/Table.lean` - Table and Row types
+- `Tabular/Extract.lean` - FromCsv typeclass for typed column extraction
+- `Tabular/Error.lean` - ParseError and ExtractError types
+- Supports CSV, TSV, PSV, SCSV formats
+
 ### oracle
 OpenRouter API client with streaming and tool calling:
 - `Oracle/Config.lean` - Client configuration (API key, model, timeout)
@@ -823,7 +874,7 @@ Each project has its own test suite. Run from the project directory:
 - `./test.sh` - Custom test script (afferent)
 - Direct executable runs for some projects (chroma, collimator)
 
-Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, scribe, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
+Projects using the **Crucible** test framework: afferent, arbor, blockfall, chisel, chroma, chronos, chronicle, citadel, collimator, convergent, enchiridion, fugue, herald, homebase-app, ledger, legate, lighthouse, linalg, loom, measures, oracle, parlance, protolean, quarry, reactive, scribe, tabular, terminus, tincture, todo-app, trellis, twenty48, vane, wisp
 
 Projects without a test target: ask, assimptor, canopy, cellar, crucible (crucible is the test framework itself), staple, worldmap
 
@@ -874,7 +925,7 @@ Projects are organized into tiers based on their dependencies. **When releasing 
 | Tier | Projects | Dependencies |
 |------|----------|--------------|
 | **0** | crucible, staple, cellar, assimptor | None (leaf nodes) |
-| **1** | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry | Only Tier 0 |
+| **1** | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular | Only Tier 0 |
 | **2** | citadel, legate, oracle, parlance, arbor, blockfall, twenty48 | Tier 0-1 |
 | **3** | loom, afferent, canopy, ask, lighthouse, enchiridion | Tier 0-2 |
 | **4** | todo-app, homebase-app, chroma, vane, worldmap, grove | Tier 0-3 |
