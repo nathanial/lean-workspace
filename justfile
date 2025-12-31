@@ -80,6 +80,66 @@ release-status:
 release-all *args:
     @./scripts/release-all.sh {{args}}
 
+# Show projects with outdated dependencies in their lakefile
+outdated-deps:
+    #!/usr/bin/env bash
+    # Create temp file to store project -> latest tag mappings
+    tags_file=$(mktemp)
+    trap "rm -f $tags_file" EXIT
+
+    # Build mapping of project name -> latest tag
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" && -f "$dir/lakefile.lean" ]]; then
+                name=$(basename "$dir")
+                cd "$dir"
+                tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+                if [[ -n "$tag" ]]; then
+                    echo "$name=$tag" >> "$tags_file"
+                fi
+                cd ../..
+            fi
+        done
+    done
+
+    # Function to look up latest tag for a dep
+    get_latest_tag() {
+        grep "^$1=" "$tags_file" 2>/dev/null | cut -d= -f2
+    }
+
+    # Check each project's dependencies
+    found_outdated=false
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" && -f "$dir/lakefile.lean" ]]; then
+                outdated_lines=""
+                # Parse require lines: require foo from git "..." @ "v0.0.1"
+                while IFS= read -r line; do
+                    # Extract dep name and version (use -E for extended regex on macOS)
+                    dep_name=$(echo "$line" | sed -E 's/.*require[[:space:]]+([a-zA-Z0-9_-]+)[[:space:]]+from.*/\1/')
+                    declared_ver=$(echo "$line" | sed -E 's/.*@[[:space:]]*"([^"]*)".*/\1/')
+                    if [[ -n "$dep_name" && -n "$declared_ver" ]]; then
+                        latest_ver=$(get_latest_tag "$dep_name")
+                        # Only check our own deps (those with latest_tags entry)
+                        if [[ -n "$latest_ver" && "$declared_ver" != "$latest_ver" ]]; then
+                            outdated_lines="$outdated_lines  $dep_name: $declared_ver → $latest_ver\n"
+                        fi
+                    fi
+                done < <(grep "require.*from git.*nathanial" "$dir/lakefile.lean" 2>/dev/null || true)
+
+                if [[ -n "$outdated_lines" ]]; then
+                    found_outdated=true
+                    echo "$dir:"
+                    printf "$outdated_lines"
+                fi
+            fi
+        done
+    done
+
+    if [[ "$found_outdated" == false ]]; then
+        echo "All dependencies are up to date."
+    fi
+
 # Add and commit all changes in subprojects, then commit workspace
 commit-all msg:
     #!/usr/bin/env bash
