@@ -37,6 +37,45 @@ push:
 unpushed:
     @git submodule foreach --quiet 'ahead=$(git rev-list @{u}..HEAD 2>/dev/null | wc -l | tr -d " "); if [ "$ahead" -gt 0 ]; then echo "$name: $ahead commit(s) ahead"; fi'
 
+# Show the latest tag for each project
+tags:
+    #!/usr/bin/env bash
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" && -f "$dir/lakefile.lean" ]]; then
+                cd "$dir"
+                latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "(none)")
+                printf "%-30s %s\n" "$dir:" "$latest_tag"
+                cd ../..
+            fi
+        done
+    done
+
+# Show which projects have commits ahead of their latest tag
+release-status:
+    #!/usr/bin/env bash
+    for category in graphics math web network audio data apps util testing; do
+        for dir in "$category"/*; do
+            if [[ -d "$dir" && -f "$dir/lakefile.lean" ]]; then
+                cd "$dir"
+                latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+                if [[ -n "$latest_tag" ]]; then
+                    ahead=$(git rev-list "$latest_tag"..HEAD 2>/dev/null | wc -l | tr -d " ")
+                    if [[ "$ahead" -gt 0 ]]; then
+                        printf "%-30s %s → master (%d commits ahead)\n" "$dir:" "$latest_tag" "$ahead"
+                    fi
+                else
+                    # No tags yet
+                    commit_count=$(git rev-list HEAD 2>/dev/null | wc -l | tr -d " ")
+                    if [[ "$commit_count" -gt 0 ]]; then
+                        printf "%-30s no tags (has %d commits)\n" "$dir:" "$commit_count"
+                    fi
+                fi
+                cd ../..
+            fi
+        done
+    done
+
 # Add and commit all changes in subprojects, then commit workspace
 commit-all msg:
     #!/usr/bin/env bash
