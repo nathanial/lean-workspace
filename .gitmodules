@@ -158,3 +158,24 @@
 [submodule "data/tabular"]
 	path = data/tabular
 	url = git@github.com:nathanial/tabular.git
+[submodule "apps/minefield"]
+	path = apps/minefield
+	url = git@github.com:nathanial/minefield.git
+[submodule "data/entity"]
+	path = data/entity
+	url = git@github.com:nathanial/entity.git
+[submodule "data/totem"]
+	path = data/totem
+	url = git@github.com:nathanial/totem.git
+[submodule "graphics/raster"]
+	path = graphics/raster
+	url = git@github.com:nathanial/raster.git
+[submodule "util/conduit"]
+	path = util/conduit
+	url = git@github.com:nathanial/conduit.git
+[submodule "util/docgen"]
+	path = util/docgen
+	url = git@github.com:nathanial/docgen.git
+[submodule "util/tracer"]
+	path = util/tracer
+	url = git@github.com:nathanial/tracer.git
