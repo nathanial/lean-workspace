@@ -182,3 +182,9 @@
 [submodule "util/crypt"]
 	path = util/crypt
 	url = git@github.com:nathanial/crypt.git
+[submodule "apps/solitaire"]
+	path = apps/solitaire
+	url = git@github.com:nathanial/solitaire.git
+[submodule "web/stencil"]
+	path = web/stencil
+	url = git@github.com:nathanial/stencil.git

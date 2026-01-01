@@ -13,7 +13,7 @@ lean-workspace/
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
 ├── apps/        # Applications (9 projects)
-├── util/        # CLI & Utilities (8 projects)
+├── util/        # CLI & Utilities (9 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -109,6 +109,7 @@ lean-workspace/
 | [conduit](https://github.com/nathanial/conduit) | Go-style typed channels for concurrency |
 | [docgen](https://github.com/nathanial/docgen) | Documentation generator for Lean 4 projects |
 | [tracer](https://github.com/nathanial/tracer) | Distributed tracing with W3C Trace Context support |
+| [crypt](https://github.com/nathanial/crypt) | Cryptographic primitives with libsodium FFI (hashing, encryption, HMAC) |
 | [timeout](https://github.com/nathanial/timeout) | Command timeout utility (shell script) |
 
 ### Testing
