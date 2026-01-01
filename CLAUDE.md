@@ -1,17 +1,17 @@
 # CLAUDE.md
 
-Lean 4 workspace with 53 interconnected projects.
+Lean 4 workspace with 56 interconnected projects.
 
 ## Project Categories
 
 | Category | Projects |
 |----------|----------|
 | **Graphics** | terminus (TUI), afferent (Metal GPU), arbor (widgets), canopy (desktop), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser) |
-| **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging) |
+| **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
-| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield |
-| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), conduit (channels), docgen, tracer |
+| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire |
+| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), conduit (channels), docgen, tracer, crypt (crypto), timeout |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
 | **Testing** | crucible (test framework) |
@@ -94,7 +94,7 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 |------|----------|
 | 0 | crucible, staple, cellar, assimptor, raster |
 | 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer |
-| 2 | citadel, legate, oracle, parlance, arbor, blockfall, twenty48, minefield |
+| 2 | citadel, legate, oracle, parlance, arbor, blockfall, twenty48, minefield, solitaire, stencil |
 | 3 | loom, afferent, canopy, ask, lighthouse, enchiridion, docgen |
 | 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn |
 

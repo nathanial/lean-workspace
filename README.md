@@ -8,11 +8,11 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 lean-workspace/
 ├── graphics/    # Graphics & UI (12 projects)
 ├── math/        # Scientific & Math (2 projects)
-├── web/         # Web Framework Stack (6 projects)
+├── web/         # Web Framework Stack (7 projects)
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
-├── apps/        # Applications (9 projects)
+├── apps/        # Applications (10 projects)
 ├── util/        # CLI & Utilities (9 projects)
 └── testing/     # Testing (1 project)
 ```
@@ -53,6 +53,7 @@ lean-workspace/
 | [scribe](https://github.com/nathanial/scribe) | Type-safe monadic HTML builder with HTMX integration |
 | [markup](https://github.com/nathanial/markup) | Strict HTML parser producing Scribe `Html` values |
 | [chronicle](https://github.com/nathanial/chronicle) | File-based logging library with text/JSON formats and Loom integration |
+| [stencil](https://github.com/nathanial/stencil) | Mustache/Handlebars-style template engine outputting Scribe Html |
 
 ### Networking & Protocols
 
@@ -97,6 +98,7 @@ lean-workspace/
 | [ask](https://github.com/nathanial/ask) | Minimal CLI for talking to AI models on OpenRouter |
 | [cairn](https://github.com/nathanial/cairn) | Minecraft-style voxel game with Metal rendering |
 | [minefield](https://github.com/nathanial/minefield) | Terminal Minesweeper game with keyboard controls |
+| [solitaire](https://github.com/nathanial/solitaire) | Terminal Klondike Solitaire card game |
 
 ### CLI & Utilities
 
@@ -128,6 +130,7 @@ loom ───────────► citadel       (HTTP server)
      └──────────► herald        (HTTP parser, via citadel)
 citadel ────────► herald        (HTTP parser)
 markup ─────────► scribe        (HTML types)
+stencil ────────► scribe        (HTML output)
 homebase-app ───► loom          (web framework)
 todo-app ───────► loom          (web framework)
 
@@ -161,6 +164,7 @@ lighthouse ────► terminus       (terminal UI)
 blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
 minefield ─────► terminus       (terminal UI)
+solitaire ─────► terminus       (terminal UI)
 ask ───────────► parlance       (CLI library)
     └──────────► oracle         (OpenRouter client)
 docgen ────────► parlance       (CLI library)
