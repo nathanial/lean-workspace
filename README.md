@@ -6,14 +6,14 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 
 ```
 lean-workspace/
-├── graphics/    # Graphics & UI (12 projects)
+├── graphics/    # Graphics & UI (13 projects)
 ├── math/        # Scientific & Math (2 projects)
 ├── web/         # Web Framework Stack (7 projects)
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
 ├── apps/        # Applications (10 projects)
-├── util/        # CLI & Utilities (9 projects)
+├── util/        # CLI & Utilities (10 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -24,6 +24,7 @@ lean-workspace/
 | Project | Description |
 |---------|-------------|
 | [afferent](https://github.com/nathanial/afferent) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS) |
+| [afferent-demos](https://github.com/nathanial/afferent-demos) | Standalone demo runner for the Afferent graphics framework |
 | [arbor](https://github.com/nathanial/arbor) | Renderer-agnostic widget library that emits render commands |
 | [canopy](https://github.com/nathanial/canopy) | Desktop widget framework built on top of Arbor |
 | [terminus](https://github.com/nathanial/terminus) | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
@@ -113,6 +114,7 @@ lean-workspace/
 | [tracer](https://github.com/nathanial/tracer) | Distributed tracing with W3C Trace Context support |
 | [crypt](https://github.com/nathanial/crypt) | Cryptographic primitives with libsodium FFI (hashing, encryption, HMAC) |
 | [timeout](https://github.com/nathanial/timeout) | Command timeout utility (shell script) |
+| [smalltalk](https://github.com/nathanial/smalltalk) | Smalltalk interpreter (WIP) |
 
 ### Testing
 
@@ -142,6 +144,7 @@ afferent ───────► collimator    (profunctor optics)
          ├──────► arbor         (widgets)
          ├──────► tincture      (color)
          └──────► assimptor     (3D models)
+afferent-demos ─► afferent      (rendering + demos)
 arbor ──────────► trellis       (layout)
       └─────────► tincture      (color)
 canopy ─────────► arbor         (widgets)

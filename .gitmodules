@@ -188,3 +188,9 @@
 [submodule "web/stencil"]
 	path = web/stencil
 	url = git@github.com:nathanial/stencil.git
+[submodule "util/smalltalk"]
+	path = util/smalltalk
+	url = git@github.com:nathanial/smalltalk-lean4.git
+[submodule "graphics/afferent-demos"]
+	path = graphics/afferent-demos
+	url = git@github.com:nathanial/afferent-demos.git
