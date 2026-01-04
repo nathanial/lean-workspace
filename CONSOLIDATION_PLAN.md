@@ -27,18 +27,14 @@
 | `basic` | 2D triangles (arbitrary) | RGBA per-vertex | none | NDC | none |
 | `text` | 2D quads | RGBA × atlas alpha | font atlas | NDC | none |
 | `instanced` | rect/tri/circle | RGBA or HSV(time) | none | world (matrix) or screen | CPU (angle/size) + GPU hue |
-| `animated` | rect/tri/circle | HSV(time) | none | screen | GPU spin + hue |
-| `orbital` | rect quad | HSV(time) | none | screen | GPU orbit + hue |
-| `sprite` | textured quad | texture × alpha | full texture | screen | CPU rotation |
-| `textured_rect` | textured quad | texture × alpha | UV sub-rect | screen | none |
+| `sprite` | textured quad (layout0/1) | texture × alpha | full texture or UV sub-rect | screen (optional u_matrix) | CPU rotation |
 | `stroke` | extruded stroke tris | uniform RGBA | none | screen | none |
 | `stroke_path` | GPU-extruded stroke | uniform RGBA | none | screen | none |
-| `mesh3d` | 3D mesh + ocean | vertex RGBA | none | world/clip | GPU waves (ocean path) |
-| `mesh3d_textured` | 3D mesh | texture × vertex RGBA | diffuse tex | world/clip | none |
+| `mesh3d` | 3D mesh + ocean | vertex RGBA | optional diffuse | world/clip | GPU waves (ocean path) |
 
 ### Core Shader Families (target)
 - **2D Untextured:** `instanced` + `basic`
-- **2D Textured:** unified textured instanced + `text`
+- **2D Textured:** `sprite` (layout0/1) + `text`
 - **2D Stroke:** `stroke` + `stroke_path`
 - **3D Mesh:** unified `mesh3d` (textured + untextured)
 
@@ -68,6 +64,7 @@
 
 ## Phase 2 — Unify 3D Shaders (mesh3d + mesh3d_textured)
 **Target:** Single mesh shader with optional texture sampling.
+**Status:** Completed (merged into `mesh3d.metal` with optional texturing).
 
 **Plan:**
 1. Merge `mesh3d.metal` and `mesh3d_textured.metal` into `mesh3d.metal`:
@@ -77,12 +74,13 @@
 3. Update FFI to pass `useTexture` and bind texture/sampler only when needed.
 4. Keep existing `drawMesh3D*` API but route both to the unified pipeline.
 
-**Exit criteria:** All 3D demos/tests render identically; no shader duplication remains.
+**Exit criteria:** All 3D demos/tests render identically; no shader duplication remains. ✅
 
 ---
 
 ## Phase 3 — Fold Animated/Orbital into Instanced (or move to demos)
 **Target:** Remove `animated.metal` and `orbital.metal` as separate shaders.
+**Status:** Completed (Option B: moved to demos / removed specialized pipelines).
 
 **Option A (recommended): integrate into instanced shader**
 - Add optional “motion parameters” per instance:
@@ -95,24 +93,25 @@
 - Rebuild orbital/animated demos on top of instanced + CPU updates.
 - Remove shader + pipeline + FFI for orbital/animated entirely.
 
-**Exit criteria:** Either path removes two shader files and their pipelines, while preserving demo functionality.
+**Exit criteria:** Either path removes two shader files and their pipelines, while preserving demo functionality. ✅
 
 ---
 
 ## Phase 4 — Cleanup & API Consolidation
+**Status:** Completed (registrations/pruning + docs updated).
 - Remove deprecated shader source registrations and pipeline states.
 - Delete old FFI entry points and update docs.
 - Ensure `Afferent.Shaders` and native shader registration list only core shaders.
 - Confirm all demos still compile and run.
 
-**Exit criteria:** Shader list is minimal, APIs are stable, demos still work.
+**Exit criteria:** Shader list is minimal, APIs are stable, demos still work. ✅
 
 ---
 
 ## Proposed End-State Shader Set
 **2D**
 - `instanced.metal` (rect/tri/circle, world/screen sizing, RGBA/HSV)
-- `textured_instanced.metal` (sprites, tiles, UI images)
+- `sprite.metal` (textured instanced, layout0/1 for sprites + UV rects)
 - `stroke.metal` and `stroke_path.metal` (two input formats)
 - `text.metal`
 **3D**
