@@ -6,14 +6,14 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 
 ```
 lean-workspace/
-├── graphics/    # Graphics & UI (13 projects)
+├── graphics/    # Graphics & UI (11 projects)
 ├── math/        # Scientific & Math (2 projects)
 ├── web/         # Web Framework Stack (7 projects)
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
 ├── apps/        # Applications (10 projects)
-├── util/        # CLI & Utilities (10 projects)
+├── util/        # CLI & Utilities (9 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -23,15 +23,13 @@ lean-workspace/
 
 | Project | Description |
 |---------|-------------|
-| [afferent](https://github.com/nathanial/afferent) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS) |
+| [afferent](https://github.com/nathanial/afferent) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS); includes Afferent.Arbor/Afferent.Canopy |
 | [afferent-demos](https://github.com/nathanial/afferent-demos) | Standalone demo runner for the Afferent graphics framework |
-| [arbor](https://github.com/nathanial/arbor) | Renderer-agnostic widget library that emits render commands |
-| [canopy](https://github.com/nathanial/canopy) | Desktop widget framework built on top of Arbor |
 | [terminus](https://github.com/nathanial/terminus) | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
 | [trellis](https://github.com/nathanial/trellis) | Pure CSS layout computation (Flexbox and Grid) |
 | [tincture](https://github.com/nathanial/tincture) | Color library with RGBA/HSV support and color operations |
-| [chroma](https://github.com/nathanial/chroma) | Color picker application built on afferent/arbor |
-| [grove](https://github.com/nathanial/grove) | Desktop file browser using afferent/arbor/canopy |
+| [chroma](https://github.com/nathanial/chroma) | Color picker application built on afferent (Afferent.Arbor widgets) |
+| [grove](https://github.com/nathanial/grove) | Desktop file browser using afferent (Afferent.Arbor/Canopy) |
 | [assimptor](https://github.com/nathanial/assimptor) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
 | [worldmap](https://github.com/nathanial/worldmap) | Tile-based map viewer with Web Mercator projection |
 | [vane](https://github.com/nathanial/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
@@ -141,17 +139,11 @@ afferent ───────► collimator    (profunctor optics)
          ├──────► wisp          (HTTP client)
          ├──────► cellar        (disk cache)
          ├──────► trellis       (layout)
-         ├──────► arbor         (widgets)
          ├──────► tincture      (color)
+         ├──────► Afferent.Arbor/Canopy (widgets)
          └──────► assimptor     (3D models)
 afferent-demos ─► afferent      (rendering + demos)
-arbor ──────────► trellis       (layout)
-      └─────────► tincture      (color)
-canopy ─────────► arbor         (widgets)
-chroma ─────────► afferent      (rendering)
-       ├────────► arbor         (widgets)
-       ├────────► trellis       (layout)
-       └────────► tincture      (color)
+chroma ─────────► afferent      (rendering + widgets)
 worldmap ───────► afferent      (rendering)
          ├──────► wisp          (HTTP client)
          └──────► cellar        (disk cache)

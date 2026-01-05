@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Lean 4 workspace with 58 interconnected projects.
+Lean 4 workspace with 55 interconnected projects.
 
 ## Project Categories
 
 | Category | Projects |
 |----------|----------|
-| **Graphics** | terminus (TUI), afferent (Metal GPU), afferent-demos (demo runner), arbor (widgets), canopy (desktop), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser) |
+| **Graphics** | terminus (TUI), afferent (Metal GPU, includes Arbor/Canopy), afferent-demos (demo runner), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser) |
 | **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
@@ -36,9 +36,9 @@ graphics/   math/   web/   network/   audio/   data/   apps/   util/   testing/
 
 ```
 loom → citadel → herald, scribe, ledger
-afferent → collimator, wisp, cellar, trellis, arbor, tincture, assimptor
+afferent → collimator, wisp, cellar, trellis, tincture, assimptor (bundles Afferent.Arbor/Canopy)
 afferent-demos → afferent
-arbor → trellis, tincture
+afferent.Arbor → trellis, tincture
 legate → protolean
 oracle → wisp
 terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion) → terminus
@@ -95,8 +95,8 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 |------|----------|
 | 0 | crucible, staple, cellar, assimptor, raster |
 | 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
-| 2 | citadel, legate, oracle, parlance, arbor, blockfall, twenty48, minefield, solitaire, stencil |
-| 3 | loom, afferent, canopy, ask, lighthouse, enchiridion, docgen |
+| 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil |
+| 3 | loom, afferent, ask, lighthouse, enchiridion, docgen |
 | 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos |
 
 ### Release Process

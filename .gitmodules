@@ -2,14 +2,6 @@
 	path = graphics/afferent
 	url = git@github.com:nathanial/afferent.git
 	branch = master
-[submodule "arbor"]
-	path = graphics/arbor
-	url = git@github.com:nathanial/arbor.git
-	branch = master
-[submodule "canopy"]
-	path = graphics/canopy
-	url = git@github.com:nathanial/canopy.git
-	branch = master
 [submodule "cellar"]
 	path = data/cellar
 	url = git@github.com:nathanial/cellar.git
