@@ -1,10 +1,10 @@
 ---
 id: 5
 title: Implement create issue form in TUI
-status: in-progress
+status: closed
 priority: high
 created: 2026-01-06T13:21:09
-updated: 2026-01-06T13:25:09
+updated: 2026-01-06T13:29:11
 labels: [feature]
 assignee: 
 blocks: [6, 7, 9, 14]
@@ -21,3 +21,5 @@ The ViewMode.create exists but form rendering and input handling are TODO. Need 
 - Label input
 - Save/cancel handling
 
+## Progress
+- [2026-01-06T13:29:11] Closed: Implemented create/edit issue forms with TextInput widget, form rendering, input handling, and full CRUD support

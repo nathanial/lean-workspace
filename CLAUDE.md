@@ -81,13 +81,13 @@ just lines           # Count Lean LOC
 
 ## Issue Tracking with Tracker
 
-Use `tracker` CLI to manage issues. Outputs JSON by default (use `-t` for text).
+Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
 
 **Setup:** Run `tracker init` in any project to create `.issues/` directory.
 
 **Commands for Claude Code:**
 ```bash
-tracker list                              # List open issues (JSON)
+tracker list                              # List open issues
 tracker show <id>                         # Get issue details
 tracker add "Title" --priority=high       # Create issue
 tracker progress <id> "Found root cause"  # Log progress
