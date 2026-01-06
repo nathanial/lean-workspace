@@ -1,10 +1,10 @@
 ---
 id: 62
 title: Unicode Width Calculation
-status: open
+status: in-progress
 priority: high
 created: 2026-01-06T22:46:10
-updated: 2026-01-06T22:46:10
+updated: 2026-01-06T23:40:37
 labels: [improvement]
 assignee: 
 project: terminus
