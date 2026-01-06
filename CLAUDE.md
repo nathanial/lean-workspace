@@ -90,10 +90,18 @@ Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
 tracker list                              # List open issues
 tracker show <id>                         # Get issue details
 tracker add "Title" --priority=high       # Create issue
+tracker add "Title" --project=tracker     # Create issue with project
 tracker progress <id> "Found root cause"  # Log progress
 tracker close <id> "Fixed in commit X"    # Close issue
 tracker update <id> --status=in-progress  # Update status
 ```
+
+**Issue Fields:**
+- `--priority` / `-p`: low, medium, high, critical (default: medium)
+- `--project` / `-P`: Project name this issue belongs to (optional)
+- `--label` / `-l`: Add a label
+- `--assignee` / `-a`: Assign to someone
+- `--description` / `-d`: Issue description
 
 **Workflow:**
 1. Check `tracker list` to see current issues
@@ -101,7 +109,6 @@ tracker update <id> --status=in-progress  # Update status
 3. Log progress with `tracker progress <id> "message"` as you work
 4. Close with `tracker close <id> "summary"` when done
 
-**Priority levels:** low, medium, high, critical
 **Status values:** open, in-progress, closed
 
 Issues are stored as markdown files in `.issues/` - commit them with your code changes.
