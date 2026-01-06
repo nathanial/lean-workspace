@@ -23,6 +23,9 @@ Manage the full lifecycle of working on a tracked issue.
 # List available issues
 tracker list
 
+# List issues for a specific project
+tracker list --project=parlance
+
 # Mark issue as in-progress
 tracker update <id> --status=in-progress
 

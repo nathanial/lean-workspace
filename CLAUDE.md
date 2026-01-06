@@ -88,6 +88,8 @@ Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
 **Commands for Claude Code:**
 ```bash
 tracker list                              # List open issues
+tracker list --project=parlance           # List issues for a specific project
+tracker list -p tracker --all             # Include closed issues
 tracker show <id>                         # Get issue details
 tracker add "Title" --priority=high       # Create issue
 tracker add "Title" --project=tracker     # Create issue with project
