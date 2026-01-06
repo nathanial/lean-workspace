@@ -186,3 +186,6 @@
 [submodule "graphics/afferent-demos"]
 	path = graphics/afferent-demos
 	url = git@github.com:nathanial/afferent-demos.git
+[submodule "apps/tracker"]
+	path = apps/tracker
+	url = git@github.com:nathanial/tracker.git

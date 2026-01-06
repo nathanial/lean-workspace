@@ -79,6 +79,33 @@ just test-all        # Test all
 just lines           # Count Lean LOC
 ```
 
+## Issue Tracking with Tracker
+
+Use `tracker` CLI to manage issues. Outputs JSON by default (use `-t` for text).
+
+**Setup:** Run `tracker init` in any project to create `.issues/` directory.
+
+**Commands for Claude Code:**
+```bash
+tracker list                              # List open issues (JSON)
+tracker show <id>                         # Get issue details
+tracker add "Title" --priority=high       # Create issue
+tracker progress <id> "Found root cause"  # Log progress
+tracker close <id> "Fixed in commit X"    # Close issue
+tracker update <id> --status=in-progress  # Update status
+```
+
+**Workflow:**
+1. Check `tracker list` to see current issues
+2. Use `tracker update <id> --status=in-progress` when starting work
+3. Log progress with `tracker progress <id> "message"` as you work
+4. Close with `tracker close <id> "summary"` when done
+
+**Priority levels:** low, medium, high, critical
+**Status values:** open, in-progress, closed
+
+Issues are stored as markdown files in `.issues/` - commit them with your code changes.
+
 ## Versioning
 
 All dependencies use GitHub URLs with semantic version tags:
