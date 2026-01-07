@@ -1,10 +1,10 @@
 ---
 id: 221
 title: Floating-point number parser
-status: open
+status: closed
 priority: high
 created: 2026-01-07T03:50:59
-updated: 2026-01-07T03:50:59
+updated: 2026-01-07T04:16:13
 labels: [feature]
 assignee: 
 project: sift
@@ -28,3 +28,6 @@ Affected: Sift/Text.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-07T04:15:14] float parser already exists - adding decimal and scientific specialized variants
+- [2026-01-07T04:16:13] Closed: Added decimal and scientific parsers. float already existed - updated issue description was outdated.

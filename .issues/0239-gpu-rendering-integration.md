@@ -1,10 +1,10 @@
 ---
 id: 239
 title: GPU Rendering Integration
-status: open
+status: in-progress
 priority: high
 created: 2026-01-07T04:06:53
-updated: 2026-01-07T04:06:53
+updated: 2026-01-07T04:28:57
 labels: []
 assignee: 
 project: vane
