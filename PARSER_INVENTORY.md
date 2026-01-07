@@ -32,7 +32,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
-- **Used By:** totem, tabular, staple, protolean, smalltalk
+- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil
 
 ---
 
@@ -68,12 +68,12 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### stencil (Template Engine Parser)
 - **Location:** `web/stencil/`
 - **Parses:** Jinja2-style template syntax
-- **Approach:** Position-tracking state machine parser
+- **Approach:** Built on Sift parser combinator library with user state
 - **Main Files:**
-  - `Stencil/Parser/Parse.lean` - Template parsing
-  - `Stencil/Parser/Primitives.lean` - Filters, variables
-  - `Stencil/Parser/State.lean` - Parser state with position/trim tracking
-- **Features:** Variable references, filters, for/if/block tags, comments, trim markers
+  - `Stencil/Parser/Parse.lean` - Template parsing using Sift combinators
+  - `Stencil/Parser/Primitives.lean` - Stencil-specific helpers wrapping Sift
+  - `Stencil/Parser/State.lean` - StencilState (tagStack, trimNextLeading) as Sift user state
+- **Features:** Variable references, filters, for/if/block tags, comments, trim markers, position-aware errors via Sift.ParseError
 
 ---
 
@@ -210,8 +210,8 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk |
-| Hand-Written Recursive Descent | chisel, herald, markup, stencil |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil |
+| Hand-Written Recursive Descent | chisel, herald, markup |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
