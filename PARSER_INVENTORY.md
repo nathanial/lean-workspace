@@ -3,7 +3,7 @@
 This document catalogs all custom parser implementations in the lean-workspace.
 
 **Total Projects with Parsers:** 15
-**Total Parser Files:** 64+
+**Total Parser Files:** 60+
 
 ## Summary by Category
 
@@ -27,12 +27,13 @@ This document catalogs all custom parser implementations in the lean-workspace.
 - **Approach:** Parsec-style combinators with position tracking
 - **Main Files:**
   - `Sift/Core.lean` - Parser monad, ParseState, ParseError
-  - `Sift/Primitives.lean` - satisfy, char, string, anyChar, peek, peekString, atEnd
+  - `Sift/Primitives.lean` - satisfy, char, string, stringCI, anyChar, peek, peekString, atEnd
   - `Sift/Combinators.lean` - many, sepBy, between, choice, chainl1, manyTill
   - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
-- **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
-- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil
+  - `Sift/Prec.lean` - Precedence climbing combinator for expression parsing
+- **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing, precedence climbing
+- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel
 
 ---
 
@@ -95,16 +96,12 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### chisel (SQL Parser)
 - **Location:** `data/chisel/`
 - **Parses:** SQL (SELECT, INSERT, UPDATE, DELETE, DDL, CREATE INDEX)
-- **Approach:** Hand-written recursive descent with operator precedence (7 levels)
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:**
-  - `Chisel/Parser/Core.lean` - Core parser combinators
-  - `Chisel/Parser/Lexer.lean` - SQL keywords, tokenization
-  - `Chisel/Parser/DML.lean` - INSERT, UPDATE, DELETE
-  - `Chisel/Parser/DDL.lean` - CREATE TABLE, ALTER TABLE
-  - `Chisel/Parser/Select.lean` - SELECT statements
-  - `Chisel/Parser/Expr.lean` - Expressions with precedence
-  - `Chisel/Parser/Param.lean` - Parameter placeholders
-- **Features:** Subqueries, joins, aggregates, CASE expressions, CAST
+  - `Chisel/Parser.lean` - All statement parsers (SELECT, DML, DDL) with precedence climbing
+  - `Chisel/Parser/Lexer.lean` - SQL keywords, tokenization using Sift primitives
+  - `Chisel/Parser/Param.lean` - Parameter placeholders and binding
+- **Features:** Subqueries, joins, aggregates, CASE expressions, CAST, 7-level operator precedence, position-aware errors via Sift.ParseError
 
 ### totem (TOML Parser)
 - **Location:** `data/totem/`
@@ -210,13 +207,13 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil |
-| Hand-Written Recursive Descent | chisel, herald, markup |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel |
+| Hand-Written Recursive Descent | herald, markup |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, smalltalk, markup, stencil, tracker |
+| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, smalltalk, markup, stencil, tracker, chisel |
 
 ---
 
-*Updated: 2026-01-06*
+*Updated: 2026-01-07*
