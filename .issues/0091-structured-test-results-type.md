@@ -4,7 +4,7 @@ title: Structured Test Results Type
 status: closed
 priority: low
 created: 2026-01-06T22:57:28
-updated: 2026-01-07T00:15:30
+updated: 2026-01-07T00:55:23
 labels: [improvement]
 assignee: 
 project: crucible
@@ -19,3 +19,4 @@ Current runAllSuites returns IO UInt32. Propose returning a structured TestResul
 
 ## Progress
 - [2026-01-07T00:15:30] Closed: Implemented per-suite breakdown in TestResults. Added SuiteResult type with name, counts, and timing. TestResults now has suites array with computed aggregate properties. runAllSuites/runAllSuitesFiltered now return IO TestResults with toExitCode method.
+- [2026-01-07T00:55:23] Closed: Implemented backwards-compatible structured test results. runAllSuites/runAllSuitesFiltered return IO UInt32 (unchanged). New runAllSuitesWithResults/runAllSuitesFilteredWithResults return IO TestResults with per-suite breakdown.
