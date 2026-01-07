@@ -32,7 +32,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
-- **Used By:** totem, tabular, staple, protolean
+- **Used By:** totem, tabular, staple, protolean, smalltalk
 
 ---
 
@@ -177,11 +177,11 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### smalltalk (Smalltalk Interpreter)
 - **Location:** `util/smalltalk/`
 - **Parses:** Smalltalk language source code
-- **Approach:** Combinator-based parser using `Std.Internal.Parsec`
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:**
   - `Smalltalk/Parse.lean` - Full grammar with mutual recursion
   - `Smalltalk/AST.lean` - Smalltalk AST definitions
-- **Features:** Messages, methods, blocks, pragmas, class definitions, literals
+- **Features:** Messages, methods, blocks, pragmas, class definitions, literals, position-aware errors
 
 ### parlance (CLI Argument Parser)
 - **Location:** `util/parlance/`
@@ -210,13 +210,12 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean |
-| Std.Internal.Parsec Combinators | smalltalk |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk |
 | Hand-Written Recursive Descent | chisel, herald, markup, stencil |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, markup, stencil, tracker |
+| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, smalltalk, markup, stencil, tracker |
 
 ---
 
