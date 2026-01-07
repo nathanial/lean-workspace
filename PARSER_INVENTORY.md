@@ -32,7 +32,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
-- **Used By:** totem, tabular, staple
+- **Used By:** totem, tabular, staple, protolean
 
 ---
 
@@ -82,11 +82,11 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### protolean (Protocol Buffers Parser)
 - **Location:** `network/protolean/`
 - **Parses:** Protocol Buffer 3 definition files (.proto)
-- **Approach:** Lexer + parser using `Std.Internal.Parsec` combinators
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:**
   - `Protolean/Parser/Lexer.lean` - Tokenization (comments, identifiers, literals)
   - `Protolean/Parser/Proto.lean` - Proto3 grammar parsing
-- **Features:** Scalar types, map types, field types, messages, services, options
+- **Features:** Scalar types, map types, field types, messages, services, options, position-aware errors
 
 ---
 
@@ -210,13 +210,13 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple |
-| Std.Internal.Parsec Combinators | protolean, smalltalk |
+| Sift Combinator Library | totem, tabular, staple, protolean |
+| Std.Internal.Parsec Combinators | smalltalk |
 | Hand-Written Recursive Descent | chisel, herald, markup, stencil |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | sift, totem, tabular, staple, markup, stencil, tracker |
+| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, markup, stencil, tracker |
 
 ---
 
