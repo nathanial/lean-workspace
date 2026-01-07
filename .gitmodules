@@ -189,3 +189,6 @@
 [submodule "apps/tracker"]
 	path = apps/tracker
 	url = git@github.com:nathanial/tracker.git
+[submodule "util/sift"]
+	path = util/sift
+	url = git@github.com:nathanial/sift.git

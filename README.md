@@ -13,7 +13,7 @@ lean-workspace/
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
 ├── apps/        # Applications (11 projects)
-├── util/        # CLI & Utilities (9 projects)
+├── util/        # CLI & Utilities (10 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -108,6 +108,7 @@ lean-workspace/
 | [staple](https://github.com/nathanial/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
 | [chronos](https://github.com/nathanial/chronos-lean) | Wall clock time library with nanosecond precision (POSIX FFI) |
 | [rune](https://github.com/nathanial/rune) | Regular expression library with Thompson NFA simulation |
+| [sift](https://github.com/nathanial/sift) | Parsec-style parser combinator library |
 | [conduit](https://github.com/nathanial/conduit) | Go-style typed channels for concurrency |
 | [docgen](https://github.com/nathanial/docgen) | Documentation generator for Lean 4 projects |
 | [tracer](https://github.com/nathanial/tracer) | Distributed tracing with W3C Trace Context support |

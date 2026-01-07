@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Lean 4 workspace with 56 interconnected projects.
+Lean 4 workspace with 57 interconnected projects.
 
 ## Project Categories
 
@@ -11,7 +11,7 @@ Lean 4 workspace with 56 interconnected projects.
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
 | **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking) |
-| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
+| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), sift (parser combinators), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
 | **Testing** | crucible (test framework) |
@@ -130,7 +130,7 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 | Tier | Projects |
 |------|----------|
 | 0 | crucible, staple, cellar, assimptor, raster |
-| 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
+| 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, sift, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
 | 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil |
 | 3 | loom, afferent, ask, lighthouse, enchiridion, docgen, tracker |
 | 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos |
