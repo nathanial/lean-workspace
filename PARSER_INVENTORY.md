@@ -2,19 +2,37 @@
 
 This document catalogs all custom parser implementations in the lean-workspace.
 
-**Total Projects with Parsers:** 14
+**Total Projects with Parsers:** 15
 **Total Parser Files:** 64+
 
 ## Summary by Category
 
 | Category | Projects | What They Parse |
 |----------|----------|-----------------|
+| Util | sift | Parser combinator library (foundation) |
 | Web | herald, markup, stencil | HTTP, HTML, templates |
 | Data | chisel, totem, tabular, staple | SQL, TOML, CSV/TSV, JSON |
 | Network | protolean | Protocol Buffers (.proto) |
 | Graphics | tincture, vane | Colors, ANSI escape sequences |
 | Util | rune, smalltalk, parlance | Regex, Smalltalk language, CLI args |
 | Apps | tracker | YAML frontmatter |
+
+---
+
+## Parser Combinator Library
+
+### sift (Parser Combinator Library)
+- **Location:** `util/sift/`
+- **Purpose:** Monadic parser combinator library providing foundation for other parsers
+- **Approach:** Parsec-style combinators with position tracking
+- **Main Files:**
+  - `Sift/Core.lean` - Parser monad, ParseState, ParseError
+  - `Sift/Primitives.lean` - satisfy, char, string, anyChar, peek, peekString, atEnd
+  - `Sift/Combinators.lean` - many, sepBy, between, choice, chainl1, manyTill
+  - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
+  - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
+- **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
+- **Used By:** totem
 
 ---
 
@@ -91,17 +109,16 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### totem (TOML Parser)
 - **Location:** `data/totem/`
 - **Parses:** TOML configuration files (TOML 1.0 compliant)
-- **Approach:** State-based recursive descent parser
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:**
-  - `Totem/Parser/State.lean` - Parser state tracking
-  - `Totem/Parser/Primitives.lean` - Basic parsing utilities
+  - `Totem/Parser/Primitives.lean` - TOML-specific helpers wrapping Sift
   - `Totem/Parser/String.lean` - String literals (basic, literal, multi-line)
   - `Totem/Parser/Number.lean` - Numbers, floats, hex, octal, binary
   - `Totem/Parser/Key.lean` - Keys including dotted keys
-  - `Totem/Parser/DateTime.lean` - Datetime, date, time
-  - `Totem/Parser/Value.lean` - All value types
-  - `Totem/Parser/Document.lean` - Full document
-- **Features:** All TOML value types, inline tables, array validation
+  - `Totem/Parser/DateTime.lean` - Datetime, date, time (RFC 3339)
+  - `Totem/Parser/Value.lean` - All value types with mutual recursion
+  - `Totem/Parser/Document.lean` - Full document with table conflict detection
+- **Features:** All TOML value types, inline tables, array of tables, homogeneous array validation, position-aware errors via Sift.ParseError
 
 ### tabular (CSV/TSV Parser)
 - **Location:** `data/tabular/`
@@ -195,13 +212,14 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
+| Sift Combinator Library | totem |
 | Std.Internal.Parsec Combinators | protolean, smalltalk |
-| Hand-Written Recursive Descent | chisel, herald, markup, stencil, totem, tabular |
+| Hand-Written Recursive Descent | chisel, herald, markup, stencil, tabular |
 | Finite State Machine | vane, rune, parlance |
-| Custom Monadic Parser (ExceptT/StateM) | Most projects |
+| Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | markup, stencil, tracker |
+| Position Tracking (for errors) | sift, markup, stencil, tracker |
 
 ---
 
-*Generated: 2026-01-06*
+*Updated: 2026-01-06*
