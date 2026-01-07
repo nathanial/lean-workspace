@@ -32,7 +32,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Char.lean` - Character classes (digit, letter, hspace, hexDigit, etc.)
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing
-- **Used By:** totem
+- **Used By:** totem, tabular, staple
 
 ---
 
@@ -122,22 +122,20 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 ### tabular (CSV/TSV Parser)
 - **Location:** `data/tabular/`
-- **Parses:** CSV and TSV delimited data
-- **Approach:** State machine-based character-level parser
+- **Parses:** CSV and TSV delimited data (RFC 4180 compliant)
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:**
-  - `Tabular/Parser/State.lean` - Parser state
-  - `Tabular/Parser/Primitives.lean` - Character classification
-  - `Tabular/Parser/Field.lean` - Field parsing with escaping
+  - `Tabular/Parser/Field.lean` - Field parsing with quote handling
   - `Tabular/Parser/Record.lean` - Row parsing
   - `Tabular/Parser/Document.lean` - Full table with headers
-- **Features:** Configurable delimiter/quoting/escaping, ragged row support
+- **Features:** Configurable delimiter/quoting/escaping, ragged row support, embedded newlines in quoted fields
 
 ### staple (JSON Parser)
 - **Location:** `util/staple/`
 - **Parses:** JSON data (RFC 8259 compliant)
-- **Approach:** Recursive descent parser with state tracking
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:** `Staple/Json/Parse.lean`
-- **Features:** Strings with escapes, numbers, arrays, objects
+- **Features:** Strings with escapes (including \uXXXX unicode), numbers (int/float), arrays, objects, line/column error positions
 
 ---
 
@@ -212,13 +210,13 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem |
+| Sift Combinator Library | totem, tabular, staple |
 | Std.Internal.Parsec Combinators | protolean, smalltalk |
-| Hand-Written Recursive Descent | chisel, herald, markup, stencil, tabular |
+| Hand-Written Recursive Descent | chisel, herald, markup, stencil |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | sift, markup, stencil, tracker |
+| Position Tracking (for errors) | sift, totem, tabular, staple, markup, stencil, tracker |
 
 ---
 
