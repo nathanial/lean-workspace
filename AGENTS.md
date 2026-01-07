@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Lean 4 workspace with 55 projects. See `CLAUDE.md` for full project list and dependency graph.
+Lean 4 workspace with 56 projects. See `CLAUDE.md` for full project list and dependency graph.
 
 ## Directory Layout
 

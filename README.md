@@ -12,7 +12,7 @@ lean-workspace/
 ├── network/     # Networking & Protocols (4 projects)
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (10 projects)
-├── apps/        # Applications (10 projects)
+├── apps/        # Applications (11 projects)
 ├── util/        # CLI & Utilities (9 projects)
 └── testing/     # Testing (1 project)
 ```
@@ -98,6 +98,7 @@ lean-workspace/
 | [cairn](https://github.com/nathanial/cairn) | Minecraft-style voxel game with Metal rendering |
 | [minefield](https://github.com/nathanial/minefield) | Terminal Minesweeper game with keyboard controls |
 | [solitaire](https://github.com/nathanial/solitaire) | Terminal Klondike Solitaire card game |
+| [tracker](https://github.com/nathanial/tracker) | Local git-friendly issue tracker with CLI and TUI modes |
 
 ### CLI & Utilities
 
@@ -160,6 +161,9 @@ blockfall ─────► terminus       (terminal UI)
 twenty48 ──────► terminus       (terminal UI)
 minefield ─────► terminus       (terminal UI)
 solitaire ─────► terminus       (terminal UI)
+tracker ───────► terminus       (terminal UI)
+        ├──────► parlance       (CLI library)
+        └──────► chronos        (timestamps)
 ask ───────────► parlance       (CLI library)
     └──────────► oracle         (OpenRouter client)
 docgen ────────► parlance       (CLI library)

@@ -1,10 +1,10 @@
 ---
 id: 91
 title: Structured Test Results Type
-status: open
+status: in-progress
 priority: low
 created: 2026-01-06T22:57:28
-updated: 2026-01-06T22:57:28
+updated: 2026-01-07T00:11:43
 labels: [improvement]
 assignee: 
 project: crucible

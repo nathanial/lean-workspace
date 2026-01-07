@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Lean 4 workspace with 55 interconnected projects.
+Lean 4 workspace with 56 interconnected projects.
 
 ## Project Categories
 
@@ -10,7 +10,7 @@ Lean 4 workspace with 55 interconnected projects.
 | **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
-| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire |
+| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking) |
 | **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
@@ -41,7 +41,7 @@ afferent-demos → afferent
 afferent.Arbor → trellis, tincture
 legate → protolean
 oracle → wisp
-terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion) → terminus
+terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion, tracker) → terminus
 ```
 
 External: collimator → mathlib, ledger → batteries, chroma/tincture → plausible
@@ -132,7 +132,7 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 | 0 | crucible, staple, cellar, assimptor, raster |
 | 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
 | 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil |
-| 3 | loom, afferent, ask, lighthouse, enchiridion, docgen |
+| 3 | loom, afferent, ask, lighthouse, enchiridion, docgen, tracker |
 | 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos |
 
 ### Release Process
