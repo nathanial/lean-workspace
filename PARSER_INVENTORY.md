@@ -14,7 +14,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
 | Data | chisel, totem, tabular, staple | SQL, TOML, CSV/TSV, JSON |
 | Network | protolean | Protocol Buffers (.proto) |
 | Graphics | tincture, vane | Colors, ANSI escape sequences |
-| Util | rune, smalltalk, parlance | Regex, Smalltalk language, CLI args |
+| Util | rune (Sift), smalltalk, parlance | Regex, Smalltalk language, CLI args |
 | Apps | tracker | YAML frontmatter (Sift) |
 
 ---
@@ -33,7 +33,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
   - `Sift/Prec.lean` - Precedence climbing combinator for expression parsing
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing, precedence climbing
-- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker
+- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker, rune
 
 ---
 
@@ -163,11 +163,11 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### rune (Regex Parser)
 - **Location:** `util/rune/`
 - **Parses:** POSIX Extended Regular Expressions (ERE)
-- **Approach:** Recursive descent with capture group management
+- **Approach:** Built on Sift parser combinator library with user state
 - **Main Files:**
-  - `Rune/Parser/Parser.lean` - Main regex parser
+  - `Rune/Parser/Parser.lean` - Main regex parser using Sift combinators
   - `Rune/AST/Types.lean` - Regex AST
-- **Features:** Named captures, character classes, alternation, quantifiers, anchors
+- **Features:** Named captures, character classes, alternation, quantifiers, anchors, lookahead, flags, position-aware errors via Sift.ParseError
 
 ### smalltalk (Smalltalk Interpreter)
 - **Location:** `util/smalltalk/`
@@ -205,12 +205,12 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker, rune |
 | Hand-Written Recursive Descent | herald |
-| Finite State Machine | vane, rune, parlance |
+| Finite State Machine | vane, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |
-| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, smalltalk, markup, stencil, tracker, chisel |
+| Position Tracking (for errors) | sift, totem, tabular, staple, protolean, smalltalk, markup, stencil, tracker, chisel, rune |
 
 ---
 
