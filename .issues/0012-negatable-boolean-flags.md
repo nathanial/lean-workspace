@@ -1,10 +1,10 @@
 ---
 id: 12
 title: Negatable boolean flags
-status: open
+status: closed
 priority: medium
 created: 2026-01-06T14:47:48
-updated: 2026-01-06T14:47:48
+updated: 2026-01-08T07:15:31
 labels: []
 assignee: 
 project: parlance
@@ -17,3 +17,6 @@ blocked_by: []
 ## Description
 Automatically support --no-<flag> variants for boolean flags. POSIX convention (e.g., --color / --no-color). Add negatable:Bool to Flag, handle --no- prefix in parser, display in help. Affects: Core/Types.lean, Parse/Parser.lean, Command/Help.lean
 
+## Progress
+- [2026-01-08T07:15:25] Added negatable flag support with --no- prefix handling, help output, and parser/tests updates.
+- [2026-01-08T07:15:31] Closed: Support --no-<flag> for negatable booleans with help display; tests added.
