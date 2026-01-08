@@ -15,7 +15,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
 | Network | protolean | Protocol Buffers (.proto) |
 | Graphics | tincture, vane | Colors, ANSI escape sequences |
 | Util | rune, smalltalk, parlance | Regex, Smalltalk language, CLI args |
-| Apps | tracker | YAML frontmatter |
+| Apps | tracker | YAML frontmatter (Sift) |
 
 ---
 
@@ -33,7 +33,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
   - `Sift/Prec.lean` - Precedence climbing combinator for expression parsing
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing, precedence climbing
-- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup
+- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker
 
 ---
 
@@ -195,9 +195,9 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### tracker (Issue Frontmatter Parser)
 - **Location:** `apps/tracker/`
 - **Parses:** YAML frontmatter + Markdown body in issue files
-- **Approach:** String manipulation + simple YAML parsing
+- **Approach:** Built on Sift parser combinator library
 - **Main Files:** `Tracker/Core/Parser.lean`
-- **Features:** YAML-style key-value pairs, arrays, issue metadata extraction
+- **Features:** YAML-style key-value pairs, arrays (strings and numbers), progress entries with timestamps, position-aware errors via Sift.ParseError
 
 ---
 
@@ -205,7 +205,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup, tracker |
 | Hand-Written Recursive Descent | herald |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
