@@ -26,6 +26,8 @@ graphics/   math/   web/   network/   audio/   data/   apps/   util/   testing/
 
 **Default:** `cd <category>/<project> && lake build && lake test`
 
+**Note:** `lake build` only builds the default lakefile target, which may not include specific executables. To run an executable, either use the `./run.sh` script in a project folder or call `lake exe <appname>` directly.
+
 **Projects requiring ./build.sh** (sets LEAN_CC or downloads dependencies):
 - afferent, afferent-demos, chroma, assimptor, worldmap, vane, grove, cairn (Metal/macOS)
 - quarry, raster (downloads vendored deps)
