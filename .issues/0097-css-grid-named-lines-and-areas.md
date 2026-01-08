@@ -1,10 +1,10 @@
 ---
 id: 97
 title: CSS Grid Named Lines and Areas
-status: open
+status: in-progress
 priority: medium
 created: 2026-01-06T23:28:37
-updated: 2026-01-06T23:28:37
+updated: 2026-01-08T07:03:35
 labels: []
 assignee: 
 project: trellis
