@@ -192,3 +192,6 @@
 [submodule "util/sift"]
 	path = util/sift
 	url = git@github.com:nathanial/sift.git
+[submodule "apps/timekeeper"]
+	path = apps/timekeeper
+	url = git@github.com:nathanial/timekeeper.git

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Lean 4 workspace with 57 interconnected projects.
+Lean 4 workspace with 58 interconnected projects.
 
 ## Project Categories
 
@@ -10,7 +10,7 @@ Lean 4 workspace with 57 interconnected projects.
 | **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
-| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking) |
+| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking), timekeeper (time tracking TUI) |
 | **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), sift (parser combinators), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
@@ -43,7 +43,7 @@ afferent-demos → afferent
 afferent.Arbor → trellis, tincture
 legate → protolean
 oracle → wisp
-terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion, tracker) → terminus
+terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion, tracker, timekeeper) → terminus
 ```
 
 External: collimator → mathlib, ledger → batteries, chroma/tincture → plausible
@@ -135,7 +135,7 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 | 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, sift, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
 | 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil |
 | 3 | loom, afferent, ask, lighthouse, enchiridion, docgen, tracker |
-| 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos |
+| 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos, timekeeper |
 
 ### Release Process
 
