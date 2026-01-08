@@ -33,7 +33,7 @@ This document catalogs all custom parser implementations in the lean-workspace.
   - `Sift/Text.lean` - Text utilities (natural, integer, float, identifier, digitsWithUnderscores)
   - `Sift/Prec.lean` - Precedence climbing combinator for expression parsing
 - **Features:** Position tracking (line/column), descriptive error messages, backtracking with `attempt`, lookahead, unicode escape parsing, precedence climbing
-- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel
+- **Used By:** totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup
 
 ---
 
@@ -56,15 +56,13 @@ This document catalogs all custom parser implementations in the lean-workspace.
 ### markup (HTML Parser)
 - **Location:** `web/markup/`
 - **Parses:** HTML documents
-- **Approach:** Hand-written recursive descent with position tracking
+- **Approach:** Built on Sift parser combinator library with tag stack state
 - **Main Files:**
-  - `Markup/Parser/Document.lean` - Top-level document parsing
-  - `Markup/Parser/Elements.lean` - HTML tags, void elements
-  - `Markup/Parser/Attributes.lean` - HTML attributes
-  - `Markup/Parser/Entities.lean` - HTML entities
-  - `Markup/Parser/Primitives.lean` - Low-level primitives
-  - `Markup/Parser/State.lean` - Parser state
-- **Features:** Void elements, raw text elements, comments, doctypes, self-closing tags
+  - `Markup/Parser/Entities.lean` - Parser type, helpers, HTML entity decoding
+  - `Markup/Parser/Attributes.lean` - HTML attribute parsing
+  - `Markup/Parser/Elements.lean` - HTML tags, void elements, raw text elements
+  - `Markup/Parser/Document.lean` - Top-level document parsing with mutual recursion
+- **Features:** Void elements, raw text elements, comments, doctypes, self-closing tags, position-aware errors via Sift.ParseError
 
 ### stencil (Template Engine Parser)
 - **Location:** `web/stencil/`
@@ -207,8 +205,8 @@ This document catalogs all custom parser implementations in the lean-workspace.
 
 | Pattern | Used By |
 |---------|---------|
-| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel |
-| Hand-Written Recursive Descent | herald, markup |
+| Sift Combinator Library | totem, tabular, staple, protolean, smalltalk, stencil, chisel, markup |
+| Hand-Written Recursive Descent | herald |
 | Finite State Machine | vane, rune, parlance |
 | Custom Monadic Parser (ExceptT/StateM) | Most hand-written parsers |
 | Byte-Level Streaming | herald |

@@ -260,10 +260,6 @@ test-all:
 # Development Mode (Local vs Git Dependencies)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Switch to local development mode (use sibling directories for deps)
-dev-mode:
-    @./scripts/generate-local-overrides.sh
-
 # Switch to production mode (use git URLs for deps)
 prod-mode:
     @./scripts/remove-local-overrides.sh

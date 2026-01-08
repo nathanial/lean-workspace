@@ -146,11 +146,4 @@ git tag v0.0.2 && git push origin v0.0.2
 # Then update downstream lakefiles and repeat
 ```
 
-### Local Development
-
-```bash
-./scripts/generate-local-overrides.sh  # Use local deps
-./scripts/remove-local-overrides.sh    # Back to GitHub refs
-```
-
 Note: `chronos` → `nathanial/chronos-lean` on GitHub (all others match directory name).
