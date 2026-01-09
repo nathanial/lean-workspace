@@ -1,10 +1,10 @@
 ---
 id: 214
 title: Eliminate unnecessary partial annotations
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:50:06
-updated: 2026-01-07T03:50:06
+updated: 2026-01-09T01:14:35
 labels: [cleanup]
 assignee: 
 project: sift
@@ -25,3 +25,6 @@ Action: Evaluate whether termination proofs can be provided for inner recursive 
 
 Effort: Medium
 
+## Progress
+- [2026-01-09T01:13:55] Removed partial annotations by rewriting string/take and combinators with structural recursion and bounded loops; added non-consuming parser guard; tests pass.
+- [2026-01-09T01:14:35] Closed: Removed partial annotations in Sift primitives/combinators by rewriting recursion to be structural and bounded.

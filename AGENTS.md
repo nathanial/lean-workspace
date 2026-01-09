@@ -69,8 +69,15 @@ tracker update <id> --status=in-progress  # Update status
 
 **Status values:** open, in-progress, closed
 
-Issues are stored as markdown files in `.issues/` - commit them with your code changes.
+Issues are stored as markdown files in `.issues/` at the workspace root. **Do not commit .issues/ changes** - the workspace-level repo is managed separately.
 
 ## Important
 
 **ALWAYS VERIFY THAT THE CODE COMPILES**
+
+**NEVER MODIFY THE WORKSPACE-LEVEL GIT REPOSITORY.** This includes:
+- Do not commit to the workspace root
+- Do not add/modify files at the workspace level
+- Do not commit `.issues/` changes
+
+All work should be done within individual project submodules (e.g., `util/parlance/`, `graphics/terminus/`). Commit, push, and tag within those project directories only.
