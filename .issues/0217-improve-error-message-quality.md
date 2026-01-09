@@ -1,10 +1,10 @@
 ---
 id: 217
 title: Improve error message quality
-status: open
+status: closed
 priority: high
 created: 2026-01-07T03:50:29
-updated: 2026-01-07T03:50:29
+updated: 2026-01-09T01:27:07
 labels: [improvement]
 assignee: 
 project: sift
@@ -31,3 +31,6 @@ Affected: Sift/Core.lean, Sift/Primitives.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-09T01:27:03] Added structured ParseErrorKind and constructors, improved merge to prefer specific errors with deduped expected items, and updated primitives to set expected consistently; build/tests pass.
+- [2026-01-09T01:27:07] Closed: Added structured ParseErrorKind, improved merge selection/deduping, and ensured primitives set expected entries; build/tests pass.
