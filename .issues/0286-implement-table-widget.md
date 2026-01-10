@@ -1,10 +1,10 @@
 ---
 id: 286
 title: Implement Table widget
-status: open
+status: closed
 priority: medium
 created: 2026-01-08T04:34:47
-updated: 2026-01-08T04:34:47
+updated: 2026-01-10T14:11:14
 labels: [widget]
 assignee: 
 project: afferent
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Sortable, filterable data table with columns. Part of Phase 3 data display widgets.
 
+## Progress
+- [2026-01-10T14:11:14] Closed: Implemented basic Table widget with headers, row selection (single/multiple modes), and hover highlighting. Sorting/filtering deferred.

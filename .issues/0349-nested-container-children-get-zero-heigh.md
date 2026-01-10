@@ -1,10 +1,10 @@
 ---
 id: 349
 title: Nested container children get zero height due to missing intrinsic sizing
-status: in-progress
+status: closed
 priority: high
 created: 2026-01-10T13:21:07
-updated: 2026-01-10T13:22:58
+updated: 2026-01-10T13:30:45
 labels: []
 assignee: 
 project: trellis
@@ -72,3 +72,8 @@ else ...
 
 Once this issue is fixed in Trellis, the workaround can be removed and the height check restored.
 
+## Progress
+- [2026-01-10T13:28:01] Implemented intrinsic sizing for flex/grid containers, added nested row-in-column test, and restored Terminus render height check.
+- [2026-01-10T13:28:54] Closed: Added intrinsic container sizing, fixed nested row-in-column height, added regression test, and restored Terminus text height check.
+- [2026-01-10T13:30:39] Adjusted grid intrinsic sizing fallback for auto-flow implicit tracks.
+- [2026-01-10T13:30:45] Closed: Added intrinsic container sizing with auto-flow grid fallback, fixed nested row-in-column height, added regression test, and restored Terminus text height check.
