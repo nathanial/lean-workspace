@@ -195,3 +195,6 @@
 [submodule "apps/timekeeper"]
 	path = apps/timekeeper
 	url = git@github.com:nathanial/timekeeper.git
+[submodule "data/galaxy-gen"]
+	path = data/galaxy-gen
+	url = git@github.com:nathanial/galaxy-gen.git
