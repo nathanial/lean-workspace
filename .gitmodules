@@ -198,3 +198,6 @@
 [submodule "data/galaxy-gen"]
 	path = data/galaxy-gen
 	url = git@github.com:nathanial/galaxy-gen.git
+[submodule "apps/astrometry"]
+	path = apps/astrometry
+	url = git@github.com:nathanial/astrometry.git
