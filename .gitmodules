@@ -201,3 +201,6 @@
 [submodule "apps/astrometry"]
 	path = apps/astrometry
 	url = git@github.com:nathanial/astrometry.git
+[submodule "apps/eschaton"]
+	path = apps/eschaton
+	url = git@github.com:nathanial/eschaton.git
