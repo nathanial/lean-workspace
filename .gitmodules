@@ -204,3 +204,6 @@
 [submodule "apps/eschaton"]
 	path = apps/eschaton
 	url = git@github.com:nathanial/eschaton.git
+[submodule "data/tileset"]
+	path = data/tileset
+	url = git@github.com:nathanial/tileset.git
