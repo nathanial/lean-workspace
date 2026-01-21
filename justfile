@@ -309,6 +309,10 @@ versions:
 lines:
     @./scripts/count-lean-lines.sh
 
+# Find Lean files with more than 1000 lines (excludes .lake directories)
+long-files:
+    @./scripts/find-long-files.sh
+
 # Run a command in all submodules
 foreach cmd:
     git submodule foreach '{{cmd}}'
