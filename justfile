@@ -37,6 +37,10 @@ push:
 unpushed:
     @git submodule foreach --quiet 'ahead=$(git rev-list @{u}..HEAD 2>/dev/null | wc -l | tr -d " "); if [ "$ahead" -gt 0 ]; then echo "$name: $ahead commit(s) ahead"; fi'
 
+# Hard reset all submodules to their current HEAD
+reset-hard-all:
+    @git submodule foreach 'git reset --hard'
+
 # Show the latest tag for each project
 tags:
     #!/usr/bin/env bash
