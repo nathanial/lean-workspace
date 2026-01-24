@@ -207,3 +207,6 @@
 [submodule "data/tileset"]
 	path = data/tileset
 	url = git@github.com:nathanial/tileset.git
+[submodule "apps/chatline"]
+	path = apps/chatline
+	url = git@github.com:nathanial/chatline.git
