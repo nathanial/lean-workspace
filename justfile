@@ -346,3 +346,206 @@ generate-docs:
         done
     done
     echo "Done. PDFs generated in docs/"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Project Scaffolding
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Create a new Lean project (use --app for executable, library by default)
+# Usage: just new-project <category> <name>  OR  just new-project --app <category> <name>
+new-project *args:
+    #!/usr/bin/env bash
+    set -e
+
+    # Parse arguments
+    is_app=false
+    category=""
+    name=""
+
+    for arg in {{args}}; do
+        if [[ "$arg" == "--app" ]]; then
+            is_app=true
+        elif [[ -z "$category" ]]; then
+            category="$arg"
+        elif [[ -z "$name" ]]; then
+            name="$arg"
+        fi
+    done
+
+    # Validate arguments
+    if [[ -z "$category" || -z "$name" ]]; then
+        echo "Usage: just new-project [--app] <category> <name>"
+        echo "Categories: graphics, math, web, network, audio, data, apps, util, testing"
+        exit 1
+    fi
+
+    # Validate category
+    valid_categories="graphics math web network audio data apps util testing"
+    if ! echo "$valid_categories" | grep -qw "$category"; then
+        echo "Error: Invalid category '$category'"
+        echo "Valid categories: $valid_categories"
+        exit 1
+    fi
+
+    # Check if project already exists
+    if [[ -d "$category/$name" ]]; then
+        echo "Error: Project '$category/$name' already exists"
+        exit 1
+    fi
+
+    # Convert kebab-case to PascalCase
+    pascal_name=$(echo "$name" | sed -E 's/(^|-)([a-z])/\U\2/g')
+
+    echo "Creating project: $category/$name"
+    echo "  Module name: $pascal_name"
+    echo "  Type: $(if $is_app; then echo "executable"; else echo "library"; fi)"
+    echo ""
+
+    # Create directory structure
+    mkdir -p "$category/$name/$pascal_name"
+    mkdir -p "$category/$name/Tests"
+
+    # Create lean-toolchain
+    echo "leanprover/lean4:v4.26.0" > "$category/$name/lean-toolchain"
+
+    # Create .gitignore
+    echo ".lake" > "$category/$name/.gitignore"
+
+    # Create LICENSE
+    printf '%s\n' \
+      "MIT License" \
+      "" \
+      "Copyright (c) 2025 Nathanial Hartman" \
+      "" \
+      "Permission is hereby granted, free of charge, to any person obtaining a copy" \
+      "of this software and associated documentation files (the \"Software\"), to deal" \
+      "in the Software without restriction, including without limitation the rights" \
+      "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell" \
+      "copies of the Software, and to permit persons to whom the Software is" \
+      "furnished to do so, subject to the following conditions:" \
+      "" \
+      "The above copyright notice and this permission notice shall be included in all" \
+      "copies or substantial portions of the Software." \
+      "" \
+      "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR" \
+      "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY," \
+      "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE" \
+      "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER" \
+      "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM," \
+      "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE" \
+      "SOFTWARE." > "$category/$name/LICENSE"
+
+    # Create README.md
+    if $is_app; then
+        proj_type="application"
+    else
+        proj_type="library"
+    fi
+    {
+        echo "# $pascal_name"
+        echo ""
+        echo "A Lean 4 $proj_type."
+        echo ""
+        echo "## Build"
+        echo ""
+        echo '```bash'
+        echo "lake build"
+        echo '```'
+        echo ""
+        echo "## Test"
+        echo ""
+        echo '```bash'
+        echo "lake test"
+        echo '```'
+    } > "$category/$name/README.md"
+
+    # Create lakefile.lean
+    {
+        echo "import Lake"
+        echo "open Lake DSL"
+        echo ""
+        echo "package $name where"
+        echo '  version := v!"0.1.0"'
+        echo ""
+        echo 'require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.9"'
+        echo ""
+        echo "@[default_target]"
+        echo "lean_lib $pascal_name where"
+        echo "  roots := #[\`$pascal_name]"
+        if $is_app; then
+            echo ""
+            echo "lean_exe $name where"
+            echo "  root := \`$pascal_name.Main"
+        fi
+        echo ""
+        echo "lean_lib Tests where"
+        echo "  roots := #[\`Tests]"
+        echo ""
+        echo "@[test_driver]"
+        echo "lean_exe ${name}_tests where"
+        echo "  root := \`Tests.Main"
+    } > "$category/$name/lakefile.lean"
+
+    # Create root module
+    {
+        echo "/-"
+        echo "  $pascal_name - A Lean 4 $proj_type"
+        echo "-/"
+        echo "import $pascal_name.Main"
+    } > "$category/$name/$pascal_name.lean"
+
+    # Create Main.lean
+    if $is_app; then
+        {
+            echo "def main : IO Unit := do"
+            echo "  IO.println \"Hello from $name!\""
+        } > "$category/$name/$pascal_name/Main.lean"
+    else
+        {
+            echo "namespace $pascal_name"
+            echo ""
+            echo "-- Your code here"
+            echo ""
+            echo "end $pascal_name"
+        } > "$category/$name/$pascal_name/Main.lean"
+    fi
+
+    # Create Tests/Main.lean
+    {
+        echo "import Crucible"
+        echo "open Crucible"
+        echo ""
+        echo "suite \"$name\" do"
+        echo "  test \"placeholder\" do"
+        echo "    check (1 + 1 = 2)"
+        echo ""
+        echo "def main : IO UInt32 := runAllSuites"
+    } > "$category/$name/Tests/Main.lean"
+
+    echo "Created project files"
+
+    # Initialize git repo and push to GitHub
+    cd "$category/$name"
+    git init
+    git add -A
+    git commit -m "Initial commit"
+    cd ../..
+
+    echo "Initialized git repository"
+
+    # Create GitHub repo and push
+    gh repo create "nathanial/$name" --public --description "Lean 4 $name" --source="$category/$name" --remote=origin --push
+
+    echo "Created GitHub repository: github.com/nathanial/$name"
+
+    # Remove local directory and re-add as submodule
+    rm -rf "$category/$name"
+    git submodule add "git@github.com:nathanial/$name.git" "$category/$name"
+
+    echo ""
+    echo "Success! Project created at $category/$name"
+    echo ""
+    echo "Next steps:"
+    echo "  cd $category/$name"
+    echo "  lake build"
+    echo "  lake test"
