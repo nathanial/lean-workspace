@@ -210,3 +210,9 @@
 [submodule "apps/chatline"]
 	path = apps/chatline
 	url = git@github.com:nathanial/chatline.git
+[submodule "network/exchange"]
+	path = network/exchange
+	url = git@github.com:nathanial/exchange.git
+[submodule "network/jack"]
+	path = network/jack
+	url = git@github.com:nathanial/jack.git
