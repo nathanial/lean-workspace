@@ -1,10 +1,10 @@
 ---
 id: 305
 title: Implement Chip/Tag widget
-status: open
+status: closed
 priority: low
 created: 2026-01-08T04:35:29
-updated: 2026-01-08T04:35:29
+updated: 2026-01-25T02:09:15
 labels: [widget]
 assignee: 
 project: afferent
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Compact labeled element, optionally removable.
 
+## Progress
+- [2026-01-25T02:09:15] Closed: Implemented Chip widget with ChipVariant (filled, outlined), removable option, and chip/simpleChip/chipGroup functions

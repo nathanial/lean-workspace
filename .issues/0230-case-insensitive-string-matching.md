@@ -1,10 +1,10 @@
 ---
 id: 230
 title: Case-insensitive string matching
-status: open
+status: closed
 priority: low
 created: 2026-01-07T03:51:22
-updated: 2026-01-07T03:51:22
+updated: 2026-01-25T02:01:47
 labels: [feature]
 assignee: 
 project: sift
@@ -27,3 +27,5 @@ Affected: Sift/Primitives.lean
 
 Effort: Small
 
+## Progress
+- [2026-01-25T02:01:47] Closed: Added charCI combinator. stringCI was already implemented. Both case-insensitive matching functions now available.

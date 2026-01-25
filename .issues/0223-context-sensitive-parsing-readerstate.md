@@ -1,10 +1,10 @@
 ---
 id: 223
 title: Context-sensitive parsing (Reader/State)
-status: open
+status: closed
 priority: high
 created: 2026-01-07T03:51:00
-updated: 2026-01-07T03:51:00
+updated: 2026-01-25T02:02:59
 labels: [feature]
 assignee: 
 project: sift
@@ -28,3 +28,5 @@ Affected: New Sift/ParserT.lean
 
 Effort: Large
 
+## Progress
+- [2026-01-25T02:02:59] Closed: Already implemented. Parser is parameterized by user state σ, with getUserState, setUserState, modifyUserState combinators and runWith/parseWith runners. Full context-sensitive parsing support is available.
