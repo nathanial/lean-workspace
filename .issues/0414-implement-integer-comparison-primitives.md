@@ -1,10 +1,10 @@
 ---
 id: 414
 title: Implement integer comparison primitives
-status: open
+status: closed
 priority: high
 created: 2026-01-25T02:08:06
-updated: 2026-01-25T02:08:06
+updated: 2026-01-25T02:38:01
 labels: [phase2]
 assignee: 
 project: smalltalk
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Add primitive operations: <, >, <=, >=, =, ~= for integers
 
+## Progress
+- [2026-01-25T02:38:01] Closed: Implemented in Primitives.lean - all integer comparison operations

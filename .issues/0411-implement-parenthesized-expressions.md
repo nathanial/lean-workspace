@@ -1,10 +1,10 @@
 ---
 id: 411
 title: Implement parenthesized expressions
-status: open
+status: closed
 priority: medium
 created: 2026-01-25T02:07:55
-updated: 2026-01-25T02:07:55
+updated: 2026-01-25T02:17:32
 labels: [phase1]
 assignee: 
 project: smalltalk
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Evaluate expressions inside parentheses
 
+## Progress
+- [2026-01-25T02:17:32] Closed: Parenthesized expressions handled via Expr.seq

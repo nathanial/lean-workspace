@@ -1,10 +1,10 @@
 ---
 id: 224
 title: Indentation-sensitive parsing
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:51:00
-updated: 2026-01-07T03:51:00
+updated: 2026-01-25T02:27:03
 labels: [feature]
 assignee: 
 project: sift
@@ -30,3 +30,5 @@ Effort: Medium
 
 Dependencies: Context-sensitive parsing support
 
+## Progress
+- [2026-01-25T02:27:03] Closed: Implemented in commit 048535d (v0.0.10). Added Sift/Indent.lean with: getColumn, getLine, atColumn, indented, onLine, measureIndent, IndentState for indent stack tracking, block, sameLevel, blockLines, processIndent, checkIndent, withIndentContext, atIndent, softBlock. Full test suite included.
