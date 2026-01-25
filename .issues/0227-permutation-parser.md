@@ -1,10 +1,10 @@
 ---
 id: 227
 title: Permutation parser
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:51:02
-updated: 2026-01-07T03:51:02
+updated: 2026-01-25T04:09:18
 labels: [feature]
 assignee: 
 project: sift
@@ -29,3 +29,5 @@ Affected: New Sift/Permutation.lean or Sift/Combinators.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-25T04:09:18] Closed: Implemented permutation combinators with Permutable type class supporting 2-4 parser tuples. Committed in ab190fa.

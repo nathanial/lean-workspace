@@ -1,10 +1,10 @@
 ---
 id: 231
 title: Recovery/error correction
-status: open
+status: closed
 priority: low
 created: 2026-01-07T03:51:22
-updated: 2026-01-07T03:51:22
+updated: 2026-01-25T04:10:06
 labels: [feature]
 assignee: 
 project: sift
@@ -27,3 +27,5 @@ Affected: Sift/Combinators.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-25T04:10:06] Closed: Already implemented. Error recovery combinators (recover, recoverWith, skipUntil, withRecovery, manyRecover) exist in Sift/Combinators.lean with tests.
