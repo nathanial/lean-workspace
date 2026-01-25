@@ -1,10 +1,10 @@
 ---
 id: 219
 title: Performance: Avoid intermediate arrays in many
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:50:30
-updated: 2026-01-07T03:50:30
+updated: 2026-01-25T01:46:14
 labels: [performance]
 assignee: 
 project: sift
@@ -27,3 +27,5 @@ Affected: Sift/Combinators.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-25T01:46:14] Closed: Fixed many1 to build array incrementally instead of using #[first] ++ rest which created an intermediate array. The many combinator was already efficient (Array.push is amortized O(1)). Bulk allocation hints would have diminishing returns.

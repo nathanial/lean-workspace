@@ -1,10 +1,10 @@
 ---
 id: 218
 title: Add MonadState instance
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:50:29
-updated: 2026-01-07T03:50:29
+updated: 2026-01-25T01:43:50
 labels: [improvement]
 assignee: 
 project: sift
@@ -27,3 +27,5 @@ Affected: Sift/Core.lean
 
 Effort: Small
 
+## Progress
+- [2026-01-25T01:43:50] Closed: Added MonadStateOf (ParseState σ) (Parser σ) instance with get, set, and modifyGet implementations. All tests pass.

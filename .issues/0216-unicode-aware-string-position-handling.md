@@ -1,10 +1,10 @@
 ---
 id: 216
 title: Unicode-aware string position handling
-status: open
+status: closed
 priority: high
 created: 2026-01-07T03:50:28
-updated: 2026-01-07T03:50:28
+updated: 2026-01-25T01:41:24
 labels: [improvement]
 assignee: 
 project: sift
@@ -28,3 +28,5 @@ Affected: Sift/Core.lean, Sift/Primitives.lean
 
 Effort: Medium
 
+## Progress
+- [2026-01-25T01:41:24] Closed: Already implemented. The code uses String.Pos.Raw.get (not deprecated String.get), correctly wraps Nat positions as String.Pos via ⟨s.pos⟩, and advances by c.utf8Size for proper UTF-8 handling. No changes needed.
