@@ -1,10 +1,10 @@
 ---
 id: 419
 title: Implement unary message sends
-status: open
+status: closed
 priority: high
 created: 2026-01-25T02:08:19
-updated: 2026-01-25T02:08:19
+updated: 2026-01-25T02:50:58
 labels: [phase3]
 assignee: 
 project: smalltalk
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Dispatch unary messages to receivers (e.g., array size)
 
+## Progress
+- [2026-01-25T02:50:58] Closed: Unary message sends implemented via evalPrimitive in Phase 2 - primitives dispatch on selector with no arguments

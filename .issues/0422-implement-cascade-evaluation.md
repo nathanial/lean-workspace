@@ -1,10 +1,10 @@
 ---
 id: 422
 title: Implement cascade evaluation
-status: open
+status: closed
 priority: medium
 created: 2026-01-25T02:08:20
-updated: 2026-01-25T02:08:20
+updated: 2026-01-25T02:50:58
 labels: [phase3]
 assignee: 
 project: smalltalk
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Evaluate cascaded messages with semicolon (e.g., obj foo; bar: 1)
 
+## Progress
+- [2026-01-25T02:50:58] Closed: Cascade evaluation implemented - evaluates receiver once, sends all messages to it, returns receiver (Smalltalk-80 semantics)

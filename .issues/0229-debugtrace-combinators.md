@@ -1,10 +1,10 @@
 ---
 id: 229
 title: Debug/trace combinators
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:51:22
-updated: 2026-01-07T03:51:22
+updated: 2026-01-25T03:10:05
 labels: [feature]
 assignee: 
 project: sift
@@ -28,3 +28,5 @@ Affected: Sift/Combinators.lean or new Sift/Debug.lean
 
 Effort: Small
 
+## Progress
+- [2026-01-25T03:10:04] Closed: Implemented debug/trace combinators in Sift/Debug.lean with tests
