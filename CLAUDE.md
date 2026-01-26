@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Lean 4 workspace with 58 interconnected projects.
+Lean 4 workspace with 66 interconnected projects.
 
 ## Project Categories
 
@@ -8,9 +8,9 @@ Lean 4 workspace with 58 interconnected projects.
 |----------|----------|
 | **Graphics** | terminus (TUI), afferent (Metal GPU, includes Arbor/Canopy), afferent-demos (demo runner), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser) |
 | **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
-| **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter) |
-| **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML) |
-| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking), timekeeper (time tracking TUI) |
+| **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter), jack (sockets), exchange (P2P chat) |
+| **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML), tileset (map tiles), galaxy-gen (planned) |
+| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking), timekeeper (time tracking TUI), eschaton (grand strategy), chatline (chat app), astrometry (planned) |
 | **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), sift (parser combinators), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
@@ -29,7 +29,7 @@ graphics/   math/   web/   network/   audio/   data/   apps/   util/   testing/
 **Note:** `lake build` only builds the default lakefile target, which may not include specific executables. To run an executable, either use the `./run.sh` script in a project folder or call `lake exe <appname>` directly.
 
 **Projects requiring ./build.sh** (sets LEAN_CC or downloads dependencies):
-- afferent, afferent-demos, chroma, assimptor, worldmap, vane, grove, cairn (Metal/macOS)
+- afferent, afferent-demos, chroma, assimptor, worldmap, vane, grove, cairn, eschaton (Metal/macOS)
 - quarry, raster (downloads vendored deps)
 - fugue (AudioToolbox FFI)
 - legate (builds gRPC: `lake run buildFfi` first)
@@ -44,6 +44,9 @@ afferent.Arbor → trellis, tincture
 legate → protolean
 oracle → wisp
 terminus apps (blockfall, twenty48, minefield, lighthouse, enchiridion, tracker, timekeeper) → terminus
+eschaton → afferent
+exchange → jack
+tileset → cellar, wisp, reactive
 ```
 
 External: collimator → mathlib, ledger → batteries, chroma/tincture → plausible
@@ -140,11 +143,11 @@ require crucible from git "https://github.com/nathanial/crucible" @ "v0.0.1"
 
 | Tier | Projects |
 |------|----------|
-| 0 | crucible, staple, cellar, assimptor, raster |
-| 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, sift, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk |
-| 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil |
-| 3 | loom, afferent, ask, lighthouse, enchiridion, docgen, tracker |
-| 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos, timekeeper |
+| 0 | crucible, staple, cellar, assimptor, raster, jack |
+| 1 | herald, trellis, collimator, protolean, scribe, chronicle, terminus, fugue, linalg, chronos, measures, rune, sift, tincture, wisp, chisel, ledger, quarry, convergent, reactive, tabular, entity, totem, conduit, tracer, smalltalk, exchange |
+| 2 | citadel, legate, oracle, parlance, blockfall, twenty48, minefield, solitaire, stencil, tileset |
+| 3 | loom, afferent, ask, lighthouse, enchiridion, docgen, tracker, chatline |
+| 4 | todo-app, homebase-app, chroma, vane, worldmap, grove, cairn, afferent-demos, timekeeper, eschaton |
 
 ### Release Process
 

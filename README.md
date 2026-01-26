@@ -9,11 +9,11 @@ lean-workspace/
 ├── graphics/    # Graphics & UI (11 projects)
 ├── math/        # Scientific & Math (2 projects)
 ├── web/         # Web Framework Stack (7 projects)
-├── network/     # Networking & Protocols (4 projects)
+├── network/     # Networking & Protocols (6 projects)
 ├── audio/       # Audio (1 project)
-├── data/        # Data & Storage (10 projects)
-├── apps/        # Applications (12 projects)
-├── util/        # CLI & Utilities (10 projects)
+├── data/        # Data & Storage (12 projects)
+├── apps/        # Applications (15 projects)
+├── util/        # CLI & Utilities (11 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -62,6 +62,8 @@ lean-workspace/
 | [legate](https://github.com/nathanial/legate) | Generic gRPC library with all streaming modes |
 | [protolean](https://github.com/nathanial/protolean) | Protocol Buffers implementation with compile-time `proto_import` |
 | [oracle](https://github.com/nathanial/oracle) | OpenRouter API client with streaming and tool calling |
+| [jack](https://github.com/nathanial/jack) | BSD socket bindings (TCP/UDP, IPv4/IPv6) |
+| [exchange](https://github.com/nathanial/exchange) | Peer-to-peer local network chat with mDNS discovery |
 
 ### Audio
 
@@ -83,6 +85,8 @@ lean-workspace/
 | [tabular](https://github.com/nathanial/tabular) | CSV/TSV parser with typed column extraction |
 | [entity](https://github.com/nathanial/entity) | Archetypal Entity-Component-System (ECS) library |
 | [totem](https://github.com/nathanial/totem) | TOML configuration parser with typed extraction |
+| [tileset](https://github.com/nathanial/tileset) | GPU-agnostic map tile loading with caching and reactive updates |
+| galaxy-gen | Procedural galaxy generation (planned) |
 
 ### Applications
 
@@ -100,6 +104,9 @@ lean-workspace/
 | [solitaire](https://github.com/nathanial/solitaire) | Terminal Klondike Solitaire card game |
 | [tracker](https://github.com/nathanial/tracker) | Local git-friendly issue tracker with CLI and TUI modes |
 | [timekeeper](https://github.com/nathanial/timekeeper) | Terminal time tracking app with categories and reports |
+| [eschaton](https://github.com/nathanial/eschaton) | Stellaris-inspired grand strategy game with Metal rendering |
+| [chatline](https://github.com/nathanial/chatline) | Chat application (early stage) |
+| astrometry | Astronomy application (planned) |
 
 ### CLI & Utilities
 
@@ -151,8 +158,13 @@ worldmap ───────► afferent      (rendering)
          ├──────► wisp          (HTTP client)
          └──────► cellar        (disk cache)
 vane ───────────► afferent      (rendering)
+eschaton ───────► afferent      (rendering + Canopy UI)
+tileset ────────► cellar        (disk cache)
+         ├──────► wisp          (HTTP client)
+         └──────► reactive      (FRP)
 
 Other:
+exchange ───────► jack          (sockets)
 legate ─────────► protolean     (protobuf serialization)
 oracle ─────────► wisp          (HTTP client)
 enchiridion ───► terminus       (terminal UI)
@@ -192,7 +204,7 @@ cd web/loom && lake build            # Build loom
 cd apps/blockfall && lake build      # Build blockfall
 ```
 
-Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, and `apps/cairn` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, `apps/cairn`, and `apps/eschaton` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 
