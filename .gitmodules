@@ -216,3 +216,6 @@
 [submodule "network/jack"]
 	path = network/jack
 	url = git@github.com:nathanial/jack.git
+[submodule "web/docsite"]
+	path = web/docsite
+	url = git@github.com:nathanial/docsite.git
