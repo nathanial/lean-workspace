@@ -219,3 +219,6 @@
 [submodule "web/docsite"]
 	path = web/docsite
 	url = git@github.com:nathanial/docsite.git
+[submodule "apps/image-gen"]
+	path = apps/image-gen
+	url = git@github.com:nathanial/image-gen.git
