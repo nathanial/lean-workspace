@@ -1,10 +1,10 @@
 ---
 id: 510
 title: Linalg Demo: Geometric Primitive Widgets
-status: open
+status: closed
 priority: medium
 created: 2026-01-30T02:28:06
-updated: 2026-01-30T02:28:06
+updated: 2026-01-30T20:11:03
 labels: []
 assignee: 
 project: afferent
@@ -25,3 +25,6 @@ Create 4 geometric primitive and intersection widgets:
 
 4. **FrustumCullingDemo** - Camera frustum with multiple objects. Color-coded visibility (visible, partial, culled). Demonstrates Frustum, Frustum.fromViewProjection, containsPoint, containsSphere, containsAABB.
 
+## Progress
+- [2026-01-30T20:10:56] Added four geometry demos (ray casting, overlap tester, barycentric, frustum culling) and wired into demo registry; build.sh passes.
+- [2026-01-30T20:11:02] Closed: Implemented geometric primitive demos (ray casting, overlap tester, barycentric, frustum culling) and wired them into the demo registry; build passes.

@@ -1,10 +1,10 @@
 ---
 id: 509
 title: Linalg Demo: Rotation System Widgets
-status: open
+status: closed
 priority: medium
 created: 2026-01-30T02:28:06
-updated: 2026-01-30T02:28:06
+updated: 2026-01-30T19:20:16
 labels: []
 assignee: 
 project: afferent
@@ -25,3 +25,6 @@ Create 4 rotation system visualization widgets:
 
 4. **DualQuaternionBlending** - Two-bone skeletal rig showing LBS vs DLB skinning. Shows candy-wrapper artifact in linear blend. Demonstrates DualQuat, DualQuat.fromRotationTranslation, DualQuat.blend, volume preservation.
 
+## Progress
+- [2026-01-30T19:17:23] Implemented rotation system demo modules and wired them into the demo registry.
+- [2026-01-30T19:20:16] Closed: Added quaternion visualizer, SLERP vs LERP, Euler gimbal lock, and dual quaternion blending demos; wired into demo registry.

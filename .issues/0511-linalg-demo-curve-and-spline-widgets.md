@@ -1,10 +1,10 @@
 ---
 id: 511
 title: Linalg Demo: Curve and Spline Widgets
-status: open
+status: closed
 priority: medium
 created: 2026-01-30T02:28:06
-updated: 2026-01-30T02:28:06
+updated: 2026-01-30T20:37:33
 labels: []
 assignee: 
 project: afferent
@@ -27,3 +27,6 @@ Create 5 curve and spline visualization widgets:
 
 5. **BezierPatchSurface** - 3D bicubic Bezier surface with 4x4 control point grid. Draggable control points, adjustable tessellation, normal visualization. Demonstrates BezierPatch, eval, normal, derivativeU/V, isocurves.
 
+## Progress
+- [2026-01-30T20:37:31] Implemented Bezier/Catmull-Rom/B-spline/arc-length/Bezier-patch demos, wired DemoRegistry and imports, build.sh passes with existing warnings.
+- [2026-01-30T20:37:33] Closed: Implemented five curve/spline demos, wired DemoRegistry/Demos imports, build.sh succeeds (existing repo warnings only).
