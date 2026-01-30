@@ -1,10 +1,10 @@
 ---
 id: 480
 title: Coroutine support: Create, resume, and yield Lua coroutines from Lean
-status: in-progress
+status: closed
 priority: high
 created: 2026-01-29T06:43:57
-updated: 2026-01-29T08:17:04
+updated: 2026-01-29T09:04:35
 labels: [feature]
 assignee: 
 project: selene
