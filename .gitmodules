@@ -228,3 +228,6 @@
 [submodule "graphics/shader"]
 	path = graphics/shader
 	url = git@github.com:nathanial/shader.git
+[submodule "apps/agent-mail"]
+	path = apps/agent-mail
+	url = git@github.com:nathanial/agent-mail.git
