@@ -1,10 +1,10 @@
 ---
 id: 513
 title: Linalg Demo: Procedural Noise Widgets
-status: open
+status: closed
 priority: medium
 created: 2026-01-30T02:28:06
-updated: 2026-01-30T02:28:06
+updated: 2026-01-31T19:19:01
 labels: []
 assignee: 
 project: afferent
@@ -25,3 +25,5 @@ Create 4 procedural noise visualization widgets:
 
 4. **WorleyCellularNoise** - Cellular noise with visible feature points. Dropdown for F1, F2, F2-F1, F3-F1. Jitter slider. Cell edge detection. Demonstrates Noise.worley2D, WorleyResult, worley2DF1, worley2DEdge, Voronoi connection.
 
+## Progress
+- [2026-01-31T19:19:01] Closed: All four procedural noise widgets implemented: NoiseExplorer2D, FBMTerrainGenerator, DomainWarpingDemo, WorleyCellularNoise. Registered in DemoRegistry and building successfully.
