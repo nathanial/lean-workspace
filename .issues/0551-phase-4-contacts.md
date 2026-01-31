@@ -1,10 +1,10 @@
 ---
 id: 551
 title: Phase 4: Contacts
-status: open
+status: closed
 priority: medium
 created: 2026-01-31T01:16:14
-updated: 2026-01-31T01:16:14
+updated: 2026-01-31T05:36:45
 labels: []
 assignee: 
 project: agent-mail
@@ -26,3 +26,5 @@ ContactPolicy enum: open, auto, contactsOnly, blockAll
 
 Reference: apps/agent-mail/ROADMAP.md lines 38-44
 
+## Progress
+- [2026-01-31T05:36:45] Closed: Implemented contact tool fixes and added regression tests

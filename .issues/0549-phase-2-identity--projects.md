@@ -1,10 +1,10 @@
 ---
 id: 549
 title: Phase 2: Identity & Projects
-status: open
+status: closed
 priority: high
 created: 2026-01-31T01:16:09
-updated: 2026-01-31T01:16:09
+updated: 2026-01-31T03:39:57
 labels: []
 assignee: 
 project: agent-mail
@@ -25,3 +25,5 @@ Implement identity and project management tools:
 
 Reference: apps/agent-mail/ROADMAP.md lines 17-24
 
+## Progress
+- [2026-01-31T03:39:57] Closed: Implemented Phase 2 identity/project tools: health_check uses config env, project_key resolves slug or human key, ensure_project handles unique slugs, register_agent updates profile on re-register, and name generation handles collisions. Tests pass.

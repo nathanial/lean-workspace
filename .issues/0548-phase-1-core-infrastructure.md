@@ -1,10 +1,10 @@
 ---
 id: 548
 title: Phase 1: Core Infrastructure
-status: open
+status: closed
 priority: high
 created: 2026-01-31T01:16:06
-updated: 2026-01-31T01:16:06
+updated: 2026-01-31T02:35:13
 labels: []
 assignee: 
 project: agent-mail
@@ -26,3 +26,5 @@ Dependencies: quarry, citadel, herald, collimator
 
 Reference: apps/agent-mail/ROADMAP.md, references/mcp_agent_mail/src/mcp_agent_mail/
 
+## Progress
+- [2026-01-31T02:35:13] Closed: Implemented Phase 1: core models, Quarry-backed schema, JSON-RPC 2.0 foundation, and Citadel server with proper notification semantics. Tests updated and passing.

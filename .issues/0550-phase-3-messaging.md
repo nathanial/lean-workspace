@@ -1,10 +1,10 @@
 ---
 id: 550
 title: Phase 3: Messaging
-status: open
+status: closed
 priority: high
 created: 2026-01-31T01:16:12
-updated: 2026-01-31T01:16:12
+updated: 2026-01-31T05:15:19
 labels: []
 assignee: 
 project: agent-mail
@@ -26,3 +26,5 @@ Implement core messaging tools:
 
 Reference: apps/agent-mail/ROADMAP.md lines 27-36
 
+## Progress
+- [2026-01-31T05:15:19] Closed: Implemented Phase 3 messaging parity: send/reply/fetch/mark/ack tools now match spec responses, ISO since_ts support, urgent filter includes high+urgent, reply inherits flags, and attachments stored in DB. Tests pass.

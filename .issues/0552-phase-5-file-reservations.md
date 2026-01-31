@@ -1,10 +1,10 @@
 ---
 id: 552
 title: Phase 5: File Reservations
-status: open
+status: closed
 priority: medium
 created: 2026-01-31T01:16:17
-updated: 2026-01-31T01:16:17
+updated: 2026-01-31T06:46:27
 labels: []
 assignee: 
 project: agent-mail
@@ -27,3 +27,5 @@ FileReservation model: id, projectId, agentId, pathPattern, exclusive, reason, e
 
 Reference: apps/agent-mail/ROADMAP.md lines 46-54
 
+## Progress
+- [2026-01-31T06:46:27] Closed: Aligned file reservation tools with reference semantics and schemas
