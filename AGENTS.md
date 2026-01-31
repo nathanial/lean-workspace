@@ -19,6 +19,8 @@ Categories: `graphics/`, `web/`, `network/`, `data/`, `apps/`, `util/`, `math/`,
 
 **Default:** `lake build && lake test`
 
+**Always run:** `lake test`
+
 **Requires ./build.sh:** afferent, cairn, chroma, grove, vane, worldmap (Metal), quarry, raster (vendored deps), fugue (AudioToolbox), assimptor (Assimp)
 
 **legate:** Run `lake run buildFfi` first (builds gRPC)
