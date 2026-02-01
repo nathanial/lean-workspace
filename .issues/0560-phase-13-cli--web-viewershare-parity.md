@@ -1,10 +1,10 @@
 ---
 id: 560
 title: Phase 13: CLI + Web Viewer/Share Parity
-status: open
+status: closed
 priority: low
 created: 2026-01-31T01:25:11
-updated: 2026-01-31T01:25:11
+updated: 2026-02-01T07:39:35
 labels: []
 assignee: 
 project: agent-mail
