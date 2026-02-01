@@ -21,6 +21,8 @@ Categories: `graphics/`, `web/`, `network/`, `data/`, `apps/`, `util/`, `math/`,
 
 **Always run:** `lake test`
 
+**Always verify compile after code changes:** run the project-appropriate build (e.g., `./build.sh` for listed Metal/FFI projects).
+
 **Requires ./build.sh:** afferent, cairn, chroma, grove, vane, worldmap (Metal), quarry, raster (vendored deps), fugue (AudioToolbox), assimptor (Assimp)
 
 **legate:** Run `lake run buildFfi` first (builds gRPC)

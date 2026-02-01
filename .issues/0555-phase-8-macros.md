@@ -1,10 +1,10 @@
 ---
 id: 555
 title: Phase 8: Macros
-status: open
+status: closed
 priority: low
 created: 2026-01-31T01:16:25
-updated: 2026-01-31T01:16:25
+updated: 2026-01-31T21:52:57
 labels: []
 assignee: 
 project: agent-mail
