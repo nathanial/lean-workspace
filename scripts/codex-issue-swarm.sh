@@ -41,7 +41,24 @@ for arg in "$@"; do
   case "$arg" in
     --wait) WAIT="true" ;;
     -h|--help) usage; exit 0 ;;
-    *) ISSUE_IDS+=("$arg") ;;
+    *)
+      cleaned="${arg#\#}"
+      if [[ "$cleaned" =~ ^[0-9]+-[0-9]+$ ]]; then
+        start="${cleaned%-*}"
+        end="${cleaned#*-}"
+        if [ "$start" -le "$end" ]; then
+          for ((i=start; i<=end; i++)); do
+            ISSUE_IDS+=("$i")
+          done
+        else
+          for ((i=start; i>=end; i--)); do
+            ISSUE_IDS+=("$i")
+          done
+        fi
+      elif [ -n "$cleaned" ]; then
+        ISSUE_IDS+=("$cleaned")
+      fi
+      ;;
   esac
 done
 

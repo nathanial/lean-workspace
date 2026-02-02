@@ -17,3 +17,5 @@ references/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+.codex-logs/
