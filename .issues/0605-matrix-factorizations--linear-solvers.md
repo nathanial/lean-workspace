@@ -1,10 +1,10 @@
 ---
 id: 605
 title: Matrix factorizations + linear solvers
-status: open
+status: closed
 priority: high
 created: 2026-02-02T02:14:55
-updated: 2026-02-02T02:14:55
+updated: 2026-02-02T06:00:54
 labels: []
 assignee: 
 project: linalg
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 LU/QR/Cholesky decompositions, linear system solve, least-squares utilities for Mat2/Mat3/Mat4.
 
+## Progress
+- [2026-02-02T06:00:54] Closed: Added LU/QR/Cholesky decompositions and solvers for Mat2/Mat3/Mat4 with tests
