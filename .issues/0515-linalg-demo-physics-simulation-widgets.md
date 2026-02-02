@@ -1,10 +1,10 @@
 ---
 id: 515
 title: Linalg Demo: Physics Simulation Widgets
-status: open
+status: closed
 priority: medium
 created: 2026-01-30T02:28:07
-updated: 2026-01-30T02:28:07
+updated: 2026-02-01T20:07:18
 labels: []
 assignee: 
 project: afferent
@@ -29,3 +29,6 @@ Create 6 physics simulation visualization widgets:
 
 6. **ConstraintSolver** - Simple distance/position constraints between particles. Shows constraint forces. Demonstrates basic constraint satisfaction for physics simulations.
 
+## Progress
+- [2026-02-01T20:07:15] Implemented physics demos and Canopy tabs for integration, collision, rigid body, inertia, swept collision, and constraints; wired into demo lists; build/test completed with existing warnings.
+- [2026-02-01T20:07:18] Closed: Added physics simulation demo modules and Canopy tabs; wired into demo registry; build/test completed with existing warnings.
