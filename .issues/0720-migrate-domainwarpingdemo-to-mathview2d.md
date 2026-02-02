@@ -1,10 +1,10 @@
 ---
 id: 720
 title: Migrate DomainWarpingDemo to MathView2D
-status: open
+status: closed
 priority: medium
 created: 2026-02-02T20:20:24
-updated: 2026-02-02T20:20:24
+updated: 2026-02-02T21:20:28
 labels: []
 assignee: 
 project: afferent
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Update afferent-demos Demos/Linalg/DomainWarpingDemo.lean to use Afferent.Widget.MathView2D for grid/axes/labels and world-to-screen transforms.
 
+## Progress
+- [2026-02-02T21:20:28] Closed: Migrated demo to MathView2D.
