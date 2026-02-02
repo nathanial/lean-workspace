@@ -1,10 +1,10 @@
 ---
 id: 233
 title: JSON number parser
-status: open
+status: closed
 priority: low
 created: 2026-01-07T03:51:24
-updated: 2026-01-07T03:51:24
+updated: 2026-02-02T03:59:18
 labels: [feature]
 assignee: 
 project: sift
@@ -25,3 +25,5 @@ Effort: Small
 
 Dependencies: Floating-point parser
 
+## Progress
+- [2026-02-02T03:59:17] Closed: Implemented jsonNumber parser in Sift/Text.lean with comprehensive tests. Parser enforces JSON RFC 8259 rules: no leading + sign, no leading zeros (except 0 alone or 0.xxx), optional fraction and exponent parts.

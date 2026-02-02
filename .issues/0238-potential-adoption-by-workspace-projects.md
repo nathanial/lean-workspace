@@ -1,10 +1,10 @@
 ---
 id: 238
 title: Potential adoption by workspace projects
-status: open
+status: closed
 priority: medium
 created: 2026-01-07T03:51:57
-updated: 2026-01-07T03:51:57
+updated: 2026-02-02T04:13:58
 labels: [integration]
 assignee: 
 project: sift

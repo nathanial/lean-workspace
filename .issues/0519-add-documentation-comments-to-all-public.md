@@ -1,10 +1,10 @@
 ---
 id: 519
 title: Add Documentation Comments to All Public APIs
-status: open
+status: in-progress
 priority: high
 created: 2026-01-31T00:09:38
-updated: 2026-01-31T00:09:38
+updated: 2026-02-02T04:13:20
 labels: []
 assignee: 
 project: ledger
