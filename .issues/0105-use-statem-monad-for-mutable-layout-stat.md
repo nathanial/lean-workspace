@@ -1,10 +1,10 @@
 ---
 id: 105
 title: Use StateM Monad for Mutable Layout State
-status: open
+status: closed
 priority: medium
 created: 2026-01-06T23:28:56
-updated: 2026-01-06T23:28:56
+updated: 2026-02-02T05:40:44
 labels: []
 assignee: 
 project: trellis
