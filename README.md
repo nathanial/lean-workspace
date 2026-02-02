@@ -6,14 +6,14 @@ A collection of Lean 4 libraries for building applications with terminal UIs, gr
 
 ```
 lean-workspace/
-├── graphics/    # Graphics & UI (11 projects)
+├── graphics/    # Graphics & UI (12 projects)
 ├── math/        # Scientific & Math (2 projects)
-├── web/         # Web Framework Stack (7 projects)
+├── web/         # Web Framework Stack (8 projects)
 ├── network/     # Networking & Protocols (6 projects)
 ├── audio/       # Audio (1 project)
 ├── data/        # Data & Storage (12 projects)
-├── apps/        # Applications (15 projects)
-├── util/        # CLI & Utilities (11 projects)
+├── apps/        # Applications (17 projects)
+├── util/        # CLI & Utilities (12 projects)
 └── testing/     # Testing (1 project)
 ```
 
@@ -34,6 +34,7 @@ lean-workspace/
 | [worldmap](https://github.com/nathanial/worldmap) | Tile-based map viewer with Web Mercator projection |
 | [vane](https://github.com/nathanial/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
 | [raster](https://github.com/nathanial/raster) | Image loading, saving, and manipulation via stb_image |
+| [shader](https://github.com/nathanial/shader) | GPU shader DSL for writing Metal shaders in pure Lean |
 
 ### Scientific & Math
 
@@ -53,6 +54,7 @@ lean-workspace/
 | [markup](https://github.com/nathanial/markup) | Strict HTML parser producing Scribe `Html` values |
 | [chronicle](https://github.com/nathanial/chronicle) | File-based logging library with text/JSON formats and Loom integration |
 | [stencil](https://github.com/nathanial/stencil) | Mustache/Handlebars-style template engine outputting Scribe Html |
+| [docsite](https://github.com/nathanial/docsite) | Documentation website for the Lean workspace |
 
 ### Networking & Protocols
 
@@ -106,6 +108,8 @@ lean-workspace/
 | [timekeeper](https://github.com/nathanial/timekeeper) | Terminal time tracking app with categories and reports |
 | [eschaton](https://github.com/nathanial/eschaton) | Stellaris-inspired grand strategy game with Metal rendering |
 | [chatline](https://github.com/nathanial/chatline) | Chat application (early stage) |
+| [agent-mail](https://github.com/nathanial/agent-mail) | Multi-agent coordination layer with messaging and file reservations |
+| [image-gen](https://github.com/nathanial/image-gen) | AI-powered image generation CLI using OpenRouter |
 | astrometry | Astronomy application (planned) |
 
 ### CLI & Utilities
@@ -123,6 +127,7 @@ lean-workspace/
 | [crypt](https://github.com/nathanial/crypt) | Cryptographic primitives with libsodium FFI (hashing, encryption, HMAC) |
 | [timeout](https://github.com/nathanial/timeout) | Command timeout utility (shell script) |
 | [smalltalk](https://github.com/nathanial/smalltalk) | Smalltalk interpreter (WIP) |
+| [selene](https://github.com/nathanial/selene) | Lua-Lean 4 integration library with FFI bindings |
 
 ### Testing
 
@@ -204,7 +209,7 @@ cd web/loom && lake build            # Build loom
 cd apps/blockfall && lake build      # Build blockfall
 ```
 
-Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, `apps/cairn`, and `apps/eschaton` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, `apps/cairn`, `apps/eschaton`, `util/selene`, and `web/docsite` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
 
 ## Workspace Management
 

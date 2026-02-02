@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Lean 4 workspace with 57 projects. See `CLAUDE.md` for full project list and dependency graph.
+Lean 4 workspace with 68 projects. See `CLAUDE.md` for full project list and dependency graph.
 
 ## Directory Layout
 
@@ -25,7 +25,7 @@ Categories: `graphics/`, `web/`, `network/`, `data/`, `apps/`, `util/`, `math/`,
 
 **Always verify compile after code changes:** run the project-appropriate build (e.g., `./build.sh` for listed Metal/FFI projects).
 
-**Requires ./build.sh:** afferent, cairn, chroma, grove, vane, worldmap (Metal), quarry, raster (vendored deps), fugue (AudioToolbox), assimptor (Assimp)
+**Requires ./build.sh:** afferent, cairn, chroma, grove, vane, worldmap (Metal), quarry, raster (vendored deps), fugue (AudioToolbox), assimptor (Assimp), selene (Lua FFI), docsite (use ./run.sh)
 
 **legate:** Run `lake run buildFfi` first (builds gRPC)
 

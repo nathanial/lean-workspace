@@ -1,17 +1,17 @@
 # CLAUDE.md
 
-Lean 4 workspace with 66 interconnected projects.
+Lean 4 workspace with 68 interconnected projects.
 
 ## Project Categories
 
 | Category | Projects |
 |----------|----------|
-| **Graphics** | terminus (TUI), afferent (Metal GPU, includes Arbor/Canopy), afferent-demos (demo runner), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser) |
-| **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates) |
+| **Graphics** | terminus (TUI), afferent (Metal GPU, includes Arbor/Canopy), afferent-demos (demo runner), trellis (CSS layout), tincture (color), chroma (color picker), assimptor (3D models), worldmap (maps), vane (terminal emulator), raster (images), grove (file browser), shader (GPU shader DSL) |
+| **Web** | loom (framework), citadel (HTTP server), herald (HTTP parser), scribe (HTML builder), markup (HTML parser), chronicle (logging), stencil (templates), docsite (workspace docs) |
 | **Network** | wisp (HTTP client), legate (gRPC), protolean (protobuf), oracle (OpenRouter), jack (sockets), exchange (P2P chat) |
 | **Data** | ledger (fact DB), quarry (SQLite), chisel (SQL DSL), cellar (disk cache), collimator (optics), convergent (CRDTs), reactive (FRP), tabular (CSV), entity (ECS), totem (TOML), tileset (map tiles), galaxy-gen (planned) |
-| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking), timekeeper (time tracking TUI), eschaton (grand strategy), chatline (chat app), astrometry (planned) |
-| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), sift (parser combinators), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter) |
+| **Apps** | homebase-app, todo-app, enchiridion, lighthouse, blockfall, twenty48, ask, cairn, minefield, solitaire, tracker (issue tracking), timekeeper (time tracking TUI), eschaton (grand strategy), chatline (chat app), agent-mail (multi-agent coordination), image-gen (AI image generation), astrometry (planned) |
+| **Util** | parlance (CLI), staple (macros), chronos (time), rune (regex), sift (parser combinators), conduit (channels), docgen, tracer, crypt (crypto), timeout, smalltalk (interpreter), selene (Lua bindings) |
 | **Math** | linalg (vectors/matrices), measures (units) |
 | **Audio** | fugue (synthesis) |
 | **Testing** | crucible (test framework) |
@@ -33,6 +33,8 @@ graphics/   math/   web/   network/   audio/   data/   apps/   util/   testing/
 - quarry, raster (downloads vendored deps)
 - fugue (AudioToolbox FFI)
 - legate (builds gRPC: `lake run buildFfi` first)
+- selene (Lua FFI)
+- docsite (use ./run.sh to start server)
 
 ## Key Dependencies
 
