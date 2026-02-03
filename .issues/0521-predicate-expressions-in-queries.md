@@ -1,10 +1,10 @@
 ---
 id: 521
 title: Predicate Expressions in Queries
-status: open
+status: closed
 priority: medium
 created: 2026-01-31T00:09:47
-updated: 2026-01-31T00:09:47
+updated: 2026-02-03T16:28:27
 labels: []
 assignee: 
 project: ledger
@@ -17,3 +17,5 @@ blocked_by: []
 ## Description
 Add support for predicate expressions in where clauses like [(> ?age 21)], [(= ?status "active")]. Enables comparisons (>, <, >=, <=, =, !=), string operations (contains, starts-with, ends-with), arithmetic (+, -, *, /), and boolean logic (and, or, not). New file: Ledger/Query/Predicate.lean. Modify: Query/AST.lean, Query/Executor.lean, DSL/QueryBuilder.lean. Medium effort.
 
+## Progress
+- [2026-02-03T16:28:27] Closed: Implemented predicate expressions, DSL support, and tests
