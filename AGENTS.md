@@ -19,9 +19,10 @@ Categories: `graphics/`, `web/`, `network/`, `data/`, `apps/`, `util/`, `math/`,
 
 **Default:** `lake build && lake test`
 
-**Always run:** `lake test`
+**Always run:** `lake test` (unless a project specifies `./test.sh`).
 
 **afferent-demos tests:** use `./test.sh` (do not use `lake test`).
+**cairn tests:** use `./test.sh` (do not use `lake test`).
 
 **Always verify compile after code changes:** run the project-appropriate build (e.g., `./build.sh` for listed Metal/FFI projects).
 
