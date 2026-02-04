@@ -237,3 +237,6 @@
 [submodule "graphics/afferent-worldmap"]
 	path = graphics/afferent-worldmap
 	url = git@github.com:nathanial/afferent-worldmap.git
+[submodule "graphics/afferent-buttons"]
+	path = graphics/afferent-buttons
+	url = git@github.com:nathanial/afferent-buttons.git
