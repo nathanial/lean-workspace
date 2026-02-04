@@ -231,3 +231,6 @@
 [submodule "apps/agent-mail"]
 	path = apps/agent-mail
 	url = git@github.com:nathanial/agent-mail.git
+[submodule "graphics/afferent-charts"]
+	path = graphics/afferent-charts
+	url = git@github.com:nathanial/afferent-charts.git

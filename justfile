@@ -394,7 +394,7 @@ new-project *args:
     fi
 
     # Convert kebab-case to PascalCase
-    pascal_name=$(echo "$name" | sed -E 's/(^|-)([a-z])/\U\2/g')
+    pascal_name=$(echo "$name" | perl -pe 's/(^|-)([a-z])/uc($2)/ge')
 
     echo "Creating project: $category/$name"
     echo "  Module name: $pascal_name"
