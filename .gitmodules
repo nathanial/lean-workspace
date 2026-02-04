@@ -234,3 +234,6 @@
 [submodule "graphics/afferent-charts"]
 	path = graphics/afferent-charts
 	url = git@github.com:nathanial/afferent-charts.git
+[submodule "graphics/afferent-worldmap"]
+	path = graphics/afferent-worldmap
+	url = git@github.com:nathanial/afferent-worldmap.git
