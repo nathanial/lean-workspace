@@ -1,10 +1,10 @@
 ---
 id: 672
 title: Platform compatibility notes (macOS, Linux)
-status: open
+status: closed
 priority: low
 created: 2026-02-02T04:17:28
-updated: 2026-02-02T04:17:28
+updated: 2026-02-03T23:40:39
 labels: [documentation]
 assignee: 
 project: jack
