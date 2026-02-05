@@ -1,0 +1,17 @@
+# Lake build artifacts
+.lake/
+lake-packages/
+build/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Generated documentation output
+docs/

@@ -1,0 +1,5 @@
+import AfferentProgressBars.Canopy.Widget.Display.ProgressBar
+
+namespace AfferentProgressBars
+
+end AfferentProgressBars

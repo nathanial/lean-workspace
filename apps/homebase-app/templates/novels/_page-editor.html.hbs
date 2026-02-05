@@ -1,0 +1,75 @@
+<div class="page-controls">
+  <div class="page-info">
+    <span class="page-title">Page {{pageNumber}}</span>
+  </div>
+
+  <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/layout" class="page-layout-control">
+    <label>Layout:</label>
+    <select name="layout">
+      <option value="full" {{#if isFullLayout}}selected{{/if}}>Full Page</option>
+      <option value="two-panel" {{#if isTwoPanelLayout}}selected{{/if}}>Two Panels</option>
+      <option value="three-panel" {{#if isThreePanelLayout}}selected{{/if}}>Three Panels</option>
+      <option value="four-grid" {{#if isFourGridLayout}}selected{{/if}}>Four Grid</option>
+      <option value="six-grid" {{#if isSixGridLayout}}selected{{/if}}>Six Grid</option>
+    </select>
+    <button type="submit" class="btn btn-small">Apply</button>
+  </form>
+
+  <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/delete" style="display: inline;"
+        onsubmit="return confirm('Delete this page?')">
+    <button type="submit" class="btn btn-small btn-danger">Delete Page</button>
+  </form>
+</div>
+
+<div class="page-canvas layout-{{layoutTemplate}}">
+  {{#each panels}}
+  <div class="panel" id="panel-{{panelIndex}}">
+    {{#if hasImage}}
+    <img src="{{imageUrl}}" alt="Panel {{panelIndex}}" class="panel-image">
+    <div class="panel-overlay">
+      <button class="btn regenerate-btn"
+              onclick="this.closest('.panel').querySelector('.panel-prompt-form').style.display = 'block'; this.closest('.panel-overlay').style.display = 'none';">
+        Regenerate
+      </button>
+    </div>
+    <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/panel/{{panelIndex}}/caption" class="panel-caption-form">
+      <input type="text" name="caption" value="{{caption}}" placeholder="Add caption..." class="panel-caption-input">
+      <button type="submit" class="btn btn-small">Save</button>
+    </form>
+    <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/panel/{{panelIndex}}/generate"
+          class="panel-prompt-form" style="display: none; position: absolute; inset: 0; background: rgba(13,13,13,0.95); padding: 2rem; z-index: 20;">
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+        <textarea name="prompt" placeholder="Describe this panel..." class="panel-prompt-input" style="max-width: 320px;">{{prompt}}</textarea>
+        <div class="panel-prompt-actions">
+          <button type="button" class="btn btn-small btn-secondary"
+                  onclick="this.closest('.panel-prompt-form').style.display = 'none'; this.closest('.panel').querySelector('.panel-overlay').style.display = 'flex';">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-small btn-primary">Generate</button>
+        </div>
+      </div>
+    </form>
+    {{else if isGenerating}}
+    {{> novels/_panel-generating }}
+    {{else if isError}}
+    <div class="panel-error">
+      <span class="error-icon">!</span>
+      <p>Generation failed</p>
+      <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/panel/{{panelIndex}}/generate"
+            class="panel-prompt-form">
+        <textarea name="prompt" placeholder="Describe this panel..." class="panel-prompt-input">{{prompt}}</textarea>
+        <button type="submit" class="btn btn-small btn-primary">Retry</button>
+      </form>
+    </div>
+    {{else}}
+    <div class="panel-empty">
+      <form method="POST" action="/novels/{{novelId}}/page/{{pageNumber}}/panel/{{panelIndex}}/generate"
+            class="panel-prompt-form">
+        <textarea name="prompt" placeholder="Describe what happens in this panel..." class="panel-prompt-input"></textarea>
+        <button type="submit" class="btn btn-small btn-primary">Generate</button>
+      </form>
+    </div>
+    {{/if}}
+  </div>
+  {{/each}}
+</div>

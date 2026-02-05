@@ -1,0 +1,84 @@
+<div class="page-header">
+  <nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="breadcrumb-separator">/</span>
+    <a href="/category/{{categorySlug}}">{{category}}</a>
+    <span class="breadcrumb-separator">/</span>
+    <span>{{name}}</span>
+  </nav>
+  <h1>{{name}}</h1>
+  <p class="page-subtitle">{{description}}</p>
+</div>
+
+<div class="project-content">
+  <div class="project-meta">
+    <div class="meta-item">
+      <span class="meta-label">Category</span>
+      <a href="/category/{{categorySlug}}" class="meta-value">{{category}}</a>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Slug</span>
+      <code class="meta-value">{{slug}}</code>
+    </div>
+  </div>
+
+  {{#if documentation}}
+  <!-- Documentation overview with section index -->
+  <div class="doc-overview">
+    {{{documentation.overview}}}
+  </div>
+
+  <div class="section-index">
+    <h2>Documentation</h2>
+    <div class="section-index-grid">
+      <a href="/project/{{slug}}/installation" class="section-link-card">
+        <h3>Installation</h3>
+        <p>Add {{name}} to your project</p>
+      </a>
+      <a href="/project/{{slug}}/quick-start" class="section-link-card">
+        <h3>Quick Start</h3>
+        <p>Get up and running quickly</p>
+      </a>
+      {{#each documentation.sections}}
+      <a href="/project/{{../slug}}/{{anchor}}" class="section-link-card">
+        <h3>{{title}}</h3>
+        <p>Learn about {{title}}</p>
+      </a>
+      {{/each}}
+    </div>
+  </div>
+
+  {{else}}
+  <!-- Placeholder view for projects without documentation -->
+  <div class="coming-soon">
+    <h2>Documentation Coming Soon</h2>
+    <p>
+      Full documentation for <strong>{{name}}</strong> is being prepared.
+      Check back later for installation instructions, API reference, and usage examples.
+    </p>
+  </div>
+
+  <div class="placeholder-sections">
+    <div class="placeholder-section">
+      <h3>Installation</h3>
+      <div class="placeholder-content">
+        <code>require {{slug}} from git "https://github.com/nathanial/{{slug}}" @ "v0.0.1"</code>
+      </div>
+    </div>
+
+    <div class="placeholder-section">
+      <h3>Quick Start</h3>
+      <div class="placeholder-content">
+        <p>Usage examples will be added here.</p>
+      </div>
+    </div>
+
+    <div class="placeholder-section">
+      <h3>API Reference</h3>
+      <div class="placeholder-content">
+        <p>API documentation will be generated automatically.</p>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+</div>

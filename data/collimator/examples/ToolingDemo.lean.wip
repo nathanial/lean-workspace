@@ -1,0 +1,224 @@
+import Collimator.Prelude
+import Collimator.Commands
+import Collimator.Tracing
+
+/-!
+# Tooling Demo
+
+A practical example showing how to use Collimator's debugging and introspection tools.
+Open this file in VS Code with the Lean extension to see output in the infoview.
+-/
+
+open Collimator
+open Collimator.Tracing
+open Collimator.Instances.List  -- For traversed
+open scoped Collimator.Operators
+
+/-! ## Data Model -/
+
+structure Address where
+  street : String
+  city : String
+  zip : String
+deriving Repr, BEq
+
+structure Employee where
+  name : String
+  salary : Int
+  address : Address
+deriving Repr, BEq
+
+structure Department where
+  name : String
+  budget : Int
+  employees : List Employee
+deriving Repr, BEq
+
+structure Company where
+  name : String
+  departments : List Department
+deriving Repr, BEq
+
+/-! ## Lenses -/
+
+def Address.streetLens : Lens' Address String :=
+  lens' (·.street) (fun a s => { a with street := s })
+
+def Address.cityLens : Lens' Address String :=
+  lens' (·.city) (fun a c => { a with city := c })
+
+def Address.zipLens : Lens' Address String :=
+  lens' (·.zip) (fun a z => { a with zip := z })
+
+def Employee.nameLens : Lens' Employee String :=
+  lens' (·.name) (fun e n => { e with name := n })
+
+def Employee.salaryLens : Lens' Employee Int :=
+  lens' (·.salary) (fun e s => { e with salary := s })
+
+def Employee.addressLens : Lens' Employee Address :=
+  lens' (·.address) (fun e a => { e with address := a })
+
+def Department.nameLens : Lens' Department String :=
+  lens' (·.name) (fun d n => { d with name := n })
+
+def Department.budgetLens : Lens' Department Int :=
+  lens' (·.budget) (fun d b => { d with budget := b })
+
+def Department.employeesLens : Lens' Department (List Employee) :=
+  lens' (·.employees) (fun d es => { d with employees := es })
+
+def Company.nameLens : Lens' Company String :=
+  lens' (·.name) (fun c n => { c with name := n })
+
+def Company.departmentsLens : Lens' Company (List Department) :=
+  lens' (·.departments) (fun c ds => { c with departments := ds })
+
+/-! ## Composed Optics
+
+The `∘` operator composes optics. Type inference works best when optics have
+concrete types, so we annotate `traversed` with its expected type.
+-/
+
+-- Lens ∘ Lens = Lens
+def Employee.cityLens : Lens' Employee String :=
+  Employee.addressLens ∘ Address.cityLens
+
+-- Lens ∘ Traversal = Traversal (no type annotation on traversed!)
+def Department.employeesTraversal : Traversal' Department Employee :=
+  Department.employeesLens ∘ traversed
+
+-- Chain of compositions: Lens ∘ Traversal ∘ Lens ∘ Traversal = Traversal
+def Company.allEmployees : Traversal' Company Employee :=
+  Company.departmentsLens ∘ traversed
+    ∘ Department.employeesLens ∘ traversed
+
+/-! ## Type-Safe Composition Tracing
+
+Two ways to trace compositions:
+
+1. `traceCompose![o1, o2, ...]` - prints trace to IO, returns Unit
+2. `trace![o1, o2, ...]` - prints trace via dbg_trace, returns the composed optic
+
+The second form is useful when you want to define an optic and see the trace at the same time.
+-/
+
+-- traceCompose! prints to IO (useful in #eval)
+#eval traceCompose![Employee.addressLens, Address.cityLens]
+
+-- trace! returns the composed optic (useful in definitions)
+-- The dbg_trace output appears during elaboration
+def Employee.cityLens' : Lens' Employee String :=
+  trace![Employee.addressLens, Address.cityLens]
+
+-- Heterogeneous: Lens ∘ Traversal ∘ Lens = Traversal
+def Department.allSalaries : Traversal' Department Int :=
+  trace![
+    Department.employeesLens,
+    (traversed : Traversal' (List Employee) Employee),
+    Employee.salaryLens
+  ]
+
+-- Four optics deep - trace! returns the optic so you can compose further
+def Company.allEmployeeNames : Traversal' Company String :=
+  trace![
+    Company.departmentsLens,
+    (traversed : Traversal' (List Department) Department),
+    Department.employeesLens,
+    (traversed : Traversal' (List Employee) Employee)
+  ] ∘ Employee.nameLens
+
+-- Use traceCompose! for quick checks (IO-based, good for #eval)
+#eval traceCompose![
+  Company.departmentsLens,
+  (traversed : Traversal' (List Department) Department),
+  Department.employeesLens,
+  (traversed : Traversal' (List Employee) Employee),
+  Employee.addressLens
+]
+
+-- Describe what an optic can do
+#eval describeOpticInstance Employee.addressLens
+#eval describeOpticInstance (traversed : Traversal' (List Int) Int)
+
+/-! ## Optic Information Commands
+
+Hover over these to see output in the infoview panel.
+-/
+
+#optic_info Lens
+#optic_info Prism
+#optic_info Traversal
+#optic_info AffineTraversal
+
+#optic_matrix
+
+#optic_caps Lens
+#optic_caps Prism
+#optic_caps Traversal
+
+/-! ## Sample Data -/
+
+def acme : Company := {
+  name := "Acme Corp"
+  departments := [
+    { name := "Engineering"
+      budget := 1000000
+      employees := [
+        { name := "Alice", salary := 120000, address := { street := "123 Main", city := "Boston", zip := "02101" } },
+        { name := "Bob", salary := 110000, address := { street := "456 Oak", city := "Cambridge", zip := "02139" } }
+      ]
+    },
+    { name := "Sales"
+      budget := 500000
+      employees := [
+        { name := "Carol", salary := 95000, address := { street := "789 Elm", city := "Boston", zip := "02102" } }
+      ]
+    }
+  ]
+}
+
+/-! ## Using the Optics with Operators
+
+| Operator | Name | Usage | Description |
+|----------|------|-------|-------------|
+| `^.` | view | `s ^. lens` | Extract the focused value |
+| `^?` | preview | `s ^? prism` | Extract if present (returns `Option`) |
+| `%~` | over | `lens %~ f` | Modify with a function (use with `&`) |
+| `.~` | set | `lens .~ v` | Replace with a value (use with `&`) |
+| `&` | pipe | `s & lens .~ v` | Reverse application for chaining |
+| `∘` | compose | `lens1 ∘ lens2` | Compose two optics |
+-/
+
+-- View through a composed lens (Employee → city)
+def testEmployee : Employee :=
+  { name := "Test", salary := 50000, address := { street := "1 St", city := "NYC", zip := "10001" } }
+
+#eval testEmployee ^. Employee.cityLens  -- "NYC"
+
+-- View a direct field
+#eval acme ^. Company.nameLens  -- "Acme Corp"
+
+-- Extract Alice (first employee in first department) using pattern matching
+def alice : Employee := match acme.departments.head? with
+  | some dept => dept.employees.head?.getD { name := "", salary := 0, address := { street := "", city := "", zip := "" } }
+  | none => { name := "", salary := 0, address := { street := "", city := "", zip := "" } }
+
+-- Set: give Alice a new city
+#eval alice & Employee.cityLens .~ "Seattle"
+
+-- Over: double Alice's salary using the modifier operator
+#eval alice & Employee.salaryLens %~ (· * 2)
+
+-- Chain multiple modifications
+#eval testEmployee & Employee.salaryLens %~ (· + 10000) & Employee.cityLens .~ "Boston"
+
+-- Traversal: get all employee cities using Traversal.toList
+def Company.allCities : Traversal' Company String :=
+  Company.allEmployees ∘ Employee.cityLens
+
+#eval Fold.toListTraversal Company.allCities acme  -- ["Boston", "Cambridge", "Boston"]
+
+-- Give everyone a 10% raise using the over operator with traversal
+def raised := acme & Company.allEmployees %~ (fun e => { e with salary := e.salary + e.salary / 10 })
+#eval raised.departments.map (·.employees.map (·.salary))  -- [[132000, 121000], [104500]]

@@ -1,6 +1,8 @@
 # Lean Workspace
 
-A collection of Lean 4 libraries for building applications with terminal UIs, graphics, networking, web frameworks, and data management.
+A Lean 4 monorepo for building terminal UIs, graphics, networking, web frameworks, and data tooling.
+
+This repository was consolidated from many former submodules into a single root repo with a single root Lake configuration.
 
 ## Folder Structure
 
@@ -194,62 +196,38 @@ docgen ────────► parlance       (CLI library)
 
 ## Quick Start
 
-Each project is built independently from its directory:
+Build from the repository root:
 
 ```bash
-cd <category>/<project>
 lake build
-lake test  # if available
+lake build workspace_smoke
+lake exe workspace_smoke
 ```
 
-Examples:
-```bash
-cd graphics/terminus && lake build   # Build terminus
-cd web/loom && lake build            # Build loom
-cd apps/blockfall && lake build      # Build blockfall
-```
-
-Some projects require custom scripts (notably `graphics/afferent`, `graphics/chroma`, `graphics/assimptor`, `graphics/raster`, `graphics/grove`, `data/quarry`, `audio/fugue`, `graphics/vane`, `apps/cairn`, `apps/eschaton`, `util/selene`, and `web/docsite` use `./build.sh` for special build requirements). See individual project READMEs for specific build instructions.
+Projects still live under category folders (`apps/`, `graphics/`, etc.), but Lake configuration is now centralized at the root.
 
 ## Workspace Management
 
 ### Justfile (Recommended)
 
-The workspace includes a `justfile` for common operations. Run `just` to see all recipes:
+Run `just` to see recipes. Common ones:
 
 ```bash
-# Git/submodule operations
-just status              # Show status of all submodules
-just fetch               # Fetch from all remotes
-just pull                # Pull latest in all submodules
-just push                # Push submodules with unpushed commits
-
-# Building and testing
-just build <category>/<project>  # Build a specific project
-just build-all                   # Build all projects
-just test <category>/<project>   # Test a specific project
-just test-all                    # Test all projects
-
-# Utilities
-just versions            # Show Lean versions across all projects
-just lines               # Count lines of Lean code
-just deps                # Show dependency graph
+just status
+just build
+just smoke
+just run-smoke
+just clean
 ```
 
 ### Shell Scripts
 
-Helper scripts in `scripts/` for advanced operations:
-
-```bash
-./scripts/git-status.sh              # Check which projects have changes
-./scripts/git-add-commit-push.sh "msg"  # Stage, commit, and push all
-./scripts/count-lean-lines.sh        # Count Lean code lines
-```
+Legacy helper scripts remain in `scripts/`. Some were built for the old submodule layout and may need incremental cleanup.
 
 ## Requirements
 
-- Lean 4.26.x (check individual `lean-toolchain` files)
-- Platform-specific dependencies vary by project (see individual READMEs)
+- Lean 4.26.x (`/Users/Shared/Projects/lean-workspace/lean-toolchain`)
+- Platform-specific dependencies vary by project (see project READMEs)
 
 ## License
 

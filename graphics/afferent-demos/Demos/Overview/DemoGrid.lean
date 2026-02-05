@@ -1,0 +1,101 @@
+/-
+  Demo Grid - Normal demo mode showing all demos in a 2x4 grid layout
+  Uses pure Arbor widgets with responsive demo content.
+-/
+import Afferent
+import Afferent.Widget
+import Afferent.Arbor
+import Demos.Overview.Shapes
+import Demos.Overview.Transforms
+import Demos.Overview.Strokes
+import Demos.Overview.Gradients
+import Demos.Overview.Text
+import Demos.Overview.Animations
+import Demos.Overview.Card
+import Demos.Overview.Paths
+import Demos.Overview.SpinningCubes
+
+open Afferent CanvasM
+open Afferent.Arbor
+open Trellis
+
+namespace Demos
+
+/-- Cell configuration: background color, label, and content widget builder -/
+structure CellConfig where
+  bg : Color
+  label : String
+  content : Float → DemoFonts → WidgetBuilder
+
+/- Get cell configuration by index (0-5, left-to-right, top-to-bottom). -/
+def getCellConfig (idx : Nat) : CellConfig :=
+  match idx with
+  | 0 => ⟨Color.hsva 0.667 0.25 0.20 1.0, "Shapes",     fun _ fonts => shapesWidgetFlex fonts.label⟩
+  | 1 => ⟨Color.hsva 0.0   0.25 0.20 1.0, "Transforms", fun _ fonts => transformsWidgetFlex fonts.label⟩
+  | 2 => ⟨Color.hsva 0.333 0.25 0.20 1.0, "Strokes",    fun _ fonts => strokesWidgetFlex fonts.label⟩
+  | 3 => ⟨Color.hsva 0.125 0.4  0.20 1.0, "Gradients",  fun _ fonts => gradientsWidgetFlex fonts.label⟩
+  | 4 => ⟨Color.hsva 0.767 0.25 0.20 1.0, "Text",       fun _ fonts => textWidgetFlex fonts⟩
+  | _ => ⟨Color.hsva 0.75  0.25 0.20 1.0, "Animations", fun t fonts => animationsWidgetFlex fonts.label t⟩
+
+def cellLabelColor : Color :=
+  Color.hsva 0.0 0.0 1.0 0.7
+
+/-- Build a grid cell containing a label and demo content -/
+def cellWidget (config : CellConfig) (screenScale : Float)
+    (t : Float) (demoFonts : DemoFonts) : WidgetBuilder := do
+  let style : BoxStyle := {
+    backgroundColor := some config.bg
+    padding := EdgeInsets.uniform (4 * screenScale)
+    height := .percent 1.0
+  }
+  -- Column with label at top and demo content filling the rest
+  column (gap := 4 * screenScale) (style := style) #[
+    text' config.label demoFonts.label cellLabelColor .left none,
+    config.content t demoFonts
+  ]
+
+/-- Build the paths overview cell using path cards. -/
+def pathsCellWidget (screenScale : Float) (t : Float) (demoFonts : DemoFonts) : WidgetBuilder := do
+  let config : CellConfig := {
+    bg := Color.hsva 0.45 0.25 0.18 1.0
+    label := "Paths"
+    content := fun _ fonts => pathsWidgetFlex fonts.small
+  }
+  cellWidget config screenScale t demoFonts
+
+/-- Build the SpinningCubes overview cell. -/
+def spinningCubesCellWidget (screenScale : Float) (t : Float) (demoFonts : DemoFonts)
+    (windowW windowH : Float) (state : SpinningCubesState) : WidgetBuilder := do
+  let config : CellConfig := {
+    bg := Color.hsva 0.55 0.35 0.18 1.0
+    label := "3D Cubes"
+    content := fun t _ => spinningCubesOverviewWidget t windowW windowH state.camera
+  }
+  cellWidget config screenScale t demoFonts
+
+/-- Build the normal demo mode: 3x3 grid of demo cells using Arbor widgets. -/
+def demoGridWidget (screenScale : Float) (t : Float) (demoFonts : DemoFonts)
+    (spinningState : SpinningCubesState) (windowW windowH : Float) : WidgetBuilder := do
+  let props := GridContainer.withTemplate
+    #[.fr 1, .fr 1, .fr 1]  -- 3 rows, each 1fr
+    #[.fr 1, .fr 1, .fr 1]  -- 3 columns, each 1fr
+  let style : BoxStyle := {
+    width := .percent 1.0
+    height := .percent 1.0
+    flexItem := some (Trellis.FlexItem.growing 1)
+  }
+  Afferent.Arbor.gridCustom props style #[
+    -- Row 1
+    cellWidget (getCellConfig 0) screenScale t demoFonts,  -- Shapes
+    cellWidget (getCellConfig 1) screenScale t demoFonts,  -- Transforms
+    cellWidget (getCellConfig 2) screenScale t demoFonts,  -- Strokes
+    -- Row 2
+    cellWidget (getCellConfig 3) screenScale t demoFonts,  -- Gradients
+    cellWidget (getCellConfig 4) screenScale t demoFonts,  -- Text
+    cellWidget (getCellConfig 5) screenScale t demoFonts,  -- Animations
+    -- Row 3
+    pathsCellWidget screenScale t demoFonts,               -- Paths
+    spinningCubesCellWidget screenScale t demoFonts windowW windowH spinningState  -- 3D Cubes
+  ]
+
+end Demos

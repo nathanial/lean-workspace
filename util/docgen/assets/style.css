@@ -1,0 +1,348 @@
+/* Docgen - Documentation Site Styles */
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #24292e;
+  --link-color: #0366d6;
+  --border-color: #e1e4e8;
+  --code-bg: #f6f8fa;
+  --sidebar-bg: #f6f8fa;
+  --header-bg: #24292e;
+  --header-text: #ffffff;
+
+  /* Kind badge colors */
+  --kind-def: #6f42c1;
+  --kind-theorem: #28a745;
+  --kind-structure: #0366d6;
+  --kind-inductive: #d73a49;
+  --kind-class: #e36209;
+  --kind-instance: #6a737d;
+  --kind-axiom: #5a32a3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-color);
+  background: var(--bg-color);
+  margin: 0;
+  padding: 0;
+}
+
+/* Layout */
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  padding: 1rem;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 900px;
+  overflow-x: hidden;
+}
+
+/* Header */
+.site-header {
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 1rem 2rem;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* Navigation */
+.sidebar h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #586069;
+  margin: 1.5rem 0 0.5rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin: 0.25rem 0;
+}
+
+.sidebar a {
+  color: var(--text-color);
+  text-decoration: none;
+  display: block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.sidebar a:hover {
+  background: var(--border-color);
+}
+
+.sidebar a.active {
+  background: var(--link-color);
+  color: white;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  font-size: 0.875rem;
+  color: #586069;
+  margin-bottom: 1rem;
+}
+
+.breadcrumb a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span {
+  margin: 0 0.5rem;
+}
+
+/* Module header */
+h1 {
+  font-size: 2rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  margin-top: 0;
+}
+
+/* Module doc */
+.module-doc {
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Table of contents */
+.toc {
+  background: var(--sidebar-bg);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.toc h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.toc ul {
+  columns: 2;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc li {
+  margin: 0.25rem 0;
+}
+
+.toc a {
+  color: var(--link-color);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+/* Doc items */
+.doc-item {
+  margin: 2rem 0;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.doc-item:last-child {
+  border-bottom: none;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.kind-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  color: white;
+  text-transform: uppercase;
+}
+
+.kind-def { background: var(--kind-def); }
+.kind-theorem { background: var(--kind-theorem); }
+.kind-structure { background: var(--kind-structure); }
+.kind-inductive { background: var(--kind-inductive); }
+.kind-class { background: var(--kind-class); }
+.kind-instance { background: var(--kind-instance); }
+.kind-axiom { background: var(--kind-axiom); }
+
+.item-name {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.item-name code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  background: none;
+  padding: 0;
+}
+
+/* Signatures */
+.signature {
+  background: var(--code-bg);
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.signature pre {
+  margin: 0;
+  padding: 1rem;
+}
+
+.signature code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Doc comments */
+.doc-comment {
+  margin-top: 1rem;
+  line-height: 1.7;
+}
+
+.doc-comment p {
+  margin: 0.5rem 0;
+}
+
+.doc-comment code {
+  background: var(--code-bg);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-size: 0.875em;
+}
+
+.doc-comment pre {
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* Links */
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Source link */
+.source-link {
+  font-size: 0.75rem;
+  color: #586069;
+}
+
+.source-link:hover {
+  color: var(--link-color);
+}
+
+/* Search */
+.search-box {
+  margin-bottom: 1rem;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--link-color);
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .toc ul {
+    columns: 1;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0d1117;
+    --text-color: #c9d1d9;
+    --link-color: #58a6ff;
+    --border-color: #30363d;
+    --code-bg: #161b22;
+    --sidebar-bg: #161b22;
+  }
+
+  .sidebar a:hover {
+    background: #21262d;
+  }
+}

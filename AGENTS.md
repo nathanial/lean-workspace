@@ -1,83 +1,65 @@
 # Repository Guidelines
 
-Lean 4 workspace with 68 projects. See `CLAUDE.md` for full project list and dependency graph.
+Lean 4 monorepo workspace.
 
-## Directory Layout
+## Layout
 
-```
-<category>/<project>/
-  ├── <Project>/        # Lean sources (PascalCase)
-  ├── <Project>.lean    # Entry point
-  ├── Tests/            # Tests (or Tests.lean, *Tests/)
-  ├── ffi/ or native/   # C/C++ FFI code
-  └── lakefile.lean
-```
+Projects remain grouped by category folders:
 
-Categories: `graphics/`, `web/`, `network/`, `data/`, `apps/`, `util/`, `math/`, `audio/`, `testing/`
+- `graphics/`
+- `web/`
+- `network/`
+- `data/`
+- `apps/`
+- `util/`
+- `math/`
+- `audio/`
+- `testing/`
+
+Each project still keeps its Lean sources in-place (for example `graphics/terminus/Terminus/...`).
+
+## Lake Configuration
+
+- Single root Lake configuration: `/Users/Shared/Projects/lean-workspace/lakefile.lean`
+- Single root toolchain file: `/Users/Shared/Projects/lean-workspace/lean-toolchain`
+- Nested `lakefile.lean` files were removed as part of monorepo consolidation.
 
 ## Build & Test
 
-**Default:** `lake build && lake test`
+Primary workflow is now from repository root:
 
-**Always run:** `lake test` (unless a project specifies `./test.sh`).
+- `lake build`
+- `lake build workspace_smoke`
+- `lake exe workspace_smoke`
 
-**afferent-demos tests:** use `./test.sh` (do not use `lake test`).
-**cairn tests:** use `./test.sh` (do not use `lake test`).
-
-**Always verify compile after code changes:** run the project-appropriate build (e.g., `./build.sh` for listed Metal/FFI projects).
-
-**Requires ./build.sh:** afferent, cairn, chroma, grove, vane, worldmap (Metal), quarry, raster (vendored deps), fugue (AudioToolbox), assimptor (Assimp), selene (Lua FFI), docsite (use ./run.sh)
-
-**legate:** Run `lake run buildFfi` first (builds gRPC)
-
-**Web apps:** `.lake/build/bin/homebaseApp` or `todoApp` (port 3000)
+Custom project scripts (`build.sh`, `test.sh`) still exist in some project folders, but they are now legacy wrappers and may need updates during migration cleanup.
 
 ## Coding Style
 
-- PascalCase modules matching namespace (e.g., `Legate/Stream.lean`)
-- 2-space indent
+- PascalCase modules matching namespace (`Legate/Stream.lean`, `Terminus/Widgets/Button.lean`)
+- 2-space indentation
 - Keep FFI wrappers minimal in `ffi/` or `native/`
 
 ## Commits
 
-Short, lowercase, imperative: "fix tile rendering", "add streaming support"
+Short, lowercase, imperative style:
+
+- `fix tile rendering`
+- `add streaming support`
 
 ## Issue Tracking (tracker)
 
 Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
 
-**Setup:** Run `tracker init` in any project to create `.issues/` directory.
+- `tracker list`
+- `tracker show <id>`
+- `tracker add "Title" --priority=high`
+- `tracker progress <id> "Found root cause"`
+- `tracker close <id> "Fixed in commit X"`
 
-**Commands for Claude Code:**
-```bash
-tracker list                              # List open issues
-tracker list --project=parlance           # List issues for a specific project
-tracker list -p tracker --all             # Include closed issues
-tracker show <id>                         # Get issue details
-tracker add "Title" --priority=high       # Create issue
-tracker add "Title" --project=tracker     # Create issue with project
-tracker progress <id> "Found root cause"  # Log progress
-tracker close <id> "Fixed in commit X"    # Close issue
-tracker update <id> --status=in-progress  # Update status
-```
-
-**Issue Fields:**
-- `--priority` / `-p`: low, medium, high, critical (default: medium)
-- `--project` / `-P`: Project name this issue belongs to (optional)
-- `--label` / `-l`: Add a label
-- `--assignee` / `-a`: Assign to someone
-- `--description` / `-d`: Issue description
-
-**Workflow:**
-1. Check `tracker list` to see current issues
-2. Use `tracker update <id> --status=in-progress` when starting work
-3. Log progress with `tracker progress <id> "message"` as you work
-4. Close with `tracker close <id> "summary"` when done
-
-**Status values:** open, in-progress, closed
-
-Issues are stored as markdown files in `.issues/` at the workspace root. **Do not commit .issues/ changes** - the workspace-level repo is managed separately.
+Issues are stored in `.issues/` at workspace root.
+Do not commit `.issues/` changes.
 
 ## Important
 
-All work should be done within individual project submodules (e.g., `util/parlance/`, `graphics/terminus/`). Commit, push, and tag within those project directories only.
+This repository is now a single monorepo. Commit and push from the workspace root.

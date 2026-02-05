@@ -1,0 +1,33 @@
+<p>Here's a simple counter that tracks button clicks:</p>
+<p><strong>Update note:</strong> The example compiles against an older API usage pattern.</p>
+<ul>
+  <li><code>newTriggerEvent</code> returns a trigger of type <code>a → IO Unit</code>. In <code>SpiderM</code>, calling <code>fireClick ()</code> directly is a type mismatch; it should be lifted (e.g., <code>SpiderM.liftIO (fireClick ())</code>).</li>
+  <li>Alternatively, move the triggering into <code>IO</code> after <code>runSpider</code>, but then you need to keep the network alive long enough to observe updates.</li>
+  <li>Make sure the example reflects the current “frame-based” semantics if you add multiple triggers in sequence.</li>
+</ul>
+<pre><code class="language-lean">import Reactive
+
+open Reactive
+open Reactive.Host
+
+def counterExample : SpiderM Unit := do
+  -- Create a triggerable event for button clicks
+  let (clickEvent, fireClick) ← newTriggerEvent
+
+  -- Fold over clicks to maintain a count
+  let clickCount ← foldDyn (fun _ n => n + 1) 0 clickEvent
+
+  -- Subscribe to see count changes
+  let _ ← clickCount.updated.subscribe fun n =>
+    IO.println s!"Click count: {n}"
+
+  -- Simulate some clicks
+  fireClick ()  -- prints "Click count: 1"
+  fireClick ()  -- prints "Click count: 2"
+  fireClick ()  -- prints "Click count: 3"
+
+def main : IO Unit := do
+  runSpider counterExample</code></pre>
+
+<p>The key insight is that <code>foldDyn</code> creates a <code>Dynamic</code> that automatically
+updates whenever the source event fires, and we can observe those changes through <code>.updated</code>.</p>

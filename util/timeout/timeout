@@ -1,0 +1,137 @@
+#!/bin/bash
+#
+# timeout - Run a command with a time limit
+# A macOS-compatible implementation of GNU timeout
+#
+
+set -e
+
+# Exit codes
+EXIT_TIMEOUT=124
+EXIT_FAILURE=125
+EXIT_CANNOT_EXEC=126
+EXIT_NOT_FOUND=127
+
+usage() {
+    cat <<EOF
+Usage: timeout DURATION COMMAND [ARG]...
+
+Run COMMAND, and kill it if still running after DURATION.
+
+DURATION is a number with optional suffix:
+  s  seconds (default)
+  m  minutes
+  h  hours
+
+Exit status:
+  124  if COMMAND times out
+  125  if timeout itself fails
+  126  if COMMAND is found but cannot be executed
+  127  if COMMAND cannot be found
+  Otherwise, the exit status of COMMAND
+
+Examples:
+  timeout 5 sleep 10      # Kill sleep after 5 seconds
+  timeout 2m ./long-job   # Kill after 2 minutes
+  timeout 1h ./backup.sh  # Kill after 1 hour
+EOF
+    exit "$EXIT_FAILURE"
+}
+
+# Parse duration string to seconds
+parse_duration() {
+    local duration="$1"
+    local value
+    local suffix
+
+    # Extract numeric part and suffix
+    if [[ "$duration" =~ ^([0-9]+\.?[0-9]*)([smh]?)$ ]]; then
+        value="${BASH_REMATCH[1]}"
+        suffix="${BASH_REMATCH[2]}"
+    else
+        echo "timeout: invalid duration '$duration'" >&2
+        exit "$EXIT_FAILURE"
+    fi
+
+    case "$suffix" in
+        ''|s) echo "$value" ;;
+        m)    echo "$(echo "$value * 60" | bc)" ;;
+        h)    echo "$(echo "$value * 3600" | bc)" ;;
+    esac
+}
+
+# Cleanup function to kill child processes
+cleanup() {
+    # Kill the timer if it exists
+    if [[ -n "${timer_pid:-}" ]] && kill -0 "$timer_pid" 2>/dev/null; then
+        kill "$timer_pid" 2>/dev/null || true
+        wait "$timer_pid" 2>/dev/null || true
+    fi
+    # Kill the command if it exists
+    if [[ -n "${cmd_pid:-}" ]] && kill -0 "$cmd_pid" 2>/dev/null; then
+        kill "$cmd_pid" 2>/dev/null || true
+    fi
+}
+
+trap cleanup EXIT
+
+# Check arguments
+if [[ $# -lt 2 ]]; then
+    usage
+fi
+
+duration_str="$1"
+shift
+
+# Parse duration
+duration=$(parse_duration "$duration_str")
+
+# Check if command exists and is executable
+if ! command -v "$1" >/dev/null 2>&1; then
+    echo "timeout: $1: command not found" >&2
+    exit "$EXIT_NOT_FOUND"
+fi
+
+# Create a temp file to track timeout
+timeout_marker=$(mktemp)
+trap 'rm -f "$timeout_marker"; cleanup' EXIT
+
+# Start the command in background
+"$@" &
+cmd_pid=$!
+
+# Start the timer in background
+(
+    sleep "$duration"
+    # Mark that timeout occurred
+    echo "timeout" > "$timeout_marker"
+    # Send SIGTERM first
+    if kill -0 "$cmd_pid" 2>/dev/null; then
+        kill -TERM "$cmd_pid" 2>/dev/null || true
+        # Wait a moment, then send SIGKILL if still running
+        sleep 1
+        if kill -0 "$cmd_pid" 2>/dev/null; then
+            kill -KILL "$cmd_pid" 2>/dev/null || true
+        fi
+    fi
+) &
+timer_pid=$!
+
+# Wait for the command to complete
+set +e
+wait "$cmd_pid" 2>/dev/null
+cmd_status=$?
+set -e
+
+# Kill the timer
+if kill -0 "$timer_pid" 2>/dev/null; then
+    kill "$timer_pid" 2>/dev/null || true
+    wait "$timer_pid" 2>/dev/null || true
+fi
+
+# Check if timeout occurred
+if [[ -s "$timeout_marker" ]]; then
+    exit "$EXIT_TIMEOUT"
+else
+    exit "$cmd_status"
+fi

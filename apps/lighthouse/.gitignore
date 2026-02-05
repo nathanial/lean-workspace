@@ -1,0 +1,20 @@
+# Lake build artifacts
+lake-packages/
+build/
+
+# Lake manifest (optional - some prefer to commit this)
+
+# Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Debug files
+*.trace
+*.log
+.lake

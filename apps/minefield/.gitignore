@@ -1,0 +1,20 @@
+# Lake build artifacts
+.lake/
+lake-packages/
+
+# Editor files
+*.olean
+*.ilean
+*.trace
+*.hash
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

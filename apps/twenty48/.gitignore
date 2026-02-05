@@ -1,0 +1,23 @@
+# Lake build artifacts
+lake-packages/
+build/
+
+# Lake manifest (generated)
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lean build artifacts
+*.olean
+*.ilean
+*.trace
+*.hash
+.lake
