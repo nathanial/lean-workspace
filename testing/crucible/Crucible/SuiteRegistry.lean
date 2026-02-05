@@ -40,15 +40,15 @@ end MyProject.FeatureTests
 You can define multiple suites in one file using separate namespaces:
 
 ```lean
-namespace Tests.Unit
+namespace CrucibleTests.Unit
 testSuite "Unit Tests"
 test "..." := do ...
-end Tests.Unit
+end CrucibleTests.Unit
 
-namespace Tests.Integration
+namespace CrucibleTests.Integration
 testSuite "Integration Tests"
 test "..." := do ...
-end Tests.Integration
+end CrucibleTests.Integration
 ```
 
 ## Key Functions

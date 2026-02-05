@@ -349,3 +349,608 @@ lean_exe afferent_demos where
     "-lm",
     "-lobjc"
   ]
+
+
+
+-- Monorepo test targets (auto-generated during test namespace deconflict).
+
+lean_lib apps_agent_mail_tests_lib where
+  srcDir := "apps/agent-mail"
+  roots := #[`AgentMailTests]
+
+lean_lib apps_blockfall_tests_lib where
+  srcDir := "apps/blockfall"
+  roots := #[`BlockfallTests]
+
+lean_lib apps_cairn_tests_lib where
+  srcDir := "apps/cairn"
+  roots := #[`CairnTests]
+
+lean_lib apps_chatline_tests_lib where
+  srcDir := "apps/chatline"
+  roots := #[`UchatlineTests]
+
+lean_lib apps_enchiridion_tests_lib where
+  srcDir := "apps/enchiridion"
+  roots := #[`EnchiridionTests]
+
+lean_lib apps_eschaton_tests_lib where
+  srcDir := "apps/eschaton"
+  roots := #[`EschatonTests]
+
+lean_lib apps_homebase_app_tests_lib where
+  srcDir := "apps/homebase-app"
+  roots := #[`HomebaseAppTests]
+
+lean_lib apps_image_gen_tests_lib where
+  srcDir := "apps/image-gen"
+  roots := #[`ImageGenTests]
+
+lean_lib apps_lighthouse_tests_lib where
+  srcDir := "apps/lighthouse"
+  roots := #[`LighthouseTests]
+
+lean_lib apps_minefield_tests_lib where
+  srcDir := "apps/minefield"
+  roots := #[`MinefieldTests]
+
+lean_lib apps_solitaire_tests_lib where
+  srcDir := "apps/solitaire"
+  roots := #[`SolitaireTests]
+
+lean_lib apps_timekeeper_tests_lib where
+  srcDir := "apps/timekeeper"
+  roots := #[`TimekeeperTests]
+
+lean_lib apps_todo_app_tests_lib where
+  srcDir := "apps/todo-app"
+  roots := #[`TodoAppTests]
+
+lean_lib apps_tracker_tests_lib where
+  srcDir := "apps/tracker"
+  roots := #[`TrackerTests]
+
+lean_lib apps_twenty48_tests_lib where
+  srcDir := "apps/twenty48"
+  roots := #[`Twenty48Tests]
+
+lean_lib audio_fugue_tests_lib where
+  srcDir := "audio/fugue"
+  roots := #[`FugueTests]
+
+lean_lib data_cellar_tests_lib where
+  srcDir := "data/cellar"
+  roots := #[`CellarTests]
+
+lean_lib data_chisel_tests_lib where
+  srcDir := "data/chisel"
+  roots := #[`ChiselTests]
+
+lean_lib data_collimator_tests_lib where
+  srcDir := "data/collimator"
+  roots := #[`CollimatorTests]
+
+lean_lib data_convergent_tests_lib where
+  srcDir := "data/convergent"
+  roots := #[`ConvergentTests]
+
+lean_lib data_entity_tests_lib where
+  srcDir := "data/entity"
+  roots := #[`EntityTests]
+
+lean_lib data_ledger_tests_lib where
+  srcDir := "data/ledger"
+  roots := #[`LedgerTests]
+
+lean_lib data_quarry_tests_lib where
+  srcDir := "data/quarry"
+  roots := #[`QuarryTests]
+
+lean_lib data_reactive_tests_lib where
+  srcDir := "data/reactive"
+  roots := #[`ReactiveTests]
+
+lean_lib data_tabular_tests_lib where
+  srcDir := "data/tabular"
+  roots := #[`TabularTests]
+
+lean_lib data_tileset_tests_lib where
+  srcDir := "data/tileset"
+  roots := #[`TilesetTests]
+
+lean_lib data_totem_tests_lib where
+  srcDir := "data/totem"
+  roots := #[`TotemTests]
+
+lean_lib graphics_afferent_tests_lib where
+  srcDir := "graphics/afferent"
+  roots := #[`AfferentTests]
+
+lean_lib graphics_afferent_buttons_tests_lib where
+  srcDir := "graphics/afferent-buttons"
+  roots := #[`AfferentButtonsTests]
+
+lean_lib graphics_afferent_charts_tests_lib where
+  srcDir := "graphics/afferent-charts"
+  roots := #[`AfferentChartsTests]
+
+lean_lib graphics_afferent_chat_tests_lib where
+  srcDir := "graphics/afferent-chat"
+  roots := #[`AfferentChatTests]
+
+lean_lib graphics_afferent_demos_tests_lib where
+  srcDir := "graphics/afferent-demos"
+  roots := #[`AfferentDemosTests]
+
+lean_lib graphics_afferent_math_tests_lib where
+  srcDir := "graphics/afferent-math"
+  roots := #[`AfferentMathTests]
+
+lean_lib graphics_afferent_progress_bars_tests_lib where
+  srcDir := "graphics/afferent-progress-bars"
+  roots := #[`AfferentProgressBarsTests]
+
+lean_lib graphics_afferent_spinners_tests_lib where
+  srcDir := "graphics/afferent-spinners"
+  roots := #[`AfferentSpinnersTests]
+
+lean_lib graphics_afferent_text_inputs_tests_lib where
+  srcDir := "graphics/afferent-text-inputs"
+  roots := #[`AfferentTextInputsTests]
+
+lean_lib graphics_afferent_time_picker_tests_lib where
+  srcDir := "graphics/afferent-time-picker"
+  roots := #[`AfferentTimePickerTests]
+
+lean_lib graphics_afferent_worldmap_tests_lib where
+  srcDir := "graphics/afferent-worldmap"
+  roots := #[`AfferentWorldmapTests]
+
+lean_lib graphics_chroma_tests_lib where
+  srcDir := "graphics/chroma"
+  roots := #[`ChromaTests]
+
+lean_lib graphics_grove_tests_lib where
+  srcDir := "graphics/grove"
+  roots := #[`GroveTests]
+
+lean_lib graphics_raster_tests_lib where
+  srcDir := "graphics/raster"
+  roots := #[`RasterTests]
+
+lean_lib graphics_shader_tests_lib where
+  srcDir := "graphics/shader"
+  roots := #[`ShaderTests]
+
+lean_lib graphics_terminus_tests_lib where
+  srcDir := "graphics/terminus"
+  roots := #[`TerminusTests]
+
+lean_lib graphics_tincture_tests_lib where
+  srcDir := "graphics/tincture"
+  roots := #[`TinctureTests]
+
+lean_lib graphics_trellis_tests_lib where
+  srcDir := "graphics/trellis"
+  roots := #[`TrellisTests]
+
+lean_lib graphics_vane_tests_lib where
+  srcDir := "graphics/vane"
+  roots := #[`VaneTests]
+
+lean_lib graphics_worldmap_tests_lib where
+  srcDir := "graphics/worldmap"
+  roots := #[`WorldmapTests]
+
+lean_lib math_measures_tests_lib where
+  srcDir := "math/measures"
+  roots := #[`MeasuresTests]
+
+lean_lib network_exchange_tests_lib where
+  srcDir := "network/exchange"
+  roots := #[`ExchangeTests]
+
+lean_lib network_jack_tests_lib where
+  srcDir := "network/jack"
+  roots := #[`JackTests]
+
+lean_lib network_legate_tests_lib where
+  srcDir := "network/legate"
+  roots := #[`LegateTests]
+
+lean_lib network_oracle_tests_lib where
+  srcDir := "network/oracle"
+  roots := #[`OracleTests]
+
+lean_lib network_protolean_tests_lib where
+  srcDir := "network/protolean"
+  roots := #[`ProtoleanTests]
+
+lean_lib network_wisp_tests_lib where
+  srcDir := "network/wisp"
+  roots := #[`WispTests]
+
+lean_lib testing_crucible_tests_lib where
+  srcDir := "testing/crucible"
+  roots := #[`CrucibleTests]
+
+lean_lib util_chronos_tests_lib where
+  srcDir := "util/chronos"
+  roots := #[`ChronosTests]
+
+lean_lib util_conduit_tests_lib where
+  srcDir := "util/conduit"
+  roots := #[`ConduitTests]
+
+lean_lib util_crypt_tests_lib where
+  srcDir := "util/crypt"
+  roots := #[`CryptTests]
+
+lean_lib util_docgen_tests_lib where
+  srcDir := "util/docgen"
+  roots := #[`DocgenTests]
+
+lean_lib util_parlance_tests_lib where
+  srcDir := "util/parlance"
+  roots := #[`ParlanceTests]
+
+lean_lib util_rune_tests_lib where
+  srcDir := "util/rune"
+  roots := #[`RuneTests]
+
+lean_lib util_selene_tests_lib where
+  srcDir := "util/selene"
+  roots := #[`SeleneTests]
+
+lean_lib util_sift_tests_lib where
+  srcDir := "util/sift"
+  roots := #[`SiftTests]
+
+lean_lib util_smalltalk_tests_lib where
+  srcDir := "util/smalltalk"
+  roots := #[`SmalltalkTests]
+
+lean_lib util_staple_tests_lib where
+  srcDir := "util/staple"
+  roots := #[`StapleTests]
+
+lean_lib util_tracer_tests_lib where
+  srcDir := "util/tracer"
+  roots := #[`TracerTests]
+
+lean_lib web_chronicle_tests_lib where
+  srcDir := "web/chronicle"
+  roots := #[`ChronicleTests]
+
+lean_lib web_citadel_tests_lib where
+  srcDir := "web/citadel"
+  roots := #[`CitadelTests]
+
+lean_lib web_docsite_tests_lib where
+  srcDir := "web/docsite"
+  roots := #[`DocsiteTests]
+
+lean_lib web_herald_tests_lib where
+  srcDir := "web/herald"
+  roots := #[`HeraldTests]
+
+lean_lib web_loom_tests_lib where
+  srcDir := "web/loom"
+  roots := #[`LoomTests]
+
+lean_lib web_markup_tests_lib where
+  srcDir := "web/markup"
+  roots := #[`MarkupTests]
+
+lean_lib web_scribe_tests_lib where
+  srcDir := "web/scribe"
+  roots := #[`ScribeTests]
+
+lean_lib web_stencil_tests_lib where
+  srcDir := "web/stencil"
+  roots := #[`StencilTests]
+
+lean_exe apps_agent_mail_tests_exe where
+  srcDir := "apps/agent-mail"
+  root := `AgentMailTests.Main
+
+lean_exe apps_blockfall_tests_exe where
+  srcDir := "apps/blockfall"
+  root := `BlockfallTests.Main
+
+lean_exe apps_cairn_tests_exe where
+  srcDir := "apps/cairn"
+  root := `CairnTests.Main
+
+lean_exe apps_chatline_tests_exe where
+  srcDir := "apps/chatline"
+  root := `UchatlineTests.Main
+
+lean_exe apps_enchiridion_tests_exe where
+  srcDir := "apps/enchiridion"
+  root := `EnchiridionTests.Main
+
+lean_exe apps_eschaton_tests_exe where
+  srcDir := "apps/eschaton"
+  root := `EschatonTests.Main
+
+lean_exe apps_homebase_app_tests_exe where
+  srcDir := "apps/homebase-app"
+  root := `HomebaseAppTests.Main
+
+lean_exe apps_image_gen_tests_exe where
+  srcDir := "apps/image-gen"
+  root := `ImageGenTests.Main
+
+lean_exe apps_lighthouse_tests_exe where
+  srcDir := "apps/lighthouse"
+  root := `LighthouseTests.Main
+
+lean_exe apps_minefield_tests_exe where
+  srcDir := "apps/minefield"
+  root := `MinefieldTests.Main
+
+lean_exe apps_solitaire_tests_exe where
+  srcDir := "apps/solitaire"
+  root := `SolitaireTests.Main
+
+lean_exe apps_timekeeper_tests_exe where
+  srcDir := "apps/timekeeper"
+  root := `TimekeeperTests.Main
+
+lean_exe apps_todo_app_tests_exe where
+  srcDir := "apps/todo-app"
+  root := `TodoAppTests.Main
+
+lean_exe apps_tracker_tests_exe where
+  srcDir := "apps/tracker"
+  root := `TrackerTests.Main
+
+lean_exe apps_twenty48_tests_exe where
+  srcDir := "apps/twenty48"
+  root := `Twenty48Tests.Main
+
+lean_exe audio_fugue_tests_exe where
+  srcDir := "audio/fugue"
+  root := `FugueTests.Main
+
+lean_exe data_cellar_tests_exe where
+  srcDir := "data/cellar"
+  root := `CellarTests.Main
+
+lean_exe data_chisel_tests_exe where
+  srcDir := "data/chisel"
+  root := `ChiselTests.Main
+
+lean_exe data_collimator_tests_exe where
+  srcDir := "data/collimator"
+  root := `CollimatorTests.Main
+
+lean_exe data_convergent_tests_exe where
+  srcDir := "data/convergent"
+  root := `ConvergentTests.Main
+
+lean_exe data_entity_tests_exe where
+  srcDir := "data/entity"
+  root := `EntityTests.Main
+
+lean_exe data_ledger_tests_exe where
+  srcDir := "data/ledger"
+  root := `LedgerTests.Main
+
+lean_exe data_quarry_tests_exe where
+  srcDir := "data/quarry"
+  root := `QuarryTests.Main
+
+lean_exe data_reactive_tests_exe where
+  srcDir := "data/reactive"
+  root := `ReactiveTests.Main
+
+lean_exe data_tabular_tests_exe where
+  srcDir := "data/tabular"
+  root := `TabularTests.Main
+
+lean_exe data_tileset_tests_exe where
+  srcDir := "data/tileset"
+  root := `TilesetTests.Main
+
+lean_exe data_totem_tests_exe where
+  srcDir := "data/totem"
+  root := `TotemTests.Main
+
+lean_exe graphics_afferent_buttons_tests_exe where
+  srcDir := "graphics/afferent-buttons"
+  root := `AfferentButtonsTests.Main
+
+lean_exe graphics_afferent_charts_tests_exe where
+  srcDir := "graphics/afferent-charts"
+  root := `AfferentChartsTests.Main
+
+lean_exe graphics_afferent_chat_tests_exe where
+  srcDir := "graphics/afferent-chat"
+  root := `AfferentChatTests.Main
+
+lean_exe graphics_afferent_demos_tests_exe where
+  srcDir := "graphics/afferent-demos"
+  root := `AfferentDemosTests.Main
+
+lean_exe graphics_afferent_math_tests_exe where
+  srcDir := "graphics/afferent-math"
+  root := `AfferentMathTests.Main
+
+lean_exe graphics_afferent_progress_bars_tests_exe where
+  srcDir := "graphics/afferent-progress-bars"
+  root := `AfferentProgressBarsTests.Main
+
+lean_exe graphics_afferent_spinners_tests_exe where
+  srcDir := "graphics/afferent-spinners"
+  root := `AfferentSpinnersTests.Main
+
+lean_exe graphics_afferent_text_inputs_tests_exe where
+  srcDir := "graphics/afferent-text-inputs"
+  root := `AfferentTextInputsTests.Main
+
+lean_exe graphics_afferent_time_picker_tests_exe where
+  srcDir := "graphics/afferent-time-picker"
+  root := `AfferentTimePickerTests.Main
+
+lean_exe graphics_afferent_worldmap_tests_exe where
+  srcDir := "graphics/afferent-worldmap"
+  root := `AfferentWorldmapTests.Main
+
+lean_exe graphics_afferent_tests_exe where
+  srcDir := "graphics/afferent"
+  root := `AfferentTests
+
+lean_exe graphics_chroma_tests_exe where
+  srcDir := "graphics/chroma"
+  root := `ChromaTests.Main
+
+lean_exe graphics_grove_tests_exe where
+  srcDir := "graphics/grove"
+  root := `GroveTests.Main
+
+lean_exe graphics_raster_tests_exe where
+  srcDir := "graphics/raster"
+  root := `RasterTests.Main
+
+lean_exe graphics_shader_tests_exe where
+  srcDir := "graphics/shader"
+  root := `ShaderTests.Main
+
+lean_exe graphics_terminus_tests_exe where
+  srcDir := "graphics/terminus"
+  root := `TerminusTests.Main
+
+lean_exe graphics_tincture_tests_exe where
+  srcDir := "graphics/tincture"
+  root := `TinctureTests.Main
+
+lean_exe graphics_trellis_tests_exe where
+  srcDir := "graphics/trellis"
+  root := `TrellisTests.Main
+
+lean_exe graphics_vane_tests_exe where
+  srcDir := "graphics/vane"
+  root := `VaneTests.Main
+
+lean_exe graphics_worldmap_tests_exe where
+  srcDir := "graphics/worldmap"
+  root := `WorldmapTests.Main
+
+lean_exe math_linalg_tests_exe where
+  srcDir := "math/linalg"
+  root := `LinalgTests.Main
+
+lean_exe math_measures_tests_exe where
+  srcDir := "math/measures"
+  root := `MeasuresTests.Main
+
+lean_exe network_exchange_tests_exe where
+  srcDir := "network/exchange"
+  root := `ExchangeTests.Main
+
+lean_exe network_jack_tests_exe where
+  srcDir := "network/jack"
+  root := `JackTests.Main
+
+lean_exe network_legate_tests_exe where
+  srcDir := "network/legate"
+  root := `LegateTests.Main
+
+lean_exe network_legate_tests_integration_exe where
+  srcDir := "network/legate"
+  root := `LegateTests.integration.Main
+
+lean_exe network_oracle_tests_exe where
+  srcDir := "network/oracle"
+  root := `OracleTests.Main
+
+lean_exe network_protolean_tests_exe where
+  srcDir := "network/protolean"
+  root := `ProtoleanTests.Main
+
+lean_exe network_wisp_tests_exe where
+  srcDir := "network/wisp"
+  root := `WispTests.Main
+
+lean_exe testing_crucible_tests_exe where
+  srcDir := "testing/crucible"
+  root := `CrucibleTests.Main
+
+lean_exe util_chronos_tests_exe where
+  srcDir := "util/chronos"
+  root := `ChronosTests.Main
+
+lean_exe util_conduit_tests_exe where
+  srcDir := "util/conduit"
+  root := `ConduitTests.Main
+
+lean_exe util_crypt_tests_exe where
+  srcDir := "util/crypt"
+  root := `CryptTests.Main
+
+lean_exe util_docgen_tests_exe where
+  srcDir := "util/docgen"
+  root := `DocgenTests.Main
+
+lean_exe util_parlance_tests_exe where
+  srcDir := "util/parlance"
+  root := `ParlanceTests.Main
+
+lean_exe util_rune_tests_exe where
+  srcDir := "util/rune"
+  root := `RuneTests.Main
+
+lean_exe util_selene_tests_exe where
+  srcDir := "util/selene"
+  root := `SeleneTests.Main
+
+lean_exe util_sift_tests_exe where
+  srcDir := "util/sift"
+  root := `SiftTests.Main
+
+lean_exe util_smalltalk_tests_exe where
+  srcDir := "util/smalltalk"
+  root := `SmalltalkTests.Main
+
+lean_exe util_staple_tests_exe where
+  srcDir := "util/staple"
+  root := `StapleTests
+
+lean_exe util_tracer_tests_exe where
+  srcDir := "util/tracer"
+  root := `TracerTests.Main
+
+lean_exe web_chronicle_tests_exe where
+  srcDir := "web/chronicle"
+  root := `ChronicleTests.Main
+
+lean_exe web_citadel_tests_exe where
+  srcDir := "web/citadel"
+  root := `CitadelTests.Main
+
+lean_exe web_docsite_tests_exe where
+  srcDir := "web/docsite"
+  root := `DocsiteTests.Main
+
+lean_exe web_herald_tests_exe where
+  srcDir := "web/herald"
+  root := `HeraldTests.Main
+
+lean_exe web_loom_tests_exe where
+  srcDir := "web/loom"
+  root := `LoomTests.Main
+
+lean_exe web_markup_tests_exe where
+  srcDir := "web/markup"
+  root := `MarkupTests.Main
+
+lean_exe web_scribe_tests_exe where
+  srcDir := "web/scribe"
+  root := `ScribeTests.Main
+
+lean_exe web_stencil_tests_exe where
+  srcDir := "web/stencil"
+  root := `StencilTests.Main
+

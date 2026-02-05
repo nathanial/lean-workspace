@@ -30,6 +30,14 @@ test:
 test-linalg:
     lake exe linalg_tests
 
+# Run all configured project test suites (non-integration by default)
+test-all:
+    ./scripts/test-all.sh
+
+# Include integration suites in the full run
+test-all-integration:
+    INCLUDE_INTEGRATION=1 ./scripts/test-all.sh
+
 # Clean root lake artifacts
 clean:
     lake clean
