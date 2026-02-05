@@ -22,10 +22,13 @@ smoke:
 run-smoke:
     lake exe workspace_smoke
 
-# Run all available tests from root package definition
-# (currently minimal during migration)
+# Run package test driver (currently linalg suite)
 test:
-    @echo "No unified test target is wired yet; run project-specific tests as needed."
+    lake test
+
+# Run linalg test suite from monorepo root
+test-linalg:
+    lake exe linalg_tests
 
 # Clean root lake artifacts
 clean:

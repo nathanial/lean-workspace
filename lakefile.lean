@@ -3,6 +3,7 @@ open Lake DSL
 
 package lean_workspace where
   version := v!"0.1.0"
+  testDriver := "linalg_tests"
 
 require batteries from git "https://github.com/leanprover-community/batteries" @ "v4.26.0"
 -- Auto-generated one-library-per-project layout (fast monorepo cutover).
@@ -207,6 +208,10 @@ lean_lib math_linalg where
   srcDir := "math/linalg"
   roots := #[`Linalg]
 
+lean_lib math_linalg_tests where
+  srcDir := "math/linalg"
+  roots := #[`LinalgTests]
+
 lean_lib math_measures where
   srcDir := "math/measures"
   roots := #[`Measures]
@@ -317,6 +322,10 @@ lean_lib web_stencil where
 
 lean_exe workspace_smoke where
   root := `WorkspaceSmoke
+
+lean_exe linalg_tests where
+  srcDir := "math/linalg"
+  root := `LinalgTests.Main
 
 lean_exe afferent_demos where
   srcDir := "graphics/afferent-demos"
