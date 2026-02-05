@@ -19,3 +19,5 @@ references/
 .bv/
 
 .codex-logs/
+
+.native-libs/

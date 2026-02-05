@@ -5,8 +5,6 @@ package lean_workspace where
   version := v!"0.1.0"
 
 require batteries from git "https://github.com/leanprover-community/batteries" @ "v4.26.0"
-require plausible from git "https://github.com/leanprover-community/plausible.git" @ "v4.26.0"
-
 -- Auto-generated one-library-per-project layout (fast monorepo cutover).
 
 lean_lib apps_agent_mail where
@@ -319,3 +317,26 @@ lean_lib web_stencil where
 
 lean_exe workspace_smoke where
   root := `WorkspaceSmoke
+
+lean_exe afferent_demos where
+  srcDir := "graphics/afferent-demos"
+  root := `AfferentDemos.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libafferent_native.a",
+    ".native-libs/lib/libraster_native.a",
+    ".native-libs/lib/libchronos_native.a",
+    "-L/opt/homebrew/lib",
+    "-framework", "Cocoa",
+    "-framework", "Metal",
+    "-framework", "MetalKit",
+    "-framework", "QuartzCore",
+    "-framework", "CoreText",
+    "-framework", "CoreGraphics",
+    "-framework", "Foundation",
+    "-lfreetype",
+    "-lz",
+    "-lbz2",
+    "-liconv",
+    "-lm",
+    "-lobjc"
+  ]

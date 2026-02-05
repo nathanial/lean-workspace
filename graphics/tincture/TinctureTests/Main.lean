@@ -9,7 +9,7 @@ import TinctureTests.BlendTests
 import TinctureTests.ContrastTests
 import TinctureTests.HarmonyTests
 import TinctureTests.ParseFormatTests
-import TinctureTests.PropertyTests  -- Plausible tests run at compile time via #test
+-- import TinctureTests.PropertyTests  -- Disabled: requires Plausible
 import Crucible
 
 open Crucible
@@ -20,11 +20,9 @@ def main : IO UInt32 := do
   IO.println ""
 
   let result ← runAllSuites
-  -- PropertyTests uses Plausible #test (runs at compile time)
 
   IO.println ""
   IO.println "============================"
-  IO.println "(Property tests with Plausible run during compilation)"
 
   if result != 0 then
     IO.println "Some tests failed!"

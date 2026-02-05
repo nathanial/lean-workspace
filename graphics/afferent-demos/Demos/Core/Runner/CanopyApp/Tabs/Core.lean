@@ -17,7 +17,6 @@ import Demos.Perf.Lines
 import Demos.Perf.Sprites
 import Demos.Perf.Widget.App
 import Demos.Overview.Fonts
-import Demos.Chat.App
 import Trellis
 
 open Reactive Reactive.Host
@@ -106,8 +105,5 @@ def fontShowcaseTabContent (env : DemoEnv) : WidgetM Unit := do
   let _ ← dynWidget elapsedTime fun _ => do
     emit (pure (fontShowcaseWidget env.showcaseFonts env.fontMediumId env.screenScale))
   pure ()
-
-def chatDemoTabContent (appState : ChatDemo.AppState) : WidgetM Unit := do
-  emit appState.render
 
 end Demos

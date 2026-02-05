@@ -103,6 +103,19 @@ private def spriteHalfSizeFromTexture (texture : FFI.Texture) : IO Float := do
   let side : UInt32 := if w ≤ h then w else h
   pure (side.toFloat / 2.0)
 
+private def spritePathCandidates : Array System.FilePath := #[
+  System.FilePath.mk "nibble-32.png",
+  System.FilePath.mk "graphics/afferent-demos/nibble-32.png",
+  System.FilePath.mk "../../../graphics/afferent-demos/nibble-32.png"
+]
+
+private def resolveSpritePath : IO System.FilePath := do
+  for path in spritePathCandidates do
+    if ← path.pathExists then
+      return path
+  let cwd ← IO.currentDir
+  throw <| IO.userError s!"Could not find sprite texture nibble-32.png (cwd: {cwd})"
+
 def renderLoading (c : Canvas) (t : Float) (screenScale : Float)
     (progress : Float) (label : String) (font? : Option Font) : IO Canvas := do
   let c' ← run' c do
@@ -203,7 +216,8 @@ def advanceLoading (s0 : LoadingState) (screenScale : Float) (canvas : Canvas)
         } }
     | _, _, _, _, _, _ => return s
   if s.spriteTexture.isNone then
-    let spriteTexture ← FFI.Texture.load "nibble-32.png"
+    let spritePath ← resolveSpritePath
+    let spriteTexture ← FFI.Texture.load spritePath.toString
     return { s with spriteTexture := some spriteTexture }
   if s.lineBuffer.isNone then
     match s.lineSegments with

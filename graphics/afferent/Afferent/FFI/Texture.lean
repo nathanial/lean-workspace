@@ -4,6 +4,7 @@
   Uses raster library for image decoding.
 -/
 import Afferent.FFI.Types
+import Afferent.FFI.FloatBuffer
 import Raster
 
 namespace Afferent.FFI
@@ -47,5 +48,22 @@ opaque Renderer.drawSpritesInstanceBuffer
   (count : UInt32)
   (canvasWidth : Float)
   (canvasHeight : Float) : IO Unit
+
+/-- Compatibility wrapper for older call sites.
+    NOTE: Source UV rectangle parameters are currently ignored. -/
+def Renderer.drawTexturedRect
+  (renderer : @& Renderer)
+  (texture : @& Texture)
+  (_srcX _srcY _srcW _srcH : Float)
+  (dstX dstY dstW dstH : Float)
+  (canvasWidth canvasHeight : Float)
+  (alpha : Float) : IO Unit := do
+  let centerX := dstX + dstW * 0.5
+  let centerY := dstY + dstH * 0.5
+  let halfSize := dstW * 0.5
+  let buf ← FloatBuffer.create 5
+  FloatBuffer.setVec5 buf 0 centerX centerY 0.0 halfSize alpha
+  Renderer.drawSpritesInstanceBuffer renderer texture buf 1 canvasWidth canvasHeight
+  FloatBuffer.destroy buf
 
 end Afferent.FFI

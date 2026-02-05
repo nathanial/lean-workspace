@@ -11,8 +11,6 @@ import Demos.Core.Runner.CanopyApp.Tabs.Core
 import Demos.Core.Runner.CanopyApp.Tabs.Buttons
 import Demos.Core.Runner.CanopyApp.Tabs.Linalg
 import Demos.Core.Runner.CanopyApp.Tabs.Visuals
-import Tileset
-import Worldmap
 import Trellis
 
 open Reactive Reactive.Host
@@ -33,13 +31,6 @@ structure CanopyAppState where
 def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
   let reactiveShowcaseApp ← ReactiveShowcase.createApp env
   let widgetPerfApp ← WidgetPerf.createApp env
-  let chatDemoApp ← ChatDemo.createApp env
-  let worldmapTileConfig : Tileset.TileManagerConfig := {
-    provider := Tileset.TileProvider.cartoDarkRetina
-    diskCacheDir := "./tile_cache"
-    diskCacheMaxSize := 500 * 1024 * 1024
-  }
-  let worldmapManager ← Tileset.TileManager.new worldmapTileConfig
   let tabs : Array TabDef := #[
     { label := "Overview", content := overviewTabContent env },
     { label := "Circles", content := circlesTabContent env },
@@ -49,16 +40,13 @@ def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
     { label := "Buttons", content := buttonsTabContent env },
     { label := "Reactive", content := reactiveShowcaseTabContent reactiveShowcaseApp },
     { label := "Widget Perf", content := widgetPerfTabContent widgetPerfApp },
-    { label := "Seascape", content := seascapeTabContent env },
     { label := "Shapes", content := shapeGalleryTabContent env },
-    { label := "Map", content := worldmapTabContent env worldmapManager },
     { label := "Line Caps", content := lineCapsTabContent env },
     { label := "Dashed", content := dashedLinesTabContent env },
     { label := "Lines", content := linesPerfTabContent env },
     { label := "Textures", content := textureMatrixTabContent env },
     { label := "Orbital", content := orbitalInstancedTabContent env },
     { label := "Fonts", content := fontShowcaseTabContent env },
-    { label := "Chat", content := chatDemoTabContent chatDemoApp },
     { label := "Lerp", content := vectorInterpolationTabContent env },
     { label := "Arithmetic", content := vectorArithmeticTabContent env },
     { label := "Projection", content := vectorProjectionTabContent env },
@@ -129,6 +117,6 @@ def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
       let elapsedTime ← useElapsedTime
       statsFooter env elapsedTime
 
-  pure { render := render, shutdown := Tileset.TileManager.shutdown worldmapManager }
+  pure { render := render, shutdown := pure () }
 
 end Demos

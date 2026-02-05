@@ -3,7 +3,6 @@
   Main entry point for running all tests.
 -/
 import Crucible
-import Plausible
 import Chroma
 
 namespace ChromaTests

@@ -13,7 +13,6 @@ import Demos.Core.Runner.Types
 import Demos.Core.Runner.CanopyApp
 import Demos.Perf.Lines
 import Std.Data.HashMap
-import Wisp
 import Init.Data.FloatArray
 
 set_option maxRecDepth 1024
@@ -28,7 +27,6 @@ namespace Demos
 def unifiedDemo : IO Unit := do
   IO.println "Unified Canopy Demo Shell"
   IO.println "---------------------------"
-  Wisp.FFI.globalInit
 
   let screenScale ← FFI.getScreenScale
   IO.println s!"Screen scale factor: {screenScale}"
@@ -339,7 +337,5 @@ def unifiedDemo : IO Unit := do
       rs.spiderEnv.currentScope.dispose
       cleanupAssets rs.assets
   c.destroy
-  Wisp.FFI.globalCleanup
-  Wisp.HTTP.Client.shutdown
 
 end Demos
