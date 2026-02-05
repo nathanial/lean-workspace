@@ -246,3 +246,6 @@
 [submodule "graphics/afferent-math"]
 	path = graphics/afferent-math
 	url = git@github.com:nathanial/afferent-math.git
+[submodule "graphics/afferent-spinners"]
+	path = graphics/afferent-spinners
+	url = git@github.com:nathanial/afferent-spinners.git
