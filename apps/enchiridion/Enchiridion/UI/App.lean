@@ -155,7 +155,7 @@ def updateWithIO (state : AppState) (keyEvent : Option KeyEvent) : IO (AppState 
 
 /-- Build API messages for a chat request -/
 def buildAPIMessages (state : AppState) (userMessage : String) : IO (Array ChatMessage) := do
-  let sceneContent := state.editorTextArea.text
+  let sceneContent := textAreaToString state.editorTextArea
   let currentChapter := match state.currentChapterId with
     | some cid => state.project.novel.getChapter cid
     | none => none
@@ -169,7 +169,7 @@ def buildAPIMessages (state : AppState) (userMessage : String) : IO (Array ChatM
 
 /-- Build API messages for an AI writing action -/
 def buildWritingActionMessages (state : AppState) (action : AIWritingAction) : IO (Array ChatMessage) := do
-  let sceneContent := state.editorTextArea.text
+  let sceneContent := textAreaToString state.editorTextArea
   let currentChapter := match state.currentChapterId with
     | some cid => state.project.novel.getChapter cid
     | none => none

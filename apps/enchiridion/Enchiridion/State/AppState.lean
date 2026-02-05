@@ -4,12 +4,67 @@
 -/
 
 import Terminus
+import Terminus.Reactive.Input
+import Terminus.Reactive.TextArea
 import Enchiridion.Core.Types
 import Enchiridion.Model.Novel
 import Enchiridion.Model.Project
 import Enchiridion.State.Focus
 
 namespace Enchiridion
+
+open Terminus
+
+abbrev TextInputState := Terminus.Reactive.TextInputState
+abbrev TextAreaState := Terminus.Reactive.TextAreaState
+
+def textInputFromString (value : String) : TextInputState :=
+  { text := value, cursor := value.length }
+
+def textAreaFromString (value : String) : TextAreaState :=
+  Terminus.Reactive.TextAreaState.fromString value
+
+def textAreaToString (value : TextAreaState) : String :=
+  Terminus.Reactive.TextAreaState.getText value
+
+def handleTextInputKey (input : TextInputState) (key : KeyEvent) : TextInputState :=
+  match key.code with
+  | .char c =>
+    if c.val >= 32 then
+      Terminus.Reactive.TextInputState.insertChar input c none
+    else
+      input
+  | .space => Terminus.Reactive.TextInputState.insertChar input ' ' none
+  | .backspace => Terminus.Reactive.TextInputState.backspace input
+  | .delete => Terminus.Reactive.TextInputState.delete input
+  | .left => Terminus.Reactive.TextInputState.moveLeft input
+  | .right => Terminus.Reactive.TextInputState.moveRight input
+  | .home => Terminus.Reactive.TextInputState.moveHome input
+  | .end => Terminus.Reactive.TextInputState.moveEnd input
+  | _ => input
+
+def handleTextAreaKey (input : TextAreaState) (key : KeyEvent) : TextAreaState :=
+  let updated := match key.code with
+    | .char c =>
+      if c.val >= 32 then
+        Terminus.Reactive.TextAreaState.insertChar input c
+      else
+        input
+    | .space => Terminus.Reactive.TextAreaState.insertChar input ' '
+    | .enter => Terminus.Reactive.TextAreaState.insertNewline input
+    | .tab => Terminus.Reactive.TextAreaState.insertTab input 2
+    | .backspace => Terminus.Reactive.TextAreaState.backspace input
+    | .delete => Terminus.Reactive.TextAreaState.delete input
+    | .left => Terminus.Reactive.TextAreaState.moveLeft input
+    | .right => Terminus.Reactive.TextAreaState.moveRight input
+    | .up => Terminus.Reactive.TextAreaState.moveUp input
+    | .down => Terminus.Reactive.TextAreaState.moveDown input
+    | .home => Terminus.Reactive.TextAreaState.moveHome input
+    | .end => Terminus.Reactive.TextAreaState.moveEnd input
+    | .pageUp => Terminus.Reactive.TextAreaState.pageUp input 20
+    | .pageDown => Terminus.Reactive.TextAreaState.pageDown input 20
+    | _ => input
+  Terminus.Reactive.TextAreaState.ensureCursorVisible updated 20
 
 /-- AI writing action types -/
 inductive AIWritingAction where
@@ -87,13 +142,13 @@ structure AppState where
   navCollapsed : Array Bool := #[]  -- Track collapsed state per chapter
 
   -- Editor panel state
-  editorTextArea : Terminus.TextArea := Terminus.TextArea.new
+  editorTextArea : TextAreaState := textAreaFromString ""
   currentChapterId : Option EntityId := none
   currentSceneId : Option EntityId := none
 
   -- Chat panel state
   chatMessages : Array ChatMessage := #[]
-  chatInput : Terminus.TextInput := Terminus.TextInput.new
+  chatInput : TextInputState := {}
   isStreaming : Bool := false
   streamBuffer : String := ""
   cancelStreaming : Bool := false  -- Set by Escape to cancel streaming
@@ -104,8 +159,8 @@ structure AppState where
   selectedNoteIdx : Nat := 0
   notesEditMode : Bool := false  -- True when editing a character/note
   notesEditField : Nat := 0  -- 0 = name/title, 1 = description/content
-  notesNameInput : Terminus.TextInput := Terminus.TextInput.new
-  notesContentArea : Terminus.TextArea := Terminus.TextArea.new
+  notesNameInput : TextInputState := {}
+  notesContentArea : TextAreaState := textAreaFromString ""
 
   -- AI configuration
   openRouterApiKey : String := ""
@@ -202,7 +257,7 @@ def getCurrentSceneTitle (state : AppState) : String :=
 def loadScene (state : AppState) (chapterId : EntityId) (sceneId : EntityId) : AppState :=
   match state.project.novel.getScene chapterId sceneId with
   | some scene =>
-    let textArea := Terminus.TextArea.fromString scene.content
+    let textArea := textAreaFromString scene.content
     -- Find the chapter and scene indices for navigation sync
     let novel := state.project.novel
     let chapterIdx := novel.chapters.findIdx? (·.id == chapterId) |>.getD state.selectedChapterIdx
@@ -221,7 +276,7 @@ def loadScene (state : AppState) (chapterId : EntityId) (sceneId : EntityId) : A
 def saveCurrentScene (state : AppState) : AppState :=
   match state.currentChapterId, state.currentSceneId with
   | some chapterId, some sceneId =>
-    let content := state.editorTextArea.text
+    let content := textAreaToString state.editorTextArea
     let project := state.project.updateNovel fun novel =>
       novel.updateScene chapterId sceneId fun scene =>
         { scene.updateWordCount with content := content }
@@ -355,8 +410,8 @@ def hasPendingActions (state : AppState) : Bool :=
 def editSelectedCharacter (state : AppState) : AppState :=
   if state.selectedCharacterIdx < state.project.characters.size then
     let char := state.project.characters[state.selectedCharacterIdx]!
-    let nameInput := Terminus.TextInput.new.withValue char.name
-    let contentArea := Terminus.TextArea.fromString char.description
+    let nameInput := textInputFromString char.name
+    let contentArea := textAreaFromString char.description
     { state with
         notesEditMode := true
         notesEditField := 0
@@ -369,8 +424,8 @@ def editSelectedCharacter (state : AppState) : AppState :=
 def editSelectedWorldNote (state : AppState) : AppState :=
   if state.selectedNoteIdx < state.project.worldNotes.size then
     let note := state.project.worldNotes[state.selectedNoteIdx]!
-    let nameInput := Terminus.TextInput.new.withValue note.title
-    let contentArea := Terminus.TextArea.fromString note.content
+    let nameInput := textInputFromString note.title
+    let contentArea := textAreaFromString note.content
     { state with
         notesEditMode := true
         notesEditField := 0
@@ -384,8 +439,8 @@ def saveCharacterEdits (state : AppState) : AppState :=
   if state.selectedCharacterIdx < state.project.characters.size then
     let chars := state.project.characters.modify state.selectedCharacterIdx fun char =>
       { char with
-          name := state.notesNameInput.value
-          description := state.notesContentArea.text }
+          name := state.notesNameInput.text
+          description := textAreaToString state.notesContentArea }
     let project := { state.project with characters := chars, isDirty := true }
     { state with
         project := project
@@ -398,8 +453,8 @@ def saveWorldNoteEdits (state : AppState) : AppState :=
   if state.selectedNoteIdx < state.project.worldNotes.size then
     let notes := state.project.worldNotes.modify state.selectedNoteIdx fun note =>
       { note with
-          title := state.notesNameInput.value
-          content := state.notesContentArea.text }
+          title := state.notesNameInput.text
+          content := textAreaToString state.notesContentArea }
     let project := { state.project with worldNotes := notes, isDirty := true }
     { state with
         project := project
@@ -467,9 +522,9 @@ def clearAIWritingAction (state : AppState) : AppState :=
 def insertTextAtCursor (state : AppState) (text : String) : AppState :=
   let textArea := state.editorTextArea
   -- Insert at cursor position by manipulating lines
-  let line := textArea.lines.getD textArea.cursorRow ""
-  let before := line.take textArea.cursorCol
-  let after := line.drop textArea.cursorCol
+  let currentLine := textArea.lines.getD textArea.line ""
+  let before := currentLine.take textArea.column
+  let after := currentLine.drop textArea.column
   -- Split the text into lines
   let newLines := text.splitOn "\n"
   match newLines with
@@ -477,49 +532,49 @@ def insertTextAtCursor (state : AppState) (text : String) : AppState :=
   | [single] =>
     -- Single line: insert inline
     let newLine := before ++ single ++ after
-    let lines := textArea.lines.set! textArea.cursorRow newLine
-    let newCursorCol := textArea.cursorCol + single.length
-    { state with editorTextArea := { textArea with lines := lines, cursorCol := newCursorCol } }
+    let lines := textArea.lines.set! textArea.line newLine
+    let newCursorCol := textArea.column + single.length
+    { state with editorTextArea := { textArea with lines := lines, column := newCursorCol } }
   | first :: rest =>
     -- Multi-line: more complex insertion
     let firstLine := before ++ first
     let lastPart := rest.getLast?.getD ""
     let lastLine := lastPart ++ after
     let middleLines := rest.dropLast
-    let beforeLines := textArea.lines.extract 0 textArea.cursorRow
-    let afterLines := textArea.lines.extract (textArea.cursorRow + 1) textArea.lines.size
+    let beforeLines := textArea.lines.extract 0 textArea.line
+    let afterLines := textArea.lines.extract (textArea.line + 1) textArea.lines.size
     let newLines := beforeLines.push firstLine
       |>.append middleLines.toArray
       |>.push lastLine
       |>.append afterLines
-    let newCursorRow := textArea.cursorRow + rest.length
+    let newCursorRow := textArea.line + rest.length
     let newCursorCol := lastPart.length
     { state with editorTextArea := { textArea with
         lines := newLines
-        cursorRow := newCursorRow
-        cursorCol := newCursorCol } }
+        line := newCursorRow
+        column := newCursorCol } }
 
 /-- Append text to the end of the editor content -/
 def appendTextToEditor (state : AppState) (text : String) : AppState :=
   let textArea := state.editorTextArea
-  let currentText := textArea.text
+  let currentText := textAreaToString textArea
   -- Add a separator if the current text doesn't end with newlines
   let separator := if currentText.isEmpty then ""
     else if currentText.endsWith "\n\n" then ""
     else if currentText.endsWith "\n" then "\n"
     else "\n\n"
   let newText := currentText ++ separator ++ text
-  let newTextArea := Terminus.TextArea.fromString newText
+  let newTextArea := textAreaFromString newText
   -- Move cursor to end
   let lastRow := newTextArea.lines.size - 1
   let lastCol := (newTextArea.lines.getD lastRow "").length
   { state with
-      editorTextArea := { newTextArea with cursorRow := lastRow, cursorCol := lastCol }
+      editorTextArea := { newTextArea with line := lastRow, column := lastCol }
       project := state.project.markDirty }
 
 /-- Replace the entire editor content -/
 def replaceEditorContent (state : AppState) (text : String) : AppState :=
-  let newTextArea := Terminus.TextArea.fromString text
+  let newTextArea := textAreaFromString text
   { state with
       editorTextArea := newTextArea
       project := state.project.markDirty }

@@ -94,7 +94,7 @@ test "editSelectedCharacter enters edit mode" := do
   state := { state with selectedCharacterIdx := 0 }
   state := state.editSelectedCharacter
   ensure state.notesEditMode "Should be in edit mode"
-  state.notesNameInput.value ≡ "Character 1"
+  state.notesNameInput.text ≡ "Character 1"
 
 test "saveCharacterEdits works" := do
   let project ← Enchiridion.Project.create "Test" "Author"
@@ -104,8 +104,8 @@ test "saveCharacterEdits works" := do
   state := { state with selectedCharacterIdx := 0 }
   state := state.editSelectedCharacter
   state := { state with
-    notesNameInput := state.notesNameInput.withValue "Updated Name"
-    notesContentArea := Terminus.TextArea.fromString "New description" }
+    notesNameInput := Enchiridion.textInputFromString "Updated Name"
+    notesContentArea := Enchiridion.textAreaFromString "New description" }
   state := state.saveCharacterEdits
   ensure (!state.notesEditMode) "Should exit edit mode"
   state.project.characters[0]!.name ≡ "Updated Name"
@@ -149,7 +149,7 @@ test "editSelectedWorldNote enters edit mode" := do
   state := { state with selectedNoteIdx := 0, notesTab := 1 }
   state := state.editSelectedWorldNote
   ensure state.notesEditMode "Should be in edit mode"
-  state.notesNameInput.value ≡ "Note 1"
+  state.notesNameInput.text ≡ "Note 1"
 
 test "saveWorldNoteEdits works" := do
   let project ← Enchiridion.Project.create "Test" "Author"
@@ -159,8 +159,8 @@ test "saveWorldNoteEdits works" := do
   state := { state with selectedNoteIdx := 0, notesTab := 1 }
   state := state.editSelectedWorldNote
   state := { state with
-    notesNameInput := state.notesNameInput.withValue "Updated Note"
-    notesContentArea := Terminus.TextArea.fromString "New content" }
+    notesNameInput := Enchiridion.textInputFromString "Updated Note"
+    notesContentArea := Enchiridion.textAreaFromString "New content" }
   state := state.saveWorldNoteEdits
   ensure (!state.notesEditMode) "Should exit edit mode"
   state.project.worldNotes[0]!.title ≡ "Updated Note"
@@ -246,25 +246,25 @@ test "appendTextToEditor works" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
   let testContent := "Line 1\nLine 2\nLine 3"
-  state := { state with editorTextArea := Terminus.TextArea.fromString testContent }
+  state := { state with editorTextArea := Enchiridion.textAreaFromString testContent }
   state := state.appendTextToEditor "Appended text"
-  let editorText := state.editorTextArea.text
+  let editorText := Enchiridion.textAreaToString state.editorTextArea
   ensure (editorText.endsWith "Appended text") "Text should be appended"
 
 test "replaceEditorContent works" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
-  state := { state with editorTextArea := Terminus.TextArea.fromString "Old content" }
+  state := { state with editorTextArea := Enchiridion.textAreaFromString "Old content" }
   state := state.replaceEditorContent "Completely new content"
-  state.editorTextArea.text ≡ "Completely new content"
+  Enchiridion.textAreaToString state.editorTextArea ≡ "Completely new content"
 
 test "insertTextAtCursor (single line) works" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
-  state := { state with editorTextArea := Terminus.TextArea.fromString "Hello World" }
-  state := { state with editorTextArea := { state.editorTextArea with cursorCol := 6 } }
+  state := { state with editorTextArea := Enchiridion.textAreaFromString "Hello World" }
+  state := { state with editorTextArea := { state.editorTextArea with column := 6 } }
   state := state.insertTextAtCursor "Beautiful "
-  state.editorTextArea.text ≡ "Hello Beautiful World"
+  Enchiridion.textAreaToString state.editorTextArea ≡ "Hello Beautiful World"
 
 /-! ## Handle AI Writing Response -/
 
@@ -272,27 +272,27 @@ test "handleAIWritingResponse appends for continue" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
   state := state.requestAIWritingAction .continue_
-  state := { state with editorTextArea := Terminus.TextArea.fromString "Original content" }
+  state := { state with editorTextArea := Enchiridion.textAreaFromString "Original content" }
   state := state.handleAIWritingResponse "AI generated text"
-  ensure (state.editorTextArea.text.endsWith "AI generated text")
+  ensure ((Enchiridion.textAreaToString state.editorTextArea).endsWith "AI generated text")
     "Should append AI response"
 
 test "handleAIWritingResponse replaces for rewrite" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
   state := state.requestAIWritingAction .rewrite
-  state := { state with editorTextArea := Terminus.TextArea.fromString "Old content" }
+  state := { state with editorTextArea := Enchiridion.textAreaFromString "Old content" }
   state := state.handleAIWritingResponse "Rewritten content"
-  state.editorTextArea.text ≡ "Rewritten content"
+  Enchiridion.textAreaToString state.editorTextArea ≡ "Rewritten content"
 
 test "handleAIWritingResponse ignores brainstorm" := do
   let project ← Enchiridion.Project.create "Test" "Author"
   let mut state := Enchiridion.AppState.fromProject project
   state := state.requestAIWritingAction .brainstorm
-  state := { state with editorTextArea := Terminus.TextArea.fromString "Original" }
-  let beforeBrainstorm := state.editorTextArea.text
+  state := { state with editorTextArea := Enchiridion.textAreaFromString "Original" }
+  let beforeBrainstorm := Enchiridion.textAreaToString state.editorTextArea
   state := state.handleAIWritingResponse "Ideas that shouldn't appear in editor"
-  state.editorTextArea.text ≡ beforeBrainstorm
+  Enchiridion.textAreaToString state.editorTextArea ≡ beforeBrainstorm
 
 /-! ## Help Mode Toggle -/
 

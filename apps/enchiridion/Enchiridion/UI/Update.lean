@@ -73,8 +73,7 @@ def updateNavigation (state : AppState) (key : KeyEvent) : AppState :=
 
 /-- Handle editor panel input -/
 def updateEditor (state : AppState) (key : KeyEvent) : AppState :=
-  -- Let TextArea handle the key
-  let textArea := state.editorTextArea.handleKey key
+  let textArea := handleTextAreaKey state.editorTextArea key
   let state := { state with editorTextArea := textArea }
   -- Mark project as dirty
   { state with project := state.project.markDirty }
@@ -90,15 +89,14 @@ def updateChat (state : AppState) (key : KeyEvent) : AppState :=
     match key.code with
     | .enter =>
       -- Send message to AI
-      let content := state.chatInput.value
+      let content := state.chatInput.text
       if content.trim.isEmpty then state
       else
         -- Clear input and request AI response
-        let state := { state with chatInput := Terminus.TextInput.new }
+        let state := { state with chatInput := {} }
         state.requestAIMessage content
     | _ =>
-      -- Let TextInput handle other keys
-      let input := state.chatInput.handleKey key
+      let input := handleTextInputKey state.chatInput key
       { state with chatInput := input }
 
 /-- Handle notes panel input in list mode -/
@@ -181,11 +179,11 @@ def updateNotesEditMode (state : AppState) (key : KeyEvent) : AppState :=
     -- Pass key to the focused input
     if state.notesEditField == 0 then
       -- Name input
-      let input := state.notesNameInput.handleKey key
+      let input := handleTextInputKey state.notesNameInput key
       { state with notesNameInput := input }
     else
       -- Content area
-      let area := state.notesContentArea.handleKey key
+      let area := handleTextAreaKey state.notesContentArea key
       { state with notesContentArea := area }
 
 /-- Handle notes panel input -/
