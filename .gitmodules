@@ -255,3 +255,6 @@
 [submodule "graphics/afferent-text-inputs"]
 	path = graphics/afferent-text-inputs
 	url = git@github.com:nathanial/afferent-text-inputs.git
+[submodule "graphics/afferent-time-picker"]
+	path = graphics/afferent-time-picker
+	url = git@github.com:nathanial/afferent-time-picker.git
