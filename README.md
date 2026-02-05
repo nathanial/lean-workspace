@@ -26,117 +26,117 @@ lean-workspace/
 
 | Project | Description |
 |---------|-------------|
-| [afferent](https://github.com/nathanial/afferent) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS); includes Afferent.Arbor/Afferent.Canopy |
-| [afferent-demos](https://github.com/nathanial/afferent-demos) | Standalone demo runner for the Afferent graphics framework |
-| [terminus](https://github.com/nathanial/terminus) | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
-| [trellis](https://github.com/nathanial/trellis) | Pure CSS layout computation (Flexbox and Grid) |
-| [tincture](https://github.com/nathanial/tincture) | Color library with RGBA/HSV support and color operations |
-| [chroma](https://github.com/nathanial/chroma) | Color picker application built on afferent (Afferent.Arbor widgets) |
-| [grove](https://github.com/nathanial/grove) | Desktop file browser using afferent (Afferent.Arbor/Canopy) |
-| [assimptor](https://github.com/nathanial/assimptor) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
-| [worldmap](https://github.com/nathanial/worldmap) | Tile-based map viewer with Web Mercator projection |
-| [vane](https://github.com/nathanial/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
-| [raster](https://github.com/nathanial/raster) | Image loading, saving, and manipulation via stb_image |
-| [shader](https://github.com/nathanial/shader) | GPU shader DSL for writing Metal shaders in pure Lean |
+| [afferent](graphics/afferent) | 2D/3D graphics and UI framework with Metal GPU rendering (macOS); includes Afferent.Arbor/Afferent.Canopy |
+| [afferent-demos](graphics/afferent-demos) | Standalone demo runner for the Afferent graphics framework |
+| [terminus](graphics/terminus) | Terminal UI library (ratatui-style) with widgets, layouts, and styling |
+| [trellis](graphics/trellis) | Pure CSS layout computation (Flexbox and Grid) |
+| [tincture](graphics/tincture) | Color library with RGBA/HSV support and color operations |
+| [chroma](graphics/chroma) | Color picker application built on afferent (Afferent.Arbor widgets) |
+| [grove](graphics/grove) | Desktop file browser using afferent (Afferent.Arbor/Canopy) |
+| [assimptor](graphics/assimptor) | 3D model loading via Assimp FFI (FBX, OBJ, COLLADA) |
+| [worldmap](graphics/worldmap) | Tile-based map viewer with Web Mercator projection |
+| [vane](graphics/vane) | Hardware-accelerated terminal emulator using Metal (WIP) |
+| [raster](graphics/raster) | Image loading, saving, and manipulation via stb_image |
+| [shader](graphics/shader) | GPU shader DSL for writing Metal shaders in pure Lean |
 
 ### Scientific & Math
 
 | Project | Description |
 |---------|-------------|
-| [linalg](https://github.com/nathanial/linalg) | Linear algebra library for game math (vectors, matrices, quaternions) |
-| [measures](https://github.com/nathanial/measures) | Type-safe units of measure with compile-time dimension checking |
+| [linalg](math/linalg) | Linear algebra library for game math (vectors, matrices, quaternions) |
+| [measures](math/measures) | Type-safe units of measure with compile-time dimension checking |
 
 ### Web Framework Stack
 
 | Project | Description |
 |---------|-------------|
-| [loom](https://github.com/nathanial/loom) | Rails-like web framework integrating Citadel, Scribe, and Ledger |
-| [citadel](https://github.com/nathanial/citadel) | HTTP/1.1 server with routing, middleware, and SSE support |
-| [herald](https://github.com/nathanial/herald) | HTTP/1.1 message parser (requests, responses, chunked encoding) |
-| [scribe](https://github.com/nathanial/scribe) | Type-safe monadic HTML builder with HTMX integration |
-| [markup](https://github.com/nathanial/markup) | Strict HTML parser producing Scribe `Html` values |
-| [chronicle](https://github.com/nathanial/chronicle) | File-based logging library with text/JSON formats and Loom integration |
-| [stencil](https://github.com/nathanial/stencil) | Mustache/Handlebars-style template engine outputting Scribe Html |
-| [docsite](https://github.com/nathanial/docsite) | Documentation website for the Lean workspace |
+| [loom](web/loom) | Rails-like web framework integrating Citadel, Scribe, and Ledger |
+| [citadel](web/citadel) | HTTP/1.1 server with routing, middleware, and SSE support |
+| [herald](web/herald) | HTTP/1.1 message parser (requests, responses, chunked encoding) |
+| [scribe](web/scribe) | Type-safe monadic HTML builder with HTMX integration |
+| [markup](web/markup) | Strict HTML parser producing Scribe `Html` values |
+| [chronicle](web/chronicle) | File-based logging library with text/JSON formats and Loom integration |
+| [stencil](web/stencil) | Mustache/Handlebars-style template engine outputting Scribe Html |
+| [docsite](web/docsite) | Documentation website for the Lean workspace |
 
 ### Networking & Protocols
 
 | Project | Description |
 |---------|-------------|
-| [wisp](https://github.com/nathanial/wisp) | HTTP client library with libcurl FFI bindings |
-| [legate](https://github.com/nathanial/legate) | Generic gRPC library with all streaming modes |
-| [protolean](https://github.com/nathanial/protolean) | Protocol Buffers implementation with compile-time `proto_import` |
-| [oracle](https://github.com/nathanial/oracle) | OpenRouter API client with streaming and tool calling |
-| [jack](https://github.com/nathanial/jack) | BSD socket bindings (TCP/UDP, IPv4/IPv6) |
-| [exchange](https://github.com/nathanial/exchange) | Peer-to-peer local network chat with mDNS discovery |
+| [wisp](network/wisp) | HTTP client library with libcurl FFI bindings |
+| [legate](network/legate) | Generic gRPC library with all streaming modes |
+| [protolean](network/protolean) | Protocol Buffers implementation with compile-time `proto_import` |
+| [oracle](network/oracle) | OpenRouter API client with streaming and tool calling |
+| [jack](network/jack) | BSD socket bindings (TCP/UDP, IPv4/IPv6) |
+| [exchange](network/exchange) | Peer-to-peer local network chat with mDNS discovery |
 
 ### Audio
 
 | Project | Description |
 |---------|-------------|
-| [fugue](https://github.com/nathanial/fugue) | Functional sound synthesis library with macOS AudioToolbox FFI |
+| [fugue](audio/fugue) | Functional sound synthesis library with macOS AudioToolbox FFI |
 
 ### Data & Storage
 
 | Project | Description |
 |---------|-------------|
-| [ledger](https://github.com/nathanial/ledger) | Datomic-like fact-based database with time-travel queries |
-| [quarry](https://github.com/nathanial/quarry) | SQLite library with vendored amalgamation (no system dependencies) |
-| [chisel](https://github.com/nathanial/chisel) | Type-safe SQL DSL with compile-time validation |
-| [cellar](https://github.com/nathanial/cellar) | Generic disk cache library with LRU eviction |
-| [collimator](https://github.com/nathanial/collimator) | Profunctor optics library (lenses, prisms, traversals) |
-| [convergent](https://github.com/nathanial/convergent) | Operation-based CRDTs for distributed systems |
-| [reactive](https://github.com/nathanial/reactive) | Reflex-style functional reactive programming (FRP) |
-| [tabular](https://github.com/nathanial/tabular) | CSV/TSV parser with typed column extraction |
-| [entity](https://github.com/nathanial/entity) | Archetypal Entity-Component-System (ECS) library |
-| [totem](https://github.com/nathanial/totem) | TOML configuration parser with typed extraction |
-| [tileset](https://github.com/nathanial/tileset) | GPU-agnostic map tile loading with caching and reactive updates |
+| [ledger](data/ledger) | Datomic-like fact-based database with time-travel queries |
+| [quarry](data/quarry) | SQLite library with vendored amalgamation (no system dependencies) |
+| [chisel](data/chisel) | Type-safe SQL DSL with compile-time validation |
+| [cellar](data/cellar) | Generic disk cache library with LRU eviction |
+| [collimator](data/collimator) | Profunctor optics library (lenses, prisms, traversals) |
+| [convergent](data/convergent) | Operation-based CRDTs for distributed systems |
+| [reactive](data/reactive) | Reflex-style functional reactive programming (FRP) |
+| [tabular](data/tabular) | CSV/TSV parser with typed column extraction |
+| [entity](data/entity) | Archetypal Entity-Component-System (ECS) library |
+| [totem](data/totem) | TOML configuration parser with typed extraction |
+| [tileset](data/tileset) | GPU-agnostic map tile loading with caching and reactive updates |
 | galaxy-gen | Procedural galaxy generation (planned) |
 
 ### Applications
 
 | Project | Description |
 |---------|-------------|
-| [homebase-app](https://github.com/nathanial/homebase-app) | Personal dashboard with Kanban, auth, and multiple sections |
-| [todo-app](https://github.com/nathanial/todo-app) | Demo todo list application built with Loom |
-| [enchiridion](https://github.com/nathanial/enchiridion) | Terminal novel writing assistant with AI integration |
-| [lighthouse](https://github.com/nathanial/lighthouse) | Terminal UI debugger/inspector for Ledger databases |
-| [blockfall](https://github.com/nathanial/blockfall) | Terminal Tetris-like falling block puzzle game |
-| [twenty48](https://github.com/nathanial/twenty48) | Terminal 2048 sliding puzzle game |
-| [ask](https://github.com/nathanial/ask) | Minimal CLI for talking to AI models on OpenRouter |
-| [cairn](https://github.com/nathanial/cairn) | Minecraft-style voxel game with Metal rendering |
-| [minefield](https://github.com/nathanial/minefield) | Terminal Minesweeper game with keyboard controls |
-| [solitaire](https://github.com/nathanial/solitaire) | Terminal Klondike Solitaire card game |
-| [tracker](https://github.com/nathanial/tracker) | Local git-friendly issue tracker with CLI and TUI modes |
-| [timekeeper](https://github.com/nathanial/timekeeper) | Terminal time tracking app with categories and reports |
-| [eschaton](https://github.com/nathanial/eschaton) | Stellaris-inspired grand strategy game with Metal rendering |
-| [chatline](https://github.com/nathanial/chatline) | Chat application (early stage) |
-| [agent-mail](https://github.com/nathanial/agent-mail) | Multi-agent coordination layer with messaging and file reservations |
-| [image-gen](https://github.com/nathanial/image-gen) | AI-powered image generation CLI using OpenRouter |
+| [homebase-app](apps/homebase-app) | Personal dashboard with Kanban, auth, and multiple sections |
+| [todo-app](apps/todo-app) | Demo todo list application built with Loom |
+| [enchiridion](apps/enchiridion) | Terminal novel writing assistant with AI integration |
+| [lighthouse](apps/lighthouse) | Terminal UI debugger/inspector for Ledger databases |
+| [blockfall](apps/blockfall) | Terminal Tetris-like falling block puzzle game |
+| [twenty48](apps/twenty48) | Terminal 2048 sliding puzzle game |
+| [ask](apps/ask) | Minimal CLI for talking to AI models on OpenRouter |
+| [cairn](apps/cairn) | Minecraft-style voxel game with Metal rendering |
+| [minefield](apps/minefield) | Terminal Minesweeper game with keyboard controls |
+| [solitaire](apps/solitaire) | Terminal Klondike Solitaire card game |
+| [tracker](apps/tracker) | Local git-friendly issue tracker with CLI and TUI modes |
+| [timekeeper](apps/timekeeper) | Terminal time tracking app with categories and reports |
+| [eschaton](apps/eschaton) | Stellaris-inspired grand strategy game with Metal rendering |
+| [chatline](apps/chatline) | Chat application (early stage) |
+| [agent-mail](apps/agent-mail) | Multi-agent coordination layer with messaging and file reservations |
+| [image-gen](apps/image-gen) | AI-powered image generation CLI using OpenRouter |
 | astrometry | Astronomy application (planned) |
 
 ### CLI & Utilities
 
 | Project | Description |
 |---------|-------------|
-| [parlance](https://github.com/nathanial/parlance) | CLI library with argument parsing, styled output, and progress indicators |
-| [staple](https://github.com/nathanial/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
-| [chronos](https://github.com/nathanial/chronos-lean) | Wall clock time library with nanosecond precision (POSIX FFI) |
-| [rune](https://github.com/nathanial/rune) | Regular expression library with Thompson NFA simulation |
-| [sift](https://github.com/nathanial/sift) | Parsec-style parser combinator library |
-| [conduit](https://github.com/nathanial/conduit) | Go-style typed channels for concurrency |
-| [docgen](https://github.com/nathanial/docgen) | Documentation generator for Lean 4 projects |
-| [tracer](https://github.com/nathanial/tracer) | Distributed tracing with W3C Trace Context support |
-| [crypt](https://github.com/nathanial/crypt) | Cryptographic primitives with libsodium FFI (hashing, encryption, HMAC) |
-| [timeout](https://github.com/nathanial/timeout) | Command timeout utility (shell script) |
-| [smalltalk](https://github.com/nathanial/smalltalk) | Smalltalk interpreter (WIP) |
-| [selene](https://github.com/nathanial/selene) | Lua-Lean 4 integration library with FFI bindings |
+| [parlance](util/parlance) | CLI library with argument parsing, styled output, and progress indicators |
+| [staple](util/staple) | Essential utilities and macros (include_str% for compile-time file embedding) |
+| [chronos](util/chronos) | Wall clock time library with nanosecond precision (POSIX FFI) |
+| [rune](util/rune) | Regular expression library with Thompson NFA simulation |
+| [sift](util/sift) | Parsec-style parser combinator library |
+| [conduit](util/conduit) | Go-style typed channels for concurrency |
+| [docgen](util/docgen) | Documentation generator for Lean 4 projects |
+| [tracer](util/tracer) | Distributed tracing with W3C Trace Context support |
+| [crypt](util/crypt) | Cryptographic primitives with libsodium FFI (hashing, encryption, HMAC) |
+| [timeout](util/timeout) | Command timeout utility (shell script) |
+| [smalltalk](util/smalltalk) | Smalltalk interpreter (WIP) |
+| [selene](util/selene) | Lua-Lean 4 integration library with FFI bindings |
 
 ### Testing
 
 | Project | Description |
 |---------|-------------|
-| [crucible](https://github.com/nathanial/crucible) | Lightweight test framework with declarative test macros |
+| [crucible](testing/crucible) | Lightweight test framework with declarative test macros |
 
 ## Dependency Graph
 
