@@ -350,6 +350,29 @@ lean_exe afferent_demos where
     "-lobjc"
   ]
 
+lean_exe eschaton where
+  srcDir := "apps/eschaton"
+  root := `Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libafferent_native.a",
+    ".native-libs/lib/libraster_native.a",
+    ".native-libs/lib/libchronos_native.a",
+    "-L/opt/homebrew/lib",
+    "-framework", "Cocoa",
+    "-framework", "Metal",
+    "-framework", "MetalKit",
+    "-framework", "QuartzCore",
+    "-framework", "CoreText",
+    "-framework", "CoreGraphics",
+    "-framework", "Foundation",
+    "-lfreetype",
+    "-lz",
+    "-lbz2",
+    "-liconv",
+    "-lm",
+    "-lobjc"
+  ]
+
 
 
 -- Monorepo test targets (auto-generated during test namespace deconflict).

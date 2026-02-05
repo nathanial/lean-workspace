@@ -9,7 +9,7 @@ import Afferent.Shader.DSL
 
 open Afferent CanvasM
 open Afferent.Shader
-open Afferent.Shader.DSL hiding size time
+open _root_.Shader hiding size time
 
 namespace Eschaton.Widget
 

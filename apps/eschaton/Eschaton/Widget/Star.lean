@@ -10,7 +10,7 @@ import Tincture
 
 open Afferent.Arbor
 open Afferent.Shader
-open Afferent.Shader.DSL hiding center size time color
+open _root_.Shader hiding center size time color
 
 namespace Eschaton.Widget
 
