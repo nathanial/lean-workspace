@@ -3,6 +3,7 @@
 A Lean 4 monorepo for building terminal UIs, graphics, networking, web frameworks, and data tooling.
 
 This repository was consolidated from many former submodules into a single root repo with a single root Lake configuration.
+All projects are now tracked directly in this repository. Do not use `git submodule` commands.
 
 ## Folder Structure
 
@@ -206,6 +207,14 @@ lake exe workspace_smoke
 
 Projects still live under category folders (`apps/`, `graphics/`, etc.), but Lake configuration is now centralized at the root.
 
+## Project-Specific Builds
+
+Some projects still have platform-specific native build requirements.
+
+- `graphics/afferent-demos`: use
+  - `graphics/afferent-demos/build.sh afferent_demos`
+  - This script rebuilds native static libraries in `.native-libs/` and then runs `lake build afferent_demos` from repo root.
+
 ## Workspace Management
 
 ### Justfile (Recommended)
@@ -222,7 +231,7 @@ just clean
 
 ### Shell Scripts
 
-Legacy helper scripts remain in `scripts/`. Some were built for the old submodule layout and may need incremental cleanup.
+Helper scripts remain in `scripts/`. Prefer root-driven commands unless a project script is explicitly documented as required.
 
 ## Requirements
 

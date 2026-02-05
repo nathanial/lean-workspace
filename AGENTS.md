@@ -2,9 +2,15 @@
 
 Lean 4 monorepo workspace.
 
+## Monorepo Status
+
+- Former project submodules were removed.
+- All projects are normal directories tracked by this root repo.
+- Do not use `git submodule` commands.
+
 ## Layout
 
-Projects remain grouped by category folders:
+Projects are grouped by category folders:
 
 - `graphics/`
 - `web/`
@@ -16,23 +22,26 @@ Projects remain grouped by category folders:
 - `audio/`
 - `testing/`
 
-Each project still keeps its Lean sources in-place (for example `graphics/terminus/Terminus/...`).
+Each project keeps its Lean sources in-place (for example `graphics/terminus/Terminus/...`).
 
 ## Lake Configuration
 
-- Single root Lake configuration: `/Users/Shared/Projects/lean-workspace/lakefile.lean`
+- Single root Lake file: `/Users/Shared/Projects/lean-workspace/lakefile.lean`
 - Single root toolchain file: `/Users/Shared/Projects/lean-workspace/lean-toolchain`
-- Nested `lakefile.lean` files were removed as part of monorepo consolidation.
+- Nested `lakefile.lean` files were removed.
 
 ## Build & Test
 
-Primary workflow is now from repository root:
+Run from repository root unless noted:
 
 - `lake build`
 - `lake build workspace_smoke`
 - `lake exe workspace_smoke`
 
-Custom project scripts (`build.sh`, `test.sh`) still exist in some project folders, but they are now legacy wrappers and may need updates during migration cleanup.
+Project-specific note:
+
+- `graphics/afferent-demos`: run `graphics/afferent-demos/build.sh afferent_demos`
+  - This rebuilds required native static libs in `.native-libs/` and then builds `afferent_demos`.
 
 ## Coding Style
 
@@ -49,7 +58,7 @@ Short, lowercase, imperative style:
 
 ## Issue Tracking (tracker)
 
-Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
+Use `tracker` CLI at workspace root. Outputs text by default (use `-j` for JSON).
 
 - `tracker list`
 - `tracker show <id>`
@@ -57,9 +66,8 @@ Use `tracker` CLI to manage issues. Outputs text by default (use `-j` for JSON).
 - `tracker progress <id> "Found root cause"`
 - `tracker close <id> "Fixed in commit X"`
 
-Issues are stored in `.issues/` at workspace root.
-Do not commit `.issues/` changes.
+Issues are stored in `.issues/`. Do not commit `.issues/` changes.
 
 ## Important
 
-This repository is now a single monorepo. Commit and push from the workspace root.
+Commit and push from workspace root.
