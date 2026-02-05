@@ -35,7 +35,7 @@ private def formatFlag (f : Flag) (config : HelpConfig) : String :=
     | none => ""
   let pref := s!"{shortStr}{longStr}{typeStr}"
   let padding := if pref.length < config.descColumn
-    then String.mk (List.replicate (config.descColumn - pref.length) ' ')
+    then String.ofList (List.replicate (config.descColumn - pref.length) ' ')
     else ""
   let paddedPref := pref ++ padding
   -- Add repeatable indicator
@@ -48,13 +48,13 @@ private def formatFlag (f : Flag) (config : HelpConfig) : String :=
   if fullDesc.isEmpty then
     s!"  {pref}"
   else if pref.length >= config.descColumn then
-    s!"  {pref}\n{String.mk (List.replicate (config.descColumn + 2) ' ')}{fullDesc}"
+    s!"  {pref}\n{String.ofList (List.replicate (config.descColumn + 2) ' ')}{fullDesc}"
   else
     s!"  {paddedPref}{fullDesc}"
 
 /-- Format a flag with custom indentation (for subcommand details) -/
 private def formatFlagIndented (f : Flag) (config : HelpConfig) (indent : Nat) : String :=
-  let indentStr := String.mk (List.replicate indent ' ')
+  let indentStr := String.ofList (List.replicate indent ' ')
   let shortStr := match f.short with
     | some c => s!"-{c}, "
     | none => "    "
@@ -68,7 +68,7 @@ private def formatFlagIndented (f : Flag) (config : HelpConfig) (indent : Nat) :
   -- Use wider column for subcommand flags
   let targetCol := config.descColumn + 4
   let padding := if pref.length < targetCol
-    then String.mk (List.replicate (targetCol - pref.length) ' ')
+    then String.ofList (List.replicate (targetCol - pref.length) ' ')
     else "  "
   s!"{indentStr}{pref}{padding}{f.description}"
 
@@ -78,13 +78,13 @@ private def formatArg (a : Arg) (config : HelpConfig) : String :=
   let nameStr := s!"<{a.name}>"
   let pref := nameStr
   let padding := if pref.length < config.descColumn
-    then String.mk (List.replicate (config.descColumn - pref.length) ' ')
+    then String.ofList (List.replicate (config.descColumn - pref.length) ' ')
     else ""
   let paddedPref := pref ++ padding
   if a.description.isEmpty then
     s!"  {pref}{reqStr}"
   else if pref.length >= config.descColumn then
-    s!"  {pref}\n{String.mk (List.replicate (config.descColumn + 2) ' ')}{a.description}{reqStr}"
+    s!"  {pref}\n{String.ofList (List.replicate (config.descColumn + 2) ' ')}{a.description}{reqStr}"
   else
     s!"  {paddedPref}{a.description}{reqStr}"
 
@@ -92,13 +92,13 @@ private def formatArg (a : Arg) (config : HelpConfig) : String :=
 private def formatSubcmd (c : Command) (config : HelpConfig) : String :=
   let pref := c.name
   let padding := if pref.length < config.descColumn
-    then String.mk (List.replicate (config.descColumn - pref.length) ' ')
+    then String.ofList (List.replicate (config.descColumn - pref.length) ' ')
     else ""
   let paddedPref := pref ++ padding
   if c.description.isEmpty then
     s!"  {pref}"
   else if pref.length >= config.descColumn then
-    s!"  {pref}\n{String.mk (List.replicate (config.descColumn + 2) ' ')}{c.description}"
+    s!"  {pref}\n{String.ofList (List.replicate (config.descColumn + 2) ' ')}{c.description}"
   else
     s!"  {paddedPref}{c.description}"
 
@@ -112,7 +112,7 @@ private def formatSubcmdFull (c : Command) (config : HelpConfig) : String :=
 
   -- First line: name with args and description
   let padding := if nameWithArgs.length < config.descColumn
-    then String.mk (List.replicate (config.descColumn - nameWithArgs.length) ' ')
+    then String.ofList (List.replicate (config.descColumn - nameWithArgs.length) ' ')
     else " "
   let headerLine := s!"  {nameWithArgs}{padding}{c.description}"
 
@@ -157,12 +157,12 @@ def Command.helpText (cmd : Command) (config : HelpConfig := {}) : String :=
     if cmd.flags.isEmpty then []
     else
       let formatted := cmd.flags.toList.map (formatFlag · config)
-      let helpPadding := String.mk (List.replicate (config.descColumn - 12) ' ')
+      let helpPadding := String.ofList (List.replicate (config.descColumn - 12) ' ')
       let helpLine := s!"  -h, --help{helpPadding}Print help"
       let versionLine :=
         if cmd.version.isEmpty then []
         else
-          let vPadding := String.mk (List.replicate (config.descColumn - 15) ' ')
+          let vPadding := String.ofList (List.replicate (config.descColumn - 15) ' ')
           [s!"  -V, --version{vPadding}Print version"]
       ["Options:"] ++ formatted ++ [helpLine] ++ versionLine ++ [""]
 

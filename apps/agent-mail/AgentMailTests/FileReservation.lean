@@ -47,9 +47,9 @@ test "isActive check" := do
   shouldSatisfy (res.isActive now) "should be active"
   -- After expiry
   let later := Chronos.Timestamp.fromSeconds 1700003000
-  shouldSatisfy (not (res.isActive later)) "should be expired"
+  shouldSatisfy (!(res.isActive later)) "should be expired"
   -- If released
   let released := { res with releasedTs := some now }
-  shouldSatisfy (not (released.isActive now)) "should be released"
+  shouldSatisfy (!(released.isActive now)) "should be released"
 
 end AgentMailTests.FileReservation

@@ -653,6 +653,19 @@ lean_lib web_stencil_tests_lib where
 lean_exe apps_agent_mail_tests_exe where
   srcDir := "apps/agent-mail"
   root := `AgentMailTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libchronos_native.a",
+    ".native-libs/lib/libjack_native.a",
+    ".native-libs/lib/libquarry_native.a",
+    ".native-libs/lib/libcitadel_native.a",
+    ".native-libs/lib/libwisp_native.a",
+    "-L/opt/homebrew/lib",
+    "-L/opt/homebrew/opt/openssl@3/lib",
+    "-L/opt/homebrew/opt/curl/lib",
+    "-lcurl",
+    "-lssl",
+    "-lcrypto"
+  ]
 
 lean_exe apps_blockfall_tests_exe where
   srcDir := "apps/blockfall"
@@ -953,4 +966,3 @@ lean_exe web_scribe_tests_exe where
 lean_exe web_stencil_tests_exe where
   srcDir := "web/stencil"
   root := `StencilTests.Main
-

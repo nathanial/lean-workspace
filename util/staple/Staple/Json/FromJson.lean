@@ -66,7 +66,12 @@ instance : FromJson String where
 instance : FromJson Char where
   fromJson? v := do
     let s ← v.getStr?
-    if s.length == 1 then some (s.get ⟨0⟩) else none
+    if s.length == 1 then
+      match s.toList with
+      | c :: _ => some c
+      | [] => none
+    else
+      none
 
 /-! ## Unsigned Integer Instances -/
 

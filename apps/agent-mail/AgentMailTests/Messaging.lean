@@ -189,7 +189,7 @@ test "Update read and ack status" := do
   shouldSatisfy readUpdated "should have updated read status"
   -- Mark as read again (should not update since already set)
   let readUpdated2 ← db.updateMessageReadAt messageId recipientId (Chronos.Timestamp.fromSeconds 1700002000)
-  shouldSatisfy (not readUpdated2) "should not update already read message"
+  shouldSatisfy (!readUpdated2) "should not update already read message"
   -- Verify read_at
   let status ← db.queryRecipientStatus messageId recipientId
   match status with

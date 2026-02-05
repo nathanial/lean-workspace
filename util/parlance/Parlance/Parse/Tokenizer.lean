@@ -65,8 +65,8 @@ def tokenizeOne (arg : String) (afterEndOfFlags : Bool) : List Token :=
     let rest := arg.drop 2
     match findCharIndex rest '=' with
     | some idx =>
-      let name := (rest.toList.take idx).asString
-      let value := (rest.toList.drop (idx + 1)).asString
+      let name := String.ofList (rest.toList.take idx)
+      let value := String.ofList (rest.toList.drop (idx + 1))
       [.longFlagValue name value]
     | none =>
       [.longFlag rest]

@@ -135,7 +135,7 @@ def scientific {σ : Type} : Parser σ Float := do
 /-- Parse 4-digit unicode escape, returns the character -/
 def unicodeEscape4 {σ : Type} : Parser σ Char := do
   let code ← hexDigitsN 4
-  if h : code.toUInt32 < 0x110000 then
+  if code.toUInt32 < 0x110000 then
     pure (Char.ofNat code)
   else
     Parser.fail s!"invalid unicode code point: U+{String.ofList (Nat.toDigits 16 code)}"
@@ -143,7 +143,7 @@ def unicodeEscape4 {σ : Type} : Parser σ Char := do
 /-- Parse 8-digit unicode escape, returns the character -/
 def unicodeEscape8 {σ : Type} : Parser σ Char := do
   let code ← hexDigitsN 8
-  if h : code.toUInt32 < 0x110000 then
+  if code.toUInt32 < 0x110000 then
     pure (Char.ofNat code)
   else
     Parser.fail s!"invalid unicode code point: U+{String.ofList (Nat.toDigits 16 code)}"

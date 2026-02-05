@@ -141,9 +141,12 @@ def toCamelCase (s : String) : String := Id.run do
   let restWords := words.tail!.map fun w =>
     if w.isEmpty then ""
     else
-      let first := toUpper (w.get ⟨0⟩)
-      let rest := (w.drop 1).map toLower
-      String.singleton first ++ rest
+      match w.toList with
+      | c :: _ =>
+          let first := toUpper c
+          let rest := (w.drop 1).map toLower
+          String.singleton first ++ rest
+      | [] => ""
 
   return firstWord ++ String.join restWords
 
@@ -158,9 +161,12 @@ def toPascalCase (s : String) : String := Id.run do
   let capitalizedWords := words.map fun w =>
     if w.isEmpty then ""
     else
-      let first := toUpper (w.get ⟨0⟩)
-      let rest := (w.drop 1).map toLower
-      String.singleton first ++ rest
+      match w.toList with
+      | c :: _ =>
+          let first := toUpper c
+          let rest := (w.drop 1).map toLower
+          String.singleton first ++ rest
+      | [] => ""
   return String.join capitalizedWords
 
 /-- Convert a string to snake_case.

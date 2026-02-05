@@ -12,8 +12,8 @@ open AgentMail.Tools.Identity in
 test "generateSlug sanitizes paths" := do
   let slug1 := generateSlug "/Users/test/my-project"
   shouldSatisfy (slug1.find? "/" |>.isNone) "slug should not contain slashes"
-  shouldSatisfy (not (slug1.startsWith "-")) "slug should not start with dash"
-  shouldSatisfy (not (slug1.endsWith "-")) "slug should not end with dash"
+  shouldSatisfy (!(slug1.startsWith "-")) "slug should not start with dash"
+  shouldSatisfy (!(slug1.endsWith "-")) "slug should not end with dash"
 
 open AgentMail.Tools.Identity in
 test "generateSlug handles various inputs" := do

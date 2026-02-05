@@ -92,12 +92,12 @@ def pad (s : String) (width : Nat) (align : Align) : String :=
   else
     let padding := width - len
     match align with
-    | .left => s ++ String.mk (List.replicate padding ' ')
-    | .right => String.mk (List.replicate padding ' ') ++ s
+    | .left => s ++ String.ofList (List.replicate padding ' ')
+    | .right => String.ofList (List.replicate padding ' ') ++ s
     | .center =>
       let leftPad := padding / 2
       let rightPad := padding - leftPad
-      String.mk (List.replicate leftPad ' ') ++ s ++ String.mk (List.replicate rightPad ' ')
+      String.ofList (List.replicate leftPad ' ') ++ s ++ String.ofList (List.replicate rightPad ' ')
 
 /-- Render a row as a string -/
 private def renderRow (t : Table) (widths : Array Nat) (cells : Array String)
@@ -105,7 +105,7 @@ private def renderRow (t : Table) (widths : Array Nat) (cells : Array String)
   let paddedCells := cells.zip widths |>.mapIdx fun i (cell, w) =>
     let align := t.columns[i]?.map (·.align) |>.getD .left
     pad cell w align
-  let separator := String.mk (List.replicate t.config.padding ' ')
+  let separator := String.ofList (List.replicate t.config.padding ' ')
   let row := separator.intercalate paddedCells.toList
   match style with
   | some s => (StyledText.styled row s).render
@@ -116,12 +116,12 @@ private def renderSeparator (t : Table) (widths : Array Nat) : String :=
   match t.config.borderStyle with
   | .none => ""
   | .ascii =>
-    let dashes := widths.map fun w => String.mk (List.replicate w '-')
-    let separator := String.mk (List.replicate t.config.padding '-')
+    let dashes := widths.map fun w => String.ofList (List.replicate w '-')
+    let separator := String.ofList (List.replicate t.config.padding '-')
     separator.intercalate dashes.toList
   | .unicode =>
-    let dashes := widths.map fun w => String.mk (List.replicate w '─')
-    let separator := String.mk (List.replicate t.config.padding '─')
+    let dashes := widths.map fun w => String.ofList (List.replicate w '─')
+    let separator := String.ofList (List.replicate t.config.padding '─')
     separator.intercalate dashes.toList
   | .compact => ""
 
@@ -163,7 +163,7 @@ def printList (items : List String) (bullet : String := "•") : IO Unit := do
 def printKeyValue (pairs : List (String × String)) (separator : String := ": ") : IO Unit := do
   let maxKeyLen := pairs.foldl (init := 0) fun acc (k, _) => Nat.max acc k.length
   for (k, v) in pairs do
-    let paddedKey := k ++ String.mk (List.replicate (maxKeyLen - k.length) ' ')
+    let paddedKey := k ++ String.ofList (List.replicate (maxKeyLen - k.length) ' ')
     IO.println s!"{paddedKey}{separator}{v}"
 
 end Parlance.Output

@@ -93,6 +93,11 @@ def apply (cs : CompletionState) : Option (String × Nat) :=
 
 end CompletionState
 
+private def charAt? (s : String) (pos : Nat) : Option Char :=
+  match s.toList.drop pos with
+  | [] => none
+  | c :: _ => some c
+
 namespace Completers
 
 /-- Find the word being completed (working backward from cursor) -/
@@ -101,8 +106,7 @@ def findWordStart (line : String) (cursor : Nat) : Nat := Id.run do
   while pos > 0 do
     let charPos := pos - 1
     if charPos < line.length then
-      let c := line.get ⟨charPos⟩
-      if c.isWhitespace then
+      if (charAt? line charPos).map Char.isWhitespace == some true then
         return pos
     pos := pos - 1
   return 0
@@ -110,7 +114,7 @@ def findWordStart (line : String) (cursor : Nat) : Nat := Id.run do
 /-- Extract the word prefix being completed -/
 def getPrefix (line : String) (cursor : Nat) : String × Nat :=
   let start := findWordStart line cursor
-  (line.extract ⟨start⟩ ⟨cursor⟩, start)
+  (String.ofList ((line.toList.drop start).take (cursor - start)), start)
 
 /-- Static word completer - matches from a fixed list of words -/
 def staticCompleter (words : Array String) : CompletionProvider := fun line cursor => do
@@ -213,7 +217,7 @@ def commonPrefix (completions : Array Completion) : String :=
       let commonLen := Id.run do
         let mut pos := 0
         while pos < minLen do
-          if acc.get ⟨pos⟩ != c.text.get ⟨pos⟩ then
+          if charAt? acc pos != charAt? c.text pos then
             return pos
           pos := pos + 1
         return minLen

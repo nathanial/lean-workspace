@@ -33,13 +33,13 @@ test "renderPrecommitGuard embeds config" := do
 test "isChainRunnerContent detects chain runner" := do
   let script := renderChainRunner "pre-commit"
   shouldSatisfy (isChainRunnerContent script) "should detect chain runner content"
-  shouldSatisfy (not (isChainRunnerContent "#!/bin/bash\nsome other script")) "should not detect non-chain-runner"
-  shouldSatisfy (not (isChainRunnerContent "")) "should not detect empty content"
+  shouldSatisfy (!(isChainRunnerContent "#!/bin/bash\nsome other script")) "should not detect non-chain-runner"
+  shouldSatisfy (!(isChainRunnerContent "")) "should not detect empty content"
 
 test "isGuardPluginContent detects guard plugin" := do
   let script := renderPrecommitGuard "/tmp/archive" "/tmp/archive/file_reservations"
   shouldSatisfy (isGuardPluginContent script) "should detect guard plugin content"
-  shouldSatisfy (not (isGuardPluginContent "#!/usr/bin/env python3\nsome other script")) "should not detect non-guard"
+  shouldSatisfy (!(isGuardPluginContent "#!/usr/bin/env python3\nsome other script")) "should not detect non-guard"
 
 test "InstallResult JSON serialization" := do
   let result : InstallResult := {

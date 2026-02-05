@@ -16,6 +16,11 @@ structure LineBuffer where
 
 namespace LineBuffer
 
+private def charAt? (s : String) (pos : Nat) : Option Char :=
+  match s.toList.drop pos with
+  | [] => none
+  | c :: _ => some c
+
 /-- Create an empty line buffer -/
 def empty : LineBuffer := {}
 
@@ -39,7 +44,7 @@ def afterCursor (lb : LineBuffer) : String :=
 
 /-- Character at cursor (if any) -/
 def atCursor (lb : LineBuffer) : Option Char :=
-  lb.content.get? ⟨lb.cursor⟩
+  charAt? lb.content lb.cursor
 
 -- ============ Character Operations ============
 
@@ -94,13 +99,13 @@ private def findWordStart (s : String) (pos : Nat) : Nat :=
     -- Skip trailing spaces
     let pos' := Id.run do
       let mut p := pos - 1
-      while p > 0 && (s.get? ⟨p⟩).map Char.isWhitespace == some true do
+      while p > 0 && (charAt? s p).map Char.isWhitespace == some true do
         p := p - 1
       pure (if p == 0 then 0 else p)
     -- Find start of word
     Id.run do
       let mut p := pos'
-      while p > 0 && (s.get? ⟨p - 1⟩).map Char.isWhitespace != some true do
+      while p > 0 && (charAt? s (p - 1)).map Char.isWhitespace != some true do
         p := p - 1
       pure p
 
@@ -112,13 +117,13 @@ private def findWordEnd (s : String) (pos : Nat) : Nat :=
     -- Skip leading spaces
     let pos' := Id.run do
       let mut p := pos
-      while p < len && (s.get? ⟨p⟩).map Char.isWhitespace == some true do
+      while p < len && (charAt? s p).map Char.isWhitespace == some true do
         p := p + 1
       pure p
     -- Find end of word
     Id.run do
       let mut p := pos'
-      while p < len && (s.get? ⟨p⟩).map Char.isWhitespace != some true do
+      while p < len && (charAt? s p).map Char.isWhitespace != some true do
         p := p + 1
       pure p
 
@@ -147,7 +152,7 @@ def deleteWord (lb : LineBuffer) : LineBuffer :=
     cursor := wordStart }
 
 /-- Clear the entire line -/
-def clear (lb : LineBuffer) : LineBuffer := empty
+def clear (_lb : LineBuffer) : LineBuffer := empty
 
 -- ============ Content Operations ============
 

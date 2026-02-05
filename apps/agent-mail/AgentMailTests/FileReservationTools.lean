@@ -51,7 +51,7 @@ test "patternsOverlap with wildcards" := do
   shouldSatisfy (patternsOverlap "src/*" "src/foo") "directory wildcard overlaps"
 
 test "patternsOverlap non-overlapping" := do
-  shouldSatisfy (not (patternsOverlap "src/foo.lean" "docs/bar.md")) "different dirs don't overlap"
+  shouldSatisfy (!(patternsOverlap "src/foo.lean" "docs/bar.md")) "different dirs don't overlap"
 
 test "file_reservation_paths grants reservations" := do
   let db ← Storage.Database.openMemory

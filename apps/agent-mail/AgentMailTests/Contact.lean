@@ -33,7 +33,7 @@ test "Contact.involvesAgent" := do
   }
   shouldSatisfy (contact.involvesAgent 1) "should involve agent 1"
   shouldSatisfy (contact.involvesAgent 2) "should involve agent 2"
-  shouldSatisfy (not (contact.involvesAgent 3)) "should not involve agent 3"
+  shouldSatisfy (!(contact.involvesAgent 3)) "should not involve agent 3"
 
 test "Contact.otherAgent" := do
   let now := Chronos.Timestamp.fromSeconds 1700000000

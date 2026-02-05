@@ -46,7 +46,7 @@ def parseJsonRpcResponse (resp : Response) : IO JsonRpc.Response := do
       | Except.error e => throw (IO.userError s!"Failed to decode JSON-RPC response: {e}")
   | Except.error e => throw (IO.userError s!"Failed to parse JSON: {e}")
 
-def testConfig : Config := {
+private def baseTestConfig : Config := {
   environment := "test"
   port := 8765
   host := "127.0.0.1"
@@ -58,12 +58,23 @@ def testConfig : Config := {
   authToken := none
 }
 
+private def mkTestConfig : IO Config := do
+  let result ← IO.Process.output {
+    cmd := "mktemp"
+    args := #["-d", "/tmp/test-agent-mail-archive.XXXXXX"]
+  }
+  if result.exitCode == 0 then
+    pure { baseTestConfig with storageRoot := result.stdout.trim }
+  else
+    throw (IO.userError s!"mktemp failed: {result.stderr}")
+
 -- =============================================================================
 -- macro_start_session tests
 -- =============================================================================
 
 test "macro_start_session creates project and agent" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let params := Lean.Json.mkObj [
     ("project_key", Lean.Json.str "/test/project"),
     ("program", Lean.Json.str "test-program"),
@@ -74,7 +85,7 @@ test "macro_start_session creates project and agent" := do
     params := some params
     id := some (JsonRpc.RequestId.num 1)
   }
-  let resp ← Tools.Macros.handleMacroStartSession db testConfig req
+  let resp ← Tools.Macros.handleMacroStartSession db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -95,6 +106,7 @@ test "macro_start_session creates project and agent" := do
 
 test "macro_start_session reuses existing project" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let _ ← db.insertProject "existing-project" "/existing/project" now
   let params := Lean.Json.mkObj [
@@ -107,7 +119,7 @@ test "macro_start_session reuses existing project" := do
     params := some params
     id := some (JsonRpc.RequestId.num 2)
   }
-  let resp ← Tools.Macros.handleMacroStartSession db testConfig req
+  let resp ← Tools.Macros.handleMacroStartSession db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -123,6 +135,7 @@ test "macro_start_session reuses existing project" := do
 
 test "macro_prepare_thread fetches messages and marks read" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -159,7 +172,7 @@ test "macro_prepare_thread fetches messages and marks read" := do
     params := some params
     id := some (JsonRpc.RequestId.num 3)
   }
-  let resp ← Tools.Macros.handleMacroPrepareThread db testConfig req
+  let resp ← Tools.Macros.handleMacroPrepareThread db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -186,6 +199,7 @@ test "macro_prepare_thread fetches messages and marks read" := do
 
 test "macro_file_reservation_cycle grants reservations" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let _ ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -199,7 +213,7 @@ test "macro_file_reservation_cycle grants reservations" := do
     params := some params
     id := some (JsonRpc.RequestId.num 4)
   }
-  let resp ← Tools.Macros.handleMacroFileReservationCycle db testConfig req
+  let resp ← Tools.Macros.handleMacroFileReservationCycle db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -214,6 +228,7 @@ test "macro_file_reservation_cycle grants reservations" := do
 
 test "macro_file_reservation_cycle reports conflicts" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   -- Use current time to ensure reservation is active when handler runs
   let now ← Chronos.Timestamp.now
   let projectId ← db.insertProject "p1" "/p1" now
@@ -233,7 +248,7 @@ test "macro_file_reservation_cycle reports conflicts" := do
     params := some params
     id := some (JsonRpc.RequestId.num 5)
   }
-  let resp ← Tools.Macros.handleMacroFileReservationCycle db testConfig req
+  let resp ← Tools.Macros.handleMacroFileReservationCycle db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -262,6 +277,7 @@ test "macro_file_reservation_cycle reports conflicts" := do
 
 test "macro_contact_handshake establishes contact" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let _agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -276,7 +292,7 @@ test "macro_contact_handshake establishes contact" := do
     params := some params
     id := some (JsonRpc.RequestId.num 6)
   }
-  let resp ← Tools.Macros.handleMacroContactHandshake db testConfig req
+  let resp ← Tools.Macros.handleMacroContactHandshake db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -297,6 +313,7 @@ test "macro_contact_handshake establishes contact" := do
 
 test "macro_contact_handshake returns existing contact" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -313,7 +330,7 @@ test "macro_contact_handshake returns existing contact" := do
     params := some params
     id := some (JsonRpc.RequestId.num 7)
   }
-  let resp ← Tools.Macros.handleMacroContactHandshake db testConfig req
+  let resp ← Tools.Macros.handleMacroContactHandshake db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>
@@ -328,6 +345,7 @@ test "macro_contact_handshake returns existing contact" := do
 
 test "macro_contact_handshake rejects self-contact" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let _agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -341,7 +359,7 @@ test "macro_contact_handshake rejects self-contact" := do
     params := some params
     id := some (JsonRpc.RequestId.num 8)
   }
-  let resp ← Tools.Macros.handleMacroContactHandshake db testConfig req
+  let resp ← Tools.Macros.handleMacroContactHandshake db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.error with
   | some err =>
@@ -355,6 +373,7 @@ test "macro_contact_handshake rejects self-contact" := do
 
 test "macro_contact_handshake respects block_all policy" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let _agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -369,7 +388,7 @@ test "macro_contact_handshake respects block_all policy" := do
     params := some params
     id := some (JsonRpc.RequestId.num 9)
   }
-  let resp ← Tools.Macros.handleMacroContactHandshake db testConfig req
+  let resp ← Tools.Macros.handleMacroContactHandshake db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.error with
   | some err =>
@@ -383,6 +402,7 @@ test "macro_contact_handshake respects block_all policy" := do
 
 test "macro_contact_handshake accepts reverse pending request" := do
   let db ← Storage.Database.openMemory
+  let cfg ← mkTestConfig
   let now := Chronos.Timestamp.fromSeconds 1700000000
   let projectId ← db.insertProject "p1" "/p1" now
   let agent1Id ← db.insertAgent (mkAgent projectId "Agent1" now)
@@ -398,7 +418,7 @@ test "macro_contact_handshake accepts reverse pending request" := do
     params := some params
     id := some (JsonRpc.RequestId.num 10)
   }
-  let resp ← Tools.Macros.handleMacroContactHandshake db testConfig req
+  let resp ← Tools.Macros.handleMacroContactHandshake db cfg req
   let rpcResp ← parseJsonRpcResponse resp
   match rpcResp.result with
   | some result =>

@@ -70,7 +70,6 @@ def styled (text : String) (style : Style) : String :=
 /-- Process a single character and update state.
     Returns (new state, output to emit) -/
 def step (s : State) (c : Char) : State × String := Id.run do
-  let atLineStart := s.atLineStart && c != '\n'
   let newLineStart := c == '\n'
 
   match s.mode with
@@ -162,11 +161,11 @@ def step (s : State) (c : Char) : State × String := Id.run do
       ({ s with mode := .inHeader count, buffer := "", atLineStart := false }, "")
     else if c == '\n' then
       -- Hashes followed by newline, emit literally
-      let hashes := String.mk (List.replicate count '#')
+      let hashes := String.ofList (List.replicate count '#')
       ({ s with mode := .normal, atLineStart := true }, hashes ++ "\n")
     else
       -- Not a header, emit hashes literally and continue
-      let hashes := String.mk (List.replicate count '#')
+      let hashes := String.ofList (List.replicate count '#')
       ({ s with mode := .normal, atLineStart := false }, hashes ++ c.toString)
 
   | .inHeader level =>
@@ -231,7 +230,7 @@ def finish (s : State) : String :=
   | .sawUnder => "_"
   | .inItalicUnder => "_" ++ s.buffer
   | .inCode => "`" ++ s.buffer  -- Unclosed code
-  | .sawHash count => String.mk (List.replicate count '#')
+  | .sawHash count => String.ofList (List.replicate count '#')
   | .inHeader level =>
     -- Emit header even without trailing newline - only style the content
     styled s.buffer (headerStyle level)

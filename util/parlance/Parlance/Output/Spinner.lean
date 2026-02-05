@@ -94,7 +94,7 @@ def withSpinner (message : String) (action : IO α) : IO α := do
     throw e
 
 /-- Run an IO action with animated spinner -/
-def withAnimatedSpinner (message : String) (interval : UInt32 := 100)
+def withAnimatedSpinner (message : String) (_interval : UInt32 := 100)
     (action : IO α) : IO α := do
   -- For a proper implementation, we'd need threading
   -- This simplified version just shows start/end

@@ -63,8 +63,8 @@ def render (p : Progress) : String :=
   let filled := (pct * p.config.width) / 100
   let empty := p.config.width - filled
 
-  let filledStr := String.mk (List.replicate filled p.config.filledChar)
-  let emptyStr := String.mk (List.replicate empty p.config.emptyChar)
+  let filledStr := String.ofList (List.replicate filled p.config.filledChar)
+  let emptyStr := String.ofList (List.replicate empty p.config.emptyChar)
 
   let styledFilled := StyledText.styled filledStr p.config.filledStyle
   let styledEmpty := StyledText.styled emptyStr p.config.emptyStyle

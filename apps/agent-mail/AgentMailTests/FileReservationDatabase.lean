@@ -85,7 +85,7 @@ test "Update file reservation released" := do
   | none => throw (IO.userError "Reservation not found")
   -- Try to release again (should fail)
   let releasedAgain ← db.updateFileReservationReleased reservationId now
-  shouldSatisfy (not releasedAgain) "should not release already released"
+  shouldSatisfy (!releasedAgain) "should not release already released"
   db.close
 
 test "Update file reservation expires" := do
