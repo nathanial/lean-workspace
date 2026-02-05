@@ -18,7 +18,7 @@ open Trellis
 
 namespace Demos
 def matrixDecompositionTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let decompName ← registerComponentW "matrix-decomposition"
 
   let keyEvents ← useKeyboard

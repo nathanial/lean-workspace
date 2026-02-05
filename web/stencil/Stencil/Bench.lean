@@ -54,7 +54,7 @@ def benchWithWarmup (name : String) (warmup : Nat) (iterations : Nat) (action : 
 
 /-- Print a separator line -/
 def printSeparator : IO Unit :=
-  IO.println (String.mk (List.replicate 60 '-'))
+  IO.println (String.ofList (List.replicate 60 '-'))
 
 /-- Print benchmark header -/
 def printHeader (title : String) : IO Unit := do

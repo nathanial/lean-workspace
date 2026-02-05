@@ -141,7 +141,7 @@ def recipesGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getRecipes (ctx : Context) : List RecipeView :=
   match ctx.database, recipesGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let recipeIds := db.findByAttrValue DbRecipe.attr_user (.ref userEid)
+    let recipeIds := db.entitiesWithAttrValue DbRecipe.attr_user (.ref userEid)
     let recipes := recipeIds.filterMap fun recipeId =>
       match DbRecipe.pull db recipeId with
       | some r =>

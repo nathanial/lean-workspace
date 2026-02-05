@@ -250,9 +250,9 @@ def escape_uri : FilterFn := fun v _ pos =>
       else
         -- Encode as %XX
         let n := c.toNat
-        let hex := "0123456789ABCDEF"
-        let h1 := hex.get! ⟨n / 16⟩
-        let h2 := hex.get! ⟨n % 16⟩
+        let hex : Array Char := #['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+        let h1 := hex[n / 16]!
+        let h2 := hex[n % 16]!
         acc ++ "%" ++ String.ofList [h1, h2]
     ) ""
     .ok (.string escaped)

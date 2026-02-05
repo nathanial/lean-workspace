@@ -37,7 +37,7 @@ def drawStatus (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.ru
   let bgStyle := Style.default.withBg Color.gray |>.withFg Color.white
 
   -- Fill background
-  let fillLine := String.mk (List.replicate area.width ' ')
+  let fillLine := String.ofList (List.replicate area.width ' ')
   let mut result := frame.writeString area.x area.y fillLine bgStyle
 
   -- Left side: database info

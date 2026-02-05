@@ -94,7 +94,7 @@ def ensureHistoryDir : IO Unit := do
 
 /-- Filter characters in a string by a predicate -/
 private def filterChars (s : String) (p : Char → Bool) : String :=
-  String.mk (s.toList.filter p)
+  String.ofList (s.toList.filter p)
 
 /-- Convert model name to filesystem-safe slug -/
 def modelToSlug (model : String) : String :=

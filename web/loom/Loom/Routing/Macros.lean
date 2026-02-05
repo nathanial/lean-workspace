@@ -63,7 +63,7 @@ def toSnakeCase (s : String) : String :=
         '_' :: c.toLower :: acc
     else
       c :: acc
-  String.mk result.reverse
+  String.ofList result.reverse
 
 /-- Check if string contains a placeholder -/
 private def hasPlaceholder (s : String) : Bool :=

@@ -55,7 +55,7 @@ def delete (s : Session) (key : String) : Session :=
   { data := s.data.filter (·.1 != key), modified := true }
 
 /-- Clear all session data -/
-def clear (s : Session) : Session :=
+def clear (_s : Session) : Session :=
   { data := [], modified := true }
 
 /-- Check if session has a key -/

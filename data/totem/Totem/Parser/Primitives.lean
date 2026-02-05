@@ -83,7 +83,7 @@ def digitsWithUnderscores (isValidDigit : Char → Bool) : Sift.Parser Unit Stri
 /-- Parse exactly N decimal digits -/
 def readExactDigits (n : Nat) : Sift.Parser Unit String := do
   let digits ← count n digit
-  pure (String.mk digits.toList)
+  pure (String.ofList digits.toList)
 
 /-- TOML newline parser (LF or CRLF) -/
 def tomlNewline : Sift.Parser Unit Unit :=

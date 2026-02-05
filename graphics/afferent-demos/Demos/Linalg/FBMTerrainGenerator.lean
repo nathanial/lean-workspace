@@ -81,7 +81,7 @@ private def panelWidth (screenScale : Float) : Float :=
 private def panelX (w screenScale : Float) : Float :=
   w - panelWidth screenScale
 
-def fbmTerrainSliderLayout (w h screenScale : Float) (idx : Nat) : FBMTerrainSliderLayout :=
+def fbmTerrainSliderLayout (w _h screenScale : Float) (idx : Nat) : FBMTerrainSliderLayout :=
   let startX := panelX w screenScale + 20.0 * screenScale
   let startY := 140.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale
@@ -89,7 +89,7 @@ def fbmTerrainSliderLayout (w h screenScale : Float) (idx : Nat) : FBMTerrainSli
   let spacing := 34.0 * screenScale
   { x := startX, y := startY + idx.toFloat * spacing, width := width, height := height }
 
-def fbmTerrainToggleLayout (w h screenScale : Float) (idx : Nat) : FBMTerrainToggleLayout :=
+def fbmTerrainToggleLayout (w _h screenScale : Float) (idx : Nat) : FBMTerrainToggleLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 88.0 * screenScale + idx.toFloat * 26.0 * screenScale
   let size := 16.0 * screenScale

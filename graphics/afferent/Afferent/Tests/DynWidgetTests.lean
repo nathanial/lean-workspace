@@ -214,7 +214,7 @@ test "nested dynWidget: inner change doesn't rebuild outer" := do
   let spiderEnv ← SpiderEnv.new defaultErrorHandler
   let _ ← (do
     let (events, _) ← createInputs FontRegistry.empty testTheme
-    let (outerTrigger, fireOuter) ← newTriggerEvent (t := Spider) (a := Nat)
+    let (outerTrigger, _fireOuter) ← newTriggerEvent (t := Spider) (a := Nat)
     let (innerTrigger, fireInner) ← newTriggerEvent (t := Spider) (a := Nat)
     let outerDyn ← holdDyn 0 outerTrigger
     let innerDyn ← holdDyn 0 innerTrigger
@@ -622,7 +622,7 @@ test "inner dynWidget update produces correct tree text" := do
     match widget1 with
     | .text _ _ content .. =>
         ensure (content == "Count: 0") s!"Initial text should be 'Count: 0', got '{content}'"
-    | other => ensure false s!"Expected text widget, got other"
+    | _other => ensure false s!"Expected text widget, got other"
 
     -- Fire inner update to 5
     fireInner 5

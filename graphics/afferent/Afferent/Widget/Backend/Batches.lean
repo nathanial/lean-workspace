@@ -250,7 +250,7 @@ def executeLineCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Na
   if let some (.strokeLine _ _ _ lw) := cmds[startIdx]? then
     lineWidth := lw
   -- Count consecutive lines with same lineWidth
-  while h : i < endIdx do
+  while i < endIdx do
     if let some (.strokeLine _ _ _ lw) := cmds[i]? then
       if count == 0 || lw == lineWidth then
         count := count + 1
@@ -263,7 +263,7 @@ def executeLineCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Na
   let mut data : Array Float := Array.mkEmpty (count * 9)
   i := startIdx
   let endI := startIdx + count
-  while h : i < endI do
+  while i < endI do
     if let some (.strokeLine p1 p2 color _) := cmds[i]? then
       data := data.push p1.x |>.push p1.y |>.push p2.x |>.push p2.y
               |>.push color.r |>.push color.g |>.push color.b |>.push color.a

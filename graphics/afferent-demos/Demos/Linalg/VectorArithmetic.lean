@@ -78,13 +78,13 @@ def drawParallelogram (a b : Vec2) (origin : Float × Float) (scale : Float) : C
 /-- Render the vector arithmetic visualization -/
 def renderVectorArithmetic (state : VectorArithmeticState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale
 
   -- Calculate result based on operation
-  let (result, opName, opSymbol) := match state.operation with
+  let (result, opName, _opSymbol) := match state.operation with
     | .add => (state.vectorA + state.vectorB, "Addition", "+")
     | .sub => (state.vectorA - state.vectorB, "Subtraction", "-")
     | .scale => (state.vectorA * state.scaleFactor, s!"Scale by {formatFloat state.scaleFactor}", "*")

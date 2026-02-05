@@ -124,7 +124,7 @@ def healthGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getHealthEntries (ctx : Context) : List HealthEntryView :=
   match ctx.database, healthGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let entryIds := db.findByAttrValue DbHealthEntry.attr_user (.ref userEid)
+    let entryIds := db.entitiesWithAttrValue DbHealthEntry.attr_user (.ref userEid)
     let entries := entryIds.filterMap fun entryId =>
       match DbHealthEntry.pull db entryId with
       | some e =>

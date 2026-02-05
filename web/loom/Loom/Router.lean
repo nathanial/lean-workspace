@@ -84,7 +84,7 @@ def names (r : Routes) : List String :=
 /-- Convert to Citadel router -/
 def toCitadelRouter (r : Routes) : Citadel.Router :=
   r.routes.foldl (init := Citadel.Router.empty) fun router route =>
-    router.add route.method route.pattern (fun req => do
+    router.add route.method route.pattern (fun _req => do
       -- The action will be wrapped by the App to provide context
       -- For now, just return a placeholder
       pure Citadel.Response.notFound)

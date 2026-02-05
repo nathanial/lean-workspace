@@ -59,7 +59,7 @@ private partial def extractEnvVarsFromString (s : String) : Array String := Id.r
       while j < chars.size && chars[j]! != '}' do
         j := j + 1
       if j < chars.size then
-        let inner := String.mk ((chars.toList.drop start).take (j - start))
+        let inner := String.ofList ((chars.toList.drop start).take (j - start))
         -- Extract var name (before :- if present)
         let varName := match inner.splitOn ":-" with
           | name :: _ => name

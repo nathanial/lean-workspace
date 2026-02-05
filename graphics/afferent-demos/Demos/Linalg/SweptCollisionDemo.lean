@@ -114,7 +114,7 @@ private def drawCapsule (start finish : Vec2) (radius : Float) (origin : Float Ã
 /-- Render swept collision demo. -/
 def renderSweptCollisionDemo (state : SweptCollisionDemoState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float Ã— Float := (view.origin.x, view.origin.y)
   let scale := view.scale

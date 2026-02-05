@@ -66,7 +66,7 @@ test "fixDynM behavior samples real dynamic after wiring" := do
     let fireRef ← SpiderM.liftIO <| IO.mkRef (fun () => pure () : Unit → IO Unit)
     let sampledRef ← SpiderM.liftIO <| IO.mkRef ([] : List Nat)
 
-    let counter ← SpiderM.fixDynM fun counterBehavior => do
+    let _counter ← SpiderM.fixDynM fun counterBehavior => do
       let (clicks, fire) ← newTriggerEvent (t := Spider) (a := Unit)
       SpiderM.liftIO <| fireRef.set fire
 

@@ -83,7 +83,7 @@ def getColumnsForBoard (ctx : Context) (boardId : Nat) : List (EntityId × Strin
   | none => []
   | some db =>
     let boardEid : EntityId := ⟨boardId⟩
-    let columnIds := db.findByAttrValue DbColumn.attr_board (.ref boardEid)
+    let columnIds := db.entitiesWithAttrValue DbColumn.attr_board (.ref boardEid)
     columnIds.filterMap fun colId =>
       match db.getOne colId DbColumn.attr_name, db.getOne colId DbColumn.attr_order with
       | some (.string name), some (.int order) => some (colId, name, order)
@@ -101,7 +101,7 @@ def getColumns (ctx : Context) : List (EntityId × String × Int) :=
       | _, _ => none
 
 def getCardsForColumn (db : Db) (colId : EntityId) : List Card :=
-  let cardIds := db.findByAttrValue DbCard.attr_column (.ref colId)
+  let cardIds := db.entitiesWithAttrValue DbCard.attr_column (.ref colId)
   let cards := cardIds.filterMap fun cardId =>
     match DbCard.pull db cardId with
     | some dbCard =>
@@ -322,10 +322,10 @@ action kanbanDeleteBoard "/kanban/board/:boardId" DELETE [HomebaseApp.Middleware
     | none => "(unknown)"
   let boardEid : EntityId := ⟨boardId⟩
   -- Get all columns for this board
-  let columnIds := db.findByAttrValue DbColumn.attr_board (.ref boardEid)
+  let columnIds := db.entitiesWithAttrValue DbColumn.attr_board (.ref boardEid)
   -- Get all cards for these columns
   let allCardIds := columnIds.foldl (init := []) fun acc colId =>
-    acc ++ db.findByAttrValue DbCard.attr_column (.ref colId)
+    acc ++ db.entitiesWithAttrValue DbCard.attr_column (.ref colId)
   let columnCount := columnIds.length
   let cardCount := allCardIds.length
   runAuditTx! do
@@ -441,7 +441,7 @@ action kanbanDeleteColumn "/kanban/column/:id" DELETE [HomebaseApp.Middleware.au
     | some col => col.name
     | none => "(unknown)"
   let colId : EntityId := ⟨id⟩
-  let cardIds := db.findByAttrValue DbCard.attr_column (.ref colId)
+  let cardIds := db.entitiesWithAttrValue DbCard.attr_column (.ref colId)
   let cardCount := cardIds.length
   runAuditTx! do
     for cardId in cardIds do

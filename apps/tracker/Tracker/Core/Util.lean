@@ -8,12 +8,12 @@ namespace Tracker.Util
 def padLeft (s : String) (len : Nat) (c : Char) : String :=
   let padding := len - s.length
   if padding > 0 then
-    String.mk (List.replicate padding c) ++ s
+    String.ofList (List.replicate padding c) ++ s
   else s
 
 /-- Filter characters from a string -/
 def filterChars (s : String) (p : Char → Bool) : String :=
-  String.mk (s.toList.filter p)
+  String.ofList (s.toList.filter p)
 
 /-- Find the index of the first character matching a predicate -/
 def findIdx? (s : String) (p : Char → Bool) : Option Nat := Id.run do

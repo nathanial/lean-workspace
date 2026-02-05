@@ -18,7 +18,7 @@ open Trellis
 
 namespace Demos
 def bezierPatchSurfaceTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let patchName ← registerComponentW "bezier-patch-surface"
 
   let clickEvents ← useClickData patchName

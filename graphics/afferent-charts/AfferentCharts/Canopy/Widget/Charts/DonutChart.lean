@@ -49,20 +49,13 @@ deriving Repr, Inhabited, BEq
     4. Closing back to start -/
 private def annularSegment (center : Arbor.Point) (outerR innerR : Float)
     (startAngle endAngle : Float) : Afferent.Path := Id.run do
-  let pi := 3.141592653589793
-  let twoPi := 2.0 * pi
-
   -- Outer arc points
   let outerStartX := center.x + outerR * Float.cos startAngle
   let outerStartY := center.y + outerR * Float.sin startAngle
-  let outerEndX := center.x + outerR * Float.cos endAngle
-  let outerEndY := center.y + outerR * Float.sin endAngle
 
   -- Inner arc points (reversed direction)
   let innerStartX := center.x + innerR * Float.cos endAngle
   let innerStartY := center.y + innerR * Float.sin endAngle
-  let innerEndX := center.x + innerR * Float.cos startAngle
-  let innerEndY := center.y + innerR * Float.sin startAngle
 
   -- Build path with bezier approximation for arcs
   let outerBeziers := Afferent.Path.arcToBeziers center outerR startAngle endAngle false

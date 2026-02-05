@@ -27,16 +27,16 @@ test "AsyncState.map preserves error" := do
 
 test "AsyncState.map preserves loading" := do
   let state : AsyncState String Nat := .loading
-  let mapped := state.map (· * 2)
+  let _mapped := state.map (· * 2)
   shouldBe state.isLoading true
 
 test "AsyncState.isTerminal detects ready and error" := do
   let ready : AsyncState String Nat := .ready 1
   let error : AsyncState String Nat := .error "x"
-  let loading : AsyncState String Nat := .loading
+  let loadingState : AsyncState String Nat := .loading
   shouldBe ready.isTerminal true
   shouldBe error.isTerminal true
-  shouldBe loading.isTerminal false
+  shouldBe loadingState.isTerminal false
 
 /-! ## RetryConfig and RetryState Tests -/
 

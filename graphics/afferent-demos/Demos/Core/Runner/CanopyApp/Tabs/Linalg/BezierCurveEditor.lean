@@ -20,7 +20,7 @@ open AfferentMath.Widget
 
 namespace Demos
 def bezierCurveEditorTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let bezierName ← registerComponentW "bezier-curve-editor"
 
   let clickEvents ← useClickData bezierName

@@ -18,7 +18,7 @@ open Trellis
 
 namespace Demos
 def dualQuaternionBlendingTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let dualName ← registerComponentW "dual-quaternion-blending"
 
   let keyEvents ← useKeyboard

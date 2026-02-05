@@ -168,7 +168,7 @@ structure AppState where
 
 /-- Create the complete reactive showcase application.
     Sets up all components and their interactions using WidgetM. -/
-def createApp (env : DemoEnv) : ReactiveM AppState := do
+def createApp (_env : DemoEnv) : ReactiveM AppState := do
   let events ← getEvents
 
   -- Pre-create shared event triggers for cross-tree wiring

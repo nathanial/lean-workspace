@@ -8,8 +8,11 @@ namespace ImageGen
 private def base64Chars : String :=
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-private def charAtIndex (s : String) (i : Nat) : Char :=
-  s.data[i]!
+private def base64CharsArray : Array Char :=
+  base64Chars.toList.toArray
+
+private def charAtIndex (_s : String) (i : Nat) : Char :=
+  base64CharsArray[i]!
 
 /-- Encode a ByteArray to Base64 string -/
 def base64Encode (data : ByteArray) : String := Id.run do

@@ -47,7 +47,7 @@ def Grid.getCol (g : Grid) (x : Nat) : Array Tile :=
 
 /-- Set a row -/
 def Grid.setRow (g : Grid) (y : Nat) (row : Array Tile) : Grid :=
-  if h : y < g.cells.size then
+  if _h : y < g.cells.size then
     { cells := g.cells.setIfInBounds y row }
   else g
 

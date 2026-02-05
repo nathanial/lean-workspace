@@ -202,7 +202,7 @@ def boolNat : Iso' Bool Nat :=
 
 -- String ↔ List Char
 def stringChars : Iso' String (List Char) :=
-  iso (forward := String.toList) (back := String.mk)
+  iso (forward := String.toList) (back := String.ofList)
 
 -- Usage with lens operations:
 view boolNat true           -- 1

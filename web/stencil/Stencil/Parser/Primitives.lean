@@ -35,7 +35,7 @@ partial def readUntil (stop : String) : Parser String := do
       else do let _ ← anyChar; loop
   loop
   let s' ← Sift.Parser.get
-  pure (s.input.extract ⟨startPos⟩ ⟨s'.pos⟩)
+  pure (String.ofList ((s.input.toList.drop startPos).take (s'.pos - startPos)))
 
 /-- Read until a delimiter string and consume it -/
 def readUntilAndConsume (stop : String) : Parser String := do

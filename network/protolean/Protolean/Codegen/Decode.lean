@@ -43,7 +43,7 @@ def scalarWireTypeStr (scalar : ScalarType) : String :=
   | _ => ".varint"
 
 /-- Generate decode arm string for a field -/
-def generateFieldDecodeArmStr (ctx : CodegenContext) (field : FieldDef) : String :=
+def generateFieldDecodeArmStr (_ctx : CodegenContext) (field : FieldDef) : String :=
   let fieldName := protoFieldToLean field.name
   let fieldNum := field.number
 

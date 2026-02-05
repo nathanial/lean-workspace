@@ -36,7 +36,7 @@ def readPrompts (path : String) : IO (List String) := do
 def outputFilename (filePrefix : String) (index : Nat) (total : Nat) : String :=
   let width := if total >= 100 then 3 else if total >= 10 then 2 else 1
   let indexStr := toString index
-  let padding := String.mk (List.replicate (width - indexStr.length) '0')
+  let padding := String.ofList (List.replicate (width - indexStr.length) '0')
   s!"{filePrefix}_{padding}{indexStr}.png"
 
 /-- Ensure output directory exists --/

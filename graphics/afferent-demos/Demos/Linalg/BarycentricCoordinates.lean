@@ -59,7 +59,7 @@ private def drawTriangleEdges (v0 v1 v2 : Vec2) (origin : Float × Float) (scale
 /-- Render barycentric coordinates. -/
 def renderBarycentricCoordinates (state : BarycentricCoordinatesState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

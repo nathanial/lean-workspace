@@ -121,7 +121,7 @@ def galleryGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getGalleryItems (ctx : Context) : List GalleryItem :=
   match ctx.database, galleryGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let itemIds := db.findByAttrValue DbGalleryItem.attr_user (.ref userEid)
+    let itemIds := db.entitiesWithAttrValue DbGalleryItem.attr_user (.ref userEid)
     let items := itemIds.filterMap fun itemId =>
       match DbGalleryItem.pull db itemId with
       | some item =>
@@ -208,11 +208,11 @@ action galleryUpload "/gallery/upload" POST [HomebaseApp.Middleware.authRequired
   | _, none => redirect "/login"
   | some file, some userEid =>
     if file.content.size > maxFileSize then
-      let ctx := ctx.withFlash fun f => f.set "error" "File too large (max 10MB)"
+      modifyCtx fun c => c.withFlash fun f => f.set "error" "File too large (max 10MB)"
       return ← redirect "/gallery"
     let mimeType := file.contentType.getD "application/octet-stream"
     if !isAllowedType mimeType then
-      let ctx := ctx.withFlash fun f => f.set "error" "File type not allowed"
+      modifyCtx fun c => c.withFlash fun f => f.set "error" "File type not allowed"
       return ← redirect "/gallery"
     let storedPath ← storeFile file.content (file.filename.getD "upload")
     let now ← galleryGetNowMs

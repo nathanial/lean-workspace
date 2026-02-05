@@ -58,7 +58,7 @@ private def isUrlChar (c : Char) : Bool :=
 private def extractUrl (s : String) (startIdx : Nat) : Option String := do
   let chars := s.toList.drop startIdx
   let urlChars := chars.takeWhile isUrlChar
-  let url := String.mk urlChars
+  let url := String.ofList urlChars
   -- Validate it looks like a URL
   if url.length < 10 then none
   else if !url.startsWith "http://" && !url.startsWith "https://" then none
@@ -72,7 +72,7 @@ def detectUrls (content : String) : List String := Id.run do
 
   while i < chars.length do
     -- Look for "http://" or "https://"
-    let remaining := String.mk (chars.drop i)
+    let remaining := String.ofList (chars.drop i)
     if remaining.startsWith "http://" || remaining.startsWith "https://" then
       if let some url := extractUrl content i then
         -- Don't add duplicates

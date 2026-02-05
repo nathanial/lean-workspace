@@ -46,7 +46,7 @@ def getUser (ctx : Context) (userId : Nat) : Option DbUser :=
 /-- Find user by email -/
 def findUserByEmail' (ctx : Context) (email : String) : Option EntityId :=
   ctx.database.bind fun db =>
-    db.findOneByAttrValue DbUser.attr_email (.string email)
+    db.entityWithAttrValue DbUser.attr_email (.string email)
 
 /-! ## Stencil Value Helpers -/
 

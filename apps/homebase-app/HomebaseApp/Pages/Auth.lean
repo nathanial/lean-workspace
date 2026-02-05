@@ -38,7 +38,7 @@ def findUserByEmail (ctx : Context) (email : String) : Option EntityId :=
   match ctx.database with
   | none => none
   | some db =>
-    db.findOneByAttrValue userEmail (.string email)
+    db.entityWithAttrValue userEmail (.string email)
 
 def getAttrString (ctx : Context) (eid : EntityId) (attr : Attribute) : Option String :=
   match ctx.database with

@@ -165,7 +165,7 @@ def stepRigidBodySimulator (state : RigidBodySimulatorState) (dt : Float)
 /-- Render rigid body simulator. -/
 def renderRigidBodySimulator (state : RigidBodySimulatorState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

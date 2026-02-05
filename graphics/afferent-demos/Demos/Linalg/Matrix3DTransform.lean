@@ -146,7 +146,7 @@ def draw3DCoordinateAxes (view : MathView3D.View) (matrix : Mat4) (axisLength : 
 /-- Render the 3D transform chain visualization -/
 def renderMatrix3DTransform (state : Matrix3DTransformState)
     (view : MathView3D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
 
   -- Draw world axes

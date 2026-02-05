@@ -93,8 +93,8 @@ test "DbCard createOps round-trip" := do
   | none =>
     throw <| IO.userError "DbCard.pull returned none!"
 
--- Test findByAttrValue with generated attribute
-test "findByAttrValue with DbCard.attr_column" := do
+-- Test entitiesWithAttrValue with generated attribute
+test "entitiesWithAttrValue with DbCard.attr_column" := do
   let db := Db.empty
   let (colId, db) := db.allocEntityId
   let (card1Id, db) := db.allocEntityId
@@ -107,7 +107,7 @@ test "findByAttrValue with DbCard.attr_column" := do
   let .ok (db, _) := db.transact tx | throw <| IO.userError "Tx failed"
 
   -- Find cards using generated attribute
-  let foundCards := db.findByAttrValue DbCard.attr_column (.ref colId)
+  let foundCards := db.entitiesWithAttrValue DbCard.attr_column (.ref colId)
   foundCards.length ≡ 2
 
 -- Test Pull API directly to see what it returns

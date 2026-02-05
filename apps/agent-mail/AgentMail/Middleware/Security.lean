@@ -14,7 +14,9 @@ private def base64Chars : String :=
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 private def charAtIndex (s : String) (i : Nat) : Char :=
-  s.data[i]!
+  match s.toList.drop i with
+  | c :: _ => c
+  | [] => ' '
 
 private def base64Encode (data : ByteArray) : String := Id.run do
   if data.size == 0 then return ""

@@ -12,7 +12,7 @@ open Tracker
 private def padLeft (s : String) (len : Nat) (c : Char) : String :=
   let padding := len - s.length
   if padding > 0 then
-    String.mk (List.replicate padding c) ++ s
+    String.ofList (List.replicate padding c) ++ s
   else s
 
 /-- Output mode -/

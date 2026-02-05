@@ -93,7 +93,7 @@ private def panelWidth (screenScale : Float) : Float :=
 private def panelX (w screenScale : Float) : Float :=
   w - panelWidth screenScale
 
-def noiseExplorerDropdownLayout (w h screenScale : Float) : NoiseExplorerDropdownLayout :=
+def noiseExplorerDropdownLayout (w _h screenScale : Float) : NoiseExplorerDropdownLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 90.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale
@@ -105,13 +105,13 @@ def noiseExplorerDropdownOptionLayout (base : NoiseExplorerDropdownLayout) (idx 
   { x := base.x, y := base.y + base.height + idx.toFloat * base.height,
     width := base.width, height := base.height }
 
-def noiseExplorerFbmToggleLayout (w h screenScale : Float) : NoiseExplorerToggleLayout :=
+def noiseExplorerFbmToggleLayout (w _h screenScale : Float) : NoiseExplorerToggleLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 130.0 * screenScale
   let size := 16.0 * screenScale
   { x := x, y := y, size := size }
 
-def noiseExplorerSliderLayout (w h screenScale : Float) (idx : Nat) : NoiseExplorerSliderLayout :=
+def noiseExplorerSliderLayout (w _h screenScale : Float) (idx : Nat) : NoiseExplorerSliderLayout :=
   let startX := panelX w screenScale + 20.0 * screenScale
   let startY := 170.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale

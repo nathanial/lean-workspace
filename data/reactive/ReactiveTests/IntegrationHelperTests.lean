@@ -11,7 +11,7 @@ testSuite "Integration Helper Tests"
 
 test "fromRef creates event from ref updates" := do
   let result ← runSpider do
-    let (event, update, ref) ← fromRef (0 : Nat)
+    let (event, update, _ref) ← fromRef (0 : Nat)
 
     let receivedRef ← SpiderM.liftIO <| IO.mkRef ([] : List Nat)
     let _ ← event.subscribe fun n =>

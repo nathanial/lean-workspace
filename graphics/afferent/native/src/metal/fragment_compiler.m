@@ -395,7 +395,9 @@ AfferentFragmentPipelineRef afferent_fragment_compile(
     // Compile shader
     NSError* compileError = nil;
     MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
-    options.fastMathEnabled = YES;
+    if ([options respondsToSelector:@selector(setMathMode:)]) {
+        options.mathMode = MTLMathModeFast;
+    }
 
     id<MTLLibrary> library = [device newLibraryWithSource:shaderSource
                                                   options:options

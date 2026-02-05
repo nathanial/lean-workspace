@@ -65,12 +65,12 @@ def sourceContext (input : String) (pos : Position) (contextLines : Nat := 1) : 
       if h2 : i < lines.size then
         let lineNum := i + 1
         let numStr := toString lineNum
-        let padding := String.mk (List.replicate (4 - numStr.length) ' ')
+        let padding := String.ofList (List.replicate (4 - numStr.length) ' ')
         let linePrefix := s!"{padding}{lineNum} | "
         let line := acc ++ linePrefix ++ lines[i] ++ "\n"
         -- Add caret indicator on the error line
         if i == lineIdx then
-          let caretPad := String.mk (List.replicate (linePrefix.length + pos.column - 1) ' ')
+          let caretPad := String.ofList (List.replicate (linePrefix.length + pos.column - 1) ' ')
           line ++ caretPad ++ "^\n"
         else
           line

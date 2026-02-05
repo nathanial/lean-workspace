@@ -51,7 +51,7 @@ def GameState.new (seed : UInt64) : GameState := Id.run do
   }
 
 /-- Restart the game with a new seed -/
-def GameState.restart (s : GameState) (seed : UInt64) : GameState :=
+def GameState.restart (_s : GameState) (seed : UInt64) : GameState :=
   GameState.new seed
 
 end Solitaire.Game

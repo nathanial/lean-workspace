@@ -84,12 +84,12 @@ def notebookGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getNotebooks (ctx : Context) : List NotebookView :=
   match ctx.database, notebookGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let notebookIds := db.findByAttrValue DbNotebook.attr_user (.ref userEid)
+    let notebookIds := db.entitiesWithAttrValue DbNotebook.attr_user (.ref userEid)
     let notebooks := notebookIds.filterMap fun nbId =>
       match DbNotebook.pull db nbId with
       | some nb =>
         -- Count notes in this notebook
-        let noteIds := db.findByAttrValue DbNote.attr_notebook (.ref nbId)
+        let noteIds := db.entitiesWithAttrValue DbNote.attr_notebook (.ref nbId)
         some { id := nb.id, title := nb.title, noteCount := noteIds.length, createdAt := nb.createdAt }
       | none => none
     notebooks.toArray.qsort (fun a b => a.title < b.title) |>.toList  -- alphabetical
@@ -102,7 +102,7 @@ def getNotebook (ctx : Context) (nbId : Nat) : Option NotebookView :=
     let eid : EntityId := ⟨nbId⟩
     match DbNotebook.pull db eid with
     | some nb =>
-      let noteIds := db.findByAttrValue DbNote.attr_notebook (.ref eid)
+      let noteIds := db.entitiesWithAttrValue DbNote.attr_notebook (.ref eid)
       some { id := nb.id, title := nb.title, noteCount := noteIds.length, createdAt := nb.createdAt }
     | none => none
   | none => none
@@ -112,7 +112,7 @@ def getNotesInNotebook (ctx : Context) (nbId : Nat) : List NoteView :=
   match ctx.database with
   | some db =>
     let nbEid : EntityId := ⟨nbId⟩
-    let noteIds := db.findByAttrValue DbNote.attr_notebook (.ref nbEid)
+    let noteIds := db.entitiesWithAttrValue DbNote.attr_notebook (.ref nbEid)
     let notes := noteIds.filterMap fun noteId =>
       match DbNote.pull db noteId with
       | some note =>

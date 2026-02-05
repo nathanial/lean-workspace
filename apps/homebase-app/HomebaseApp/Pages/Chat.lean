@@ -81,7 +81,7 @@ def getThreads (ctx : Context) : List (EntityId × DbChatThread) :=
     threads.toArray.qsort (fun a b => a.2.createdAt > b.2.createdAt) |>.toList
 
 def getMessagesForThread (db : Db) (threadId : EntityId) : List (EntityId × DbChatMessage) :=
-  let msgIds := db.findByAttrValue DbChatMessage.attr_thread (.ref threadId)
+  let msgIds := db.entitiesWithAttrValue DbChatMessage.attr_thread (.ref threadId)
   let messages := msgIds.filterMap fun mid =>
     match DbChatMessage.pull db mid with
     | some m =>
@@ -104,14 +104,14 @@ def toViewThread (db : Db) (tid : EntityId) (t : DbChatThread) : Thread :=
   { id := t.id, title := t.title, createdAt := t.createdAt, messageCount := messages.length, lastMessage := lastMsg }
 
 def getAttachmentsForMessage (db : Db) (messageId : EntityId) : List Attachment :=
-  let attIds := db.findByAttrValue DbChatAttachment.attr_message (.ref messageId)
+  let attIds := db.entitiesWithAttrValue DbChatAttachment.attr_message (.ref messageId)
   attIds.filterMap fun attId =>
     match DbChatAttachment.pull db attId with
     | some a => some { id := a.id, fileName := a.fileName, mimeType := a.mimeType, fileSize := a.fileSize, url := s!"/uploads/{a.storedPath}" }
     | none => none
 
 def getEmbedsForMessage (db : Db) (messageId : EntityId) : List Embeds.LinkEmbed :=
-  let embedIds := db.findByAttrValue DbLinkEmbed.attr_message (.ref messageId)
+  let embedIds := db.entitiesWithAttrValue DbLinkEmbed.attr_message (.ref messageId)
   embedIds.filterMap fun embedId =>
     match DbLinkEmbed.pull db embedId with
     | some e => some {
@@ -351,10 +351,10 @@ action chatDeleteThread "/chat/thread/:id" DELETE [HomebaseApp.Middleware.authRe
   let threadTitle := match DbChatThread.pull db tid with
     | some t => t.title
     | none => "(unknown)"
-  let messageIds := db.findByAttrValue DbChatMessage.attr_thread (.ref tid)
+  let messageIds := db.entitiesWithAttrValue DbChatMessage.attr_thread (.ref tid)
   -- Delete attachment files from disk
   for msgId in messageIds do
-    let attachmentIds := db.findByAttrValue DbChatAttachment.attr_message (.ref msgId)
+    let attachmentIds := db.entitiesWithAttrValue DbChatAttachment.attr_message (.ref msgId)
     for attId in attachmentIds do
       match DbChatAttachment.pull db attId with
       | some att => let _ ← Upload.deleteFile att.storedPath
@@ -363,7 +363,7 @@ action chatDeleteThread "/chat/thread/:id" DELETE [HomebaseApp.Middleware.authRe
   let msgCount := messageIds.length
   runAuditTx! do
     for msgId in messageIds do
-      let attachmentIds := db.findByAttrValue DbChatAttachment.attr_message (.ref msgId)
+      let attachmentIds := db.entitiesWithAttrValue DbChatAttachment.attr_message (.ref msgId)
       for attId in attachmentIds do
         DbChatAttachment.TxM.delete attId
       DbChatMessage.TxM.delete msgId

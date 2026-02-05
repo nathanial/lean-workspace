@@ -48,7 +48,7 @@ test "moving card removes it from old column" := do
   let .ok (conn, _) := conn.transact tx2 | throw <| IO.userError "Tx2 failed"
 
   -- Verify card is in column A
-  let cardsInA := conn.db.findByAttrValue DbCard.attr_column (.ref columnA)
+  let cardsInA := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnA)
   cardsInA.length ≡ 1
 
   -- Move card to column B using generated setter (handles retraction automatically)
@@ -57,7 +57,7 @@ test "moving card removes it from old column" := do
   let .ok (conn, _) := conn.transact tx3 | throw <| IO.userError "Tx3 failed"
 
   -- Verify card is NO LONGER in column A
-  let cardsInAAfter := conn.db.findByAttrValue DbCard.attr_column (.ref columnA)
+  let cardsInAAfter := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnA)
   cardsInAAfter.length ≡ 0
 
 test "moved card appears in new column" := do
@@ -84,7 +84,7 @@ test "moved card appears in new column" := do
   let .ok (conn, _) := conn.transact tx3 | throw <| IO.userError "Tx3 failed"
 
   -- Verify card IS in column B
-  let cardsInB := conn.db.findByAttrValue DbCard.attr_column (.ref columnB)
+  let cardsInB := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnB)
   cardsInB.length ≡ 1
 
 test "deleting old column does not delete moved card" := do
@@ -114,7 +114,7 @@ test "deleting old column does not delete moved card" := do
 
   -- Delete column A (simulate deleteColumn action)
   -- First find cards in column A (should be none after move)
-  let cardsInA := conn.db.findByAttrValue DbCard.attr_column (.ref columnA)
+  let cardsInA := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnA)
   ensure (cardsInA.length == 0) "No cards should be in column A after move"
 
   -- Delete column A attributes
@@ -124,7 +124,7 @@ test "deleting old column does not delete moved card" := do
   let .ok (conn, _) := conn.transact tx4 | throw <| IO.userError "Tx4 failed"
 
   -- Card should still exist in column B
-  let cardsInB := conn.db.findByAttrValue DbCard.attr_column (.ref columnB)
+  let cardsInB := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnB)
   cardsInB.length ≡ 1
 
 test "reordering within same column keeps card in column" := do
@@ -155,7 +155,7 @@ test "reordering within same column keeps card in column" := do
   let .ok (conn, _) := conn.transact tx3 | throw <| IO.userError "Tx3 failed"
 
   -- Both cards should still be in the column
-  let cardsInColumn := conn.db.findByAttrValue DbCard.attr_column (.ref column)
+  let cardsInColumn := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref column)
   cardsInColumn.length ≡ 2
 
 test "moving card updates getOne result" := do
@@ -214,12 +214,12 @@ test "BUG: without retraction, card appears in both columns" := do
   let .ok (conn, _) := conn.transact tx3 | throw <| IO.userError "Tx3 failed"
 
   -- BUG: Card still appears in column A (the old value is still in AVET index)
-  let cardsInA := conn.db.findByAttrValue DbCard.attr_column (.ref columnA)
+  let cardsInA := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnA)
   -- This is the bug behavior - card is found in old column
   ensure (cardsInA.length == 1) "Without retraction, card appears in old column"
 
   -- And also in column B
-  let cardsInB := conn.db.findByAttrValue DbCard.attr_column (.ref columnB)
+  let cardsInB := conn.db.entitiesWithAttrValue DbCard.attr_column (.ref columnB)
   ensure (cardsInB.length == 1) "Card also appears in new column"
 
 /-! ## Generated Setter Tests -/

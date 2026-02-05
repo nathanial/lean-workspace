@@ -20,7 +20,9 @@ private def base64Chars : String :=
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 private def charAtIndex (s : String) (i : Nat) : Char :=
-  s.data[i]!
+  match s.toList.drop i with
+  | c :: _ => c
+  | [] => ' '
 
 /-- Encode a ByteArray to Base64 string -/
 def base64Encode (data : ByteArray) : String := Id.run do
@@ -130,7 +132,7 @@ def escapeString (s : String) : String := Id.run do
     else if c.toNat < 32 then
       -- Control characters as \uXXXX
       let hex := Nat.toDigits 16 c.toNat
-      let padded := String.mk (List.replicate (4 - hex.length) '0' ++ hex)
+      let padded := String.ofList (List.replicate (4 - hex.length) '0' ++ hex)
       result := result ++ "\\u" ++ padded
     else
       result := result.push c

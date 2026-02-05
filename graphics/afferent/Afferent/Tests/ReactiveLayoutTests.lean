@@ -172,7 +172,7 @@ test "demo structure: root column with content that has flexItem" := do
   }
   let tabbar := Widget.rect 1 none { height := .length 44 }
   let footer := Widget.rect 3 none { height := .length 32 }
-  let root := Widget.flex 0 none (FlexContainer.column 0) rootStyle #[tabbar, contentWidget, footer]
+  let _root := Widget.flex 0 none (FlexContainer.column 0) rootStyle #[tabbar, contentWidget, footer]
 
   -- Check content widget has flexItem
   match widgetBoxStyle contentWidget with

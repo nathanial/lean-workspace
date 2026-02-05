@@ -115,10 +115,10 @@ def getAllUsers (ctx : Context) : List (EntityId × String × String × Bool) :=
 /-- Find user by email -/
 def findUserByEmail (ctx : Context) (email : String) : Option EntityId :=
   ctx.database.bind fun db =>
-    db.findOneByAttrValue userEmail (.string email)
+    db.entityWithAttrValue userEmail (.string email)
 
 /-- Find user by ID -/
-def findUserById (ctx : Context) (id : String) : Option EntityId :=
+def findUserById (_ctx : Context) (id : String) : Option EntityId :=
   match id.toInt? with
   | some n => some ⟨n⟩
   | none => none

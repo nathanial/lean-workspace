@@ -87,12 +87,14 @@ def extractMentions (text : String) : Array MentionEntry := Id.run do
 /-- Check if a line is a list item (bullet or numbered) -/
 def isListItem (line : String) : Bool :=
   let trimmed := line.trim
+  let chars := trimmed.toList
   trimmed.startsWith "- " ||
   trimmed.startsWith "* " ||
   trimmed.startsWith "+ " ||
   (trimmed.length > 2 &&
-   (trimmed.get ⟨0⟩).isDigit &&
-   ((trimmed.get ⟨1⟩) == '.' || (trimmed.get ⟨1⟩) == ')'))
+   match chars with
+   | c0 :: c1 :: _ => c0.isDigit && (c1 == '.' || c1 == ')')
+   | _ => false)
 
 /-- Extract key points (list items) from text -/
 def extractKeyPoints (text : String) : Array String := Id.run do
@@ -106,11 +108,10 @@ def extractKeyPoints (text : String) : Array String := Id.run do
         trimmed.drop 2
       else
         -- Numbered list: find first space after number
-        let spacePos := trimmed.posOf ' '
-        if spacePos.byteIdx < trimmed.endPos.byteIdx then
-          trimmed.drop (spacePos.byteIdx + 1)
-        else
-          trimmed
+        match trimmed.splitOn " " with
+        | _num :: rest =>
+          if rest.isEmpty then trimmed else String.intercalate " " rest
+        | [] => trimmed
       if content.length > 0 then
         points := points.push content.trim
   points

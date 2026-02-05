@@ -34,7 +34,7 @@ def padOrder (n : Nat) : String :=
 def capitalizeFirst (s : String) : String :=
   match s.toList with
   | [] => ""
-  | c :: cs => String.mk (c.toUpper :: cs)
+  | c :: cs => String.ofList (c.toUpper :: cs)
 
 /-- Convert a slug to a display title by capitalizing words and replacing hyphens with spaces -/
 def slugToTitle (slug : String) : String :=

@@ -162,12 +162,12 @@ def novelGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getNovels (ctx : Context) : List NovelSummary :=
   match ctx.database, novelGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let novelIds := db.findByAttrValue DbGraphicNovel.attr_user (.ref userEid)
+    let novelIds := db.entitiesWithAttrValue DbGraphicNovel.attr_user (.ref userEid)
     let novels := novelIds.filterMap fun novelId =>
       match DbGraphicNovel.pull db novelId with
       | some novel =>
         -- Count pages for this novel
-        let pageIds := db.findByAttrValue DbNovelPage.attr_novel (.ref novelId)
+        let pageIds := db.entitiesWithAttrValue DbNovelPage.attr_novel (.ref novelId)
         let coverUrl := if novel.coverImagePath.isEmpty then "" else s!"/uploads/{novel.coverImagePath}"
         some { id := novel.id, title := novel.title, description := novel.description,
                coverUrl := coverUrl, pageCount := pageIds.length, updatedAt := novel.updatedAt }
@@ -183,7 +183,7 @@ def getNovel (ctx : Context) (novelId : Nat) : Option DbGraphicNovel :=
 
 /-- Get panels for a page -/
 def getPanelsForPage (db : Db) (pageEid : EntityId) : List PanelView :=
-  let panelIds := db.findByAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
+  let panelIds := db.entitiesWithAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
   let panels := panelIds.filterMap fun panelId =>
     match DbNovelPanel.pull db panelId with
     | some panel =>
@@ -198,7 +198,7 @@ def getPanelsForPage (db : Db) (pageEid : EntityId) : List PanelView :=
 
 /-- Get pages for a novel -/
 def getPagesForNovel (db : Db) (novelEid : EntityId) : List PageView :=
-  let pageIds := db.findByAttrValue DbNovelPage.attr_novel (.ref novelEid)
+  let pageIds := db.entitiesWithAttrValue DbNovelPage.attr_novel (.ref novelEid)
   let pages := pageIds.filterMap fun pageId =>
     match DbNovelPage.pull db pageId with
     | some pg =>
@@ -226,7 +226,7 @@ def getNovelDetail (ctx : Context) (novelId : Nat) (currentPageNum : Option Nat)
 
 /-- Get page entity by novel and page number -/
 def getPageByNumber (db : Db) (novelEid : EntityId) (pageNum : Nat) : Option (EntityId × DbNovelPage) :=
-  let pageIds := db.findByAttrValue DbNovelPage.attr_novel (.ref novelEid)
+  let pageIds := db.entitiesWithAttrValue DbNovelPage.attr_novel (.ref novelEid)
   pageIds.findSome? fun pageId =>
     match DbNovelPage.pull db pageId with
     | some pg => if pg.pageNumber == pageNum then some (pageId, pg) else none
@@ -234,7 +234,7 @@ def getPageByNumber (db : Db) (novelEid : EntityId) (pageNum : Nat) : Option (En
 
 /-- Get panel entity by page and panel index -/
 def getPanelByIndex (db : Db) (pageEid : EntityId) (panelIdx : Nat) : Option (EntityId × DbNovelPanel) :=
-  let panelIds := db.findByAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
+  let panelIds := db.entitiesWithAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
   panelIds.findSome? fun panelId =>
     match DbNovelPanel.pull db panelId with
     | some panel => if panel.panelIndex == panelIdx then some (panelId, panel) else none
@@ -373,7 +373,7 @@ action novelDeletePage "/novels/:id/page/:pageNum/delete" POST [HomebaseApp.Midd
     | none => redirect s!"/novels/{id}"
     | some (pageEid, _) =>
       -- Delete all panels first
-      let panelIds := db.findByAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
+      let panelIds := db.entitiesWithAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
       for panelId in panelIds do
         runAuditTx! do
           DbNovelPanel.TxM.delete panelId
@@ -399,7 +399,7 @@ action novelPageLayout "/novels/:id/page/:pageNum/layout" POST [HomebaseApp.Midd
       if !validLayouts.contains layout then
         return ← redirect s!"/novels/{id}/page/{pageNum}"
       -- Delete existing panels
-      let panelIds := db.findByAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
+      let panelIds := db.entitiesWithAttrValue DbNovelPanel.attr_pageRef (.ref pageEid)
       for panelId in panelIds do
         runAuditTx! do
           DbNovelPanel.TxM.delete panelId
@@ -576,9 +576,9 @@ action novelDelete "/novels/:id/delete" POST [HomebaseApp.Middleware.authRequire
   | some db =>
     let novelEid : EntityId := ⟨id⟩
     -- Delete all panels and pages first
-    let pageIds := db.findByAttrValue DbNovelPage.attr_novel (.ref novelEid)
+    let pageIds := db.entitiesWithAttrValue DbNovelPage.attr_novel (.ref novelEid)
     for pageId in pageIds do
-      let panelIds := db.findByAttrValue DbNovelPanel.attr_pageRef (.ref pageId)
+      let panelIds := db.entitiesWithAttrValue DbNovelPanel.attr_pageRef (.ref pageId)
       for panelId in panelIds do
         -- TODO: Delete image files
         runAuditTx! do

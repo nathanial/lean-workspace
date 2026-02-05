@@ -57,7 +57,7 @@ def bodyTextLossy (r : Response) : String :=
     -- Fall back to byte-by-byte conversion, replacing non-ASCII with replacement char
     let chars := r.body.toList.map fun b =>
       if b < 128 then Char.ofNat b.toNat else '�'
-    String.mk chars
+    String.ofList chars
 
 /-- Get header value by name (case-insensitive) -/
 def header (r : Response) (name : String) : Option String :=

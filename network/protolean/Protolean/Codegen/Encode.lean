@@ -39,7 +39,7 @@ def generateScalarEncodeStr (scalar : ScalarType) (fieldNum : Nat) (fieldExpr : 
     s!"(if {fieldExpr}.isEmpty then pure () else do Protolean.Encoder.emitTag {fieldNum} .lengthDelimited; Protolean.Encoder.emitLengthDelimited {fieldExpr})"
 
 /-- Generate encode expression string for a field -/
-def generateFieldEncodeStr (ctx : CodegenContext) (field : FieldDef) : String :=
+def generateFieldEncodeStr (_ctx : CodegenContext) (field : FieldDef) : String :=
   let fieldName := protoFieldToLean field.name
   let fieldExpr := s!"msg.{fieldName}"
 

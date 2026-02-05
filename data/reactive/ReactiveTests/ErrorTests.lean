@@ -168,7 +168,7 @@ test "errors in derived events trigger handler" := do
 
 test "runSpiderWithErrorHandler uses provided handler" := do
   let result ← runSpiderWithErrorHandler (do
-    let errorCountRef ← SpiderM.liftIO <| IO.mkRef (0 : Nat)
+    let _errorCountRef ← SpiderM.liftIO <| IO.mkRef (0 : Nat)
 
     -- Check that the handler we get is not the default
     let handler ← SpiderM.getErrorHandler

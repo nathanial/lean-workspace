@@ -456,7 +456,7 @@ def requestAIWritingAction (state : AppState) (action : AIWritingAction) : AppSt
       insertAIResponseIntoEditor := action.shouldInsertIntoEditor }
 
 /-- Get the prompt message for an AI writing action -/
-def getAIWritingActionMessage (state : AppState) (action : AIWritingAction) : String :=
+def getAIWritingActionMessage (_state : AppState) (action : AIWritingAction) : String :=
   action.instruction
 
 /-- Clear the pending AI writing action -/

@@ -114,12 +114,12 @@ namespace Issue
 private def padLeft (s : String) (len : Nat) (c : Char) : String :=
   let padding := len - s.length
   if padding > 0 then
-    String.mk (List.replicate padding c) ++ s
+    String.ofList (List.replicate padding c) ++ s
   else s
 
 /-- Filter characters from a string -/
 private def filterChars (s : String) (p : Char → Bool) : String :=
-  String.mk (s.toList.filter p)
+  String.ofList (s.toList.filter p)
 
 def isBlocked (issue : Issue) : Bool :=
   !issue.blockedBy.isEmpty

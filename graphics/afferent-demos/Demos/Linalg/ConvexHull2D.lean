@@ -147,7 +147,7 @@ private def drawLineWorld (a b : Vec2) (origin : Float × Float) (scale : Float)
 /-- Render convex hull demo. -/
 def renderConvexHull2D (state : ConvexHull2DState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

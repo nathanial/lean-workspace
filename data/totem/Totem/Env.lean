@@ -32,8 +32,8 @@ def parseEnvPatternInner (inner : String) : Option EnvPattern :=
     let chars := inner.toList
     let after := listGetChar chars (colonIdx + 1)
     if after == some '-' then
-      let varName := String.mk (chars.take colonIdx)
-      let defaultVal := String.mk (chars.drop (colonIdx + 2))
+      let varName := String.ofList (chars.take colonIdx)
+      let defaultVal := String.ofList (chars.drop (colonIdx + 2))
       some { varName, defaultValue := some defaultVal }
     else
       -- Just has a colon but not :-, treat as variable name
@@ -65,7 +65,7 @@ where
           .error (.envVarInterpolationFailed "" "unclosed ${")
         else
           let innerChars := (state.chars.toList.drop start).take (j - start - 1)
-          let inner := String.mk innerChars
+          let inner := String.ofList innerChars
           match parseEnvPatternInner inner with
           | some ep =>
             match getEnv ep.varName with

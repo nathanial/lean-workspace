@@ -97,7 +97,7 @@ private def drawAxes (t : Linalg.Transform) (origin : Float × Float) (scale : F
 /-- Render the transform hierarchy visualization. -/
 def renderTransformHierarchy (state : TransformHierarchyState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

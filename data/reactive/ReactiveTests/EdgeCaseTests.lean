@@ -11,7 +11,7 @@ testSuite "Edge Case Tests"
 
 test "event with zero subscribers can still fire" := do
   let result ← runSpider do
-    let (event, trigger) ← newTriggerEvent (t := Spider) (a := Nat)
+    let (_event, trigger) ← newTriggerEvent (t := Spider) (a := Nat)
     -- No subscribers, but firing should not crash
     trigger 1
     trigger 2

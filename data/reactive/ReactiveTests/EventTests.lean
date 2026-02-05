@@ -1068,7 +1068,7 @@ test "Event.zipEM handles multiple simultaneous pairs" := do
     -- Use diamond pattern
     let (trigger, fire) ← newTriggerEvent (t := Spider) (a := Nat)
     let e1 ← Event.mapM id trigger
-    let e2 ← Event.mapM (fun n => String.mk (List.replicate n 'x')) trigger
+    let e2 ← Event.mapM (fun n => String.ofList (List.replicate n 'x')) trigger
     let zipped ← Event.zipEM e1 e2
 
     let receivedRef ← SpiderM.liftIO <| IO.mkRef ([] : List (Nat × String))
@@ -1204,7 +1204,7 @@ test "Event.snapshot' is fluent alias for attach'" := do
 test "Event.differenceM fires when e1 fires but e2 doesn't" := do
   let result ← runSpider do
     let (e1, fire1) ← newTriggerEvent (t := Spider) (a := Nat)
-    let (e2, fire2) ← newTriggerEvent (t := Spider) (a := Unit)
+    let (e2, _fire2) ← newTriggerEvent (t := Spider) (a := Unit)
     let diff ← Event.differenceM e1 e2
 
     let receivedRef ← SpiderM.liftIO <| IO.mkRef ([] : List Nat)
@@ -1254,7 +1254,7 @@ test "Event.difference with pure IO" := do
   let result ← runSpider do
     let ctx ← SpiderM.getTimelineCtx
     let (e1, fire1) ← newTriggerEvent (t := Spider) (a := String)
-    let (e2, fire2) ← newTriggerEvent (t := Spider) (a := Unit)
+    let (e2, _fire2) ← newTriggerEvent (t := Spider) (a := Unit)
     let diff ← SpiderM.liftIO <| Event.difference ctx e1 e2
 
     let receivedRef ← SpiderM.liftIO <| IO.mkRef ([] : List String)

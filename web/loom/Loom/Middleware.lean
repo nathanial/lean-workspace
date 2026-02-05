@@ -121,13 +121,13 @@ def basicAuth (realm : String) (validate : String → String → IO Bool) : Cita
         |>.build)
 
 /-- Rate limiting middleware (simple in-memory, resets on restart) -/
-def rateLimit (maxRequests : Nat) (windowSeconds : Nat) : IO Citadel.Middleware := do
+def rateLimit (_maxRequests : Nat) (_windowSeconds : Nat) : IO Citadel.Middleware := do
   -- In a real implementation, this would use a proper rate limiter
   -- For now, just pass through
   pure fun handler req => handler req
 
 /-- Request timeout middleware -/
-def timeout (ms : Nat) : Citadel.Middleware := fun handler req => do
+def timeout (_ms : Nat) : Citadel.Middleware := fun handler req => do
   -- Note: True timeout would need async/Task support
   -- For now, just execute normally
   handler req

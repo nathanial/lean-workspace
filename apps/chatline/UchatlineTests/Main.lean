@@ -1,8 +1,10 @@
 import Crucible
+
 open Crucible
 
-suite "chatline" do
-  test "placeholder" do
-    check (1 + 1 = 2)
+testSuite "chatline"
+
+test "placeholder" := do
+  (1 + 1) ≡ (2 : Nat)
 
 def main : IO UInt32 := runAllSuites

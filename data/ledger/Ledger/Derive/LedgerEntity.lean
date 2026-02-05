@@ -89,7 +89,7 @@ def toKebabCase (s : String) : String :=
       else acc ++ ['-', c.toLower]
     else
       acc ++ [c]
-  String.mk result
+  String.ofList result
 
 /-- Apply casing transformation to a field name -/
 def applyAttrCasing (casing : AttrCasing) (fieldName : String) : String :=

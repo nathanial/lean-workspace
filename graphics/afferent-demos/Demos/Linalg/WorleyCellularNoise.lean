@@ -75,7 +75,7 @@ private def panelWidth (screenScale : Float) : Float :=
 private def panelX (w screenScale : Float) : Float :=
   w - panelWidth screenScale
 
-def worleyDropdownLayout (w h screenScale : Float) : WorleyDropdownLayout :=
+def worleyDropdownLayout (w _h screenScale : Float) : WorleyDropdownLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 90.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale
@@ -86,14 +86,14 @@ def worleyDropdownOptionLayout (base : WorleyDropdownLayout) (idx : Nat) : Worle
   { x := base.x, y := base.y + base.height + idx.toFloat * base.height,
     width := base.width, height := base.height }
 
-def worleySliderLayout (w h screenScale : Float) : WorleySliderLayout :=
+def worleySliderLayout (w _h screenScale : Float) : WorleySliderLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 150.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale
   let height := 8.0 * screenScale
   { x := x, y := y, width := width, height := height }
 
-def worleyToggleLayout (w h screenScale : Float) (idx : Nat) : WorleyToggleLayout :=
+def worleyToggleLayout (w _h screenScale : Float) (idx : Nat) : WorleyToggleLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 190.0 * screenScale + idx.toFloat * 26.0 * screenScale
   let size := 16.0 * screenScale

@@ -116,7 +116,7 @@ partial def parseText : Parser (Option Node) := do
   if startPos == endPos then
     return none
   -- Extract substring directly (O(n) instead of O(n²))
-  let content := s.input.extract ⟨startPos⟩ ⟨endPos⟩
+  let content := String.ofList ((s.input.toList.drop startPos).take (endPos - startPos))
   return some (.text content)
 
 -- Expression parsing for conditionals
@@ -171,11 +171,11 @@ private def parseCompareOp : Parser (Option CompareOp) := do
     let _ ← Parser.tryString ">="
     return some .ge
   else
-    match ahead.get? ⟨0⟩ with
-    | some '<' =>
+    match ahead.toList with
+    | '<' :: _ =>
       let _ ← anyChar
       return some .lt
-    | some '>' =>
+    | '>' :: _ =>
       let _ ← anyChar
       return some .gt
     | _ => return none

@@ -86,7 +86,7 @@ structure SliderLayout where
   height : Float
 
 /-- Compute slider geometry for a given index. -/
-def sliderLayoutFor (w h screenScale : Float) (idx : Nat) : SliderLayout :=
+def sliderLayoutFor (w _h screenScale : Float) (idx : Nat) : SliderLayout :=
   let startX := w - 250.0 * screenScale
   let startY := 120.0 * screenScale
   let width := 180.0 * screenScale

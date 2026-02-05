@@ -125,7 +125,7 @@ def newsGetCurrentUserEid (ctx : Context) : Option EntityId :=
 def getNewsItems (ctx : Context) : List NewsItemView :=
   match ctx.database, newsGetCurrentUserEid ctx with
   | some db, some userEid =>
-    let itemIds := db.findByAttrValue DbNewsItem.attr_user (.ref userEid)
+    let itemIds := db.entitiesWithAttrValue DbNewsItem.attr_user (.ref userEid)
     let items := itemIds.filterMap fun itemId =>
       match DbNewsItem.pull db itemId with
       | some item =>

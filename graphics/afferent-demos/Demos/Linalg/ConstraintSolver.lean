@@ -104,7 +104,7 @@ def stepConstraintSolver (state : ConstraintSolverState) (dt : Float)
 /-- Render constraint solver demo. -/
 def renderConstraintSolver (state : ConstraintSolverState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

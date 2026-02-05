@@ -20,13 +20,13 @@ private partial def toHexString (n : Nat) : String :=
   else go n []
 where
   go (n : Nat) (acc : List Char) : String :=
-    if n == 0 then String.mk acc
+    if n == 0 then String.ofList acc
     else go (n / 16) (hexChar (n % 16) :: acc)
 
 /-- Parse a 4-digit unicode escape (\uXXXX) -/
 def parseUnicodeEscape4 : Sift.Parser Unit Char := do
   let code ← hexDigitsN 4
-  if h : code.toUInt32 < 0x110000 then
+  if _h : code.toUInt32 < 0x110000 then
     pure (Char.ofNat code)
   else
     Parser.fail s!"invalid unicode code point: {code}"
@@ -34,7 +34,7 @@ def parseUnicodeEscape4 : Sift.Parser Unit Char := do
 /-- Parse an 8-digit unicode escape (\UXXXXXXXX) -/
 def parseUnicodeEscape8 : Sift.Parser Unit Char := do
   let code ← hexDigitsN 8
-  if h : code.toUInt32 < 0x110000 then
+  if _h : code.toUInt32 < 0x110000 then
     pure (Char.ofNat code)
   else
     Parser.fail s!"invalid unicode code point: {code}"

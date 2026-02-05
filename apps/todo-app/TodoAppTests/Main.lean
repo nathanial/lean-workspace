@@ -107,7 +107,7 @@ test "can find user by email" := do
   match conn.transact tx with
   | Except.ok (newConn, _) =>
     let db := newConn.db
-    match db.findOneByAttrValue userEmail (.string "bob@test.com") with
+    match db.entityWithAttrValue userEmail (.string "bob@test.com") with
     | some foundId => foundId ≡ userId
     | none => panic! "User not found"
   | Except.error e => panic! s!"Transaction failed: {e}"
@@ -150,7 +150,7 @@ test "can find todos by owner" := do
   match conn.transact tx with
   | Except.ok (newConn, _) =>
     let db := newConn.db
-    let todos := db.findByAttrValue todoOwner (.ref userId)
+    let todos := db.entitiesWithAttrValue todoOwner (.ref userId)
     todos.length ≡ 2
   | Except.error e => panic! s!"Transaction failed: {e}"
 

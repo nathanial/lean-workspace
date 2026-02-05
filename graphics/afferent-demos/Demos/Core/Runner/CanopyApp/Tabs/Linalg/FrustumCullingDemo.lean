@@ -18,7 +18,7 @@ open Trellis
 
 namespace Demos
 def frustumCullingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let frustumName ← registerComponentW "frustum-culling-demo"
 
   let keyEvents ← useKeyboard

@@ -71,7 +71,7 @@ private def panelWidth (screenScale : Float) : Float :=
 private def panelX (w screenScale : Float) : Float :=
   w - panelWidth screenScale
 
-def domainWarpingSliderLayout (w h screenScale : Float) (idx : Nat) : DomainWarpingSliderLayout :=
+def domainWarpingSliderLayout (w _h screenScale : Float) (idx : Nat) : DomainWarpingSliderLayout :=
   let startX := panelX w screenScale + 20.0 * screenScale
   let startY := 120.0 * screenScale
   let width := panelWidth screenScale - 40.0 * screenScale
@@ -79,7 +79,7 @@ def domainWarpingSliderLayout (w h screenScale : Float) (idx : Nat) : DomainWarp
   let spacing := 34.0 * screenScale
   { x := startX, y := startY + idx.toFloat * spacing, width := width, height := height }
 
-def domainWarpingToggleLayout (w h screenScale : Float) (idx : Nat) : DomainWarpingToggleLayout :=
+def domainWarpingToggleLayout (w _h screenScale : Float) (idx : Nat) : DomainWarpingToggleLayout :=
   let x := panelX w screenScale + 20.0 * screenScale
   let y := 70.0 * screenScale + idx.toFloat * 26.0 * screenScale
   let size := 16.0 * screenScale

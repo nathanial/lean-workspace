@@ -209,7 +209,7 @@ def disableDynWidgetMetrics : IO Unit :=
   dynWidgetMetricsRef.set none
 
 /-- Lift SpiderM into ReactiveM. Prefer using automatic lifting instead. -/
-@[deprecated "Use automatic monad lifting instead of explicit liftSpider"]
+@[deprecated "Use automatic monad lifting instead of explicit liftSpider" (since := "2026-02-05")]
 def liftSpider (m : SpiderM α) : ReactiveM α := fun _ => m
 
 /-! ## Type Aliases -/

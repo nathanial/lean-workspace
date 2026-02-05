@@ -20,7 +20,7 @@ open AfferentMath.Widget
 
 namespace Demos
 def bSplineCurveDemoTabContent (env : DemoEnv) : WidgetM Unit := do
-  let elapsedTime ← useElapsedTime
+  let _elapsedTime ← useElapsedTime
   let splineName ← registerComponentW "b-spline-curve-demo"
 
   let clickEvents ← useClickData splineName

@@ -186,7 +186,7 @@ def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : C
 
       -- Ensure instance buffer has enough capacity (8 floats per instance)
       let requiredFloats := instances.size * 8
-      let (buf, cap, canvas) ←
+      let (buf, _cap, canvas) ←
         match canvas.meshInstanceBuffer with
         | some buf =>
           if canvas.meshInstanceBufferCapacity >= requiredFloats then

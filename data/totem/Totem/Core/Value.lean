@@ -8,11 +8,11 @@ namespace Totem
 /-- Pad a string on the left with a character to reach a minimum length -/
 private def padLeft (s : String) (width : Nat) (c : Char := ' ') : String :=
   if s.length >= width then s
-  else String.mk (List.replicate (width - s.length) c) ++ s
+  else String.ofList (List.replicate (width - s.length) c) ++ s
 
 /-- Remove trailing characters matching predicate -/
 private def dropRightWhile (s : String) (p : Char → Bool) : String :=
-  String.mk (s.data.reverse.dropWhile p).reverse
+  String.ofList (s.toList.reverse.dropWhile p).reverse
 
 /-- Local date (YYYY-MM-DD) -/
 structure LocalDate where

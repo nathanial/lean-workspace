@@ -136,7 +136,7 @@ private def buildOctree (items : Array AABB) (config : TreeConfig) : Octree :=
 /-- Render octree viewer. -/
 def renderOctreeViewer3D (state : OctreeViewer3DState)
     (view : MathView3D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
 
   drawGroundGrid view screenScale

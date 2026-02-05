@@ -50,7 +50,7 @@ def vectorInterpolationMathViewConfig (screenScale : Float) : MathView2D.Config 
 /-- Render the vector interpolation visualization -/
 def renderVectorInterpolation (state : VectorInterpolationState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

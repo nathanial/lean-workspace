@@ -106,7 +106,7 @@ private def drawArrowWorld (start finish : Vec2) (origin : Float × Float) (scal
 /-- Render the overlap tester. -/
 def renderPrimitiveOverlapTester (state : PrimitiveOverlapTesterState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
+  let _w := view.width
   let h := view.height
   let origin : Float × Float := (view.origin.x, view.origin.y)
   let scale := view.scale

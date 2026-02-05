@@ -493,7 +493,7 @@ structure AppState where
   render : ComponentRender
 
 /-- Create the widget performance test application. -/
-def createApp (env : DemoEnv) : ReactiveM AppState := do
+def createApp (_env : DemoEnv) : ReactiveM AppState := do
   -- Pre-create a Dynamic for the selected widget type
   let (selectionEvent, fireSelection) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
   let selectedType ← Reactive.holdDyn 0 selectionEvent

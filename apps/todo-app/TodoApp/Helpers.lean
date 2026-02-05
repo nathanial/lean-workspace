@@ -22,7 +22,7 @@ private def polyHash (data : ByteArray) : Nat :=
 /-- Convert Nat to hex string with padding -/
 private def toHexString (n : Nat) : String :=
   let hex := n.toDigits 16
-  String.mk hex
+  String.ofList hex
 
 /-- Hash a password with the app secret -/
 def hashPassword (password : String) (secret : ByteArray) : String :=
@@ -66,10 +66,10 @@ def isLoggedIn (ctx : Context) : Bool :=
 /-- Find user by email -/
 def findUserByEmail (ctx : Context) (email : String) : Option EntityId :=
   ctx.database.bind fun db =>
-    db.findOneByAttrValue userEmail (.string email)
+    db.entityWithAttrValue userEmail (.string email)
 
 /-- Find user by ID -/
-def findUserById (ctx : Context) (id : String) : Option EntityId :=
+def findUserById (_ctx : Context) (id : String) : Option EntityId :=
   match id.toInt? with
   | some n => some ⟨n⟩
   | none => none
@@ -79,7 +79,7 @@ def getUserTodos (ctx : Context) (userId : EntityId) : List EntityId :=
   match ctx.database with
   | none => []
   | some db =>
-    db.findByAttrValue todoOwner (.ref userId)
+    db.entitiesWithAttrValue todoOwner (.ref userId)
 
 /-- Get a single attribute value as string -/
 def getAttrString (ctx : Context) (entityId : EntityId) (attr : Attribute) : Option String :=

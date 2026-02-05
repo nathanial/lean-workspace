@@ -79,7 +79,7 @@ test "Dynamic fluent map' equals regular mapM" := do
 test "Dynamic fluent zipWith' equals regular zipWithM" := do
   let result ← runSpider do
     let (e1, t1) ← newTriggerEvent (t := Spider) (a := Nat)
-    let (e2, t2) ← newTriggerEvent (t := Spider) (a := Nat)
+    let (e2, _t2) ← newTriggerEvent (t := Spider) (a := Nat)
     let d1 ← holdDyn 10 e1
     let d2 ← holdDyn 20 e2
 

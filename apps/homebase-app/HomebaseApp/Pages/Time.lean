@@ -114,7 +114,7 @@ def getCurrentUserEid (ctx : Context) : Option EntityId :=
 def getActiveTimer (ctx : Context) : Option Timer :=
   match ctx.database, getCurrentUserEid ctx with
   | some db, some userEid =>
-    let timerIds := db.findByAttrValue DbTimer.attr_user (.ref userEid)
+    let timerIds := db.entitiesWithAttrValue DbTimer.attr_user (.ref userEid)
     -- Return the first timer (should only be one per user)
     timerIds.head?.bind fun timerId =>
       match DbTimer.pull db timerId with
@@ -126,7 +126,7 @@ def getActiveTimer (ctx : Context) : Option Timer :=
 def getTimeEntriesForDay (ctx : Context) (dayStartMs : Nat) : List TimeEntry :=
   match ctx.database, getCurrentUserEid ctx with
   | some db, some userEid =>
-    let entryIds := db.findByAttrValue DbTimeEntry.attr_user (.ref userEid)
+    let entryIds := db.entitiesWithAttrValue DbTimeEntry.attr_user (.ref userEid)
     let dayEndMs := dayStartMs + 24 * 60 * 60 * 1000
     let entries := entryIds.filterMap fun entryId =>
       match DbTimeEntry.pull db entryId with
@@ -144,7 +144,7 @@ def getTimeEntriesForDay (ctx : Context) (dayStartMs : Nat) : List TimeEntry :=
 def getTimeEntriesInRange (ctx : Context) (startMs endMs : Nat) : List TimeEntry :=
   match ctx.database, getCurrentUserEid ctx with
   | some db, some userEid =>
-    let entryIds := db.findByAttrValue DbTimeEntry.attr_user (.ref userEid)
+    let entryIds := db.entitiesWithAttrValue DbTimeEntry.attr_user (.ref userEid)
     let entries := entryIds.filterMap fun entryId =>
       match DbTimeEntry.pull db entryId with
       | some e =>

@@ -22,7 +22,7 @@ def numberedOutput (base : String) (index : Nat) (total : Nat) : String :=
     let stem := if base.endsWith ".png" then base.dropRight 4 else base
     let width := if total >= 100 then 3 else if total >= 10 then 2 else 1
     let indexStr := toString index
-    let padding := String.mk (List.replicate (width - indexStr.length) '0')
+    let padding := String.ofList (List.replicate (width - indexStr.length) '0')
     s!"{stem}_{padding}{indexStr}.png"
 
 def cmd : Command := command "image-gen" do

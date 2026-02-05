@@ -26,7 +26,7 @@ def isAllowedType (mimeType : String) : Bool :=
 
 /-- Convert a Nat to a hex string (up to 16 hex digits) -/
 private def natToHex (n : Nat) : String :=
-  let hexDigits := "0123456789abcdef"
+  let hexDigits := "0123456789abcdef".toList.toArray
   if n == 0 then "0"
   else
     -- Use fuel to limit recursion depth (16 hex digits = 64 bits)
@@ -34,11 +34,11 @@ private def natToHex (n : Nat) : String :=
       if h : fuel == 0 || n == 0 then acc
       else
         let digit := n % 16
-        let char := hexDigits.get! ⟨digit⟩
+        let char := hexDigits[digit]!
         loop (n / 16) (fuel - 1) (char :: acc)
     termination_by fuel
     decreasing_by simp_wf; simp_all; omega
-    String.mk (loop n 16 [])
+    String.ofList (loop n 16 [])
 
 /-- Generate a unique ID using nanoseconds + random component -/
 def generateUniqueId : IO String := do
