@@ -252,3 +252,6 @@
 [submodule "graphics/afferent-progress-bars"]
 	path = graphics/afferent-progress-bars
 	url = git@github.com:nathanial/afferent-progress-bars.git
+[submodule "graphics/afferent-text-inputs"]
+	path = graphics/afferent-text-inputs
+	url = git@github.com:nathanial/afferent-text-inputs.git
