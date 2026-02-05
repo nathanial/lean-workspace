@@ -249,3 +249,6 @@
 [submodule "graphics/afferent-spinners"]
 	path = graphics/afferent-spinners
 	url = git@github.com:nathanial/afferent-spinners.git
+[submodule "graphics/afferent-progress-bars"]
+	path = graphics/afferent-progress-bars
+	url = git@github.com:nathanial/afferent-progress-bars.git
