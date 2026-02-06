@@ -41,19 +41,17 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   let (listArea, detailArea) := UI.splitHorizontal area 35
 
   -- Left pane: Entity list
-  let listBlock := Block.rounded
-    |>.withTitle s!"Entities ({state.entityState.entities.size})"
-    |>.withBorderStyle (borderStyle (state.paneFocus == .left))
-
-  let mut result := frame.render listBlock listArea
-  let listInner := listBlock.innerArea listArea
+  let mut result := UI.drawPanel frame listArea
+    s!"Entities ({state.entityState.entities.size})"
+    (state.paneFocus == .left)
+  let listInner := UI.panelInner listArea
 
   -- Build entity list items
   let visibleHeight := listInner.height
   let startIdx := state.entityState.scrollOffset
   let endIdx := min (startIdx + visibleHeight) state.entityState.entities.size
 
-  for hi : i in [startIdx:endIdx] do
+  for i in [startIdx:endIdx] do
     let row := listInner.y + (i - startIdx)
     if row >= listInner.y + listInner.height then break
 
@@ -69,12 +67,8 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
     | none => pure ()
 
   -- Right pane: Entity details
-  let detailBlock := Block.rounded
-    |>.withTitle "Details"
-    |>.withBorderStyle (borderStyle (state.paneFocus == .right))
-
-  result := result.render detailBlock detailArea
-  let detailInner := detailBlock.innerArea detailArea
+  result := UI.drawPanel result detailArea "Details" (state.paneFocus == .right)
+  let detailInner := UI.panelInner detailArea
 
   -- Show selected entity's datoms
   match state.entityState.entities[state.entityState.selectedIdx]? with

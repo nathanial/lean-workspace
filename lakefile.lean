@@ -14,7 +14,7 @@ lean_lib apps_agent_mail where
 
 lean_lib apps_ask where
   srcDir := "apps/ask"
-  roots := #[`Main]
+  roots := #[`Ask]
 
 lean_lib apps_blockfall where
   srcDir := "apps/blockfall"
@@ -327,6 +327,62 @@ lean_exe linalg_tests where
   srcDir := "math/linalg"
   root := `LinalgTests.Main
 
+def terminalUiLinkArgs : Array String := #[
+  ".native-libs/lib/libparlance_native.a",
+  ".native-libs/lib/libterminus_native.a",
+  ".native-libs/lib/libraster_native.a",
+  ".native-libs/lib/libchronos_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
+def oracleLinkArgs : Array String := #[
+  ".native-libs/lib/libparlance_native.a",
+  ".native-libs/lib/libchronos_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
+def loomLinkArgs : Array String := #[
+  ".native-libs/lib/libcrypt_native.a",
+  ".native-libs/lib/libjack_native.a",
+  ".native-libs/lib/libquarry_native.a",
+  ".native-libs/lib/libcitadel_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  ".native-libs/lib/libchronos_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-lsodium",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
+def agentMailLinkArgs : Array String := #[
+  ".native-libs/lib/libchronos_native.a",
+  ".native-libs/lib/libjack_native.a",
+  ".native-libs/lib/libquarry_native.a",
+  ".native-libs/lib/libcitadel_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
 def afferentMetalLinkArgs : Array String := #[
   ".native-libs/lib/libafferent_native.a",
   ".native-libs/lib/libraster_native.a",
@@ -363,14 +419,79 @@ lean_exe eschaton where
   root := `Main
   moreLinkArgs := afferentMetalLinkArgs
 
+lean_exe agent_mail where
+  srcDir := "apps/agent-mail"
+  root := `AgentMail.Main
+  moreLinkArgs := agentMailLinkArgs
+
+lean_exe ask where
+  srcDir := "apps/ask"
+  root := `Main
+  moreLinkArgs := oracleLinkArgs
+
+lean_exe blockfall where
+  srcDir := "apps/blockfall"
+  root := `Blockfall.Main
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe cairn where
+  srcDir := "apps/cairn"
+  root := `Main
+  moreLinkArgs := afferentMetalLinkArgs
+
+lean_exe chatline where
+  srcDir := "apps/chatline"
+  root := `Uchatline.Main
+
+lean_exe enchiridion where
+  srcDir := "apps/enchiridion"
+  root := `Enchiridion.Main
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe homebase_app where
+  srcDir := "apps/homebase-app"
+  root := `HomebaseApp.Main
+  moreLinkArgs := loomLinkArgs
+
+lean_exe image_gen where
+  srcDir := "apps/image-gen"
+  root := `ImageGen.Main
+  moreLinkArgs := oracleLinkArgs
+
+lean_exe lighthouse where
+  srcDir := "apps/lighthouse"
+  root := `Lighthouse.Main
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe minefield where
+  srcDir := "apps/minefield"
+  root := `Minefield.Main
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe solitaire where
+  srcDir := "apps/solitaire"
+  root := `Solitaire.Main
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe timekeeper where
+  srcDir := "apps/timekeeper"
+  root := `Timekeeper.Entry
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe todo_app where
+  srcDir := "apps/todo-app"
+  root := `TodoApp.Main
+  moreLinkArgs := loomLinkArgs
+
 lean_exe tracker where
   srcDir := "apps/tracker"
-  root := `Main
-  moreLinkArgs := #[
-    ".native-libs/lib/libterminus_native.a",
-    ".native-libs/lib/libraster_native.a",
-    ".native-libs/lib/libchronos_native.a"
-  ]
+  root := `Tracker.Entry
+  moreLinkArgs := terminalUiLinkArgs
+
+lean_exe twenty48 where
+  srcDir := "apps/twenty48"
+  root := `Twenty48.Main
+  moreLinkArgs := terminalUiLinkArgs
 
 
 

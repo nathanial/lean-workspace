@@ -9,6 +9,38 @@ namespace Lighthouse.UI
 
 open Terminus
 
+/-- Draw a simple bordered panel with optional title. -/
+def drawPanel (frame : Frame) (area : Rect) (title : String) (focused : Bool := false) : Frame := Id.run do
+  if area.width == 0 || area.height == 0 then
+    return frame
+
+  let borderStyle :=
+    if focused then Style.default.withFg Color.cyan else Style.default
+
+  if area.width < 2 || area.height < 2 then
+    return frame.writeString area.x area.y (title.take area.width) borderStyle
+
+  let horizontal := String.ofList (List.replicate (area.width - 2) '-')
+  let topBottom := s!"+{horizontal}+"
+
+  let mut result := frame.writeString area.x area.y topBottom borderStyle
+
+  for y in [area.y + 1 : area.y + area.height - 1] do
+    result := result.writeString area.x y "|" borderStyle
+    result := result.writeString (area.x + area.width - 1) y "|" borderStyle
+
+  result := result.writeString area.x (area.y + area.height - 1) topBottom borderStyle
+
+  if !title.isEmpty && area.width > 4 then
+    let titleText := title.take (area.width - 4)
+    result := result.writeString (area.x + 2) area.y titleText borderStyle
+
+  result
+
+/-- Inner drawable area for a bordered panel. -/
+def panelInner (area : Rect) : Rect :=
+  area.inner 1
+
 /-- Computed panel areas for the main layout -/
 structure PanelAreas where
   tabs : Rect

@@ -35,19 +35,17 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   let (listArea, detailArea) := UI.splitHorizontal area 40
 
   -- Left pane: Attribute list
-  let listBlock := Block.rounded
-    |>.withTitle s!"Attributes ({state.attrState.attributes.size})"
-    |>.withBorderStyle (borderStyle (state.paneFocus == .left))
-
-  let mut result := frame.render listBlock listArea
-  let listInner := listBlock.innerArea listArea
+  let mut result := UI.drawPanel frame listArea
+    s!"Attributes ({state.attrState.attributes.size})"
+    (state.paneFocus == .left)
+  let listInner := UI.panelInner listArea
 
   -- Show attributes with entity counts
   let visibleHeight := listInner.height
   let startIdx := state.attrState.scrollOffset
   let endIdx := min (startIdx + visibleHeight) state.attrState.attributes.size
 
-  for hi : i in [startIdx:endIdx] do
+  for i in [startIdx:endIdx] do
     let row := listInner.y + (i - startIdx)
     if row >= listInner.y + listInner.height then break
 
@@ -64,12 +62,8 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
     | none => pure ()
 
   -- Right pane: Entities with this attribute
-  let detailBlock := Block.rounded
-    |>.withTitle "Values"
-    |>.withBorderStyle (borderStyle (state.paneFocus == .right))
-
-  result := result.render detailBlock detailArea
-  let detailInner := detailBlock.innerArea detailArea
+  result := UI.drawPanel result detailArea "Values" (state.paneFocus == .right)
+  let detailInner := UI.panelInner detailArea
 
   -- Show entities with selected attribute and their values
   match state.attrState.attributes[state.attrState.selectedIdx]? with
@@ -79,7 +73,7 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
       result := result.writeString detailInner.x detailInner.y "(no entities)" Style.dim
     else
       let mut row := detailInner.y
-      for hi : i in [0:entities.size] do
+      for i in [0:entities.size] do
         if row >= detailInner.y + detailInner.height then break
         match entities[i]? with
         | some eid =>

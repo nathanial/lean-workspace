@@ -14,6 +14,7 @@ mkdir -p \
   .native-libs/obj/crypt \
   .native-libs/obj/selene \
   .native-libs/obj/terminus \
+  .native-libs/obj/parlance \
   .native-libs/obj/jack \
   .native-libs/obj/quarry \
   .native-libs/obj/citadel \
@@ -114,6 +115,13 @@ mkdir -p .native-libs/obj/terminus
 /usr/bin/clang -std=c11 -c graphics/terminus/ffi/terminus.c -o .native-libs/obj/terminus/terminus.o \
   -I"$LEAN_PREFIX/include"
 /usr/bin/libtool -static -o .native-libs/lib/libterminus_native.a .native-libs/obj/terminus/terminus.o
+
+# Parlance REPL native library
+rm -rf .native-libs/obj/parlance
+mkdir -p .native-libs/obj/parlance
+/usr/bin/clang -std=c11 -c util/parlance/ffi/parlance_repl.c -o .native-libs/obj/parlance/parlance_repl.o \
+  -I"$LEAN_PREFIX/include"
+/usr/bin/libtool -static -o .native-libs/lib/libparlance_native.a .native-libs/obj/parlance/parlance_repl.o
 
 # Jack native library
 rm -rf .native-libs/obj/jack

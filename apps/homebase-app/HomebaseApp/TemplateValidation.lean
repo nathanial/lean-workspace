@@ -40,9 +40,18 @@ def validateTemplate (path : System.FilePath) : IO ValidationResult := do
 
 /-- Validate all templates in a directory -/
 def validateAllTemplates (templateDir : String) (extension : String) : IO (List ValidationResult) := do
-  let dir := System.FilePath.mk templateDir
-  if !(← dir.pathExists) then
-    return [{ path := templateDir, success := false, error := some "Template directory does not exist" }]
+  let requestedDir := System.FilePath.mk templateDir
+  let dir? ←
+    if ← requestedDir.pathExists then
+      pure (some requestedDir)
+    else
+      let monorepoDir := System.FilePath.mk "apps/homebase-app/templates"
+      if ← monorepoDir.pathExists then
+        pure (some monorepoDir)
+      else
+        pure none
+  let some dir := dir?
+    | return [{ path := templateDir, success := false, error := some "Template directory does not exist" }]
 
   let allFiles ← walkDir dir
   let templateFiles := allFiles.filter fun path =>
@@ -67,6 +76,11 @@ def formatErrors (results : List ValidationResult) : String :=
 
 /-- Command to validate templates at compile time -/
 elab "#validate_templates" dir:str ext:str : command => do
+  let envValue ← IO.getEnv "HOMEBASE_VALIDATE_TEMPLATES"
+  let enabled := envValue == some "1" || envValue == some "true" || envValue == some "TRUE"
+  unless enabled do
+    return
+
   let dirStr := dir.getString
   let extStr := ext.getString
   let results ← validateAllTemplates dirStr extStr

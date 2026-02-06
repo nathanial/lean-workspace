@@ -36,12 +36,8 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
       | none => "Transaction Log (time-travel active)"
     else "Transaction Log"
 
-  let block := Block.rounded
-    |>.withTitle title
-    |>.withBorderStyle Style.default
-
-  let mut result := frame.render block area
-  let inner := block.innerArea area
+  let mut result := UI.drawPanel frame area title
+  let inner := UI.panelInner area
 
   if state.txState.txIds.isEmpty then
     result := result.writeString inner.x inner.y "(no transactions)" Style.dim
@@ -51,7 +47,7 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   let mut row := inner.y
   let mut lineIdx := 0
 
-  for hi : i in [0:state.txState.txIds.size] do
+  for i in [0:state.txState.txIds.size] do
     if row >= inner.y + inner.height then break
 
     match state.txState.txIds[i]? with

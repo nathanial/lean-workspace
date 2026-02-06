@@ -32,7 +32,7 @@ def executeQuery (db : Db) (queryText : String) : Except String (Array EntityId)
       let attr := Attribute.mk attrPart
       -- Remove quotes from value if present
       let value := valuePart.replace "\"" "" |>.trim
-      let results := db.findByAttrValue attr (Value.string value)
+      let results := db.entitiesWithAttrValue attr (Value.string value)
       return results.toArray
     | _ => throw "Invalid query format. Use :attr or :attr=\"value\""
   else
@@ -46,11 +46,8 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   let (inputArea, resultsArea) := UI.splitVertical area 5
 
   -- Top: Query input
-  let inputBlock := Block.rounded
-    |>.withTitle "Query"
-
-  let mut result := frame.render inputBlock inputArea
-  let inputInner := inputBlock.innerArea inputArea
+  let mut result := UI.drawPanel frame inputArea "Query"
+  let inputInner := UI.panelInner inputArea
 
   -- Show query input
   let queryText := state.queryState.inputBuffer
@@ -73,11 +70,8 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   | none => pure ()
 
   -- Bottom: Results
-  let resultsBlock := Block.rounded
-    |>.withTitle s!"Results ({state.queryState.results.size})"
-
-  result := result.render resultsBlock resultsArea
-  let resultsInner := resultsBlock.innerArea resultsArea
+  result := UI.drawPanel result resultsArea s!"Results ({state.queryState.results.size})"
+  let resultsInner := UI.panelInner resultsArea
 
   if state.queryState.results.isEmpty then
     let hint := if state.queryState.inputBuffer.isEmpty
@@ -87,7 +81,7 @@ def draw (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
   else
     -- Show results
     let mut row := resultsInner.y
-    for hi : i in [0:state.queryState.results.size] do
+    for i in [0:state.queryState.results.size] do
       if row >= resultsInner.y + resultsInner.height then break
       match state.queryState.results[i]? with
       | some eid =>

@@ -26,11 +26,21 @@ def viewToTabIndex (v : View) : Nat :=
 
 /-- Draw the tab bar -/
 def drawTabs (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
-  let tabs := Tabs.new ["1:Entities", "2:Transactions", "3:Attributes", "4:Query"]
-    |>.withSelected (viewToTabIndex state.view)
-    |>.withSelectedStyle (Style.bold.withFg Color.cyan)
-    |>.withDivider " | "
-  frame.render tabs area
+  if area.width == 0 || area.height == 0 then
+    return frame
+
+  let fillLine := String.ofList (List.replicate area.width ' ')
+  let mut result := frame.writeString area.x area.y fillLine Style.default
+
+  let selected := viewToTabIndex state.view
+  let tab0 := if selected == 0 then "[1:Entities]" else " 1:Entities "
+  let tab1 := if selected == 1 then "[2:Transactions]" else " 2:Transactions "
+  let tab2 := if selected == 2 then "[3:Attributes]" else " 3:Attributes "
+  let tab3 := if selected == 3 then "[4:Query]" else " 4:Query "
+  let tabsLine := s!"{tab0} | {tab1} | {tab2} | {tab3}"
+
+  result := result.writeString area.x area.y tabsLine (Style.default.withFg Color.cyan)
+  result
 
 /-- Draw the status bar -/
 def drawStatus (frame : Frame) (state : AppState) (area : Rect) : Frame := Id.run do
