@@ -38,6 +38,14 @@ test-all:
 test-all-integration:
     INCLUDE_INTEGRATION=1 ./scripts/test-all.sh
 
+# Run tests for a specific project path or substring (e.g. math/linalg, agent-mail, network/wisp)
+test-project project:
+    MATCH="{{project}}" ./scripts/test-all.sh
+
+# Run tests for a specific project and include integration suites
+test-project-integration project:
+    INCLUDE_INTEGRATION=1 MATCH="{{project}}" ./scripts/test-all.sh
+
 # Clean root lake artifacts
 clean:
     lake clean
