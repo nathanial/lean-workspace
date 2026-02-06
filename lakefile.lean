@@ -363,6 +363,15 @@ lean_exe eschaton where
   root := `Main
   moreLinkArgs := afferentMetalLinkArgs
 
+lean_exe tracker where
+  srcDir := "apps/tracker"
+  root := `Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libterminus_native.a",
+    ".native-libs/lib/libraster_native.a",
+    ".native-libs/lib/libchronos_native.a"
+  ]
+
 
 
 -- Monorepo test targets (auto-generated during test namespace deconflict).
