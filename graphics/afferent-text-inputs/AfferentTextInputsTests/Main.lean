@@ -1,8 +1,9 @@
 import Crucible
 open Crucible
 
-suite "afferent-text-inputs" do
-  test "placeholder" do
-    check (1 + 1 = 2)
+testSuite "afferent-text-inputs"
+
+test "placeholder" := do
+  shouldBe (1 + 1) 2
 
 def main : IO UInt32 := runAllSuites

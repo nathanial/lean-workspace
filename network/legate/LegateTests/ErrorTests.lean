@@ -154,6 +154,4 @@ test "GrpcResult monad syntax" := do
   | .ok v => ensure (v == 30) "monad computation failed"
   | .error _ => ensure false "monad should succeed"
 
-#generate_tests
-
 end LegateTests.ErrorTests

@@ -596,7 +596,7 @@ private def waitForDiskCache (config : DiskCacheConfig) (coord : TileCoord)
           loop n
   loop steps
 
-test "network tile loads" (timeout := 20000) := do
+test "network tile loads" (skip := "requires outbound DNS/network access") := do
   let env ← SpiderEnv.new
   let coord : TileCoord := { x := 0, y := 0, z := 0 }
   let cacheDir ← freshCacheDir
@@ -623,7 +623,7 @@ test "network tile loads" (timeout := 20000) := do
     TilesetTests.Manager.shutdownManager mgr
     env.currentScope.dispose
 
-test "network tile writes disk cache" (timeout := 20000) := do
+test "network tile writes disk cache" (skip := "requires outbound DNS/network access") := do
   let env ← SpiderEnv.new
   let coord : TileCoord := { x := 0, y := 0, z := 0 }
   let cacheDir ← freshCacheDir

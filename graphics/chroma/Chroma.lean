@@ -6,4 +6,4 @@
 -- Re-export core libraries for convenience
 import Tincture
 import Trellis
-import Arbor
+import Afferent.Arbor

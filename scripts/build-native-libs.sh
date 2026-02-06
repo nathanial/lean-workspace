@@ -10,6 +10,9 @@ mkdir -p \
   .native-libs/obj/afferent \
   .native-libs/obj/raster \
   .native-libs/obj/chronos \
+  .native-libs/obj/conduit \
+  .native-libs/obj/crypt \
+  .native-libs/obj/terminus \
   .native-libs/obj/jack \
   .native-libs/obj/quarry \
   .native-libs/obj/citadel \
@@ -72,6 +75,28 @@ mkdir -p .native-libs/obj/chronos
   -I"$LEAN_PREFIX/include"
 /usr/bin/libtool -static -o .native-libs/lib/libchronos_native.a .native-libs/obj/chronos/chronos_ffi.o
 
+# Conduit native library
+rm -rf .native-libs/obj/conduit
+mkdir -p .native-libs/obj/conduit
+/usr/bin/clang -std=c11 -c util/conduit/native/src/conduit_ffi.c -o .native-libs/obj/conduit/conduit_ffi.o \
+  -I"$LEAN_PREFIX/include"
+/usr/bin/libtool -static -o .native-libs/lib/libconduit_native.a .native-libs/obj/conduit/conduit_ffi.o
+
+# Crypt native library
+rm -rf .native-libs/obj/crypt
+mkdir -p .native-libs/obj/crypt
+/usr/bin/clang -std=c11 -c util/crypt/ffi/crypt_ffi.c -o .native-libs/obj/crypt/crypt_ffi.o \
+  -I"$LEAN_PREFIX/include" \
+  -I/opt/homebrew/include
+/usr/bin/libtool -static -o .native-libs/lib/libcrypt_native.a .native-libs/obj/crypt/crypt_ffi.o
+
+# Terminus native library
+rm -rf .native-libs/obj/terminus
+mkdir -p .native-libs/obj/terminus
+/usr/bin/clang -std=c11 -c graphics/terminus/ffi/terminus.c -o .native-libs/obj/terminus/terminus.o \
+  -I"$LEAN_PREFIX/include"
+/usr/bin/libtool -static -o .native-libs/lib/libterminus_native.a .native-libs/obj/terminus/terminus.o
+
 # Jack native library
 rm -rf .native-libs/obj/jack
 mkdir -p .native-libs/obj/jack
@@ -88,6 +113,8 @@ mkdir -p .native-libs/obj/quarry
 /usr/bin/clang -std=c11 -c data/quarry/native/sqlite/sqlite3.c -o .native-libs/obj/quarry/sqlite3.o \
   -DSQLITE_THREADSAFE=1 \
   -DSQLITE_ENABLE_COLUMN_METADATA=1 \
+  -DSQLITE_ENABLE_FTS5=1 \
+  -DSQLITE_ENABLE_RTREE=1 \
   -Idata/quarry/native/sqlite
 /usr/bin/libtool -static -o .native-libs/lib/libquarry_native.a \
   .native-libs/obj/quarry/quarry_ffi.o \

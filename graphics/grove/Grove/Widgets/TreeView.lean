@@ -2,12 +2,12 @@
   Grove TreeView Widget
   Renders the directory tree sidebar.
 -/
-import Arbor
+import Afferent.Arbor
 import Grove.Core.Types
 import Tincture
 import Trellis
 
-open Arbor
+open Afferent.Arbor
 open Grove
 open Tincture
 open Trellis (EdgeInsets)

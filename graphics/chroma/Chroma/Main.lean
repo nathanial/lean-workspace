@@ -4,9 +4,9 @@
 -/
 import Afferent
 import Afferent.App.UIRunner
+import Afferent.Arbor
 import Afferent.FFI
 import Afferent.Widget
-import Arbor
 import Chroma.ColorPicker
 import Chroma.Constants
 import Trellis

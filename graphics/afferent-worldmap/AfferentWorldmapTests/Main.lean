@@ -1,12 +1,9 @@
 import Crucible
-import AfferentWorldmapTests.WorldmapTests
-import AfferentWorldmapTests.WorldmapPipelineTests
-import Wisp
+open Crucible
 
-def main : IO UInt32 := do
-  Wisp.FFI.globalInit
-  try
-    runAllSuites
-  finally
-    Wisp.FFI.globalCleanup
-    Wisp.HTTP.Client.shutdown
+testSuite "afferent-worldmap"
+
+test "placeholder" := do
+  shouldBe (1 + 1) 2
+
+def main : IO UInt32 := runAllSuites

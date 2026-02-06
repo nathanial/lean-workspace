@@ -38,7 +38,7 @@ def jsonLogPath : System.FilePath := "logs/homebase.json"
 def textLogPath : System.FilePath := "logs/homebase.log"
 
 /-- Build the application with all routes using persistent database -/
-def buildApp (logger : Chronicle.MultiLogger) : App :=
+def buildApp (logger : Chronicle.MultiLogger) (templateDir : String) : App :=
   Loom.app config
     |>.withLogger logger
     |>.use Middleware.methodOverride
@@ -56,7 +56,17 @@ def buildApp (logger : Chronicle.MultiLogger) : App :=
     |>.sseEndpoint "/events/hot-reload" "hot-reload"
     |> registerPages
     |>.withPersistentDatabase journalPath
-    |>.withStencil { templateDir := "templates", extension := ".html.hbs", hotReload := true }
+    |>.withStencil { templateDir := templateDir, extension := ".html.hbs", hotReload := true }
+
+/-- Resolve template directory for either project-local or monorepo-root execution. -/
+def resolveTemplateDir : IO String := do
+  let localDir := System.FilePath.mk "templates"
+  if ← localDir.pathExists then
+    return "templates"
+  let monorepo := System.FilePath.mk "apps/homebase-app/templates"
+  if ← monorepo.pathExists then
+    return "apps/homebase-app/templates"
+  return "templates"
 
 /-- Check if there are any admin users. If no admins exist but users do,
     promote all users to admin. This ensures there's always an admin. -/
@@ -129,7 +139,8 @@ def runApp : IO Unit := do
   IO.println s!"Database: Persistent (journal at {journalPath})"
   IO.println s!"Logging: {jsonLogPath} (JSON), {textLogPath} (text)"
 
-  let app := buildApp logger
+  let templateDir ← resolveTemplateDir
+  let app := buildApp logger templateDir
   app.run "0.0.0.0" 3000
 
 end HomebaseApp

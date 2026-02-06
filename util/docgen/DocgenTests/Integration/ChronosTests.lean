@@ -15,7 +15,7 @@ open Crucible
 open Docgen
 open Docgen.Extract
 open Docgen.Generate
-open Tests.Integration
+open DocgenTests.Integration
 
 -- Shared test state (use initialize for single shared IORefs)
 initialize tempDirRef : IO.Ref (Option TempDir) ← IO.mkRef none

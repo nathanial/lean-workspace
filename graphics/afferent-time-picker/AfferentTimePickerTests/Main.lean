@@ -1,8 +1,9 @@
 import Crucible
 open Crucible
 
-suite "afferent-time-picker" do
-  test "placeholder" do
-    check (1 + 1 = 2)
+testSuite "afferent-time-picker"
+
+test "placeholder" := do
+  shouldBe (1 + 1) 2
 
 def main : IO UInt32 := runAllSuites

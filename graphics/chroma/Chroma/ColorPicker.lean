@@ -2,12 +2,12 @@
   Chroma Color Picker Widget
   Custom Arbor widget that renders a hue wheel.
 -/
-import Arbor
+import Afferent.Arbor
 import Chroma.Constants
 import Trellis
 import Tincture
 
-open Arbor
+open Afferent.Arbor
 open Trellis (EdgeInsets)
 open Tincture
 

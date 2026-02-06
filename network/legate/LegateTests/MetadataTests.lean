@@ -131,6 +131,4 @@ test "CallOptions chaining" := do
   ensure opts.waitForReady "waitForReady"
   ensure (opts.metadata.size == 1) "metadata"
 
-#generate_tests
-
 end LegateTests.MetadataTests

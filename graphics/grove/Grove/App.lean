@@ -4,7 +4,7 @@
 -/
 import Afferent
 import Afferent.App.UIRunner
-import Arbor
+import Afferent.Arbor
 import Grove.Core.Types
 import Grove.Core.FileSystem
 import Grove.State.AppState
@@ -13,7 +13,7 @@ import Trellis
 import Tincture
 
 open Afferent
-open Arbor
+open Afferent.Arbor
 open Grove
 open Tincture
 open Trellis (EdgeInsets)

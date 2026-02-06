@@ -210,7 +210,7 @@ lean_lib math_linalg where
 
 lean_lib math_linalg_tests where
   srcDir := "math/linalg"
-  roots := #[`LinalgTests]
+  roots := #[`LinalgTests.Main]
 
 lean_lib math_measures where
   srcDir := "math/measures"
@@ -327,51 +327,41 @@ lean_exe linalg_tests where
   srcDir := "math/linalg"
   root := `LinalgTests.Main
 
+def afferentMetalLinkArgs : Array String := #[
+  ".native-libs/lib/libafferent_native.a",
+  ".native-libs/lib/libraster_native.a",
+  ".native-libs/lib/libchronos_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-framework", "Cocoa",
+  "-framework", "Metal",
+  "-framework", "MetalKit",
+  "-framework", "QuartzCore",
+  "-framework", "CoreText",
+  "-framework", "CoreGraphics",
+  "-framework", "Foundation",
+  "-lfreetype",
+  "-lz",
+  "-lbz2",
+  "-liconv",
+  "-lm",
+  "-lobjc",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
 lean_exe afferent_demos where
   srcDir := "graphics/afferent-demos"
   root := `AfferentDemos.Main
-  moreLinkArgs := #[
-    ".native-libs/lib/libafferent_native.a",
-    ".native-libs/lib/libraster_native.a",
-    ".native-libs/lib/libchronos_native.a",
-    "-L/opt/homebrew/lib",
-    "-framework", "Cocoa",
-    "-framework", "Metal",
-    "-framework", "MetalKit",
-    "-framework", "QuartzCore",
-    "-framework", "CoreText",
-    "-framework", "CoreGraphics",
-    "-framework", "Foundation",
-    "-lfreetype",
-    "-lz",
-    "-lbz2",
-    "-liconv",
-    "-lm",
-    "-lobjc"
-  ]
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe eschaton where
   srcDir := "apps/eschaton"
   root := `Main
-  moreLinkArgs := #[
-    ".native-libs/lib/libafferent_native.a",
-    ".native-libs/lib/libraster_native.a",
-    ".native-libs/lib/libchronos_native.a",
-    "-L/opt/homebrew/lib",
-    "-framework", "Cocoa",
-    "-framework", "Metal",
-    "-framework", "MetalKit",
-    "-framework", "QuartzCore",
-    "-framework", "CoreText",
-    "-framework", "CoreGraphics",
-    "-framework", "Foundation",
-    "-lfreetype",
-    "-lz",
-    "-lbz2",
-    "-liconv",
-    "-lm",
-    "-lobjc"
-  ]
+  moreLinkArgs := afferentMetalLinkArgs
 
 
 
@@ -777,10 +767,16 @@ lean_exe data_ledger_tests_exe where
 lean_exe data_quarry_tests_exe where
   srcDir := "data/quarry"
   root := `QuarryTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libquarry_native.a"
+  ]
 
 lean_exe data_reactive_tests_exe where
   srcDir := "data/reactive"
   root := `ReactiveTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libchronos_native.a"
+  ]
 
 lean_exe data_tabular_tests_exe where
   srcDir := "data/tabular"
@@ -789,6 +785,17 @@ lean_exe data_tabular_tests_exe where
 lean_exe data_tileset_tests_exe where
   srcDir := "data/tileset"
   root := `TilesetTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libraster_native.a",
+    ".native-libs/lib/libwisp_native.a",
+    ".native-libs/lib/libchronos_native.a",
+    "-L/opt/homebrew/lib",
+    "-L/opt/homebrew/opt/openssl@3/lib",
+    "-L/opt/homebrew/opt/curl/lib",
+    "-lcurl",
+    "-lssl",
+    "-lcrypto"
+  ]
 
 lean_exe data_totem_tests_exe where
   srcDir := "data/totem"
@@ -797,46 +804,57 @@ lean_exe data_totem_tests_exe where
 lean_exe graphics_afferent_buttons_tests_exe where
   srcDir := "graphics/afferent-buttons"
   root := `AfferentButtonsTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_charts_tests_exe where
   srcDir := "graphics/afferent-charts"
   root := `AfferentChartsTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_chat_tests_exe where
   srcDir := "graphics/afferent-chat"
   root := `AfferentChatTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_demos_tests_exe where
   srcDir := "graphics/afferent-demos"
   root := `AfferentDemosTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_math_tests_exe where
   srcDir := "graphics/afferent-math"
   root := `AfferentMathTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_progress_bars_tests_exe where
   srcDir := "graphics/afferent-progress-bars"
   root := `AfferentProgressBarsTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_spinners_tests_exe where
   srcDir := "graphics/afferent-spinners"
   root := `AfferentSpinnersTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_text_inputs_tests_exe where
   srcDir := "graphics/afferent-text-inputs"
   root := `AfferentTextInputsTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_time_picker_tests_exe where
   srcDir := "graphics/afferent-time-picker"
   root := `AfferentTimePickerTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_worldmap_tests_exe where
   srcDir := "graphics/afferent-worldmap"
   root := `AfferentWorldmapTests.Main
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_tests_exe where
   srcDir := "graphics/afferent"
   root := `AfferentTests
+  moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_chroma_tests_exe where
   srcDir := "graphics/chroma"
@@ -857,6 +875,11 @@ lean_exe graphics_shader_tests_exe where
 lean_exe graphics_terminus_tests_exe where
   srcDir := "graphics/terminus"
   root := `TerminusTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libterminus_native.a",
+    ".native-libs/lib/libraster_native.a",
+    ".native-libs/lib/libchronos_native.a"
+  ]
 
 lean_exe graphics_tincture_tests_exe where
   srcDir := "graphics/tincture"
@@ -865,6 +888,9 @@ lean_exe graphics_tincture_tests_exe where
 lean_exe graphics_trellis_tests_exe where
   srcDir := "graphics/trellis"
   root := `TrellisTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libchronos_native.a"
+  ]
 
 lean_exe graphics_vane_tests_exe where
   srcDir := "graphics/vane"
@@ -889,6 +915,9 @@ lean_exe network_exchange_tests_exe where
 lean_exe network_jack_tests_exe where
   srcDir := "network/jack"
   root := `JackTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libjack_native.a"
+  ]
 
 lean_exe network_legate_tests_exe where
   srcDir := "network/legate"
@@ -901,6 +930,16 @@ lean_exe network_legate_tests_integration_exe where
 lean_exe network_oracle_tests_exe where
   srcDir := "network/oracle"
   root := `OracleTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libchronos_native.a",
+    ".native-libs/lib/libwisp_native.a",
+    "-L/opt/homebrew/lib",
+    "-L/opt/homebrew/opt/openssl@3/lib",
+    "-L/opt/homebrew/opt/curl/lib",
+    "-lcurl",
+    "-lssl",
+    "-lcrypto"
+  ]
 
 lean_exe network_protolean_tests_exe where
   srcDir := "network/protolean"
@@ -909,6 +948,16 @@ lean_exe network_protolean_tests_exe where
 lean_exe network_wisp_tests_exe where
   srcDir := "network/wisp"
   root := `WispTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libwisp_native.a",
+    ".native-libs/lib/libchronos_native.a",
+    "-L/opt/homebrew/lib",
+    "-L/opt/homebrew/opt/openssl@3/lib",
+    "-L/opt/homebrew/opt/curl/lib",
+    "-lcurl",
+    "-lssl",
+    "-lcrypto"
+  ]
 
 lean_exe testing_crucible_tests_exe where
   srcDir := "testing/crucible"
@@ -917,14 +966,25 @@ lean_exe testing_crucible_tests_exe where
 lean_exe util_chronos_tests_exe where
   srcDir := "util/chronos"
   root := `ChronosTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libchronos_native.a"
+  ]
 
 lean_exe util_conduit_tests_exe where
   srcDir := "util/conduit"
   root := `ConduitTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libconduit_native.a"
+  ]
 
 lean_exe util_crypt_tests_exe where
   srcDir := "util/crypt"
   root := `CryptTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libcrypt_native.a",
+    "-L/opt/homebrew/lib",
+    "-lsodium"
+  ]
 
 lean_exe util_docgen_tests_exe where
   srcDir := "util/docgen"

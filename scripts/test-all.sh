@@ -15,6 +15,12 @@ fi
 
 cd "$WORKSPACE_ROOT"
 
+# Use system clang for native fallback executables (Metal/ObjC frameworks).
+export LEAN_CC="${LEAN_CC:-/usr/bin/clang}"
+if [ -d "/opt/homebrew/lib" ]; then
+  export LIBRARY_PATH="/opt/homebrew/lib:${LIBRARY_PATH:-}"
+fi
+
 ran=0
 native_libs_built=0
 

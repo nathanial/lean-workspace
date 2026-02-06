@@ -5,11 +5,11 @@
 import Afferent
 import Afferent.App.UIRunner
 import Afferent.FFI
-import Arbor
+import Afferent.Arbor
 import Grove.App
 
 open Afferent
-open Arbor
+open Afferent.Arbor
 open Grove
 
 /-- Load directory contents and return as a message. -/
@@ -43,11 +43,11 @@ def loadTreeChildren (path : System.FilePath) (parentDepth : Nat) : IO (Array Tr
     return #[]
 
 /-- Custom app runner that handles IO-based messages. -/
-def runGrove (canvas : Canvas) (fontReg : FontRegistry) (fontId : Arbor.FontId)
+def runGrove (canvas : Canvas) (fontReg : FontRegistry) (fontId : Afferent.Arbor.FontId)
     (screenScale : Float) (initial : AppState) : IO Unit := do
   let mut c := canvas
   let mut model := initial
-  let mut capture : Arbor.CaptureState := {}
+  let mut capture : Afferent.Arbor.CaptureState := {}
   let mut prevLeftDown := false
   let mut needsLoad := true  -- Load initial directory
   let mut needsTreeLoad : Option Nat := none  -- Index of tree node needing children loaded
@@ -75,7 +75,7 @@ def runGrove (canvas : Canvas) (fontReg : FontRegistry) (fontId : Arbor.FontId)
       let (screenW, screenH) ← c.ctx.getCurrentSize
 
       -- Layout the UI
-      let measureResult ← Afferent.runWithFonts fontReg (Arbor.measureWidget ui.widget screenW screenH)
+      let measureResult ← Afferent.runWithFonts fontReg (Afferent.Arbor.measureWidget ui.widget screenW screenH)
       let layouts := Trellis.layout measureResult.node screenW screenH
 
       -- Handle mouse events
@@ -83,15 +83,15 @@ def runGrove (canvas : Canvas) (fontReg : FontRegistry) (fontId : Arbor.FontId)
       let buttons ← c.ctx.window.getMouseButtons
       let modsBits ← c.ctx.window.getModifiers
       let leftDown := (buttons &&& (1 : UInt8)) != (0 : UInt8)
-      let mods := Arbor.Modifiers.fromBitmask modsBits
+      let mods := Afferent.Arbor.Modifiers.fromBitmask modsBits
 
-      let mut events : Array Arbor.Event := #[]
+      let mut events : Array Afferent.Arbor.Event := #[]
       if leftDown && !prevLeftDown then
-        events := events.push (.mouseDown (Arbor.MouseEvent.mk' mx my .left mods))
+        events := events.push (.mouseDown (Afferent.Arbor.MouseEvent.mk' mx my .left mods))
       if leftDown then
-        events := events.push (.mouseMove (Arbor.MouseEvent.mk' mx my .left mods))
+        events := events.push (.mouseMove (Afferent.Arbor.MouseEvent.mk' mx my .left mods))
       if !leftDown && prevLeftDown then
-        events := events.push (.mouseUp (Arbor.MouseEvent.mk' mx my .left mods))
+        events := events.push (.mouseUp (Afferent.Arbor.MouseEvent.mk' mx my .left mods))
 
       -- Handle keyboard events
       -- Compute viewport info for scroll and page navigation
@@ -209,7 +209,7 @@ def runGrove (canvas : Canvas) (fontReg : FontRegistry) (fontId : Arbor.FontId)
 
       -- Process mouse events
       for ev in events do
-        let (cap', msgs) := Arbor.dispatchEvent ev measureResult.widget layouts ui.handlers capture
+        let (cap', msgs) := Afferent.Arbor.dispatchEvent ev measureResult.widget layouts ui.handlers capture
         capture := cap'
         for _ in msgs do
           -- Handle click to select items

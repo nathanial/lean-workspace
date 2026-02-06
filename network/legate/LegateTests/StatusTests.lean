@@ -98,6 +98,4 @@ test "Status equality" := do
   ensure (s3 == s4) "same error statuses should be equal"
   ensure (s3 != s5) "different messages should not be equal"
 
-#generate_tests
-
 end LegateTests.StatusTests
