@@ -10,6 +10,14 @@ namespace LinalgTests.GeometryTests
 open Crucible
 open Linalg
 
+private def meshArea (mesh : Mesh) : Float := Id.run do
+  let mut area := 0.0
+  for i in [:mesh.triangleCount] do
+    match Mesh.triangle? mesh i with
+    | none => ()
+    | some tri => area := area + tri.area
+  return area
+
 testSuite "Ray"
 
 test "ray pointAt works correctly" := do
@@ -176,6 +184,42 @@ test "decomposition of empty mesh is empty" := do
   let mesh : Mesh := { vertices := #[], indices := #[] }
   let parts := ConvexDecomposition.decompose mesh
   ensure (parts.isEmpty) "empty mesh should produce no parts"
+
+testSuite "Convex Decomposition Exact"
+
+test "exact decomposition preserves area while splitting" := do
+  let vertices := #[
+    Vec3.mk (-1.0) 0.0 0.0,
+    Vec3.mk 1.0 0.0 0.0,
+    Vec3.mk 1.0 1.0 0.0,
+    Vec3.mk (-1.0) 1.0 0.0
+  ]
+  let indices := #[0, 1, 2, 0, 2, 3]
+  let mesh : Mesh := { vertices, indices }
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 6
+    minSplitExtent := 0.01
+    maxConcavity := 0.0
+    splitEpsilon := 1e-6
+  }
+  let parts := ConvexDecompositionExact.decompose mesh config
+  ensure (!parts.isEmpty) "expected split parts"
+  let totalArea := parts.foldl (fun acc piece => acc + meshArea piece.mesh) 0.0
+  let originalArea := meshArea mesh
+  let relErr := if originalArea > 1e-6 then Float.abs' (totalArea - originalArea) / originalArea else 0.0
+  ensure (relErr <= 1e-5) "piece areas should sum to original area"
+  for piece in parts do
+    ensure piece.mesh.isValid "piece mesh should be valid"
+    ensure (piece.mesh.triangleCount > 0) "piece should have triangles"
+
+test "exact decomposition rejects invalid mesh" := do
+  let mesh : Mesh := {
+    vertices := #[Vec3.mk 0.0 0.0 0.0]
+    indices := #[0, 1, 2]
+  }
+  let parts := ConvexDecompositionExact.decompose mesh
+  ensure parts.isEmpty "invalid mesh should produce no parts"
 
 testSuite "Collision3D"
 

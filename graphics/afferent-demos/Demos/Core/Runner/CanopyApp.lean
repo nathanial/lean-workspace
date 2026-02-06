@@ -66,6 +66,7 @@ def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
     { label := "Voronoi", content := voronoiDelaunayDualTabContent env },
     { label := "Hull", content := convexHull2DTabContent env },
     { label := "ConvexD", content := convexDecompositionTabContent env },
+    { label := "ConvexX", content := convexDecompositionExactTabContent env },
     { label := "Hierarchy", content := transformHierarchyTabContent env },
     { label := "Bary", content := barycentricCoordinatesTabContent env },
     { label := "Frustum", content := frustumCullingDemoTabContent env },

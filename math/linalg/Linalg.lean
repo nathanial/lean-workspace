@@ -78,6 +78,7 @@ import Linalg.Geometry.Circle
 import Linalg.Geometry.Line2D
 import Linalg.Geometry.Polygon2D
 import Linalg.Geometry.ConvexDecomposition
+import Linalg.Geometry.ConvexDecompositionExact
 import Linalg.Geometry.ConvexHull3D
 import Linalg.Geometry.Intersection
 import Linalg.Geometry.Collision2D

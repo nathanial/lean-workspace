@@ -26,7 +26,7 @@ run-smoke:
 # On macOS, force system clang for framework linking used by graphics targets.
 run-project project:
     @if [[ "$$(uname -s)" == "Darwin" ]]; then \
-      /bin/zsh -lc 'LEAN_CC=/usr/bin/clang LIBRARY_PATH=/opt/homebrew/lib:$${LIBRARY_PATH:-} lake exe "{{project}}"'; \
+      /bin/zsh -lc 'SDKROOT="$$(xcrun --show-sdk-path)"; LEAN_CC=/usr/bin/clang LEAN_SYSROOT="$$SDKROOT" LIBRARY_PATH=/opt/homebrew/lib:$${LIBRARY_PATH:-} lake exe "{{project}}"'; \
     else \
       lake exe "{{project}}"; \
     fi
