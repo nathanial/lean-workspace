@@ -1,37 +1,49 @@
 # CLAUDE.md
 
-Lean 4 monorepo workspace (consolidated from many former project submodules).
+Lean 4 monorepo workspace.
 
 ## Current Build Model
 
 - Single root Lake file: `/Users/Shared/Projects/lean-workspace/lakefile.lean`
 - Single root toolchain: `/Users/Shared/Projects/lean-workspace/lean-toolchain`
-- Projects remain in category folders (`apps/`, `data/`, `graphics/`, etc.) with their source trees intact.
-- Former submodule repos are now plain directories in this repo. Do not use `git submodule` commands.
+- Projects are category folders in this repo (no submodules)
 
-## Commands
+## Core Commands
 
 Run from repository root:
 
 - `lake build`
 - `lake build workspace_smoke`
 - `lake exe workspace_smoke`
-- `just status`
-- `just smoke`
+- `just --list`
+- `just build`
+- `just test-all`
 
-Project-specific:
+Targeted tests:
 
-- `graphics/afferent-demos/build.sh afferent_demos`
-  - Rebuilds native static libraries in `.native-libs/`
-  - Runs `lake build afferent_demos` from workspace root
+- `just test-project <match>`
+- `just test-project-integration <match>`
 
-## Migration Notes
+Integration toggle:
 
-- Nested `lakefile.lean` files were removed.
-- Submodules were flattened into normal directories tracked by this root repo.
-- Some per-project `build.sh` / `test.sh` scripts still exist; prefer root-driven commands unless explicitly required.
+- `just test-all-integration`
 
-## Project Categories
+## Test Harness Notes
+
+`scripts/test-all.sh`:
+
+- stops on first failure
+- supports filtering via `MATCH`
+- includes integration suites only when `INCLUDE_INTEGRATION=1`
+- falls back from `lake env lean --run` to `lake exe` for FFI-heavy suites
+- builds native fallback archives via `scripts/build-native-libs.sh`
+
+## Native/Project Notes
+
+- `graphics/afferent-demos`: `graphics/afferent-demos/build.sh afferent_demos`
+- Run app executables from root (example: `lake exe eschaton`)
+
+## Categories
 
 - Graphics
 - Web

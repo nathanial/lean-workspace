@@ -4,48 +4,60 @@ Lean 4 monorepo workspace.
 
 ## Monorepo Status
 
-- Former project submodules were removed.
-- All projects are normal directories tracked by this root repo.
+- Former per-project submodules were removed.
+- All projects are regular directories tracked by this root repo.
 - Do not use `git submodule` commands.
 
 ## Layout
 
-Projects are grouped by category folders:
+Projects live under category folders:
 
-- `graphics/`
-- `web/`
-- `network/`
-- `data/`
 - `apps/`
-- `util/`
-- `math/`
 - `audio/`
+- `data/`
+- `graphics/`
+- `math/`
+- `network/`
 - `testing/`
-
-Each project keeps its Lean sources in-place (for example `graphics/terminus/Terminus/...`).
+- `util/`
+- `web/`
 
 ## Lake Configuration
 
 - Single root Lake file: `/Users/Shared/Projects/lean-workspace/lakefile.lean`
 - Single root toolchain file: `/Users/Shared/Projects/lean-workspace/lean-toolchain`
-- Nested `lakefile.lean` files were removed.
 
 ## Build & Test
 
-Run from repository root unless noted:
+Run from repository root unless noted.
+
+Build:
 
 - `lake build`
 - `lake build workspace_smoke`
 - `lake exe workspace_smoke`
 
+Testing:
+
+- `just test-all` (recommended)
+- `just test-project <match>` for targeted runs
+- `just test-all-integration` to include integration suites
+- `just test-project-integration <match>` for targeted integration runs
+
+`scripts/test-all.sh` behavior:
+
+- stops on first failure
+- uses `MATCH` substring filtering for project selection
+- falls back to `lake exe` when interpreter-mode `lean --run` cannot load native FFI
+- builds fallback native archives via `scripts/build-native-libs.sh` as needed
+
 Project-specific note:
 
 - `graphics/afferent-demos`: run `graphics/afferent-demos/build.sh afferent_demos`
-  - This rebuilds required native static libs in `.native-libs/` and then builds `afferent_demos`.
 
 ## Coding Style
 
-- PascalCase modules matching namespace (`Legate/Stream.lean`, `Terminus/Widgets/Button.lean`)
+- PascalCase modules matching namespace
 - 2-space indentation
 - Keep FFI wrappers minimal in `ffi/` or `native/`
 
@@ -58,7 +70,7 @@ Short, lowercase, imperative style:
 
 ## Issue Tracking (tracker)
 
-Use `tracker` CLI at workspace root. Outputs text by default (use `-j` for JSON).
+Use `tracker` at workspace root:
 
 - `tracker list`
 - `tracker show <id>`
@@ -66,8 +78,9 @@ Use `tracker` CLI at workspace root. Outputs text by default (use `-j` for JSON)
 - `tracker progress <id> "Found root cause"`
 - `tracker close <id> "Fixed in commit X"`
 
-Issues are stored in `.issues/`. Do not commit `.issues/` changes.
+Do not commit `.issues/` changes.
 
 ## Important
 
-Commit and push from workspace root.
+- Commit and push from workspace root.
+- Keep documentation and root scripts in sync with monorepo behavior.
