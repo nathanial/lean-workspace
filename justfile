@@ -55,6 +55,10 @@ test-project project:
 test-project-integration project:
     INCLUDE_INTEGRATION=1 MATCH="{{project}}" ./scripts/test-all.sh
 
+# Count lines of code (excludes .lake and references/)
+loc:
+    ./scripts/loc.sh
+
 # Clean root lake artifacts
 clean:
     lake clean
