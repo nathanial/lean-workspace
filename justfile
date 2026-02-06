@@ -22,6 +22,15 @@ smoke:
 run-smoke:
     lake exe workspace_smoke
 
+# Run a specific Lake executable target from monorepo root
+# On macOS, force system clang for framework linking used by graphics targets.
+run-project project:
+    @if [[ "$$(uname -s)" == "Darwin" ]]; then \
+      /bin/zsh -lc 'LEAN_CC=/usr/bin/clang LIBRARY_PATH=/opt/homebrew/lib:$${LIBRARY_PATH:-} lake exe "{{project}}"'; \
+    else \
+      lake exe "{{project}}"; \
+    fi
+
 # Run package test driver (currently linalg suite)
 test:
     lake test
