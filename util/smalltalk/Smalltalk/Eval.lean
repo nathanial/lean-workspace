@@ -534,7 +534,7 @@ mutual
   partial def evalBlockValue (state : ExecState) (blockVal : Value) (args : List Value)
       : Except EvalError (ExecState × Value) := do
     match blockVal with
-    | .block params temps body capturedEnv capturedSelf =>
+    | .block params temps body _capturedEnv capturedSelf =>
         if params.length != args.length then
           .error { message := s!"Block expects {params.length} arguments, got {args.length}" }
         else

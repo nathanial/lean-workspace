@@ -263,7 +263,7 @@ test "worker pool processes jobs via command stream" := do
 
   shouldBe result (some 10)
 
-test "worker pool processes in priority order" := do
+test "worker pool orders queued jobs by priority without assuming preemption timing" := do
   let result ← runSpider do
     let config : WorkerPoolConfig := { workerCount := 1 }  -- Single worker for deterministic order
     let resultsRef ← SpiderM.liftIO <| IO.mkRef ([] : List Nat)
@@ -274,8 +274,8 @@ test "worker pool processes in priority order" := do
     let _ ← pool.completed.subscribe fun (_, _, r) =>
       resultsRef.modify (· ++ [r])
 
-    -- Submit in reverse priority order (with unique IDs)
-    -- All jobs are queued before any processing begins
+    -- Submit in reverse priority order (with unique IDs).
+    -- The pool is non-preemptive: the first submitted job may start immediately.
     SpiderM.liftIO <| fireCmd (.submit 1 3 1)  -- ID 1, job 3, priority 1 (low)
     SpiderM.liftIO <| fireCmd (.submit 2 2 5)  -- ID 2, job 2, priority 5 (high)
     SpiderM.liftIO <| fireCmd (.submit 3 1 3)  -- ID 3, job 1, priority 3 (medium)
@@ -284,8 +284,10 @@ test "worker pool processes in priority order" := do
     SpiderM.liftIO handle.shutdown
     SpiderM.liftIO resultsRef.get
 
-  -- Should process in priority order: job 2 (pri 5), job 1 (pri 3), job 3 (pri 1)
-  shouldBe result [2, 1, 3]
+  -- Depending on scheduling, either:
+  -- 1) first submit starts immediately => [3, 2, 1], or
+  -- 2) all submits queue before pickup   => [2, 1, 3].
+  shouldSatisfy (result == [3, 2, 1] || result == [2, 1, 3]) s!"unexpected order: {result}"
 
 test "worker pool graceful shutdown stops new jobs" := do
   let startedRef ← IO.mkRef (0 : Nat)

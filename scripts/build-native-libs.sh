@@ -12,6 +12,7 @@ mkdir -p \
   .native-libs/obj/chronos \
   .native-libs/obj/conduit \
   .native-libs/obj/crypt \
+  .native-libs/obj/selene \
   .native-libs/obj/terminus \
   .native-libs/obj/jack \
   .native-libs/obj/quarry \
@@ -89,6 +90,23 @@ mkdir -p .native-libs/obj/crypt
   -I"$LEAN_PREFIX/include" \
   -I/opt/homebrew/include
 /usr/bin/libtool -static -o .native-libs/lib/libcrypt_native.a .native-libs/obj/crypt/crypt_ffi.o
+
+# Selene native library (vendored Lua + FFI)
+rm -rf .native-libs/obj/selene
+mkdir -p .native-libs/obj/selene
+for src in util/selene/native/lua/*.c; do
+  base="$(basename "$src")"
+  if [[ "$base" == "lua.c" || "$base" == "luac.c" ]]; then
+    continue
+  fi
+
+  /usr/bin/clang -std=gnu99 -DLUA_COMPAT_5_3 -c "$src" -o ".native-libs/obj/selene/${base%.c}.o" \
+    -Iutil/selene/native/lua
+done
+/usr/bin/clang -std=gnu99 -c util/selene/native/src/selene_ffi.c -o .native-libs/obj/selene/selene_ffi.o \
+  -I"$LEAN_PREFIX/include" \
+  -Iutil/selene/native/lua
+/usr/bin/libtool -static -o .native-libs/lib/libselene_native.a .native-libs/obj/selene/*.o
 
 # Terminus native library
 rm -rf .native-libs/obj/terminus

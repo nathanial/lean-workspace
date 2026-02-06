@@ -128,7 +128,7 @@ def renderModulePage (mod : DocModule) (project : DocProject) (config : Config)
       renderItem item config
 
 /-- Render index page -/
-def renderIndexPage (project : DocProject) (config : Config)
+def renderIndexPage (project : DocProject) (_config : Config)
     (sidebar : HtmlM Unit) : HtmlM Unit := do
   layout project.name project.name sidebar do
     h1 [] do HtmlM.text project.name

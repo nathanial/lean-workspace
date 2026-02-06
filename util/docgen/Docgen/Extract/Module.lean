@@ -29,7 +29,7 @@ def extractDocItem (env : Environment) (name : Name) (info : ConstantInfo) : IO 
   }
 
 /-- Extract all items for a module -/
-def extractModuleItems (env : Environment) (config : Config) (modName : Name)
+def extractModuleItems (env : Environment) (config : Config) (_modName : Name)
     (constants : Array (Name × ConstantInfo)) : IO (Array DocItem) := do
   let mut items := #[]
 

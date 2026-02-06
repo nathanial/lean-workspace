@@ -17,7 +17,7 @@ def getDocStringIO (env : Environment) (name : Name) : IO (Option String) :=
   findDocString? env name
 
 /-- Get the module doc string (/-! ... -/) -/
-def getModuleDoc (env : Environment) (modName : Name) : Option String :=
+def getModuleDoc (_env : Environment) (_modName : Name) : Option String :=
   -- Module docs are typically stored in the module
   -- For now, return none - proper extraction requires more work
   none

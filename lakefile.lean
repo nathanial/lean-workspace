@@ -1001,6 +1001,10 @@ lean_exe util_rune_tests_exe where
 lean_exe util_selene_tests_exe where
   srcDir := "util/selene"
   root := `SeleneTests.Main
+  moreLinkArgs := #[
+    ".native-libs/lib/libselene_native.a",
+    "-lm"
+  ]
 
 lean_exe util_sift_tests_exe where
   srcDir := "util/sift"
