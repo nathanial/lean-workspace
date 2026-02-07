@@ -6,6 +6,7 @@ import Reactive
 import Afferent.Canopy.Core
 import Afferent.Canopy.Theme
 import Afferent.Canopy.Reactive.Component
+import Afferent.Text.Measurer
 
 namespace Afferent.Canopy
 
@@ -182,6 +183,7 @@ inductive ScrollInputEvent where
 def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
     : WidgetM (α × ScrollContainerResult) := do
   let theme ← getThemeW
+  let fontRegistry ← getFontRegistry
   let name ← registerComponentW "scroll-container"
   let scrollEvents ← useScroll name
   let allClicks ← useAllClicks
@@ -289,12 +291,57 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
       -- Build the child column (fill width for vertical-only scroll)
       let childStyle : BoxStyle := if config.horizontalScroll then {} else { width := .percent 1.0 }
       let childBuilder := column (gap := 0) (style := childStyle) widgets
-      -- Run the builder to measure actual widget count
+      -- Build a temporary widget tree and measure true content size.
       let (builtChild, _builderState) ← childBuilder.run {}
-      let widgetCount := builtChild.widgetCount
-      -- Estimate height based on actual widget count (28px per widget)
-      let contentH := max config.height (widgetCount.toFloat * 28.0)
-      let contentW := config.width
+      let measureW := config.width
+      let measureAt := fun (availableH : Float) => do
+        let measured ← Afferent.runWithFonts fontRegistry
+          (Afferent.Arbor.measureWidget builtChild measureW availableH)
+        let layouts := Trellis.layout measured.node measureW availableH
+        let rootLayout := layouts.get measured.node.id
+        let rootW := rootLayout.map (·.borderRect.width) |>.getD config.width
+        let rootH := rootLayout.map (·.borderRect.height) |>.getD config.height
+        let childIds := measured.node.children.flatMap Trellis.LayoutNode.allIds
+        let (measuredW, measuredH) :=
+          if childIds.isEmpty then
+            (rootW, rootH)
+          else
+            let initMinX := rootLayout.map (·.borderRect.x) |>.getD 0
+            let initMinY := rootLayout.map (·.borderRect.y) |>.getD 0
+            let initMaxX := rootLayout.map (fun l => l.borderRect.x + l.borderRect.width) |>.getD rootW
+            let initMaxY := rootLayout.map (fun l => l.borderRect.y + l.borderRect.height) |>.getD rootH
+            let (minX, minY, maxX, maxY, foundAny) := childIds.foldl
+              (fun (acc : Float × Float × Float × Float × Bool) id =>
+                let (currMinX, currMinY, currMaxX, currMaxY, found) := acc
+                match layouts.get id with
+                | none => acc
+                | some cl =>
+                  let rect := cl.borderRect
+                  let rMaxX := rect.x + rect.width
+                  let rMaxY := rect.y + rect.height
+                  if found then
+                    (min currMinX rect.x, min currMinY rect.y, max currMaxX rMaxX, max currMaxY rMaxY, true)
+                  else
+                    (rect.x, rect.y, rMaxX, rMaxY, true)
+              )
+              (initMinX, initMinY, initMaxX, initMaxY, false)
+            if foundAny then
+              (max 0 (maxX - minX), max 0 (maxY - minY))
+            else
+              (rootW, rootH)
+        pure (measuredW, measuredH)
+      -- First pass uses a large height probe to capture naturally tall content.
+      -- If the content resolves to nearly the probe itself (e.g., percent-height/grow feedback),
+      -- fall back to viewport-constrained measurement to avoid runaway scroll ranges.
+      let probeH : Float := 1000000
+      let (probeW, probeContentH) ← measureAt probeH
+      let (measuredContentW, measuredContentH) ←
+        if probeContentH >= probeH * 0.9 then
+          measureAt config.height
+        else
+          pure (probeW, probeContentH)
+      let contentW := if config.horizontalScroll then max config.width measuredContentW else config.width
+      let contentH := if config.verticalScroll then max config.height measuredContentH else config.height
       contentSizeRef.set (contentW, contentH)
       -- Pass the builder (not the built widget) so IDs are fresh
       pure (scrollContainerVisual name config theme state.scroll contentW contentH childBuilder)

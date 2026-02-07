@@ -188,7 +188,9 @@ def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : 
               caption' s!"Blocks: {natListText issue.blocks}"
               spacer' 0 6
               heading3' "Description"
-              bodyText' (if issue.description.isEmpty then "(no description)" else issue.description)
+              let theme ← getThemeW
+              let description := if issue.description.isEmpty then "(no description)" else issue.description
+              emit (pure (bodyText description theme (maxWidth := some 760)))
               spacer' 0 6
               heading3' s!"Progress ({issue.progress.size})"
               if issue.progress.isEmpty then

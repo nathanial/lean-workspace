@@ -630,6 +630,23 @@ def mkScrollLayout (widgetId : WidgetId) (x y width height : Float) : LayoutResu
   }
   LayoutResult.empty.add layout
 
+/-- Extract all fill rects emitted with a specific color. -/
+def fillRectsWithColor (cmds : Array RenderCommand) (target : Color) : Array Rect := Id.run do
+  let mut rects : Array Rect := #[]
+  for cmd in cmds do
+    match cmd with
+    | .fillRect rect color _ =>
+      if color == target then
+        rects := rects.push rect
+    | _ => pure ()
+  rects
+
+/-- Measure, layout, and collect render commands for a widget at a viewport size. -/
+def collectForViewport (widget : Widget) (viewportW viewportH : Float) : Array RenderCommand :=
+  let measured : MeasureResult := measureWidget (M := Id) widget viewportW viewportH
+  let layouts := Trellis.layout measured.node viewportW viewportH
+  collectCommands measured.widget layouts
+
 test "FRP: scrollContainer responds to scroll wheel events" := do
   let result ← runSpider do
     let (events, inputs) ← createInputs FontRegistry.empty testTheme
@@ -677,6 +694,178 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
   -- Scroll wheel with deltaY=-3, speed=20 should increase offset by 60
   -- (Scroll.lean negates deltaY, so -3 * -20 = +60)
   ensure (result > 0.0) s!"Offset should increase after scroll, got {result}"
+
+test "FRP: scrollContainer measures actual content height" := do
+  let measuredContentH ← runSpider do
+    let (events, _) ← createInputs FontRegistry.empty testTheme
+    let config : ScrollContainerConfig := {
+      width := 300
+      height := 150
+      verticalScroll := true
+    }
+
+    let (_, state) ← (do
+      let _ ← scrollContainer config do
+        emit (pure (coloredBox Tincture.Color.red 280 600))
+        pure ()
+      pure ()
+    ).run { children := #[] } |>.run events
+
+    ensure (state.children.size == 1)
+      s!"Expected exactly one emitted child render, got {state.children.size}"
+
+    let builder ← state.children[0]!
+    let (widget, _) ← builder.run {}
+    match widget with
+    | .scroll _ _ _ _ _ contentH _ _ =>
+      pure contentH
+    | _ =>
+      ensure false "Expected root widget to be scroll"
+      pure 0.0
+
+  -- Regression guard: old heuristic path would clamp to viewport height (150).
+  ensure (measuredContentH >= 580.0)
+    s!"Expected measured content height near tall child height, got {measuredContentH}"
+
+test "FRP: scrollContainer measurement avoids runaway percent-height content" := do
+  let measuredContentH ← runSpider do
+    let (events, _) ← createInputs FontRegistry.empty testTheme
+    let config : ScrollContainerConfig := {
+      width := 300
+      height := 150
+      verticalScroll := true
+    }
+
+    let (_, state) ← (do
+      let _ ← scrollContainer config do
+        -- A percent-height child should not expand to an arbitrary probe height.
+        emit (pure (box { height := .percent 1.0 }))
+        pure ()
+      pure ()
+    ).run { children := #[] } |>.run events
+
+    ensure (state.children.size == 1)
+      s!"Expected exactly one emitted child render, got {state.children.size}"
+
+    let builder ← state.children[0]!
+    let (widget, _) ← builder.run {}
+    match widget with
+    | .scroll _ _ _ _ _ contentH _ _ =>
+      pure contentH
+    | _ =>
+      ensure false "Expected root widget to be scroll"
+      pure 0.0
+
+  ensure (measuredContentH < 5000.0)
+    s!"Content height ballooned unexpectedly: {measuredContentH}"
+
+test "scrollbar geometry: thumb height follows viewport/content ratio" := do
+  let viewportW := 300.0
+  let viewportH := 200.0
+  let contentH := 800.0
+  let trackColor : Color := ⟨0.11, 0.22, 0.33, 1.0⟩
+  let thumbColor : Color := ⟨0.77, 0.66, 0.55, 1.0⟩
+  let scrollbarConfig : ScrollbarRenderConfig := {
+    showVertical := true
+    showHorizontal := false
+    thickness := 8.0
+    minThumbLength := 30.0
+    cornerRadius := 4.0
+    trackColor := trackColor
+    thumbColor := thumbColor
+  }
+  let scrollWidget : Widget :=
+    .scroll 1 (some "geom-scroll")
+      { minWidth := some viewportW, minHeight := some viewportH }
+      { offsetY := 0.0 }
+      viewportW
+      contentH
+      scrollbarConfig
+      (.spacer 2 none viewportW contentH)
+
+  let cmds := collectForViewport scrollWidget viewportW viewportH
+  let trackRects := fillRectsWithColor cmds trackColor
+  let thumbRects := fillRectsWithColor cmds thumbColor
+  ensure (trackRects.size == 1) s!"Expected 1 track rect, got {trackRects.size}"
+  ensure (thumbRects.size == 1) s!"Expected 1 thumb rect, got {thumbRects.size}"
+  let track := trackRects[0]!
+  let thumb := thumbRects[0]!
+
+  let expectedThumbHeight := max scrollbarConfig.minThumbLength (viewportH * (viewportH / contentH))
+  shouldBeNear track.height viewportH
+  shouldBeNear thumb.height expectedThumbHeight
+  shouldBeNear thumb.y track.y
+  shouldBeNear thumb.x track.x
+
+test "scrollbar geometry: thumb position follows scroll offset ratio" := do
+  let viewportW := 300.0
+  let viewportH := 200.0
+  let contentH := 800.0
+  let offsetY := 300.0
+  let trackColor : Color := ⟨0.13, 0.23, 0.31, 1.0⟩
+  let thumbColor : Color := ⟨0.73, 0.63, 0.53, 1.0⟩
+  let scrollbarConfig : ScrollbarRenderConfig := {
+    showVertical := true
+    showHorizontal := false
+    thickness := 8.0
+    minThumbLength := 30.0
+    cornerRadius := 4.0
+    trackColor := trackColor
+    thumbColor := thumbColor
+  }
+  let scrollWidget : Widget :=
+    .scroll 1 (some "geom-scroll-offset")
+      { minWidth := some viewportW, minHeight := some viewportH }
+      { offsetY := offsetY }
+      viewportW
+      contentH
+      scrollbarConfig
+      (.spacer 2 none viewportW contentH)
+
+  let cmds := collectForViewport scrollWidget viewportW viewportH
+  let trackRects := fillRectsWithColor cmds trackColor
+  let thumbRects := fillRectsWithColor cmds thumbColor
+  ensure (trackRects.size == 1) s!"Expected 1 track rect, got {trackRects.size}"
+  ensure (thumbRects.size == 1) s!"Expected 1 thumb rect, got {thumbRects.size}"
+  let track := trackRects[0]!
+  let thumb := thumbRects[0]!
+
+  let maxScrollY := contentH - viewportH
+  let scrollRatio := offsetY / maxScrollY
+  let thumbHeight := max scrollbarConfig.minThumbLength (viewportH * (viewportH / contentH))
+  let thumbTravel := viewportH - thumbHeight
+  let expectedOffset := thumbTravel * scrollRatio
+  shouldBeNear (thumb.y - track.y) expectedOffset
+
+test "scrollbar geometry: thumb respects minimum size for very large content" := do
+  let viewportW := 300.0
+  let viewportH := 200.0
+  let contentH := 20000.0
+  let trackColor : Color := ⟨0.19, 0.21, 0.41, 1.0⟩
+  let thumbColor : Color := ⟨0.81, 0.61, 0.51, 1.0⟩
+  let scrollbarConfig : ScrollbarRenderConfig := {
+    showVertical := true
+    showHorizontal := false
+    thickness := 8.0
+    minThumbLength := 30.0
+    cornerRadius := 4.0
+    trackColor := trackColor
+    thumbColor := thumbColor
+  }
+  let scrollWidget : Widget :=
+    .scroll 1 (some "geom-scroll-min-thumb")
+      { minWidth := some viewportW, minHeight := some viewportH }
+      { offsetY := 0.0 }
+      viewportW
+      contentH
+      scrollbarConfig
+      (.spacer 2 none viewportW contentH)
+
+  let cmds := collectForViewport scrollWidget viewportW viewportH
+  let thumbRects := fillRectsWithColor cmds thumbColor
+  ensure (thumbRects.size == 1) s!"Expected 1 thumb rect, got {thumbRects.size}"
+  let thumb := thumbRects[0]!
+  shouldBeNear thumb.height scrollbarConfig.minThumbLength
 
 test "FRP: click events are received by scrollContainer" := do
   let result ← runSpider do
