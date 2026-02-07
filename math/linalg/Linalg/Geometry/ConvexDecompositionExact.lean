@@ -251,8 +251,9 @@ private partial def buildParts (mesh : Mesh) (depth : Nat)
   else
     let analysis := analyzePiece mesh
     let triCount := mesh.triangleCount
-    let limit := if config.maxTrianglesPerPart == 0 then triCount else config.maxTrianglesPerPart
-    if depth >= config.maxDepth || triCount <= limit || analysis.concavity <= config.maxConcavity then
+    let underTriangleLimit :=
+      config.maxTrianglesPerPart != 0 && triCount <= config.maxTrianglesPerPart
+    if depth >= config.maxDepth || underTriangleLimit || analysis.concavity <= config.maxConcavity then
       #[makePiece mesh analysis]
     else
       let axis := longestAxis analysis.centroidBounds

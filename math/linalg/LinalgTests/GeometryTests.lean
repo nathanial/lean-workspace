@@ -18,6 +18,174 @@ private def meshArea (mesh : Mesh) : Float := Id.run do
     | some tri => area := area + tri.area
   return area
 
+private def appendBox (verts : Array Vec3) (inds : Array Nat)
+    (center extents : Vec3) : Array Vec3 × Array Nat := Id.run do
+  let min := center - extents
+  let max := center + extents
+  let base := verts.size
+  let newVerts : Array Vec3 := #[
+    Vec3.mk min.x min.y min.z,
+    Vec3.mk max.x min.y min.z,
+    Vec3.mk max.x max.y min.z,
+    Vec3.mk min.x max.y min.z,
+    Vec3.mk min.x min.y max.z,
+    Vec3.mk max.x min.y max.z,
+    Vec3.mk max.x max.y max.z,
+    Vec3.mk min.x max.y max.z
+  ]
+  let boxIndices : Array Nat := #[
+    0, 1, 2,  0, 2, 3,
+    4, 6, 5,  4, 7, 6,
+    1, 5, 6,  1, 6, 2,
+    0, 3, 7,  0, 7, 4,
+    3, 2, 6,  3, 6, 7,
+    0, 4, 5,  0, 5, 1
+  ]
+  let mut outVerts := verts.append newVerts
+  let mut outInds := inds
+  for idx in boxIndices do
+    outInds := outInds.push (base + idx)
+  return (outVerts, outInds)
+
+private def bridgeMesh : Mesh := Id.run do
+  let mut verts : Array Vec3 := #[]
+  let mut inds : Array Nat := #[]
+  let (v0, i0) := appendBox verts inds (Vec3.mk (-1.3) 0.5 0.0) (Vec3.mk 0.4 0.9 0.4)
+  verts := v0
+  inds := i0
+  let (v1, i1) := appendBox verts inds (Vec3.mk 1.3 0.5 0.0) (Vec3.mk 0.4 0.9 0.4)
+  verts := v1
+  inds := i1
+  let (v2, i2) := appendBox verts inds (Vec3.mk 0.0 1.35 0.0) (Vec3.mk 1.6 0.22 0.4)
+  verts := v2
+  inds := i2
+  let (v3, i3) := appendBox verts inds (Vec3.mk 0.0 0.2 0.9) (Vec3.mk 0.65 0.25 0.35)
+  verts := v3
+  inds := i3
+  let (v4, i4) := appendBox verts inds (Vec3.mk 0.0 0.2 (-0.9)) (Vec3.mk 0.65 0.25 0.35)
+  verts := v4
+  inds := i4
+  return Mesh.fromVerticesIndices verts inds
+
+private def crossingQuadMesh : Mesh :=
+  let vertices := #[
+    Vec3.mk (-1.0) 0.0 (-1.0),
+    Vec3.mk 1.0 0.0 (-1.0),
+    Vec3.mk 1.0 0.0 1.0,
+    Vec3.mk (-1.0) 0.0 1.0
+  ]
+  let indices := #[0, 1, 2, 0, 2, 3]
+  { vertices, indices }
+
+private def tinyExtentMesh : Mesh :=
+  let vertices := #[
+    Vec3.mk 0.0 0.0 0.0,
+    Vec3.mk 0.01 0.0 0.0,
+    Vec3.mk 0.0 0.01 0.0,
+    Vec3.mk 0.02 0.0 0.0,
+    Vec3.mk 0.03 0.0 0.0,
+    Vec3.mk 0.02 0.01 0.0
+  ]
+  let indices := #[0, 1, 2, 3, 4, 5]
+  { vertices, indices }
+
+private def splitPlaneStressMesh : Mesh :=
+  let vertices := #[
+    Vec3.mk (-1.0) 0.0 (-1.0),      -- crosses plane, on-plane apex
+    Vec3.mk 0.0 0.7 0.0,
+    Vec3.mk 1.0 0.0 (-1.0),
+    Vec3.mk (-1.0) 0.0 1.0,         -- near-plane left
+    Vec3.mk (-0.000001) 0.001 0.2,
+    Vec3.mk (-0.000001) 0.0 1.0,
+    Vec3.mk 0.000001 0.0 1.0,       -- near-plane right
+    Vec3.mk 0.000001 0.001 0.2,
+    Vec3.mk 1.0 0.0 1.0
+  ]
+  let indices := #[
+    0, 1, 2,
+    3, 4, 5,
+    6, 7, 8
+  ]
+  { vertices, indices }
+
+private def sampleTriangleInterior (tri : Triangle) : Array Vec3 :=
+  #[
+    tri.v0 * 0.211 + tri.v1 * 0.337 + tri.v2 * 0.452,
+    tri.v0 * 0.419 + tri.v1 * 0.193 + tri.v2 * 0.388,
+    tri.v0 * 0.287 + tri.v1 * 0.266 + tri.v2 * 0.447
+  ]
+
+private def triangleContainsPoint3D (tri : Triangle) (p : Vec3) (eps : Float := 1e-5) : Bool :=
+  let n := tri.normal
+  if n.lengthSquared <= 1e-12 then
+    false
+  else
+    let planeDist := Float.abs' (n.normalize.dot (p - tri.v0))
+    let bc := tri.barycentric p
+    planeDist <= eps &&
+      bc.u >= -eps && bc.v >= -eps && bc.w >= -eps &&
+      bc.u <= 1.0 + eps && bc.v <= 1.0 + eps && bc.w <= 1.0 + eps
+
+private def meshContainsPoint3D (mesh : Mesh) (p : Vec3) (eps : Float := 1e-5) : Bool := Id.run do
+  for i in [:mesh.triangleCount] do
+    match Mesh.triangle? mesh i with
+    | none => ()
+    | some tri =>
+      if triangleContainsPoint3D tri p eps then
+        return true
+  return false
+
+private def surfaceSamples (mesh : Mesh) : Array Vec3 := Id.run do
+  let mut points : Array Vec3 := #[]
+  for i in [:mesh.triangleCount] do
+    match Mesh.triangle? mesh i with
+    | none => ()
+    | some tri =>
+      if tri.area > 1e-8 then
+        points := points ++ sampleTriangleInterior tri
+  return points
+
+private def coveringPieceCount (pieces : Array ExactConvexPiece) (p : Vec3) (eps : Float := 1e-5) : Nat :=
+  pieces.foldl (fun acc piece => if meshContainsPoint3D piece.mesh p eps then acc + 1 else acc) 0
+
+private def coveringProxyPieceCount (pieces : Array ConvexPiece) (p : Vec3) (tol : Float := 1e-4) : Nat :=
+  pieces.foldl (fun acc piece => if hullContainsPointTol piece.hull p tol then acc + 1 else acc) 0
+
+private def hullCentroid (hull : ConvexHull3D) : Vec3 :=
+  if hull.points.isEmpty then
+    Vec3.zero
+  else
+    hull.points.foldl (fun acc p => acc + p) Vec3.zero * (1.0 / hull.points.size.toFloat)
+
+private def hullPlanes (hull : ConvexHull3D) : Array (Vec3 × Float) := Id.run do
+  if hull.faces.isEmpty || hull.points.isEmpty then
+    return #[]
+  let center := hullCentroid hull
+  let mut planes : Array (Vec3 × Float) := #[]
+  for (a, b, c) in hull.faces do
+    let p0 := hull.points.getD a Vec3.zero
+    let p1 := hull.points.getD b Vec3.zero
+    let p2 := hull.points.getD c Vec3.zero
+    let mut n := (p1 - p0).cross (p2 - p0)
+    if n.lengthSquared <= 1e-10 then
+      continue
+    n := n.normalize
+    if n.dot (center - p0) > 0.0 then
+      n := -n
+    planes := planes.push (n, n.dot p0)
+  return planes
+
+private def hullContainsPointTol (hull : ConvexHull3D) (p : Vec3) (tol : Float := 1e-4) : Bool := Id.run do
+  let planes := hullPlanes hull
+  if planes.isEmpty then
+    return true
+  let mut maxDist := (-1.0e9)
+  for (n, d) in planes do
+    let s := n.dot p - d
+    if s > maxDist then
+      maxDist := s
+  return maxDist <= tol
+
 testSuite "Ray"
 
 test "ray pointAt works correctly" := do
@@ -220,6 +388,145 @@ test "exact decomposition rejects invalid mesh" := do
   }
   let parts := ConvexDecompositionExact.decompose mesh
   ensure parts.isEmpty "invalid mesh should produce no parts"
+
+test "exact decomposition sampled partition is disjoint and complete" := do
+  let mesh := crossingQuadMesh
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 6
+    minSplitExtent := 1e-4
+    maxConcavity := -1.0
+    splitEpsilon := 1e-6
+  }
+  let parts := ConvexDecompositionExact.decompose mesh config
+  ensure (parts.size >= 2) "expected at least two exact pieces"
+  let samples := surfaceSamples mesh
+  ensure (!samples.isEmpty) "expected surface samples"
+  for p in samples do
+    let n := coveringPieceCount parts p 1e-6
+    ensure (n == 1) "each surface sample should belong to exactly one exact piece"
+
+test "exact decomposition obeys maxDepth cap" := do
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 0
+    minSplitExtent := 0.001
+    maxConcavity := -1.0
+  }
+  let parts := ConvexDecompositionExact.decompose bridgeMesh config
+  ensure (parts.size == 1) "maxDepth=0 should prevent splitting"
+
+test "exact decomposition maxTrianglesPerPart=0 still allows concavity splitting" := do
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 0
+    maxDepth := 8
+    minSplitExtent := 0.01
+    maxConcavity := 0.0
+  }
+  let parts := ConvexDecompositionExact.decompose bridgeMesh config
+  ensure (parts.size > 1) "no triangle cap should still split on concavity"
+
+test "exact decomposition honors maxConcavity threshold" := do
+  let splitConfig : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 8
+    minSplitExtent := 0.01
+    maxConcavity := 0.0
+  }
+  let stopConfig : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 8
+    minSplitExtent := 0.01
+    maxConcavity := 10.0
+  }
+  let splitParts := ConvexDecompositionExact.decompose bridgeMesh splitConfig
+  let stopParts := ConvexDecompositionExact.decompose bridgeMesh stopConfig
+  ensure (splitParts.size > 1) "low concavity threshold should split bridge mesh"
+  ensure (stopParts.size == 1) "high concavity threshold should stop splitting"
+
+test "exact decomposition honors minSplitExtent threshold" := do
+  let stopConfig : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 6
+    minSplitExtent := 0.1
+    maxConcavity := -1.0
+  }
+  let splitConfig : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 6
+    minSplitExtent := 1e-6
+    maxConcavity := -1.0
+  }
+  let stopParts := ConvexDecompositionExact.decompose tinyExtentMesh stopConfig
+  let splitParts := ConvexDecompositionExact.decompose tinyExtentMesh splitConfig
+  ensure (stopParts.size == 1) "large minSplitExtent should block splitting"
+  ensure (splitParts.size >= 2) "small minSplitExtent should allow splitting"
+
+test "exact decomposition is robust near split plane" := do
+  let mesh := splitPlaneStressMesh
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 1
+    maxDepth := 6
+    minSplitExtent := 1e-7
+    maxConcavity := -1.0
+    splitEpsilon := 1e-7
+  }
+  let parts := ConvexDecompositionExact.decompose mesh config
+  ensure (!parts.isEmpty) "expected non-empty decomposition"
+  for piece in parts do
+    ensure piece.mesh.isValid "split piece must remain valid"
+    for i in [:piece.mesh.triangleCount] do
+      match Mesh.triangle? piece.mesh i with
+      | none => ensure false "piece triangle index should be valid"
+      | some tri => ensure (tri.area > 1e-10) "split should not emit degenerate triangles"
+  let totalArea := parts.foldl (fun acc piece => acc + meshArea piece.mesh) 0.0
+  let originalArea := meshArea mesh
+  let relErr := if originalArea > 1e-6 then Float.abs' (totalArea - originalArea) / originalArea else 0.0
+  ensure (relErr <= 1e-4) "near-plane splitting should preserve area"
+
+test "exact piece hull contains all piece vertices" := do
+  let config : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 2
+    maxDepth := 8
+    minSplitExtent := 0.01
+    maxConcavity := 0.0
+  }
+  let parts := ConvexDecompositionExact.decompose bridgeMesh config
+  ensure (!parts.isEmpty) "expected decomposition pieces"
+  for piece in parts do
+    ensure (piece.hull.pointCount > 0) "piece hull should have points"
+    for v in piece.mesh.vertices do
+      ensure (hullContainsPointTol piece.hull v 5e-4) "piece vertex should lie in piece hull"
+
+test "proxy hulls overlap while exact surfaces stay disjoint on samples" := do
+  let mesh := bridgeMesh
+  let proxyCfg : ConvexDecompositionConfig := {
+    maxTrianglesPerPart := 2
+    maxDepth := 8
+    minSplitExtent := 0.01
+  }
+  let exactCfg : ExactConvexDecompositionConfig := {
+    maxTrianglesPerPart := 2
+    maxDepth := 8
+    minSplitExtent := 0.01
+    maxConcavity := 0.0
+  }
+  let proxyPieces := ConvexDecomposition.decompose mesh proxyCfg
+  let exactPieces := ConvexDecompositionExact.decompose mesh exactCfg
+  ensure (!proxyPieces.isEmpty && !exactPieces.isEmpty) "expected both decompositions to produce pieces"
+  let samples := surfaceSamples mesh
+  ensure (!samples.isEmpty) "expected samples from source surface"
+  let mut sawProxyOverlap := false
+  let mut maxExactCoverage := 0
+  for p in samples do
+    let proxyCoverage := coveringProxyPieceCount proxyPieces p 1e-4
+    let exactCoverage := coveringPieceCount exactPieces p 1e-6
+    if proxyCoverage > 1 then
+      sawProxyOverlap := true
+    if exactCoverage > maxExactCoverage then
+      maxExactCoverage := exactCoverage
+  ensure sawProxyOverlap "expected overlapping proxy hull coverage on source samples"
+  ensure (maxExactCoverage <= 1) "exact pieces should not overlap on sampled source surface"
 
 testSuite "Collision3D"
 
