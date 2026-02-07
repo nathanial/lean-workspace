@@ -16,32 +16,36 @@ prune-merged-worktrees:
       echo "Local branch 'master' not found." >&2; \
       exit 1; \
     fi
-    @current_path="$$(pwd)"; \
+    @current_path="$(pwd)"; \
     removed=0; \
     path=""; \
     branch=""; \
+    worktree_list="$(mktemp)"; \
+    trap 'rm -f "$worktree_list"' EXIT; \
+    git worktree list --porcelain > "$worktree_list"; \
+    echo >> "$worktree_list"; \
     process_worktree() { \
-      if [[ -z "$$path" || -z "$$branch" || "$$branch" == "master" || "$$path" == "$$current_path" ]]; then \
+      if [[ -z "$path" || -z "$branch" || "$branch" == "master" || "$path" == "$current_path" ]]; then \
         return; \
       fi; \
-      if git merge-base --is-ancestor "$$branch" master; then \
-        echo "Removing $$path (branch $$branch merged into master)"; \
-        git worktree remove "$$path"; \
-        removed=$$((removed + 1)); \
+      if git merge-base --is-ancestor "$branch" master; then \
+        echo "Removing $path (branch $branch merged into master)"; \
+        git worktree remove "$path"; \
+        removed=$((removed + 1)); \
       fi; \
     }; \
     while IFS= read -r line; do \
-      if [[ -z "$$line" ]]; then \
+      if [[ -z "$line" ]]; then \
         process_worktree; \
         path=""; \
         branch=""; \
-      elif [[ "$$line" == worktree\ * ]]; then \
-        path="$${line#worktree }"; \
-      elif [[ "$$line" == branch\ refs/heads/* ]]; then \
-        branch="$${line#branch refs/heads/}"; \
+      elif [[ "$line" == worktree\ * ]]; then \
+        path="${line#worktree }"; \
+      elif [[ "$line" == branch\ refs/heads/* ]]; then \
+        branch="${line#branch refs/heads/}"; \
       fi; \
-    done < <(git worktree list --porcelain; echo); \
-    if [[ "$$removed" -eq 0 ]]; then \
+    done < "$worktree_list"; \
+    if [[ "$removed" -eq 0 ]]; then \
       echo "No merged worktrees found."; \
     fi
 
