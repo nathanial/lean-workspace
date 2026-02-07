@@ -22,14 +22,28 @@ open Afferent
 open Afferent.Canopy
 open Afferent.Canopy.Reactive
 
+private def toastSink (fireInfo fireSuccess fireError : String → IO Unit)
+    : ToastSink :=
+  fun level message =>
+    match level with
+    | .info => fireInfo message
+    | .success => fireSuccess message
+    | .error => fireError message
+
 def createApp : ReactiveM GuiApp := do
   let events ← getEvents
   let (actionEvent, fireAction) ← Reactive.newTriggerEvent (t := Spider) (a := Action)
 
+  let (toastInfoEvent, fireToastInfo) ← Reactive.newTriggerEvent (t := Spider) (a := String)
+  let (toastSuccessEvent, fireToastSuccess) ← Reactive.newTriggerEvent (t := Spider) (a := String)
+  let (toastErrorEvent, fireToastError) ← Reactive.newTriggerEvent (t := Spider) (a := String)
+
+  let toastDispatch := toastSink fireToastInfo fireToastSuccess fireToastError
+
   let modelDyn ← Reactive.foldDynM
     (fun action model => do
       let (nextModel, effects) := update model action
-      SpiderM.liftIO <| runEffects fireAction effects
+      SpiderM.liftIO <| runEffects fireAction toastDispatch effects
       pure nextModel)
     Model.initial
     actionEvent
@@ -46,7 +60,7 @@ def createApp : ReactiveM GuiApp := do
     column' (gap := 12) (style := rootStyle) do
       row' (gap := 12) (style := { width := .percent 1.0 }) do
         heading1' "Tracker"
-        caption' "GUI M2: read-only issue browser"
+        caption' "GUI M3: editable issue workflow"
 
       let search ← searchInput "Search issues..."
       let searchChangeAction ← Event.mapM (fun text => fireAction (.queryChanged text)) search.onChange
@@ -63,6 +77,14 @@ def createApp : ReactiveM GuiApp := do
 
       let _ ← dynWidget modelDyn fun model =>
         View.renderModelSections model fireAction
+
+      let toastMgr ← toastManager
+      let infoAction ← Event.mapM (fun msg => toastMgr.showInfo msg) toastInfoEvent
+      let successAction ← Event.mapM (fun msg => toastMgr.showSuccess msg) toastSuccessEvent
+      let errorAction ← Event.mapM (fun msg => toastMgr.showError msg) toastErrorEvent
+      performEvent_ infoAction
+      performEvent_ successAction
+      performEvent_ errorAction
 
   events.registry.setupFocusClearing
   SpiderM.liftIO <| fireAction .loadRequested

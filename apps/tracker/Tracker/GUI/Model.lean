@@ -41,6 +41,37 @@ def next : StatusFilter → StatusFilter
 
 end StatusFilter
 
+def nextPriority : Priority → Priority
+  | .low => .medium
+  | .medium => .high
+  | .high => .critical
+  | .critical => .low
+
+def nextStatus : Status → Status
+  | .open_ => .inProgress
+  | .inProgress => .closed
+  | .closed => .open_
+
+private def dedupStrings (values : Array String) : Array String := Id.run do
+  let mut out : Array String := #[]
+  for value in values do
+    if !out.contains value then
+      out := out.push value
+  out
+
+def parseLabelsCsv (input : String) : Array String :=
+  let raw := input.splitOn "," |>.toArray
+  let trimmed := raw.map Util.trim
+  let nonEmpty := trimmed.filter (fun s => !s.isEmpty)
+  dedupStrings nonEmpty
+
+def labelsCsv (labels : Array String) : String :=
+  String.intercalate ", " labels.toList
+
+def emptyAsNone (s : String) : Option String :=
+  let trimmed := Util.trim s
+  if trimmed.isEmpty then none else some trimmed
+
 structure Model where
   focusPane : FocusPane := .issues
   root : Option System.FilePath := none
@@ -52,6 +83,22 @@ structure Model where
   loading : Bool := false
   error : Option String := none
   status : String := "Idle"
+
+  createTitle : String := ""
+  createDescription : String := ""
+  createAssignee : String := ""
+  createLabels : String := ""
+  createPriority : Priority := .medium
+
+  editTitle : String := ""
+  editDescription : String := ""
+  editAssignee : String := ""
+  editLabels : String := ""
+  editPriority : Priority := .medium
+  editStatus : Status := .open_
+
+  progressMessage : String := ""
+  closeComment : String := ""
   deriving Repr, Inhabited
 
 def Model.initial : Model := { status := "Starting GUI..." }
@@ -96,6 +143,28 @@ def Model.normalizeSelection (model : Model) : Model :=
 def Model.selectedIssue? (model : Model) : Option Issue := do
   let selectedId ← model.selectedIssueId
   model.issues.find? (fun issue => issue.id == selectedId)
+
+/-- Sync editor draft fields from currently selected issue. -/
+def Model.syncEditorFromSelection (model : Model) : Model :=
+  match model.selectedIssue? with
+  | none =>
+    { model with
+      editTitle := ""
+      editDescription := ""
+      editAssignee := ""
+      editLabels := ""
+      editPriority := .medium
+      editStatus := .open_
+    }
+  | some issue =>
+    { model with
+      editTitle := issue.title
+      editDescription := issue.description
+      editAssignee := issue.assignee.getD ""
+      editLabels := labelsCsv issue.labels
+      editPriority := issue.priority
+      editStatus := issue.status
+    }
 
 def Model.filteredCount (model : Model) : Nat :=
   model.filteredIssues.size
