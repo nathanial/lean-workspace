@@ -26,6 +26,34 @@ private def snapTextPosition (x y : Float) (transform : Transform) : (Float × F
   else
     (x, y)
 
+/-- Clip stack operation represented by render commands.
+    Kept explicit to make clip semantics easy to test and prevent regressions. -/
+inductive ClipStackAction where
+  | push (rect : Rect)
+  | pop
+deriving Repr, BEq, Inhabited
+
+namespace ClipStackAction
+
+/-- Apply a clip stack action to pure canvas state. -/
+def applyToState (action : ClipStackAction) (state : CanvasState) : CanvasState :=
+  match action with
+  | .push rect => state.pushClip rect
+  | .pop => state.popClip
+
+end ClipStackAction
+
+/-- Extract clip stack action for clip-related render commands. -/
+def clipStackAction? : RenderCommand → Option ClipStackAction
+  | .pushClip rect => some (.push rect)
+  | .popClip => some .pop
+  | _ => none
+
+private def executeClipStackAction (action : ClipStackAction) : CanvasM Unit :=
+  match action with
+  | .push rect => CanvasM.clip rect
+  | .pop => CanvasM.popClip
+
 /-- Execute a single RenderCommand using CanvasM.
     Requires a FontRegistry to resolve FontIds to Font handles. -/
 def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : CanvasM Unit := do
@@ -256,10 +284,10 @@ def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : C
         vertices indices vertexCount.toUInt32 screenWidth screenHeight
 
   | .pushClip rect =>
-    CanvasM.clip rect
+    executeClipStackAction (.push rect)
 
   | .popClip =>
-    CanvasM.popClip
+    executeClipStackAction .pop
 
   | .pushTranslate dx dy =>
     CanvasM.save
