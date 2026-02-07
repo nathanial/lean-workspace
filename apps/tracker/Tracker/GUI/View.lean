@@ -123,12 +123,14 @@ def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : 
             bodyText' "No issues match the current filter/search."
           else
             let listWidth : Float := 396
-            let listHeight : Float := 520
+            let listHeight : Float := 1200
             let itemHeight : Float := 34
             let theme ← getThemeW
             let listConfig : VirtualListConfig := {
               width := listWidth
               height := listHeight
+              fillWidth := true
+              fillHeight := true
               itemHeight := itemHeight
               overscan := 4
             }

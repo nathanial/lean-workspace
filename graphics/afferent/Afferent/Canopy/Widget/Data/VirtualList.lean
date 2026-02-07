@@ -21,6 +21,10 @@ structure VirtualListConfig where
   width : Float := 240
   /-- Viewport height in pixels. -/
   height : Float := 200
+  /-- Fill available height instead of using fixed pixel height. -/
+  fillHeight : Bool := false
+  /-- Fill available width instead of using fixed pixel width. -/
+  fillWidth : Bool := false
   /-- Fixed height for each row in pixels. -/
   itemHeight : Float := 28.0
   /-- Number of extra rows to render above and below the viewport. -/
@@ -46,6 +50,14 @@ structure VirtualListResult where
   /-- Fires when a visible item is clicked (item index). -/
   onItemClick : Reactive.Event Spider Nat
 
+/-- Internal state for virtual list scrolling + viewport tracking. -/
+private structure VirtualListState where
+  scroll : ScrollState := {}
+  drag : ScrollbarDragState := {}
+  viewportW : Float := 0
+  viewportH : Float := 0
+deriving Repr, BEq, Inhabited
+
 namespace VirtualList
 
 /-- Default virtual list configuration. -/
@@ -68,6 +80,8 @@ def toScrollConfig (itemCount : Nat) (config : VirtualListConfig) : ScrollContai
   let needs := needsScroll itemCount config
   { width := config.width
     height := config.height
+    fillHeight := config.fillHeight
+    fillWidth := config.fillWidth
     verticalScroll := needs
     horizontalScroll := false
     scrollSpeed := config.scrollSpeed
@@ -88,6 +102,9 @@ def visibleRange (itemCount : Nat) (config : VirtualListConfig) (scroll : Scroll
     let stop := min itemCount (start + visibleRows + overscan * 2)
     (start, stop)
 
+private def applyViewportHeightHint (config : VirtualListConfig) (viewportH : Float) : VirtualListConfig :=
+  { config with height := viewportH }
+
 end VirtualList
 
 /-- Wrap a list item with a consistent row height and name for hit testing. -/
@@ -102,6 +119,13 @@ def virtualListItemRow (name : String) (config : VirtualListConfig)
   }
   let c ← child
   pure (.flex wid (some name) props style #[c])
+
+private def viewportFromLayout? (name : String) (widget : Widget)
+    (layouts : Trellis.LayoutResult) : Option (Float × Float) := do
+  let widgetId ← findWidgetIdByName widget name
+  let layout ← layouts.get widgetId
+  let rect := layout.contentRect
+  some (rect.width, rect.height)
 
 /-- Create a virtual list that only renders visible items.
     `itemBuilder` should render content sized to `config.itemHeight` for correct scrolling.
@@ -141,17 +165,27 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
   let allInputEvents ← liftSpider (Event.leftmostM [wheelEvents, clickEvents, hoverEvents, mouseUpEvents])
 
   let combinedState ← Reactive.foldDynM
-    (fun (event : ScrollInputEvent) state => do
+    (fun (event : ScrollInputEvent) (state : VirtualListState) => do
+      let fallbackW := if state.viewportW > 0 then state.viewportW else scrollConfig.width
+      let fallbackH := if state.viewportH > 0 then state.viewportH else scrollConfig.height
       match event with
       | .wheel scrollData =>
+        let (viewportW, viewportH) :=
+          match viewportFromLayout? name scrollData.widget scrollData.layouts with
+          | some (w, h) => (w, h)
+          | none => (fallbackW, fallbackH)
         let dy :=
           if scrollConfig.verticalScroll then
             -scrollData.scroll.deltaY * scrollConfig.scrollSpeed
           else
             0
         let newScroll := state.scroll.scrollBy 0 dy
-          scrollConfig.width scrollConfig.height contentW contentH
-        pure { state with scroll := newScroll }
+          viewportW viewportH contentW contentH
+        pure { state with
+          scroll := newScroll
+          viewportW := viewportW
+          viewportH := viewportH
+        }
 
       | .click clickData =>
         match findWidgetIdByName clickData.widget name with
@@ -160,14 +194,27 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
           let y := clickData.click.y
           match clickData.layouts.get widgetId with
           | some layout =>
+            let contentRect := layout.contentRect
+            let viewportW := contentRect.width
+            let viewportH := contentRect.height
             match isInVerticalScrollbar scrollConfig layout x y with
             | some (relativeY, trackHeight) =>
               let newOffsetY := scrollOffsetFromTrackPosition relativeY trackHeight
-                scrollConfig.height contentH scrollConfig.scrollbarMinThumb
+                viewportH contentH scrollConfig.scrollbarMinThumb
               let newScroll := { state.scroll with offsetY := newOffsetY }
               let newDrag := { isDragging := true, dragStartY := y, initialOffsetY := newOffsetY }
-              pure { scroll := newScroll, drag := newDrag }
-            | none => pure { state with drag := {} }
+              pure {
+                scroll := newScroll
+                drag := newDrag
+                viewportW := viewportW
+                viewportH := viewportH
+              }
+            | none =>
+              pure { state with
+                drag := {}
+                viewportW := viewportW
+                viewportH := viewportH
+              }
           | none => pure state
         | none => pure state
 
@@ -178,13 +225,19 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
             match hoverData.layouts.get widgetId with
             | some layout =>
               let contentRect := layout.contentRect
+              let viewportW := contentRect.width
+              let viewportH := contentRect.height
               let trackY := contentRect.y
               let trackHeight := contentRect.height
               let relativeY := hoverData.y - trackY
               let newOffsetY := scrollOffsetFromTrackPosition relativeY trackHeight
-                scrollConfig.height contentH scrollConfig.scrollbarMinThumb
+                viewportH contentH scrollConfig.scrollbarMinThumb
               let newScroll := { state.scroll with offsetY := newOffsetY }
-              pure { state with scroll := newScroll }
+              pure { state with
+                scroll := newScroll
+                viewportW := viewportW
+                viewportH := viewportH
+              }
             | none => pure state
           | none => pure state
         else
@@ -193,11 +246,20 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
       | .mouseUp =>
         pure { state with drag := {} }
     )
-    ({} : ScrollCombinedState)
+    ({
+      scroll := {}
+      drag := {}
+      viewportW := scrollConfig.width
+      viewportH := scrollConfig.height
+    } : VirtualListState)
     allInputEvents
 
-  let scrollState ← Dynamic.mapM (fun s => s.scroll) combinedState
-  let visibleRange ← Dynamic.mapM (fun s => VirtualList.visibleRange itemCount config s.scroll) combinedState
+  let scrollState ← Dynamic.mapM (fun (s : VirtualListState) => s.scroll) combinedState
+  let visibleRange ← Dynamic.mapM (fun (s : VirtualListState) =>
+    let viewportH := if s.viewportH > 0 then s.viewportH else config.height
+    let hinted := VirtualList.applyViewportHeightHint config viewportH
+    VirtualList.visibleRange itemCount hinted s.scroll
+  ) combinedState
 
   -- Click handling: only check visible items.
   let (itemClickTrigger, fireItemClick) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
@@ -213,31 +275,38 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
   ) allClicks
   performEvent_ clickActions
 
-  let combined ← Dynamic.zipWithM Prod.mk scrollState visibleRange
-  let _ ← dynWidget combined fun (scroll, (start, stop)) => do
+  let combined ← Dynamic.zipWithM Prod.mk combinedState visibleRange
+  let _ ← dynWidget combined fun ((state, (start, stop)) : VirtualListState × (Nat × Nat)) => do
+    let viewportW := if state.viewportW > 0 then state.viewportW else scrollConfig.width
     let itemHeight := VirtualList.safeItemHeight config.itemHeight
     let topHeight := start.toFloat * itemHeight
     let bottomHeight := (itemCount - stop).toFloat * itemHeight
 
     let mut rows : Array WidgetBuilder := #[]
     if topHeight > 0 then
-      rows := rows.push (spacer config.width topHeight)
+      rows := rows.push (spacer viewportW topHeight)
     for i in [start:stop] do
       rows := rows.push (virtualListItemRow (itemNameFn i) config (itemBuilder i))
     if bottomHeight > 0 then
-      rows := rows.push (spacer config.width bottomHeight)
+      rows := rows.push (spacer viewportW bottomHeight)
 
     let contentStyle : BoxStyle := { width := .percent 1.0 }
     let listBuilder := column (gap := 0) (style := contentStyle) rows
 
     let scrollStyle : BoxStyle := {
-      minWidth := some scrollConfig.width
-      minHeight := some scrollConfig.height
-      maxWidth := some scrollConfig.width
-      maxHeight := some scrollConfig.height
+      width := if config.fillWidth then .percent 1.0 else .auto
+      height := if config.fillHeight then .percent 1.0 else .auto
+      minWidth := if config.fillWidth then none else some scrollConfig.width
+      minHeight := if config.fillHeight then none else some scrollConfig.height
+      maxWidth := if config.fillWidth then none else some scrollConfig.width
+      maxHeight := if config.fillHeight then none else some scrollConfig.height
+      flexItem := if config.fillHeight || config.fillWidth
+                  then some (Trellis.FlexItem.growing 1)
+                  else none
     }
     let scrollbarConfig := buildScrollbarConfig scrollConfig theme
-    emit (pure (namedScroll name scrollStyle contentW contentH scroll scrollbarConfig listBuilder))
+    let scrollW := if config.fillWidth && viewportW > 0 then viewportW else contentW
+    emit (pure (namedScroll name scrollStyle scrollW contentH state.scroll scrollbarConfig listBuilder))
 
   pure { scrollState, visibleRange, onItemClick := itemClickTrigger }
 
