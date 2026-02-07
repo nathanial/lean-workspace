@@ -156,9 +156,9 @@ mkdir -p .native-libs/obj/crypt
 # Selene native library (vendored Lua + FFI)
 rm -rf .native-libs/obj/selene
 mkdir -p .native-libs/obj/selene
-if ensure_selene_lua_sources; then
-  SELENE_LUA_SOURCES=(util/selene/native/lua/*.c)
-  for src in "${SELENE_LUA_SOURCES[@]}"; do
+SELENE_LUA_DIR="util/selene/native/lua"
+if [[ -d "$SELENE_LUA_DIR" ]] && compgen -G "$SELENE_LUA_DIR/*.c" > /dev/null; then
+  for src in "$SELENE_LUA_DIR"/*.c; do
     base="$(basename "$src")"
     if [[ "$base" == "lua.c" || "$base" == "luac.c" ]]; then
       continue
@@ -172,12 +172,7 @@ if ensure_selene_lua_sources; then
     -I"$SELENE_LUA_DIR"
   /usr/bin/libtool -static -o .native-libs/lib/libselene_native.a .native-libs/obj/selene/*.o
 else
-  echo "warning: building stub libselene_native.a (vendored Lua sources unavailable)" >&2
-  cat > .native-libs/obj/selene/selene_stub.c <<'EOF'
-void selene_native_stub(void) {}
-EOF
-  /usr/bin/clang -std=c11 -c .native-libs/obj/selene/selene_stub.c -o .native-libs/obj/selene/selene_stub.o
-  /usr/bin/libtool -static -o .native-libs/lib/libselene_native.a .native-libs/obj/selene/selene_stub.o
+  echo "Skipping Selene native library: vendored Lua sources not found at $SELENE_LUA_DIR"
 fi
 
 # Terminus native library
@@ -204,26 +199,22 @@ mkdir -p .native-libs/obj/jack
 # Quarry native library (uses vendored SQLite amalgamation)
 rm -rf .native-libs/obj/quarry
 mkdir -p .native-libs/obj/quarry
-if ensure_quarry_sqlite_sources; then
+QUARRY_SQLITE="data/quarry/native/sqlite/sqlite3.c"
+if [[ -f "$QUARRY_SQLITE" ]]; then
   /usr/bin/clang -std=c11 -c data/quarry/native/src/quarry_ffi.c -o .native-libs/obj/quarry/quarry_ffi.o \
     -I"$LEAN_PREFIX/include" \
-    -I"$QUARRY_SQLITE_DIR"
-  /usr/bin/clang -std=c11 -c "$QUARRY_SQLITE_DIR/sqlite3.c" -o .native-libs/obj/quarry/sqlite3.o \
+    -Idata/quarry/native/sqlite
+  /usr/bin/clang -std=c11 -c "$QUARRY_SQLITE" -o .native-libs/obj/quarry/sqlite3.o \
     -DSQLITE_THREADSAFE=1 \
     -DSQLITE_ENABLE_COLUMN_METADATA=1 \
     -DSQLITE_ENABLE_FTS5=1 \
     -DSQLITE_ENABLE_RTREE=1 \
-    -I"$QUARRY_SQLITE_DIR"
+    -Idata/quarry/native/sqlite
   /usr/bin/libtool -static -o .native-libs/lib/libquarry_native.a \
     .native-libs/obj/quarry/quarry_ffi.o \
     .native-libs/obj/quarry/sqlite3.o
 else
-  echo "warning: building stub libquarry_native.a (SQLite amalgamation unavailable)" >&2
-  cat > .native-libs/obj/quarry/quarry_stub.c <<'EOF'
-void quarry_native_stub(void) {}
-EOF
-  /usr/bin/clang -std=c11 -c .native-libs/obj/quarry/quarry_stub.c -o .native-libs/obj/quarry/quarry_stub.o
-  /usr/bin/libtool -static -o .native-libs/lib/libquarry_native.a .native-libs/obj/quarry/quarry_stub.o
+  echo "Skipping Quarry native library: vendored SQLite not found at $QUARRY_SQLITE"
 fi
 
 # Citadel native library (OpenSSL TLS bindings)
