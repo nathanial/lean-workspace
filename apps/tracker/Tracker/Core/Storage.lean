@@ -144,9 +144,6 @@ initialize sessionPoolRef : IO.Ref (Std.HashMap String Ledger.Persist.Persistent
 initialize nextIssueIdPoolRef : IO.Ref (Std.HashMap String Nat) ←
   IO.mkRef {}
 
-initialize issuesCacheRef : IO.Ref (Std.HashMap String (Array Issue)) ←
-  IO.mkRef {}
-
 private def putSession (config : Config) (pc : Ledger.Persist.PersistentConnection) : IO Unit := do
   sessionPoolRef.modify (·.insert (configKey config) pc)
 
@@ -159,19 +156,9 @@ private def dropSession (config : Config) : IO Unit := do
 private def dropNextIssueId (config : Config) : IO Unit := do
   nextIssueIdPoolRef.modify (·.erase (configKey config))
 
-private def putIssuesCache (config : Config) (issues : Array Issue) : IO Unit := do
-  issuesCacheRef.modify (·.insert (configKey config) issues)
-
-private def dropIssuesCache (config : Config) : IO Unit := do
-  issuesCacheRef.modify (·.erase (configKey config))
-
-private def getIssuesCache? (config : Config) : IO (Option (Array Issue)) := do
-  return (← issuesCacheRef.get)[configKey config]?
-
 private def resetSessionState (config : Config) : IO Unit := do
   dropSession config
   dropNextIssueId config
-  dropIssuesCache config
 
 private def getNextIssueId? (config : Config) : IO (Option Nat) := do
   return (← nextIssueIdPoolRef.get)[configKey config]?
@@ -205,7 +192,6 @@ private def applyTx (config : Config) (tx : Transaction) : IO (Except TxError Db
     return .error err
   | .ok (pc', _) =>
     putSession config pc'
-    dropIssuesCache config
     return .ok pc'.db
 
 /-- Set a cardinality-one attribute by retracting any existing value first. -/
@@ -490,7 +476,6 @@ private def migrateLegacyIssues (config : Config) : IO Unit := do
     putSession config pc'
     putNextIssueId config (nextIssueIdFromDb pc'.db)
     let migratedIssues := loadAllIssuesFromDb pc'.db
-    putIssuesCache config migratedIssues
     if migratedIssues.size != issues.size then
       throw (IO.userError s!"Migration verification failed: expected {issues.size}, got {migratedIssues.size}")
 
@@ -539,13 +524,8 @@ def nextIssueId (config : Config) : IO Nat := do
 /-- Load all issues from ledger storage. -/
 def loadAllIssues (config : Config) : IO (Array Issue) := do
   ensureReady config
-  match ← getIssuesCache? config with
-  | some issues => return issues
-  | none =>
-    let db ← loadDb config
-    let issues := loadAllIssuesFromDb db
-    putIssuesCache config issues
-    return issues
+  let db ← loadDb config
+  return loadAllIssuesFromDb db
 
 /-- Find an issue by ID. -/
 def findIssue (config : Config) (id : Nat) : IO (Option Issue) := do

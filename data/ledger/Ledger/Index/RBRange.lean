@@ -2,12 +2,19 @@
   Ledger.Index.RBRange
 
   Range query utilities for RBMap-based indexes.
-  Provides efficient range iteration with early termination.
+  Provides efficient range iteration with lower-bound seeking.
 -/
 
 import Batteries.Data.RBMap
 
 namespace Ledger.RBRange
+
+private def upperBoundByKey? {K V : Type} [Ord K]
+    (map : Batteries.RBMap K V compare) (cut : K → Ordering) : Option (K × V) :=
+  Batteries.RBSet.upperBoundP? map (fun (kv : K × V) => cut kv.1)
+
+private def strictGreaterCut {K : Type} [Ord K] (k : K) : K → Ordering :=
+  fun cand => if compare k cand == .lt then .lt else .gt
 
 /-- Collect values from an RBMap while a predicate holds on the key.
     Uses ForIn with early termination for efficiency.
@@ -44,27 +51,34 @@ def collectPairsWhile {K V : Type} [Ord K] (map : Batteries.RBMap K V compare)
       break
   return result.toList
 
-/-- Collect values from an RBMap starting from a lower bound while predicate holds.
-    The lower bound key is used to skip initial elements more efficiently.
-
-    Note: This still iterates from the beginning due to RBMap API limitations,
-    but terminates early once the range is exited.
-
-    For true O(log n + k), would need direct tree navigation which requires
-    RBNode access not exposed in the public RBMap API. -/
+/-- Collect values from an RBMap starting from a lower bound while predicate holds. -/
 def collectFromWhile {K V : Type} [Ord K] (map : Batteries.RBMap K V compare)
     (lower : K) (inRange : K → Bool) : List V := Id.run do
   let mut result : Array V := #[]
-  let mut started := false
-  for (k, v) in map do
-    -- Skip elements before the lower bound
-    if !started then
-      if compare k lower != .lt then
-        started := true
-    -- Once started, collect while in range
-    if started then
+  let mut next? := upperBoundByKey? map (fun k => compare lower k)
+  while true do
+    match next? with
+    | none => break
+    | some (k, v) =>
       if inRange k then
         result := result.push v
+        next? := upperBoundByKey? map (strictGreaterCut k)
+      else
+        break
+  return result.toList
+
+/-- Collect key-value pairs from an RBMap starting from a lower bound while predicate holds. -/
+def collectPairsFromWhile {K V : Type} [Ord K] (map : Batteries.RBMap K V compare)
+    (lower : K) (inRange : K → Bool) : List (K × V) := Id.run do
+  let mut result : Array (K × V) := #[]
+  let mut next? := upperBoundByKey? map (fun k => compare lower k)
+  while true do
+    match next? with
+    | none => break
+    | some (k, v) =>
+      if inRange k then
+        result := result.push (k, v)
+        next? := upperBoundByKey? map (strictGreaterCut k)
       else
         break
   return result.toList

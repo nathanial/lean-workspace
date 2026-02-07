@@ -9,7 +9,6 @@ import Ledger.Core.EntityId
 import Ledger.Core.Attribute
 import Ledger.Core.Value
 import Ledger.Core.Datom
-import Ledger.Core.Util
 import Ledger.Index.Manager
 import Ledger.Tx.Types
 import Ledger.Tx.Functions
@@ -288,48 +287,45 @@ def transact (db : Db) (tx : Transaction) (instant : Nat := 0) : Except TxError 
 def entity (db : Db) (e : EntityId) : DatomSeq :=
   db.indexes.datomsForEntity e
 
-/-- Filter datoms to get only visible (not retracted) values.
-    For each (entity, attr, value), check if the most recent datom is an assertion.
-    Returns values sorted by their latest txId descending (most recent first).
-
-    Implementation: O(n) using HashMap for grouping, then O(m log m) sort. -/
-private def filterVisible (datoms : List Datom) : List Value :=
-  let visible := Util.filterVisibleDatoms datoms
-  let sorted := visible.toArray.qsort (fun a b => a.tx.id > b.tx.id)
-  sorted.toList.map (·.value)
-
 /-- Get all values for a specific attribute of an entity.
     Only returns values that are currently asserted (not retracted). -/
 def get (db : Db) (e : EntityId) (a : Attribute) : List Value :=
   let datoms := db.indexes.datomsForEntityAttr e a
-  filterVisible datoms
+  -- Track latest tx/add status per value, then return visible values by recency.
+  let latestByValue : Std.HashMap Value (Nat × Bool) :=
+    datoms.foldl (init := {}) fun acc d =>
+      match acc[d.value]? with
+      | none => acc.insert d.value (d.tx.id, d.added)
+      | some (prevTxId, _) =>
+        if d.tx.id > prevTxId then acc.insert d.value (d.tx.id, d.added) else acc
+  let visible := latestByValue.toList.filterMap fun (v, (txId, added)) =>
+    if added then some (v, txId) else none
+  let sorted := visible.toArray.qsort (fun a b => a.2 > b.2)
+  sorted.toList.map Prod.fst
 
 /-- Get a single value for an attribute (assumes cardinality one).
     Returns the most recently asserted visible value. A value is visible
     if its latest datom is an assertion (not retracted).
 
-    Implementation: O(n) using HashMap for grouping instead of O(n²) list-based. -/
+    Implementation: O(n) single pass over grouped value states without sorting. -/
 def getOne (db : Db) (e : EntityId) (a : Attribute) : Option Value :=
-  let datoms := db.indexes.datomsForEntityAttr e a
-  -- Group datoms by value using HashMap: O(n)
-  let grouped : Std.HashMap Value (Array Datom) := datoms.foldl
-    (fun acc d =>
-      match acc[d.value]? with
-      | none => acc.insert d.value #[d]
-      | some ds => acc.insert d.value (ds.push d))
-    {}
-  -- For each value, check if visible (latest datom is assertion)
-  -- If visible, return (value, txId of that assertion)
-  let visibleWithTx : List (Value × Nat) := grouped.toList.filterMap fun (v, ds) =>
-    if h : ds.size > 0 then
-      -- Find datom with max tx
-      let latest := ds.foldl (init := ds[0]) fun best d =>
-        if d.tx.id > best.tx.id then d else best
-      if latest.added then some (v, latest.tx.id) else none
-    else none
-  -- Return the visible value with highest txId (most recently asserted)
-  let sortedVisible := visibleWithTx.toArray.qsort (fun a b => a.2 > b.2)
-  if h : sortedVisible.size > 0 then some sortedVisible[0].1 else none
+  Id.run do
+    let datoms := db.indexes.datomsForEntityAttr e a
+    let latestByValue : Std.HashMap Value (Nat × Bool) :=
+      datoms.foldl (init := {}) fun acc d =>
+        match acc[d.value]? with
+        | none => acc.insert d.value (d.tx.id, d.added)
+        | some (prevTxId, _) =>
+          if d.tx.id > prevTxId then acc.insert d.value (d.tx.id, d.added) else acc
+    let mut best : Option (Value × Nat) := none
+    for (v, (txId, added)) in latestByValue.toList do
+      if added then
+        match best with
+        | none => best := some (v, txId)
+        | some (_, bestTx) =>
+          if txId > bestTx then
+            best := some (v, txId)
+    return best.map Prod.fst
 
 -- ============================================================
 -- Attribute-based queries (use AEVT index)

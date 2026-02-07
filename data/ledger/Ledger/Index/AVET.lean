@@ -52,8 +52,9 @@ def datomsForAttrValue (a : Attribute) (v : Value) (idx : AVETIndex) : List Dato
     Implementation: Uses range query for O(s + k) range access, then
     HashMap to track each entity's latest transaction state. -/
 def entitiesWithAttrValue (a : Attribute) (v : Value) (idx : AVETIndex) : List EntityId :=
-  -- Get only datoms in range using early termination
-  let datoms := RBRange.collectPairsWhile idx
+  -- Seek to attr/value lower bound, then walk only matching range.
+  let datoms := RBRange.collectPairsFromWhile idx
+    (AVETKey.minForAttrValue a v)
     (fun k => AVETKey.matchesAttrValue a v k)
 
   -- Build HashMap of entity -> (latestTxId, isAdded)
