@@ -6,14 +6,20 @@ set -e
 
 INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BINARY_PATH="$ROOT_DIR/.lake/build/bin/tracker"
 
 echo "Building tracker..."
-cd "$SCRIPT_DIR"
-lake build tracker
+(cd "$ROOT_DIR" && lake build tracker)
+
+if [[ ! -f "$BINARY_PATH" ]]; then
+    echo "Error: tracker binary not found at $BINARY_PATH"
+    exit 1
+fi
 
 echo "Installing to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
-cp .lake/build/bin/tracker "$INSTALL_DIR/tracker"
+cp "$BINARY_PATH" "$INSTALL_DIR/tracker"
 chmod +x "$INSTALL_DIR/tracker"
 # Remove quarantine/provenance attributes
 xattr -cr "$INSTALL_DIR/tracker" 2>/dev/null || true

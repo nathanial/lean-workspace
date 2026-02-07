@@ -35,6 +35,10 @@ run-project project:
 tracker-bench *args:
     lake exe tracker_bench -- {{args}}
 
+# Build and install tracker using apps/tracker/install.sh
+tracker-install:
+    ./apps/tracker/install.sh
+
 # Run package test driver (currently linalg suite)
 test:
     lake test
