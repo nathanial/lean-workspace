@@ -5,6 +5,10 @@ import Crucible
 import Tracker.Core.Parser
 import Tracker.Core.Storage
 import Tracker.Core.Types
+import Tracker.GUI.Action
+import Tracker.GUI.Effect
+import Tracker.GUI.Model
+import Tracker.GUI.Update
 import TrackerTests.TUI
 
 open Crucible
@@ -245,5 +249,77 @@ test "migrates legacy markdown storage to ledger and deletes .issues" := do
 
   if ← root.pathExists then
     testDeletePathRecursive root
+
+testSuite "Tracker.GUI"
+
+test "GUI effect loadIssues dispatches loadSucceeded from tracker root" := do
+  let root : System.FilePath := "/tmp/tracker_gui_load_effect_test"
+  if ← root.pathExists then
+    testDeletePathRecursive root
+  IO.FS.createDirAll root
+
+  let config : Config := { root := root }
+  initIssuesDir root
+  let _ ← createIssue config "GUI load issue one"
+  let _ ← createIssue config "GUI load issue two"
+
+  match ← Tracker.GUI.loadIssuesFromRoot root with
+  | .ok (loadedRoot, issues) =>
+    loadedRoot.toString ≡ root.toString
+    issues.size ≡ 2
+  | .error message =>
+    throwThe IO.Error s!"Expected load success, got error: {message}"
+
+  if ← root.pathExists then
+    testDeletePathRecursive root
+
+test "GUI reducer loadSucceeded normalizes selection and editor drafts" := do
+  let issue1 : Issue := {
+    id := 10
+    title := "First GUI issue"
+    status := .open_
+    priority := .high
+    created := "2026-01-01T00:00:00"
+    updated := "2026-01-01T00:00:00"
+    labels := #["bug", "gui"]
+    assignee := some "nathanial"
+    project := some "tracker"
+    blocks := #[]
+    blockedBy := #[]
+    description := "First issue description"
+    progress := #[]
+  }
+  let issue2 : Issue := {
+    id := 20
+    title := "Second GUI issue"
+    status := .inProgress
+    priority := .medium
+    created := "2026-01-02T00:00:00"
+    updated := "2026-01-03T00:00:00"
+    labels := #["backend"]
+    assignee := none
+    project := none
+    blocks := #[]
+    blockedBy := #[]
+    description := "Second issue description"
+    progress := #[]
+  }
+  let root : System.FilePath := "/tmp/tracker_gui_update_test"
+
+  let (loadingModel, loadEffects) := Tracker.GUI.update Tracker.GUI.Model.initial .loadRequested
+  loadingModel.loading ≡ true
+  loadEffects.size ≡ 1
+
+  let (loadedModel, afterLoadEffects) :=
+    Tracker.GUI.update loadingModel (.loadSucceeded root #[issue1, issue2])
+  loadedModel.loading ≡ false
+  loadedModel.totalCount ≡ 2
+  loadedModel.selectedIssueId ≡ some 10
+  loadedModel.editTitle ≡ issue1.title
+  loadedModel.editDescription ≡ issue1.description
+  loadedModel.editAssignee ≡ "nathanial"
+  loadedModel.editPriority ≡ .high
+  loadedModel.editStatus ≡ .open_
+  afterLoadEffects.size ≡ 1
 
 def main : IO UInt32 := runAllSuites

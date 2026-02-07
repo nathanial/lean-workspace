@@ -894,7 +894,7 @@ lean_exe apps_todo_app_tests_exe where
 lean_exe apps_tracker_tests_exe where
   srcDir := "apps/tracker"
   root := `TrackerTests.Main
-  moreLinkArgs := terminalUiLinkArgs
+  moreLinkArgs := trackerGuiLinkArgs
 
 lean_exe apps_twenty48_tests_exe where
   srcDir := "apps/twenty48"

@@ -33,6 +33,16 @@ private def resolveConfig : IO (Except String (System.FilePath × Storage.Config
   | some root =>
     return .ok (root, { root := root })
 
+def loadIssuesFromRoot (root : System.FilePath)
+    : IO (Except String (System.FilePath × Array Issue)) := do
+  let config : Storage.Config := { root := root }
+  try
+    Storage.ensureReady config
+    let issues ← Storage.loadAllIssues config
+    return .ok (root, issues)
+  catch e =>
+    return .error s!"{e}"
+
 private def reloadAndDispatch (dispatch : Dispatch) (root : System.FilePath) (config : Storage.Config)
     (message : String) (selectedIssueId : Option Nat) : IO Unit := do
   let issues ← Storage.loadAllIssues config
@@ -58,13 +68,12 @@ def runEffects (dispatch : Dispatch) (toastSink : ToastSink) (effects : Array Ef
       match ← resolveConfig with
       | .error message =>
         dispatch (.loadFailed message)
-      | .ok (root, config) =>
-        try
-          Storage.ensureReady config
-          let issues ← Storage.loadAllIssues config
-          dispatch (.loadSucceeded root issues)
-        catch e =>
-          dispatch (.loadFailed s!"{e}")
+      | .ok (root, _) =>
+        match ← loadIssuesFromRoot root with
+        | .ok (resolvedRoot, issues) =>
+          dispatch (.loadSucceeded resolvedRoot issues)
+        | .error message =>
+          dispatch (.loadFailed message)
 
     | .createIssue title description priority labels assignee =>
       withStorage dispatch fun root config => do
