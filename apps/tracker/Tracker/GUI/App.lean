@@ -33,6 +33,7 @@ private def toastSink (fireInfo fireSuccess fireError : String → IO Unit)
 def createApp : ReactiveM GuiApp := do
   let events ← getEvents
   let (actionEvent, fireAction) ← Reactive.newTriggerEvent (t := Spider) (a := Action)
+  let (effectEvent, fireEffects) ← Reactive.newTriggerEvent (t := Spider) (a := Array Effect)
 
   let (toastInfoEvent, fireToastInfo) ← Reactive.newTriggerEvent (t := Spider) (a := String)
   let (toastSuccessEvent, fireToastSuccess) ← Reactive.newTriggerEvent (t := Spider) (a := String)
@@ -43,10 +44,13 @@ def createApp : ReactiveM GuiApp := do
   let modelDyn ← Reactive.foldDynM
     (fun action model => do
       let (nextModel, effects) := update model action
-      SpiderM.liftIO <| runEffects fireAction toastDispatch effects
+      SpiderM.liftIO <| fireEffects effects
       pure nextModel)
     Model.initial
     actionEvent
+  let delayedEffects ← Reactive.Host.Event.delayFrameM effectEvent
+  let effectActions ← Event.mapM (fun effects => runEffects fireAction toastDispatch effects) delayedEffects
+  Reactive.Host.performEvent_ effectActions
 
   let (_, render) ← runWidget do
     let rootStyle : Afferent.Arbor.BoxStyle := {
