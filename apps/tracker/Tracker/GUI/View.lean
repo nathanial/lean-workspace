@@ -55,6 +55,28 @@ private def issueRowLabel (issue : Issue) : String :=
   let blocked := if issue.isBlocked then " [blocked]" else ""
   s!"#{issue.id} [{issue.status.toString}] [{issue.priority.toString}] {issue.title}{blocked}"
 
+private def issueRowVisual (theme : Theme) (text : String) (selected : Bool)
+    (width itemHeight : Float) : Afferent.Arbor.WidgetBuilder := do
+  let bgColor :=
+    if selected then theme.primary.background.withAlpha 0.2
+    else Color.transparent
+  let fgColor :=
+    if selected then theme.primary.foreground
+    else theme.text
+  let rowStyle : Afferent.Arbor.BoxStyle := {
+    backgroundColor := some bgColor
+    padding := Trellis.EdgeInsets.symmetric 8 6
+    width := .percent 1.0
+    minHeight := some itemHeight
+  }
+  let wid ← Afferent.Arbor.freshId
+  let props : Trellis.FlexContainer := {
+    Trellis.FlexContainer.row 0 with
+    alignItems := .center
+  }
+  let label ← bodyText text theme fgColor .left (some (width - 12))
+  pure (.flex wid none props rowStyle #[label])
+
 def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : WidgetM Unit := do
   row' (gap := 8) (style := { width := .percent 1.0 }) do
     let statusFilterBtn ← button s!"Status: {model.statusFilter.label}" .secondary
@@ -100,10 +122,32 @@ def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : 
           if visible.isEmpty then
             bodyText' "No issues match the current filter/search."
           else
-            for issue in visible do
-              let selected := model.selectedIssueId == some issue.id
-              let click ← button (issueRowLabel issue) (if selected then .primary else .ghost)
-              wireClickIf (!model.loading) click fireAction (.selectIssue issue.id)
+            let listWidth : Float := 396
+            let listHeight : Float := 520
+            let itemHeight : Float := 34
+            let theme ← getThemeW
+            let listConfig : VirtualListConfig := {
+              width := listWidth
+              height := listHeight
+              itemHeight := itemHeight
+              overscan := 4
+            }
+            let listResult ← virtualList visible.size (fun idx => do
+              match visible[idx]? with
+              | none =>
+                Afferent.Arbor.spacer listWidth itemHeight
+              | some issue =>
+                let selected := model.selectedIssueId == some issue.id
+                issueRowVisual theme (issueRowLabel issue) selected listWidth itemHeight
+            ) listConfig
+            let selectAction ← Event.mapM (fun idx => do
+              match visible[idx]? with
+              | some issue =>
+                fireAction (.selectIssue issue.id)
+              | none =>
+                pure ()
+            ) listResult.onItemClick
+            performEvent_ selectAction
 
     let detailStyle : Afferent.Arbor.BoxStyle := {
       flexItem := some (Trellis.FlexItem.growing 1)
