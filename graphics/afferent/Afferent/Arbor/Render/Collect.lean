@@ -4,6 +4,7 @@
   This is the key abstraction that makes rendering backend-independent.
 -/
 import Afferent.Arbor.Widget.Core
+import Afferent.Arbor.Event.Scroll
 import Afferent.Arbor.Render.Cache
 import Trellis
 
@@ -175,6 +176,9 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
   | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
     -- Render background
     collectBoxStyle borderRect style
+    let viewportW := contentRect.width
+    let viewportH := contentRect.height
+    let effectiveScroll := scrollState.clamp viewportW viewportH contentWidth contentHeight
 
     -- Set up clipping to content area
     let clipRect : Rect := ⟨⟨contentRect.x, contentRect.y⟩, ⟨contentRect.width, contentRect.height⟩⟩
@@ -182,7 +186,7 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
 
     -- Save state and apply scroll offset
     CollectM.emit .save
-    CollectM.emit (.pushTranslate (-scrollState.offsetX) (-scrollState.offsetY))
+    CollectM.emit (.pushTranslate (-effectiveScroll.offsetX) (-effectiveScroll.offsetY))
 
     -- Render child
     collectWidget child layouts
@@ -193,8 +197,6 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
     CollectM.emit .popClip
 
     -- Render scrollbars (after content, so they overlay)
-    let viewportW := contentRect.width
-    let viewportH := contentRect.height
     let thickness := scrollbarConfig.thickness
     let minThumb := scrollbarConfig.minThumbLength
     let radius := scrollbarConfig.cornerRadius
@@ -203,7 +205,7 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
     if scrollbarConfig.showVertical && contentHeight > viewportH then
       -- Calculate scrollable range
       let maxScrollY := contentHeight - viewportH
-      let scrollRatio := if maxScrollY > 0 then scrollState.offsetY / maxScrollY else 0
+      let scrollRatio := if maxScrollY > 0 then effectiveScroll.offsetY / maxScrollY else 0
 
       -- Calculate thumb size (proportional to viewport/content ratio)
       let thumbRatio := viewportH / contentHeight
@@ -225,7 +227,7 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
     if scrollbarConfig.showHorizontal && contentWidth > viewportW then
       -- Calculate scrollable range
       let maxScrollX := contentWidth - viewportW
-      let scrollRatio := if maxScrollX > 0 then scrollState.offsetX / maxScrollX else 0
+      let scrollRatio := if maxScrollX > 0 then effectiveScroll.offsetX / maxScrollX else 0
 
       -- Calculate thumb size (proportional to viewport/content ratio)
       let thumbRatio := viewportW / contentWidth
@@ -627,24 +629,25 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
   | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
     collectBoxStyleCached borderRect style
     let clipRect : Rect := ⟨⟨contentRect.x, contentRect.y⟩, ⟨contentRect.width, contentRect.height⟩⟩
+    let viewportW := contentRect.width
+    let viewportH := contentRect.height
+    let effectiveScroll := scrollState.clamp viewportW viewportH contentWidth contentHeight
     CachedCollectM.emit (.pushClip clipRect)
     CachedCollectM.emit .save
-    CachedCollectM.emit (.pushTranslate (-scrollState.offsetX) (-scrollState.offsetY))
+    CachedCollectM.emit (.pushTranslate (-effectiveScroll.offsetX) (-effectiveScroll.offsetY))
     collectWidgetCached cache child layouts (childPathKey pathKey 0)
     CachedCollectM.emit .popTransform
     CachedCollectM.emit .restore
     CachedCollectM.emit .popClip
 
     -- Render scrollbars
-    let viewportW := contentRect.width
-    let viewportH := contentRect.height
     let thickness := scrollbarConfig.thickness
     let minThumb := scrollbarConfig.minThumbLength
     let radius := scrollbarConfig.cornerRadius
 
     if scrollbarConfig.showVertical && contentHeight > viewportH then
       let maxScrollY := contentHeight - viewportH
-      let scrollRatio := if maxScrollY > 0 then scrollState.offsetY / maxScrollY else 0
+      let scrollRatio := if maxScrollY > 0 then effectiveScroll.offsetY / maxScrollY else 0
       let thumbRatio := viewportH / contentHeight
       let thumbHeight := max minThumb (viewportH * thumbRatio)
       let trackHeight := viewportH
@@ -658,7 +661,7 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
 
     if scrollbarConfig.showHorizontal && contentWidth > viewportW then
       let maxScrollX := contentWidth - viewportW
-      let scrollRatio := if maxScrollX > 0 then scrollState.offsetX / maxScrollX else 0
+      let scrollRatio := if maxScrollX > 0 then effectiveScroll.offsetX / maxScrollX else 0
       let thumbRatio := viewportW / contentWidth
       let thumbWidth := max minThumb (viewportW * thumbRatio)
       let trackWidth := viewportW

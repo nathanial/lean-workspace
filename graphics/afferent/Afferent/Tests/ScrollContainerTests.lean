@@ -641,6 +641,14 @@ def fillRectsWithColor (cmds : Array RenderCommand) (target : Color) : Array Rec
     | _ => pure ()
   rects
 
+/-- Find the first pushTranslate command, if present. -/
+def firstPushTranslate? (cmds : Array RenderCommand) : Option (Float × Float) := Id.run do
+  for cmd in cmds do
+    match cmd with
+    | .pushTranslate dx dy => return some (dx, dy)
+    | _ => pure ()
+  none
+
 /-- Measure, layout, and collect render commands for a widget at a viewport size. -/
 def collectForViewport (widget : Widget) (viewportW viewportH : Float) : Array RenderCommand :=
   let measured : MeasureResult := measureWidget (M := Id) widget viewportW viewportH
@@ -866,6 +874,46 @@ test "scrollbar geometry: thumb respects minimum size for very large content" :=
   ensure (thumbRects.size == 1) s!"Expected 1 thumb rect, got {thumbRects.size}"
   let thumb := thumbRects[0]!
   shouldBeNear thumb.height scrollbarConfig.minThumbLength
+
+test "scrollbar geometry: render clamps oversize scroll offsets to max" := do
+  let viewportW := 300.0
+  let viewportH := 200.0
+  let contentH := 800.0
+  let maxScrollY := contentH - viewportH
+  let trackColor : Color := ⟨0.23, 0.21, 0.41, 1.0⟩
+  let thumbColor : Color := ⟨0.71, 0.61, 0.51, 1.0⟩
+  let scrollbarConfig : ScrollbarRenderConfig := {
+    showVertical := true
+    showHorizontal := false
+    thickness := 8.0
+    minThumbLength := 30.0
+    cornerRadius := 4.0
+    trackColor := trackColor
+    thumbColor := thumbColor
+  }
+  let scrollWidget : Widget :=
+    .scroll 1 (some "geom-scroll-clamp")
+      { minWidth := some viewportW, minHeight := some viewportH }
+      { offsetY := maxScrollY + 350.0 }
+      viewportW
+      contentH
+      scrollbarConfig
+      (.spacer 2 none viewportW contentH)
+
+  let cmds := collectForViewport scrollWidget viewportW viewportH
+  match firstPushTranslate? cmds with
+  | some (_dx, dy) =>
+    shouldBeNear dy (-maxScrollY)
+  | none =>
+    ensure false "Expected pushTranslate command in scroll render output"
+
+  let trackRects := fillRectsWithColor cmds trackColor
+  let thumbRects := fillRectsWithColor cmds thumbColor
+  ensure (trackRects.size == 1) s!"Expected 1 track rect, got {trackRects.size}"
+  ensure (thumbRects.size == 1) s!"Expected 1 thumb rect, got {thumbRects.size}"
+  let track := trackRects[0]!
+  let thumb := thumbRects[0]!
+  shouldBeNear (thumb.y + thumb.height) (track.y + track.height)
 
 test "FRP: click events are received by scrollContainer" := do
   let result ← runSpider do

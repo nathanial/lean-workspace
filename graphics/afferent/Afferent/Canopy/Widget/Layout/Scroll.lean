@@ -118,6 +118,12 @@ def isInVerticalScrollbar (config : ScrollContainerConfig)
     else
       none
 
+/-- Find this scroll container's computed layout by registered name. -/
+def findWidgetLayoutByName (widget : Widget) (layouts : Trellis.LayoutResult)
+    (name : String) : Option Trellis.ComputedLayout := do
+  let widgetId ← findWidgetIdByName widget name
+  layouts.get widgetId
+
 /-- Calculate scroll offset from a relative Y position in the scrollbar track. -/
 def scrollOffsetFromTrackPosition (relativeY trackHeight viewportH contentH : Float)
     (minThumb : Float) : Float :=
@@ -222,9 +228,14 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
       match event with
       | .wheel scrollData =>
         -- Handle scroll wheel
+        let (viewportW, viewportH) :=
+          match findWidgetLayoutByName scrollData.widget scrollData.layouts name with
+          | some layout => (layout.contentRect.width, layout.contentRect.height)
+          | none => (config.width, config.height)
+        let baseScroll := state.scroll.clamp viewportW viewportH contentW contentH
         let dx := if config.horizontalScroll then -scrollData.scroll.deltaX * config.scrollSpeed else 0
         let dy := if config.verticalScroll then -scrollData.scroll.deltaY * config.scrollSpeed else 0
-        let newScroll := state.scroll.scrollBy dx dy config.width config.height contentW contentH
+        let newScroll := baseScroll.scrollBy dx dy viewportW viewportH contentW contentH
         pure { state with scroll := newScroll }
 
       | .click clickData =>
@@ -237,17 +248,21 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
           let layouts := clickData.layouts
           match layouts.get widgetId with
           | some layout =>
+            let viewportW := layout.contentRect.width
+            let viewportH := layout.contentRect.height
+            let baseScroll := state.scroll.clamp viewportW viewportH contentW contentH
             match isInVerticalScrollbar config layout x y with
             | some (relativeY, trackHeight) =>
               -- Click in scrollbar - calculate new position and start dragging
               let newOffsetY := scrollOffsetFromTrackPosition relativeY trackHeight
-                                 config.height contentH config.scrollbarMinThumb
-              let newScroll := { state.scroll with offsetY := newOffsetY }
+                                 viewportH contentH config.scrollbarMinThumb
+              let newScroll :=
+                ({ baseScroll with offsetY := newOffsetY }).clamp viewportW viewportH contentW contentH
               let newDrag := { isDragging := true, dragStartY := y, initialOffsetY := newOffsetY }
               pure { scroll := newScroll, drag := newDrag }
             | none =>
               -- Click outside scrollbar - stop any dragging
-              pure { state with drag := {} }
+              pure { scroll := baseScroll, drag := {} }
           | none => pure state
         | none => pure state
 
@@ -262,12 +277,16 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
             match layouts.get widgetId with
             | some layout =>
               let contentRect := layout.contentRect
+              let viewportW := contentRect.width
+              let viewportH := contentRect.height
+              let baseScroll := state.scroll.clamp viewportW viewportH contentW contentH
               let trackY := contentRect.y
               let trackHeight := contentRect.height
               let relativeY := y - trackY
               let newOffsetY := scrollOffsetFromTrackPosition relativeY trackHeight
-                                 config.height contentH config.scrollbarMinThumb
-              let newScroll := { state.scroll with offsetY := newOffsetY }
+                                 viewportH contentH config.scrollbarMinThumb
+              let newScroll :=
+                ({ baseScroll with offsetY := newOffsetY }).clamp viewportW viewportH contentW contentH
               pure { state with scroll := newScroll }
             | none => pure state
           | none => pure state
