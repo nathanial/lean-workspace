@@ -113,7 +113,6 @@ def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : 
     column' (gap := 0) (style := listStyle) do
       outlinedPanel' 12 do
         heading3' "Issues"
-        caption' "Arrow keys or j/k move selection"
         spacer' 0 8
         if model.loading then
           bodyText' "Loading issues..."
@@ -158,88 +157,99 @@ def renderModelSections (model : Tracker.GUI.Model) (fireAction : FireAction) : 
     }
 
     column' (gap := 12) (style := detailStyle) do
-      outlinedPanel' 12 do
-        heading3' "Detail"
-        if model.loading then
-          bodyText' "Loading issue details..."
-        else
-          match model.selectedIssue? with
-          | none =>
-            bodyText' "No issue selected."
-          | some issue =>
-            bodyText' s!"#{issue.id} {issue.title}"
-            caption' s!"Status: {issue.status.toString}"
-            caption' s!"Priority: {issue.priority.toString}"
-            caption' s!"Created: {issue.created}"
-            caption' s!"Updated: {issue.updated}"
-            caption' s!"Assignee: {issue.assignee.getD "-"}"
-            caption' s!"Project: {issue.project.getD "-"}"
-            caption' s!"Labels: {labelsText issue.labels}"
-            caption' s!"Blocked by: {natListText issue.blockedBy}"
-            caption' s!"Blocks: {natListText issue.blocks}"
-            spacer' 0 6
-            heading3' "Description"
-            bodyText' (if issue.description.isEmpty then "(no description)" else issue.description)
-            spacer' 0 6
-            heading3' s!"Progress ({issue.progress.size})"
-            if issue.progress.isEmpty then
-              caption' "No progress entries."
-            else
-              let recent := issue.progress.reverse |>.take 5
-              for entry in recent do
-                caption' s!"- {entry.timestamp}: {entry.message}"
-
-      outlinedPanel' 12 do
-        heading3' "Edit Metadata"
-        caption' "Edit selected issue then save"
-        bindTextInput "Title" model.editTitle fireAction .editTitleChanged
-        bindTextInput "Assignee (optional)" model.editAssignee fireAction .editAssigneeChanged
-        bindTextInput "Labels (comma-separated)" model.editLabels fireAction .editLabelsChanged
-        bindTextArea "Description" model.editDescription 560 110 fireAction .editDescriptionChanged
-
-        row' (gap := 8) (style := { width := .percent 1.0 }) do
-          let statusBtn ← button s!"Status: {model.editStatus.toString}" .secondary
-          wireClickIf (!model.loading) statusBtn fireAction .editStatusNext
-
-          let priorityBtn ← button s!"Priority: {model.editPriority.toString}" .secondary
-          wireClickIf (!model.loading) priorityBtn fireAction .editPriorityNext
-
-          let saveBtn ← button "Save Metadata" .success
-          wireClickIf (!model.loading) saveBtn fireAction .saveEdits
-
-      outlinedPanel' 12 do
-        heading3' "Progress"
-        bindTextInput "Add progress note" model.progressMessage fireAction .progressChanged
-        let addBtn ← button "Add Progress" .primary
-        wireClickIf (!model.loading) addBtn fireAction .addProgressSubmitted
-
-      outlinedPanel' 12 do
-        heading3' "Lifecycle"
-        bindTextInput "Close comment (optional)" model.closeComment fireAction .closeCommentChanged
-        match model.selectedIssue? with
-        | some issue =>
-          if issue.status == .closed then
-            let reopenBtn ← button "Reopen Issue" .success
-            wireClickIf (!model.loading) reopenBtn fireAction .reopenSubmitted
+      let rightPaneScrollConfig : ScrollContainerConfig := {
+        width := 860
+        height := 1200
+        verticalScroll := true
+        horizontalScroll := false
+        fillWidth := true
+        fillHeight := true
+        scrollbarVisibility := .always
+      }
+      let _ ← scrollContainer rightPaneScrollConfig do
+        outlinedPanel' 12 do
+          heading3' "Detail"
+          if model.loading then
+            bodyText' "Loading issue details..."
           else
-            let closeBtn ← button "Close Issue" .danger
-            wireClickIf (!model.loading) closeBtn fireAction .closeSubmitted
-        | none =>
-          caption' "Select an issue first."
+            match model.selectedIssue? with
+            | none =>
+              bodyText' "No issue selected."
+            | some issue =>
+              bodyText' s!"#{issue.id} {issue.title}"
+              caption' s!"Status: {issue.status.toString}"
+              caption' s!"Priority: {issue.priority.toString}"
+              caption' s!"Created: {issue.created}"
+              caption' s!"Updated: {issue.updated}"
+              caption' s!"Assignee: {issue.assignee.getD "-"}"
+              caption' s!"Project: {issue.project.getD "-"}"
+              caption' s!"Labels: {labelsText issue.labels}"
+              caption' s!"Blocked by: {natListText issue.blockedBy}"
+              caption' s!"Blocks: {natListText issue.blocks}"
+              spacer' 0 6
+              heading3' "Description"
+              bodyText' (if issue.description.isEmpty then "(no description)" else issue.description)
+              spacer' 0 6
+              heading3' s!"Progress ({issue.progress.size})"
+              if issue.progress.isEmpty then
+                caption' "No progress entries."
+              else
+                let recent := issue.progress.reverse |>.take 5
+                for entry in recent do
+                  caption' s!"- {entry.timestamp}: {entry.message}"
 
-      outlinedPanel' 12 do
-        heading3' "Create Issue"
-        bindTextInput "Title" model.createTitle fireAction .createTitleChanged
-        bindTextInput "Assignee (optional)" model.createAssignee fireAction .createAssigneeChanged
-        bindTextInput "Labels (comma-separated)" model.createLabels fireAction .createLabelsChanged
-        bindTextArea "Description" model.createDescription 560 110 fireAction .createDescriptionChanged
+        outlinedPanel' 12 do
+          heading3' "Edit Metadata"
+          caption' "Edit selected issue then save"
+          bindTextInput "Title" model.editTitle fireAction .editTitleChanged
+          bindTextInput "Assignee (optional)" model.editAssignee fireAction .editAssigneeChanged
+          bindTextInput "Labels (comma-separated)" model.editLabels fireAction .editLabelsChanged
+          bindTextArea "Description" model.editDescription 560 110 fireAction .editDescriptionChanged
 
-        row' (gap := 8) (style := { width := .percent 1.0 }) do
-          let priorityBtn ← button s!"Priority: {model.createPriority.toString}" .secondary
-          wireClickIf (!model.loading) priorityBtn fireAction .createPriorityNext
+          row' (gap := 8) (style := { width := .percent 1.0 }) do
+            let statusBtn ← button s!"Status: {model.editStatus.toString}" .secondary
+            wireClickIf (!model.loading) statusBtn fireAction .editStatusNext
 
-          let createBtn ← button "Create Issue" .success
-          wireClickIf (!model.loading) createBtn fireAction .createSubmitted
+            let priorityBtn ← button s!"Priority: {model.editPriority.toString}" .secondary
+            wireClickIf (!model.loading) priorityBtn fireAction .editPriorityNext
+
+            let saveBtn ← button "Save Metadata" .success
+            wireClickIf (!model.loading) saveBtn fireAction .saveEdits
+
+        outlinedPanel' 12 do
+          heading3' "Progress"
+          bindTextInput "Add progress note" model.progressMessage fireAction .progressChanged
+          let addBtn ← button "Add Progress" .primary
+          wireClickIf (!model.loading) addBtn fireAction .addProgressSubmitted
+
+        outlinedPanel' 12 do
+          heading3' "Lifecycle"
+          bindTextInput "Close comment (optional)" model.closeComment fireAction .closeCommentChanged
+          match model.selectedIssue? with
+          | some issue =>
+            if issue.status == .closed then
+              let reopenBtn ← button "Reopen Issue" .success
+              wireClickIf (!model.loading) reopenBtn fireAction .reopenSubmitted
+            else
+              let closeBtn ← button "Close Issue" .danger
+              wireClickIf (!model.loading) closeBtn fireAction .closeSubmitted
+          | none =>
+            caption' "Select an issue first."
+
+        outlinedPanel' 12 do
+          heading3' "Create Issue"
+          bindTextInput "Title" model.createTitle fireAction .createTitleChanged
+          bindTextInput "Assignee (optional)" model.createAssignee fireAction .createAssigneeChanged
+          bindTextInput "Labels (comma-separated)" model.createLabels fireAction .createLabelsChanged
+          bindTextArea "Description" model.createDescription 560 110 fireAction .createDescriptionChanged
+
+          row' (gap := 8) (style := { width := .percent 1.0 }) do
+            let priorityBtn ← button s!"Priority: {model.createPriority.toString}" .secondary
+            wireClickIf (!model.loading) priorityBtn fireAction .createPriorityNext
+
+            let createBtn ← button "Create Issue" .success
+            wireClickIf (!model.loading) createBtn fireAction .createSubmitted
+        pure ()
 
   outlinedPanel' 8 do
     caption' s!"Status: {model.status}"
