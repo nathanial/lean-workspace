@@ -12,6 +12,25 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
+private structure PreparedRender where
+  measuredWidget : Afferent.Arbor.Widget
+  layouts : Trellis.LayoutResult
+  offsetX : Float := 0.0
+  offsetY : Float := 0.0
+
+private inductive CommandCollectionMode where
+  | cached
+  | cachedWithStats
+
+private structure CollectedCommands where
+  commands : Array Afferent.Arbor.RenderCommand
+  cacheStats : Option (Nat × Nat) := none
+
+private structure RenderOptions where
+  centered : Bool := false
+  renderCustom : Bool := false
+  commandMode : CommandCollectionMode := .cached
+
 partial def renderCustomWidgets (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult) : CanvasM Unit := do
   match layouts.get w.id with
   | none => pure ()
@@ -37,59 +56,98 @@ partial def renderCustomWidgets (w : Afferent.Arbor.Widget) (layouts : Trellis.L
           CanvasM.popClip
       | _ => pure ()
 
+private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
+    (availWidth availHeight : Float) (centered : Bool) : CanvasM PreparedRender := do
+  if centered then
+    let (intrinsicWidth, intrinsicHeight) ← runWithFonts reg (Afferent.Arbor.intrinsicSize widget)
+    let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget intrinsicWidth intrinsicHeight)
+    let layouts := Trellis.layout measureResult.node intrinsicWidth intrinsicHeight
+    let offsetX := (availWidth - intrinsicWidth) / 2
+    let offsetY := (availHeight - intrinsicHeight) / 2
+    pure {
+      measuredWidget := measureResult.widget
+      layouts
+      offsetX
+      offsetY
+    }
+  else
+    let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
+    let layouts := Trellis.layout measureResult.node availWidth availHeight
+    pure {
+      measuredWidget := measureResult.widget
+      layouts
+    }
+
+private def collectCommands (mode : CommandCollectionMode)
+    (measuredWidget : Afferent.Arbor.Widget)
+    (layouts : Trellis.LayoutResult) : CanvasM CollectedCommands := do
+  match mode with
+  | .cached =>
+      let canvas ← CanvasM.getCanvas
+      let commands ← Afferent.Arbor.collectCommandsCached canvas.renderCache measuredWidget layouts
+      pure { commands }
+  | .cachedWithStats =>
+      let canvas ← CanvasM.getCanvas
+      let (commands, hits, misses) ← Afferent.Arbor.collectCommandsCachedWithStats canvas.renderCache measuredWidget layouts
+      pure { commands, cacheStats := some (hits, misses) }
+
+private def executeWithOffset (reg : FontRegistry)
+    (commands : Array Afferent.Arbor.RenderCommand)
+    (offsetX offsetY : Float) : CanvasM Unit := do
+  if offsetX == 0.0 && offsetY == 0.0 then
+    executeCommandsBatched reg commands
+  else
+    CanvasM.save
+    CanvasM.translate offsetX offsetY
+    executeCommandsBatched reg commands
+    CanvasM.restore
+
+private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
+    (availWidth availHeight : Float) (opts : RenderOptions) : CanvasM (Option (Nat × Nat)) := do
+  let prepared ← prepareRender reg widget availWidth availHeight opts.centered
+  let collected ← collectCommands opts.commandMode prepared.measuredWidget prepared.layouts
+  executeWithOffset reg collected.commands prepared.offsetX prepared.offsetY
+  if opts.renderCustom then
+    if prepared.offsetX == 0.0 && prepared.offsetY == 0.0 then
+      renderCustomWidgets prepared.measuredWidget prepared.layouts
+    else
+      CanvasM.save
+      CanvasM.translate prepared.offsetX prepared.offsetY
+      renderCustomWidgets prepared.measuredWidget prepared.layouts
+      CanvasM.restore
+  pure collected.cacheStats
+
 /-- Render an Arbor widget tree using CanvasM with automatic render command caching.
-    This is the main entry point for rendering Arbor widgets with Afferent's Metal backend.
-
-    Steps:
-    1. Measure the widget tree (computes text layouts)
-    2. Compute layout using Trellis
-    3. Collect render commands (with caching for CustomSpec widgets)
-    4. Execute commands using CanvasM
-
-    Caching: CustomSpec widgets with names (from registerComponentW) are automatically
-    cached. Cache is keyed by widget name + layout hash. When data changes, dynWidget
-    rebuilds and generates new widget names, causing natural cache invalidation. -/
+    This is the main entry point for rendering Arbor widgets with Afferent's Metal backend. -/
 def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM Unit := do
-  -- Measure widget and get layout nodes
-  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
-  let layoutNode := measureResult.node
-  let measuredWidget := measureResult.widget
-
-  -- Compute layout
-  let layouts := Trellis.layout layoutNode availWidth availHeight
-
-  -- Collect render commands with caching
-  let canvas ← CanvasM.getCanvas
-  let commands ← Afferent.Arbor.collectCommandsCached canvas.renderCache measuredWidget layouts
-
-  -- Execute commands with batching optimization
-  executeCommandsBatched reg commands
+  let _ ← renderArborInternal reg widget availWidth availHeight {
+    centered := false
+    renderCustom := false
+    commandMode := .cached
+  }
+  pure ()
 
 /-- Render an Arbor widget tree and run any custom CanvasM draw hooks. -/
 def renderArborWidgetWithCustom (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM Unit := do
-  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
-  let layoutNode := measureResult.node
-  let measuredWidget := measureResult.widget
-  let layouts := Trellis.layout layoutNode availWidth availHeight
-  let canvas ← CanvasM.getCanvas
-  let commands ← Afferent.Arbor.collectCommandsCached canvas.renderCache measuredWidget layouts
-  executeCommandsBatched reg commands
-  renderCustomWidgets measuredWidget layouts
+  let _ ← renderArborInternal reg widget availWidth availHeight {
+    centered := false
+    renderCustom := true
+    commandMode := .cached
+  }
+  pure ()
 
 /-- Render an Arbor widget tree and return cache statistics.
     Returns (cacheHits, cacheMisses) for debugging/verification purposes. -/
 def renderArborWidgetWithStats (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM (Nat × Nat) := do
-  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
-  let layoutNode := measureResult.node
-  let measuredWidget := measureResult.widget
-  let layouts := Trellis.layout layoutNode availWidth availHeight
-  let canvas ← CanvasM.getCanvas
-  let (commands, hits, misses) ← Afferent.Arbor.collectCommandsCachedWithStats canvas.renderCache measuredWidget layouts
-  executeCommandsBatched reg commands
-  pure (hits, misses)
+  let stats? ← renderArborInternal reg widget availWidth availHeight {
+    centered := false
+    renderCustom := false
+    commandMode := .cachedWithStats
+  }
+  pure (stats?.getD (0, 0))
 
 /-- Convenience function to render a widget built with Arbor's DSL.
     Takes a WidgetBuilder and executes the full render pipeline. -/
@@ -102,58 +160,11 @@ def renderArborBuilder (reg : FontRegistry) (builder : Afferent.Arbor.WidgetBuil
     Computes intrinsic size and offsets rendering to center the widget. -/
 def renderArborWidgetCentered (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (screenWidth screenHeight : Float) : CanvasM Unit := do
-  -- Measure widget to get intrinsic size
-  let (intrinsicWidth, intrinsicHeight) ← runWithFonts reg (Afferent.Arbor.intrinsicSize widget)
-
-  -- Measure widget for layout
-  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget intrinsicWidth intrinsicHeight)
-  let layoutNode := measureResult.node
-  let measuredWidget := measureResult.widget
-
-  -- Compute layout at intrinsic size
-  let layouts := Trellis.layout layoutNode intrinsicWidth intrinsicHeight
-
-  -- Calculate offset to center
-  let offsetX := (screenWidth - intrinsicWidth) / 2
-  let offsetY := (screenHeight - intrinsicHeight) / 2
-
-  -- Collect render commands with caching
-  let canvas ← CanvasM.getCanvas
-  let commands ← Afferent.Arbor.collectCommandsCached canvas.renderCache measuredWidget layouts
-
-  -- Save state, translate, render, restore
-  CanvasM.save
-  CanvasM.translate offsetX offsetY
-  executeCommandsBatched reg commands
-  CanvasM.restore
-
-/-- Render an Arbor widget tree centered with debug borders.
-    Shows colored borders around each layout cell for debugging. -/
-def renderArborWidgetDebug (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (screenWidth screenHeight : Float)
-    (borderColor : Afferent.Arbor.Color := ⟨0.5, 1.0, 0.5, 0.5⟩) : CanvasM Unit := do
-  -- Measure widget to get intrinsic size
-  let (intrinsicWidth, intrinsicHeight) ← runWithFonts reg (Afferent.Arbor.intrinsicSize widget)
-
-  -- Measure widget for layout
-  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget intrinsicWidth intrinsicHeight)
-  let layoutNode := measureResult.node
-  let measuredWidget := measureResult.widget
-
-  -- Compute layout at intrinsic size
-  let layouts := Trellis.layout layoutNode intrinsicWidth intrinsicHeight
-
-  -- Calculate offset to center
-  let offsetX := (screenWidth - intrinsicWidth) / 2
-  let offsetY := (screenHeight - intrinsicHeight) / 2
-
-  -- Collect render commands with debug borders
-  let commands := Afferent.Arbor.collectCommandsWithDebug measuredWidget layouts borderColor
-
-  -- Save state, translate, render, restore
-  CanvasM.save
-  CanvasM.translate offsetX offsetY
-  executeCommandsBatched reg commands
-  CanvasM.restore
+  let _ ← renderArborInternal reg widget screenWidth screenHeight {
+    centered := true
+    renderCustom := false
+    commandMode := .cached
+  }
+  pure ()
 
 end Afferent.Widget
