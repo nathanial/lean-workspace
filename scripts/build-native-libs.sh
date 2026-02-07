@@ -1,10 +1,71 @@
 #!/bin/bash
 set -euo pipefail
+shopt -s nullglob
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 LEAN_PREFIX="$(lean --print-prefix)"
+LUA_VERSION="5.4.7"
+SELENE_LUA_DIR="util/selene/native/lua"
+SQLITE_VERSION="3470200"
+SQLITE_YEAR="2024"
+QUARRY_SQLITE_DIR="data/quarry/native/sqlite"
+
+ensure_selene_lua_sources() {
+  if [ -f "$SELENE_LUA_DIR/lua.h" ]; then
+    return 0
+  fi
+
+  echo "Selene Lua sources missing, attempting download of Lua $LUA_VERSION..."
+  mkdir -p "$SELENE_LUA_DIR"
+  local lua_tar="/tmp/lua.tar.gz"
+  local lua_src_dir="/tmp/lua-${LUA_VERSION}"
+  local lua_url="https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz"
+
+  if ! curl -fsSL -o "$lua_tar" "$lua_url"; then
+    echo "warning: failed to download $lua_url" >&2
+    return 1
+  fi
+
+  rm -rf "$lua_src_dir"
+  if ! tar -xzf "$lua_tar" -C /tmp; then
+    echo "warning: failed to extract Lua source archive" >&2
+    rm -f "$lua_tar"
+    return 1
+  fi
+
+  cp -f "$lua_src_dir"/src/* "$SELENE_LUA_DIR"/
+  rm -f "$lua_tar"
+  rm -rf "$lua_src_dir"
+
+  [ -f "$SELENE_LUA_DIR/lua.h" ]
+}
+
+ensure_quarry_sqlite_sources() {
+  if [ -f "$QUARRY_SQLITE_DIR/sqlite3.c" ]; then
+    return 0
+  fi
+
+  echo "Quarry SQLite amalgamation missing, attempting download..."
+  mkdir -p "$QUARRY_SQLITE_DIR"
+  local sqlite_zip="/tmp/sqlite-amalgamation-${SQLITE_VERSION}.zip"
+  local sqlite_url="https://www.sqlite.org/${SQLITE_YEAR}/sqlite-amalgamation-${SQLITE_VERSION}.zip"
+
+  if ! curl -fsSL -o "$sqlite_zip" "$sqlite_url"; then
+    echo "warning: failed to download $sqlite_url" >&2
+    return 1
+  fi
+
+  if ! unzip -j -o "$sqlite_zip" -d "$QUARRY_SQLITE_DIR" >/dev/null; then
+    echo "warning: failed to extract SQLite amalgamation archive" >&2
+    rm -f "$sqlite_zip"
+    return 1
+  fi
+
+  rm -f "$sqlite_zip"
+  [ -f "$QUARRY_SQLITE_DIR/sqlite3.c" ]
+}
 
 mkdir -p \
   .native-libs/obj/afferent \

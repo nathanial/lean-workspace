@@ -83,6 +83,33 @@ structure ScrollContainerResult where
   /-- Current scroll state as a Dynamic. -/
   scrollState : Reactive.Dynamic Spider ScrollState
 
+/-- Configuration for HTML-like document flow:
+    static vertical stacking inside a scrollable viewport. -/
+structure DocumentFlowConfig where
+  /-- Initial/fallback viewport width in pixels. -/
+  width : Float := 300
+  /-- Initial/fallback viewport height in pixels. -/
+  height : Float := 200
+  /-- Vertical gap between stacked children. -/
+  gap : Float := 0
+  /-- Padding inside the document content column. -/
+  padding : Float := 0
+  /-- Fill available width instead of fixed width. -/
+  fillWidth : Bool := true
+  /-- Fill available height instead of fixed height. -/
+  fillHeight : Bool := true
+  /-- Scroll sensitivity multiplier. -/
+  scrollSpeed : Float := 20.0
+  /-- Scrollbar visibility mode. -/
+  scrollbarVisibility : ScrollbarVisibility := .always
+  /-- Scrollbar track thickness in pixels. -/
+  scrollbarThickness : Float := 8.0
+  /-- Scrollbar thumb minimum length in pixels. -/
+  scrollbarMinThumb : Float := 30.0
+  /-- Scrollbar corner radius. -/
+  scrollbarRadius : Float := 4.0
+deriving Repr, Inhabited
+
 /-- Build scrollbar render config from theme and container config. -/
 def buildScrollbarConfig (config : ScrollContainerConfig) (theme : Theme)
     : ScrollbarRenderConfig :=
@@ -307,9 +334,10 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
   let _ ← dynWidget combinedState fun state => do
     emit do
       let widgets ← childRenders.mapM id
-      -- Build the child column (fill width for vertical-only scroll)
+      -- Build the child stack (fill width for vertical-only scroll).
+      -- Use static flow defaults so children keep intrinsic size unless explicitly overridden.
       let childStyle : BoxStyle := if config.horizontalScroll then {} else { width := .percent 1.0 }
-      let childBuilder := column (gap := 0) (style := childStyle) widgets
+      let childBuilder := staticColumn (gap := 0) (style := childStyle) widgets
       -- Build a temporary widget tree and measure true content size.
       let (builtChild, _builderState) ← childBuilder.run {}
       let measureW := config.width
@@ -420,5 +448,29 @@ def vscrollView (height : Float) (children : WidgetM α)
 def hscrollView (width : Float) (children : WidgetM α)
     : WidgetM (α × ScrollContainerResult) :=
   scrollContainer (ScrollContainerConfig.horizontal width) children
+
+/-- HTML-like document flow:
+    children stack vertically, default to no grow/shrink, and overflow is scrollable. -/
+def documentFlow (config : DocumentFlowConfig := {}) (children : WidgetM α)
+    : WidgetM (α × ScrollContainerResult) := do
+  let scrollConfig : ScrollContainerConfig := {
+    width := config.width
+    height := config.height
+    verticalScroll := true
+    horizontalScroll := false
+    scrollSpeed := config.scrollSpeed
+    scrollbarVisibility := config.scrollbarVisibility
+    scrollbarThickness := config.scrollbarThickness
+    scrollbarMinThumb := config.scrollbarMinThumb
+    scrollbarRadius := config.scrollbarRadius
+    fillHeight := config.fillHeight
+    fillWidth := config.fillWidth
+  }
+  scrollContainer scrollConfig do
+    let contentStyle : BoxStyle := {
+      width := if config.fillWidth then .percent 1.0 else .auto
+      padding := Trellis.EdgeInsets.uniform config.padding
+    }
+    staticColumn' (gap := config.gap) (style := contentStyle) children
 
 end Afferent.Canopy

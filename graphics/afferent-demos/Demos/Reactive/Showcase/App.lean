@@ -25,139 +25,158 @@ open Trellis
 
 namespace Demos.ReactiveShowcase
 
+private def showcaseDocumentFlow (env : DemoEnv) (children : WidgetM Unit) : WidgetM Unit := do
+  let flowConfig : DocumentFlowConfig := {
+    width := env.windowWidthF
+    height := env.windowHeightF
+    fillWidth := true
+    fillHeight := true
+    scrollbarVisibility := .always
+  }
+  let _ ← documentFlow flowConfig children
+  pure ()
+
 /-! ## Tab Content Builders -/
 
 /-- Controls tab: Labels, Buttons, Checkboxes, Radio, Switches, Badge, Chip, Avatar, Link -/
-def controlsTabContent (fireButtonClick : Unit → IO Unit) : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      labelsPanel
-      let buttonClicks ← buttonsPanel
-      performEvent_ (← Event.mapM (fun _ => fireButtonClick ()) buttonClicks)
-      clickCounterPanel
-      checkboxesPanel
-      radioButtonsPanel
-    column' (gap := 16) (style := colStyle) do
-      switchesPanel
-      badgePanel
-      chipPanel
-      avatarPanel
-      linkPanel
+def controlsTabContent (env : DemoEnv) (fireButtonClick : Unit → IO Unit) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        labelsPanel
+        let buttonClicks ← buttonsPanel
+        performEvent_ (← Event.mapM (fun _ => fireButtonClick ()) buttonClicks)
+        clickCounterPanel
+        checkboxesPanel
+        radioButtonsPanel
+      column' (gap := 16) (style := colStyle) do
+        switchesPanel
+        badgePanel
+        chipPanel
+        avatarPanel
+        linkPanel
 
 /-- Input tab: Sliders, Stepper, Dropdowns, Text Inputs, Date/Color Pickers -/
-def inputTabContent : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      slidersPanel
-      rangeSliderPanel
-      stepperPanel
-      dropdownPanel
-    column' (gap := 16) (style := colStyle) do
-      dependentDropdownsPanel
-      searchInputPanel
-      comboBoxPanel
-      textInputsPanel
-    column' (gap := 16) (style := colStyle) do
-      textAreaPanel
-      datePickerPanel
-      timePickerPanel
-      colorPickerPanel
+def inputTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        slidersPanel
+        rangeSliderPanel
+        stepperPanel
+        dropdownPanel
+      column' (gap := 16) (style := colStyle) do
+        dependentDropdownsPanel
+        searchInputPanel
+        comboBoxPanel
+        textInputsPanel
+      column' (gap := 16) (style := colStyle) do
+        textAreaPanel
+        datePickerPanel
+        timePickerPanel
+        colorPickerPanel
 
 /-- Layout tab: Panels, TabView, Scroll, Separator, Card, SplitPane, Toolbar, Sidebar -/
-def layoutTabContent : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      panelsPanel
-      tabViewPanel
-      scrollContainerPanel
-      separatorPanel
-    column' (gap := 16) (style := colStyle) do
-      cardPanel
-      splitPanePanel
-      toolbarPanel
-      sidebarPanel
+def layoutTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        panelsPanel
+        tabViewPanel
+        scrollContainerPanel
+        separatorPanel
+      column' (gap := 16) (style := colStyle) do
+        cardPanel
+        splitPanePanel
+        toolbarPanel
+        sidebarPanel
 
 /-- Data tab: Table, DataGrid, ListBox, Virtual List, Tree View, Pagination -/
-def dataTabContent : WidgetM Unit := do
-  column' (gap := 16) (style := {}) do
-    tablePanel
-    dataGridPanel
-    listBoxPanel
-    virtualListPanel
-    treeViewPanel
-    paginationPanel
+def dataTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    column' (gap := 16) (style := {}) do
+      tablePanel
+      dataGridPanel
+      listBoxPanel
+      virtualListPanel
+      treeViewPanel
+      paginationPanel
 
 /-- Feedback tab: Progress, Tooltips, Popover, Modal, Toasts, Menus -/
-def feedbackTabContent (fireModalOpen : Unit → IO Unit)
+def feedbackTabContent (env : DemoEnv) (fireModalOpen : Unit → IO Unit)
     (fireToastInfo fireToastSuccess fireToastWarning fireToastError : Unit → IO Unit)
     : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      progressBarsPanel
-      tooltipsPanel
-      popoverPanel
-      let modalClick ← modalTriggerPanel
-      performEvent_ (← Event.mapM (fun _ => fireModalOpen ()) modalClick)
-    column' (gap := 16) (style := colStyle) do
-      toastsPanel fireToastInfo fireToastSuccess fireToastWarning fireToastError
-      menuPanel
-      menuBarPanel
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        progressBarsPanel
+        tooltipsPanel
+        popoverPanel
+        let modalClick ← modalTriggerPanel
+        performEvent_ (← Event.mapM (fun _ => fireModalOpen ()) modalClick)
+      column' (gap := 16) (style := colStyle) do
+        toastsPanel fireToastInfo fireToastSuccess fireToastWarning fireToastError
+        menuPanel
+        menuBarPanel
 
 /-- Charts (Basic) tab: Bar, Line, Area, Pie, Donut, Scatter, Horizontal Bar, Bubble, Histogram, Box Plot, Heatmap -/
-def chartsBasicTabContent : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      barChartPanel
-      lineChartPanel
-      areaChartPanel
-      pieChartPanel
-    column' (gap := 16) (style := colStyle) do
-      donutChartPanel
-      scatterPlotPanel
-      horizontalBarChartPanel
-      bubbleChartPanel
-    column' (gap := 16) (style := colStyle) do
-      histogramPanel
-      boxPlotPanel
-      heatmapPanel
-      mathPlotPanel
+def chartsBasicTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        barChartPanel
+        lineChartPanel
+        areaChartPanel
+        pieChartPanel
+      column' (gap := 16) (style := colStyle) do
+        donutChartPanel
+        scatterPlotPanel
+        horizontalBarChartPanel
+        bubbleChartPanel
+      column' (gap := 16) (style := colStyle) do
+        histogramPanel
+        boxPlotPanel
+        heatmapPanel
+        mathPlotPanel
 
 /-- Charts (Advanced) tab: Stacked/Grouped charts, Radar, Candlestick, Waterfall, Gauge, Funnel, Treemap, Sankey -/
-def chartsAdvancedTabContent : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      stackedBarChartPanel
-      groupedBarChartPanel
-      stackedAreaChartPanel
-      radarChartPanel
-    column' (gap := 16) (style := colStyle) do
-      candlestickChartPanel
-      waterfallChartPanel
-      gaugeChartPanel
-      funnelChartPanel
-    column' (gap := 16) (style := colStyle) do
-      treemapChartPanel
-      sankeyDiagramPanel
+def chartsAdvancedTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        stackedBarChartPanel
+        groupedBarChartPanel
+        stackedAreaChartPanel
+        radarChartPanel
+      column' (gap := 16) (style := colStyle) do
+        candlestickChartPanel
+        waterfallChartPanel
+        gaugeChartPanel
+        funnelChartPanel
+      column' (gap := 16) (style := colStyle) do
+        treemapChartPanel
+        sankeyDiagramPanel
 
 /-- Spinners tab: Loading indicators and animations -/
-def spinnersTabContent : WidgetM Unit := do
-  let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
-  flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
-    column' (gap := 16) (style := colStyle) do
-      standardSpinnersPanel
-      creativeSpinnersPanel
-    column' (gap := 16) (style := colStyle) do
-      moreCreativeSpinnersPanel
-      spinnerSizesPanel
-    column' (gap := 16) (style := colStyle) do
-      spinnerColorsPanel
-      spinnerSpeedsPanel
+def spinnersTabContent (env : DemoEnv) : WidgetM Unit := do
+  showcaseDocumentFlow env do
+    let colStyle : BoxStyle := { flexItem := some (FlexItem.growing 1) }
+    flexRow' { FlexContainer.row 20 with alignItems := .flexStart } (style := {}) do
+      column' (gap := 16) (style := colStyle) do
+        standardSpinnersPanel
+        creativeSpinnersPanel
+      column' (gap := 16) (style := colStyle) do
+        moreCreativeSpinnersPanel
+        spinnerSizesPanel
+      column' (gap := 16) (style := colStyle) do
+        spinnerColorsPanel
+        spinnerSpeedsPanel
 
 /-! ## Main Application -/
 
@@ -168,7 +187,7 @@ structure AppState where
 
 /-- Create the complete reactive showcase application.
     Sets up all components and their interactions using WidgetM. -/
-def createApp (_env : DemoEnv) : ReactiveM AppState := do
+def createApp (env : DemoEnv) : ReactiveM AppState := do
   let events ← getEvents
 
   -- Pre-create shared event triggers for cross-tree wiring
@@ -211,15 +230,15 @@ def createApp (_env : DemoEnv) : ReactiveM AppState := do
       }
       column' (gap := 0) (style := contentStyle) do
         let tabs : Array TabDef := #[
-          { label := "Controls", content := controlsTabContent fireButtonClick },
-          { label := "Input", content := inputTabContent },
-          { label := "Layout", content := layoutTabContent },
-          { label := "Data", content := dataTabContent },
-          { label := "Feedback", content := feedbackTabContent fireModalOpen
+          { label := "Controls", content := controlsTabContent env fireButtonClick },
+          { label := "Input", content := inputTabContent env },
+          { label := "Layout", content := layoutTabContent env },
+          { label := "Data", content := dataTabContent env },
+          { label := "Feedback", content := feedbackTabContent env fireModalOpen
               fireToastInfo fireToastSuccess fireToastWarning fireToastError },
-          { label := "Spinners", content := spinnersTabContent },
-          { label := "Charts (Basic)", content := chartsBasicTabContent },
-          { label := "Charts (Advanced)", content := chartsAdvancedTabContent }
+          { label := "Spinners", content := spinnersTabContent env },
+          { label := "Charts (Basic)", content := chartsBasicTabContent env },
+          { label := "Charts (Advanced)", content := chartsAdvancedTabContent env }
         ]
         let _ ← tabView tabs 0
 
