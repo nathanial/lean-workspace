@@ -4,7 +4,7 @@
   A git-friendly issue tracker with:
   - CLI mode for programmatic access (JSON output by default)
   - TUI mode for interactive use
-  - Markdown files for human-readable storage
+  - Ledger-backed normalized storage
 -/
 
 import Tracker.Core.Types

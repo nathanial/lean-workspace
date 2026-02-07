@@ -33,17 +33,20 @@ def findConfig : IO (Option Storage.Config) := do
 /-- Require a valid config or return error -/
 def requireConfig (mode : Mode) : IO (Except String Storage.Config) := do
   match ← findConfig with
-  | some config => return .ok config
-  | none => return .error (formatError "No .issues directory found. Run 'tracker init' first." mode)
+  | some config =>
+    try
+      Storage.ensureReady config
+      return .ok config
+    catch e =>
+      return .error (formatError s!"{e}" mode)
+  | none => return .error (formatError "No tracker database found. Run 'tracker init' first." mode)
 
 /-- Handle 'init' command -/
 def handleInit (mode : Mode) : IO Result := do
   let cwd ← IO.currentDir
-  if ← Storage.hasIssuesDir cwd then
-    return .error (formatError "Issues directory already exists" mode (some "Use 'tracker list' to see existing issues"))
   try
     Storage.initIssuesDir cwd
-    return .success (formatSuccess s!"Initialized issue tracker in {cwd / Storage.issuesDirName}" mode)
+    return .success (formatSuccess s!"Initialized issue tracker at {cwd / Storage.ledgerFileName}" mode)
   catch e =>
     return .error (formatError s!"Failed to initialize: {e}" mode)
 

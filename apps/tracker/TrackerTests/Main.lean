@@ -178,4 +178,72 @@ test "error on unclosed frontmatter" := do
   | .ok _ => throwThe IO.Error "Should have failed"
   | .error _ => pure ()
 
+testSuite "Tracker.Storage"
+
+private partial def testDeletePathRecursive (path : System.FilePath) : IO Unit := do
+  if ← path.isDir then
+    for entry in ← path.readDir do
+      testDeletePathRecursive (path / entry.fileName)
+    IO.FS.removeDir path
+  else if ← path.pathExists then
+    IO.FS.removeFile path
+  else
+    pure ()
+
+private def mkIssue (id : Nat) (title : String) : Issue :=
+  {
+    id := id
+    title := title
+    status := .open_
+    priority := .medium
+    created := "2026-01-01T00:00:00"
+    updated := "2026-01-01T00:00:00"
+    labels := #[]
+    assignee := none
+    project := none
+    blocks := #[]
+    blockedBy := #[]
+    description := s!"Description for {title}"
+    progress := #[]
+  }
+
+test "migrates legacy markdown storage to ledger and deletes .issues" := do
+  let root : System.FilePath := "/tmp/tracker_storage_migration_test"
+  if ← root.pathExists then
+    testDeletePathRecursive root
+  IO.FS.createDirAll (root / ".issues")
+
+  let issue1 := { (mkIssue 1 "First issue") with
+    labels := #["bug"]
+    progress := #[{ timestamp := "2026-01-01T01:00:00", message := "Started" }]
+  }
+  let issue2 := { (mkIssue 2 "Second issue") with
+    blockedBy := #[1]
+    project := some "tracker"
+  }
+
+  IO.FS.writeFile (root / ".issues" / "0001-first-issue.md") (issueToMarkdown issue1)
+  IO.FS.writeFile (root / ".issues" / "0002-second-issue.md") (issueToMarkdown issue2)
+
+  let config : Config := { root := root }
+  let migrated ← loadAllIssues config
+
+  migrated.size ≡ 2
+  ensure (← (root / "ledger.jsonl").pathExists) "ledger.jsonl should exist after migration"
+  ensure (!(← (root / ".issues").isDir)) ".issues directory should be removed after migration"
+
+  let second? := migrated.find? (·.id == 2)
+  ensure second?.isSome "Issue #2 should exist after migration"
+  match second? with
+  | some second =>
+    second.blockedBy.contains 1 ≡ true
+    second.project ≡ some "tracker"
+  | none => pure ()
+
+  let created ← createIssue config "Third issue"
+  created.id ≡ 3
+
+  if ← root.pathExists then
+    testDeletePathRecursive root
+
 def main : IO UInt32 := runAllSuites

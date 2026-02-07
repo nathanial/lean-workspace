@@ -1,6 +1,6 @@
 # CLAUDE.md - Tracker
 
-Local, git-friendly issue tracking with CLI and TUI interfaces. Issues are stored as markdown files with YAML frontmatter in `.issues/` directories.
+Local, git-friendly issue tracking with CLI and TUI interfaces. Issues are stored in a normalized Ledger journal at `ledger.jsonl` in project root.
 
 ## Build Commands
 
@@ -17,8 +17,8 @@ lake exe tracker     # Run CLI
 Tracker/
 ├── Core/
 │   ├── Types.lean      # Priority, Status, Issue, ProgressEntry
-│   ├── Storage.lean    # File I/O, filtering, dependency management
-│   ├── Parser.lean     # YAML frontmatter + markdown parser (uses Sift)
+│   ├── Storage.lean    # Ledger storage, migration, filtering, dependency management
+│   ├── Parser.lean     # Legacy markdown parser used for one-time migration
 │   └── Util.lean       # String utilities
 ├── CLI/
 │   ├── Commands.lean   # Parlance command definitions
@@ -44,7 +44,7 @@ Tracker/
 
 | Command | Purpose |
 |---------|---------|
-| `tracker init` | Initialize `.issues/` directory |
+| `tracker init` | Initialize `ledger.jsonl` database |
 | `tracker add "Title" [--priority=X] [--project=X] [--label=X]` | Create issue |
 | `tracker list [--all] [--status=X] [--project=X] [--blocked]` | List issues |
 | `tracker search <query>` | Search issues by keyword |
@@ -79,34 +79,21 @@ Only changed frames are written. This is useful for:
 
 ## Data Model
 
-**File format:** `<NNNN>-<slug>.md` in `.issues/` directory
+Ledger-normalized entities:
+- issue entity (id/title/status/priority/created/updated/description/assignee/project)
+- label entity + issue-label relation entity
+- progress relation entity
+- dependency relation entity
 
-```yaml
----
-id: 1
-title: Fix parsing bug
-status: open                    # open | in-progress | closed
-priority: high                  # low | medium | high | critical
-created: 2026-01-06T10:00:00
-updated: 2026-01-06T11:30:00
-labels: [bug, parser]
-assignee: claude                # nullable
-project: tracker                # nullable
-blocks: [3, 4]                  # issues this blocks
-blocked_by: [1, 2]              # issues blocking this
----
+Storage file:
+- `ledger.jsonl` at project root
 
-## Description
-Issue description here.
-
-## Progress
-- [2026-01-06T10:30:00] Started investigation
-- [2026-01-06T11:00:00] Found root cause
-```
+Migration behavior:
+- On first access, if `ledger.jsonl` is missing and `.issues/*.md` exists, tracker migrates all issues and deletes `.issues/`.
 
 ## Architecture Notes
 
-- **No central index:** Issues discovered by scanning `.issues/*.md` files
+- **No duplicate flat files:** Issues are reconstructed from normalized ledger relations
 - **Effective blocking:** Issue only blocked if blockedBy points to open/in-progress issues
 - **Bidirectional relationships:** `block A --by=B` updates both A.blockedBy and B.blocks
 - **Pure TUI updates:** State machine returns (newState, pendingIOAction); IO processed in main loop

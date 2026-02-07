@@ -24,9 +24,14 @@ def launchTui (debug : Bool := false) : IO Unit := do
   let cwd ← IO.currentDir
   match ← Storage.findIssuesRoot cwd with
   | some root =>
-    TUI.run { root } debug
+    try
+      Storage.ensureReady { root := root }
+      TUI.run { root } debug
+    catch e =>
+      IO.eprintln s!"Error: {e}"
+      IO.Process.exit 1
   | none =>
-    IO.eprintln "Error: No .issues directory found."
+    IO.eprintln "Error: No tracker database found."
     IO.eprintln "Run 'tracker init' to initialize issue tracking."
     IO.Process.exit 1
 

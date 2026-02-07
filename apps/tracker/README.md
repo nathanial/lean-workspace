@@ -4,7 +4,8 @@ A local, git-friendly issue tracker with dual interfaces:
 - **CLI mode**: Programmatic commands with JSON output (designed for Claude Code)
 - **TUI mode**: Interactive terminal UI for humans
 
-Issues are stored as markdown files in your repo - human-readable, git-diffable, and machine-parseable.
+Issues are stored in a normalized Ledger journal at `ledger.jsonl` in your project root.
+On first run, legacy `.issues/*.md` data is migrated automatically and `.issues/` is removed.
 
 ## Installation
 
@@ -60,7 +61,7 @@ All commands output JSON by default. Add `-t` or `--text` before the subcommand 
 
 | Command | Description |
 |---------|-------------|
-| `tracker init` | Initialize `.issues/` directory |
+| `tracker init` | Initialize `ledger.jsonl` in the current directory |
 | `tracker add <title>` | Create a new issue |
 | `tracker list` | List issues (with filters) |
 | `tracker search <query>` | Search issues by keyword |
@@ -84,33 +85,19 @@ All commands output JSON by default. Add `-t` or `--text` before the subcommand 
 - `--all`: Include closed issues in list
 - `--blocked`: Show only blocked issues
 
-## Issue Format
+## Storage
 
-Issues are stored as markdown files with YAML frontmatter:
+Tracker stores issue data in a normalized Ledger model:
+- issues
+- labels and issue-label relations
+- progress entries
+- dependency relations
 
-```markdown
----
-id: 1
-title: Fix parsing bug
-status: open
-priority: high
-created: 2026-01-06T10:00:00
-updated: 2026-01-06T11:30:00
-labels: [bug, parser]
-assignee: claude
-blocks: []
-blocked_by: [3]
----
+Journal path:
+- `./ledger.jsonl` (project root)
 
-# Fix parsing bug
-
-## Description
-The parser fails on edge case X.
-
-## Progress
-- [2026-01-06 10:30] Started investigation
-- [2026-01-06 11:00] Found root cause in tokenizer
-```
+Legacy migration:
+- if `ledger.jsonl` does not exist but `.issues/*.md` does, tracker migrates data on first access and deletes `.issues/`.
 
 ## TUI Mode
 
