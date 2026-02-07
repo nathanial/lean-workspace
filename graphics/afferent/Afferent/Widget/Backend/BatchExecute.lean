@@ -54,20 +54,8 @@ private def initBatchState (totalCommands : Nat) : BatchState :=
     stats := { totalCommands := totalCommands }
     drawCallTimeNs := 0 }
 
-private def splitLineCommands (bounded : Array BoundedCommand)
-    : (Array RenderCommand × Array BoundedCommand) :=
-  Id.run do
-    let mut lineCmds : Array RenderCommand := #[]
-    let mut nonLine : Array BoundedCommand := #[]
-    for bc in bounded do
-      if bc.cmd.category == .strokeLine then
-        lineCmds := lineCmds.push bc.cmd
-      else
-        nonLine := nonLine.push bc
-    return (lineCmds, nonLine)
-
-private def coalesceNonLineCommands (nonLine : Array BoundedCommand) : Array RenderCommand :=
-  let cmds := coalesceByCategoryWithClip nonLine
+private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
+  let cmds := coalesceByCategoryWithClip bounded
   let cmds := mergeInstancedPolygons cmds
   let cmds := mergeInstancedArcs cmds
   cmds
@@ -450,7 +438,7 @@ private def handleCommand (reg : FontRegistry) (state : BatchState)
   | .fillText text x y fontId color =>
     handleFillText reg state text x y fontId color
   | .strokeLine _ _ _ _ =>
-    pure state
+    handleNonBatchable reg state cmd
   | .drawFragment fragmentHash _ params _ =>
     handleDrawFragment reg state fragmentHash params
   | _ =>
@@ -520,29 +508,17 @@ def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.
   let bounded ← pure (computeBoundedCommands cmds)
   let tFlatten1 ← IO.monoNanosNow
 
-  -- Time: Coalesce/sort commands by category (skip lines to reduce work)
+  -- Time: Coalesce/sort commands by category while preserving clip/transform scopes
   let tCoalesce0 ← IO.monoNanosNow
-  let (lineCmds, nonLine) := splitLineCommands bounded
-  let cmds ← pure (coalesceNonLineCommands nonLine)
+  let cmds ← pure (coalesceCommandsWithClip bounded)
   let tCoalesce1 ← IO.monoNanosNow
 
   -- Time: Main batch loop (batch building + draw calls)
   let tLoop0 ← IO.monoNanosNow
 
-  -- Get canvas info for line drawing later
-  let canvas ← CanvasM.getCanvas
-  let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
-
-  -- Line metadata for buffer pre-allocation (lines already separated)
-  let (lineCount, uniformLineWidth) := computeLineMeta lineCmds
-  let lineBuffer ← ensureLineBuffer lineCount
-
-  let totalCommands := cmds.size + lineCmds.size
+  let totalCommands := cmds.size
   let mut state := initBatchState totalCommands
   state ← processCommands reg cmds state
-  -- Process all lines in a tight loop AFTER other batches (lines sorted last)
-  -- This avoids per-command overhead from the main batching loop
-  state ← drawLines state lineCmds lineCount uniformLineWidth lineBuffer canvasWidth canvasHeight
   let tLoop1 ← IO.monoNanosNow
 
   -- Calculate timing in milliseconds

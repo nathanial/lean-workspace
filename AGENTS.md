@@ -53,6 +53,7 @@ Testing:
 
 Project-specific note:
 
+- `graphics/afferent`: run `just test-project graphics/afferent` for test runs.
 - `graphics/afferent-demos`: run `graphics/afferent-demos/build.sh afferent_demos`
 
 ## Coding Style

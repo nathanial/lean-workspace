@@ -25,8 +25,16 @@ partial def renderCustomWidgets (w : Afferent.Arbor.Widget) (layouts : Trellis.L
       | .grid _ _ _ _ children =>
           for child in children do
             renderCustomWidgets child layouts
-      | .scroll _ _ _ _ _ _ _ child =>
+      | .scroll _ _ _ scrollState _ _ _ child =>
+          let contentRect := layout.contentRect
+          let clipRect : Rect :=
+            ⟨⟨contentRect.x, contentRect.y⟩, ⟨contentRect.width, contentRect.height⟩⟩
+          CanvasM.clip clipRect
+          CanvasM.save
+          CanvasM.translate (-scrollState.offsetX) (-scrollState.offsetY)
           renderCustomWidgets child layouts
+          CanvasM.restore
+          CanvasM.popClip
       | _ => pure ()
 
 /-- Render an Arbor widget tree using CanvasM with automatic render command caching.

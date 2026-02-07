@@ -259,7 +259,7 @@ def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : C
     CanvasM.clip rect
 
   | .popClip =>
-    CanvasM.unclip
+    CanvasM.popClip
 
   | .pushTranslate dx dy =>
     CanvasM.save
