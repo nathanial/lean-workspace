@@ -333,7 +333,9 @@ test "Snapshot: load + replay tail" := do
   let pc2 ← Persist.PersistentConnection.create journalPath
   pc2.db.getOne e1 (Attribute.mk ":person/name") ≡ some (Value.string "Alice")
   pc2.db.getOne e1 (Attribute.mk ":person/age") ≡ some (Value.int 42)
-  pc2.allTxIds.length ≡ 2
+  pc2.db.basisT.id ≡ 2
+  -- Default policy is bounded history, so only tail journal transactions are retained in txLog.
+  pc2.allTxIds.length ≡ 1
 
 test "Compaction: snapshot + journal trim" := do
   let journalPath : System.FilePath := "/tmp/ledger_compaction_test.jsonl"
@@ -362,6 +364,39 @@ test "Compaction: snapshot + journal trim" := do
   let pc2 ← Persist.PersistentConnection.create journalPath
   pc2.db.getOne e1 (Attribute.mk ":person/name") ≡ some (Value.string "Alice")
   pc2.db.getOne e1 (Attribute.mk ":person/age") ≡ some (Value.int 42)
+  pc2.db.basisT.id ≡ 2
+  -- With bounded history policy, compaction keeps current state but drops old tx history.
+  pc2.allTxIds.length ≡ 0
+
+test "Compaction: preserve full history policy" := do
+  let journalPath : System.FilePath := "/tmp/ledger_compaction_preserve_full_test.jsonl"
+  let snapshotPath := Persist.Snapshot.defaultPath journalPath
+  IO.FS.writeFile journalPath ""
+  if (← snapshotPath.pathExists) then
+    IO.FS.removeFile snapshotPath
+
+  let pc ← Persist.PersistentConnection.createWith journalPath Persist.CompactionPolicy.preserveFull
+  let (e1, pc) := pc.allocEntityId
+  let tx1 : Transaction := [
+    .add e1 (Attribute.mk ":person/name") (Value.string "Alice")
+  ]
+  let .ok (pc, _) := (← pc.transact tx1) | throw <| IO.userError "Tx1 failed"
+  let tx2 : Transaction := [
+    .add e1 (Attribute.mk ":person/age") (Value.int 42)
+  ]
+  let .ok (pc, _) := (← pc.transact tx2) | throw <| IO.userError "Tx2 failed"
+
+  let (pc, _) ← Persist.Compaction.compact pc
+  pc.close
+
+  let entries ← Persist.JSONL.readJournal journalPath
+  entries.size ≡ 0
+
+  let pc2 ← Persist.PersistentConnection.createWith journalPath Persist.CompactionPolicy.preserveFull
+  pc2.db.getOne e1 (Attribute.mk ":person/name") ≡ some (Value.string "Alice")
+  pc2.db.getOne e1 (Attribute.mk ":person/age") ≡ some (Value.int 42)
+  pc2.db.basisT.id ≡ 2
+  -- Preserve-full policy keeps transaction log in snapshot across compaction.
   pc2.allTxIds.length ≡ 2
 
 end Ledger.Tests.Persistence

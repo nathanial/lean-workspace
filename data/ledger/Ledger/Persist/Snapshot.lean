@@ -11,6 +11,7 @@ import Ledger.Core.Datom
 import Ledger.Db.Database
 import Ledger.Db.Connection
 import Ledger.Index.Manager
+import Ledger.Persist.Policy
 import Ledger.Persist.JSON
 import Staple.Json
 
@@ -35,13 +36,20 @@ namespace Snapshot
 def defaultPath (journalPath : System.FilePath) : System.FilePath :=
   System.FilePath.mk (journalPath.toString ++ ".snapshot.json")
 
-/-- Build a snapshot from a connection. -/
-def fromConnection (conn : Connection) : Snapshot :=
+/-- Build a snapshot from a connection using a retention policy. -/
+def fromConnectionWithRetention (conn : Connection) (retention : HistoryRetention) : Snapshot :=
   let facts := conn.db.currentFacts.toList.map Prod.snd
+  let txLog := match retention with
+    | .bounded => #[]
+    | .preserveFull => conn.txLog
   { basisT := conn.db.basisT
   , nextEntityId := conn.db.nextEntityId
   , currentFacts := facts.toArray
-  , txLog := conn.txLog }
+  , txLog := txLog }
+
+/-- Build a snapshot from a connection. -/
+def fromConnection (conn : Connection) : Snapshot :=
+  fromConnectionWithRetention conn .preserveFull
 
 /-- Build a connection from a snapshot. -/
 def toConnection (snap : Snapshot) : Connection :=

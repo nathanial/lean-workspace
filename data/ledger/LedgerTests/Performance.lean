@@ -98,7 +98,11 @@ private def withFreshJournal (path : System.FilePath) (action : IO α) : IO α :
     removeIfExists snapshotPath
 
 def createPersistedPeople (path : System.FilePath) (n : Nat) : IO Unit := do
-  let mut pc ← Persist.PersistentConnection.create path
+  let policy : Persist.CompactionPolicy := {
+    Persist.CompactionPolicy.preserveFull with
+      enabled := false
+  }
+  let mut pc ← Persist.PersistentConnection.createWith path policy
   for i in [:n] do
     let (eid, pc') := pc.allocEntityId
     let tx : Transaction := [
@@ -359,6 +363,10 @@ test "PERSIST: replay-per-read vs persistent-connection reuse" := do
     let people := 800
     let iterations := 12
     let targetName := Value.string "Person400"
+    let policyNoAuto : Persist.CompactionPolicy := {
+      Persist.CompactionPolicy.default with
+        enabled := false
+    }
 
     createPersistedPeople journalPath people
 
@@ -368,7 +376,7 @@ test "PERSIST: replay-per-read vs persistent-connection reuse" := do
         let _ := conn.db.entityWithAttrValue personName targetName
         pure ()
 
-    let pc ← Persist.PersistentConnection.create journalPath
+    let pc ← Persist.PersistentConnection.createWith journalPath policyNoAuto
     let (_, reuseConnectionMs) ← timeMs do
       for _ in [:iterations] do
         let _ := pc.db.entityWithAttrValue personName targetName
@@ -380,5 +388,32 @@ test "PERSIST: replay-per-read vs persistent-connection reuse" := do
 
     ensure (replayEachReadMs > reuseConnectionMs)
       s!"Expected replay-per-read to be slower, got replay={replayEachReadMs}ms reuse={reuseConnectionMs}ms"
+
+test "PERSIST: startup/open time vs journal size" := do
+  let sizes : Array Nat := #[200, 1000, 5000]
+  let repeats : Nat := 8
+  let resultsRef ← IO.mkRef (#[] : Array (Nat × Nat))
+  let policyNoAuto : Persist.CompactionPolicy := {
+    Persist.CompactionPolicy.default with
+      enabled := false
+  }
+
+  for size in sizes do
+    let journalPath : System.FilePath := s!"/tmp/ledger_perf_open_{size}.jsonl"
+    withFreshJournal journalPath do
+      createPersistedPeople journalPath size
+      let (_, openMs) ← timeMs do
+        for _ in [:repeats] do
+          let pc ← Persist.PersistentConnection.createWith journalPath policyNoAuto
+          pc.close
+      IO.println s!"  open PersistentConnection ({size} tx) x{repeats}: {openMs}ms"
+      resultsRef.modify (·.push (size, openMs))
+
+  -- Guardrail: larger journals should not open materially faster than smaller ones.
+  let results ← resultsRef.get
+  let (smallSize, smallMs) := results[0]!
+  let (largeSize, largeMs) := results[results.size - 1]!
+  ensure (largeMs + 10 >= smallMs)
+    s!"Unexpected startup scaling: {largeSize} tx open={largeMs}ms, {smallSize} tx open={smallMs}ms"
 
 end Ledger.Tests.Performance

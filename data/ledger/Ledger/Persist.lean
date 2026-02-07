@@ -6,6 +6,7 @@
 
 import Ledger.Persist.JSON
 import Ledger.Persist.JSONL
+import Ledger.Persist.Policy
 import Ledger.Persist.Snapshot
-import Ledger.Persist.Compaction
 import Ledger.Persist.Connection
+import Ledger.Persist.Compaction
