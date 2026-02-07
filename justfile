@@ -10,6 +10,41 @@ default:
 status:
     git status -s
 
+# Remove linked worktrees whose branch has already been merged into master
+prune-merged-worktrees:
+    @if ! git show-ref --verify --quiet refs/heads/master; then \
+      echo "Local branch 'master' not found." >&2; \
+      exit 1; \
+    fi
+    @current_path="$$(pwd)"; \
+    removed=0; \
+    path=""; \
+    branch=""; \
+    process_worktree() { \
+      if [[ -z "$$path" || -z "$$branch" || "$$branch" == "master" || "$$path" == "$$current_path" ]]; then \
+        return; \
+      fi; \
+      if git merge-base --is-ancestor "$$branch" master; then \
+        echo "Removing $$path (branch $$branch merged into master)"; \
+        git worktree remove "$$path"; \
+        removed=$$((removed + 1)); \
+      fi; \
+    }; \
+    while IFS= read -r line; do \
+      if [[ -z "$$line" ]]; then \
+        process_worktree; \
+        path=""; \
+        branch=""; \
+      elif [[ "$$line" == worktree\ * ]]; then \
+        path="$${line#worktree }"; \
+      elif [[ "$$line" == branch\ refs/heads/* ]]; then \
+        branch="$${line#branch refs/heads/}"; \
+      fi; \
+    done < <(git worktree list --porcelain; echo); \
+    if [[ "$$removed" -eq 0 ]]; then \
+      echo "No merged worktrees found."; \
+    fi
+
 # Build root package (may include many targets)
 build:
     lake build
