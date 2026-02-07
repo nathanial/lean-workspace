@@ -101,6 +101,31 @@ test "flex column places items vertically" := do
   shouldBeNear cl2.height 50 0.01
   shouldBeNear cl3.height 60 0.01
 
+test "static column keeps child intrinsic heights on overflow" := do
+  let node := LayoutNode.flexBox 0 (FlexContainer.staticColumn) #[
+    LayoutNode.leaf 1 (ContentSize.mk' 100 80),
+    LayoutNode.leaf 2 (ContentSize.mk' 100 80)
+  ]
+  let result := layout node 200 100
+  let cl1 := result.get! 1
+  let cl2 := result.get! 2
+  -- Default child item for staticColumn is grow=0, shrink=0.
+  shouldBeNear cl1.height 80 0.01
+  shouldBeNear cl2.height 80 0.01
+  shouldBeNear cl2.y 80 0.01
+
+test "explicit child flex item overrides container defaultItem" := do
+  let node := LayoutNode.flexBox 0 (FlexContainer.staticColumn) #[
+    LayoutNode.leaf 1 (ContentSize.mk' 100 40),
+    LayoutNode.leaf 2 (ContentSize.mk' 100 10) {} (.flexChild (FlexItem.growing 1))
+  ]
+  let result := layout node 200 100
+  let cl1 := result.get! 1
+  let cl2 := result.get! 2
+  -- Remaining space after the fixed first child goes to the second.
+  shouldBeNear cl1.height 40 0.01
+  shouldBeNear cl2.height 60 0.01
+
 /-! ## Justify Content Tests -/
 
 test "justify-content: center centers items" := do

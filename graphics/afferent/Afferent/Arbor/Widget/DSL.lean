@@ -135,6 +135,14 @@ def namedColumn (name : String) (gap : Float := 0) (style : BoxStyle := {}) (chi
   let cs ← children.mapM fun b => b
   pure (.flex wid (some name) props style cs)
 
+/-- Create a vertical static-flow column.
+    Children do not grow or shrink unless they explicitly set `style.flexItem`. -/
+def staticColumn (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
+  let wid ← freshId
+  let props := Trellis.FlexContainer.staticColumn gap
+  let cs ← children.mapM fun b => b
+  pure (.flex wid none props style cs)
+
 /-- Create a row with custom flex properties. -/
 def flexRow (props : Trellis.FlexContainer) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
@@ -388,6 +396,14 @@ def hbox (gap : Float := 0) (style : BoxStyle := {}) (children : ChildBuilder Un
 def vbox (gap : Float := 0) (style : BoxStyle := {}) (children : ChildBuilder Unit) : WidgetBuilder := do
   let wid ← freshId
   let props := Trellis.FlexContainer.column gap
+  let cs ← runChildren children
+  pure (.flex wid none props style cs)
+
+/-- Create a vertical static-flow column with monadic children.
+    Children do not grow or shrink unless they explicitly set `style.flexItem`. -/
+def vstack (gap : Float := 0) (style : BoxStyle := {}) (children : ChildBuilder Unit) : WidgetBuilder := do
+  let wid ← freshId
+  let props := Trellis.FlexContainer.staticColumn gap
   let cs ← runChildren children
   pure (.flex wid none props style cs)
 

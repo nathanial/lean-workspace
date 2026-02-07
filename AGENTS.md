@@ -40,9 +40,10 @@ Build:
 Testing:
 
 - `just test-all` (recommended)
-- `just test-project <match>` for targeted runs
+- `just test-project <match>` for targeted runs (always use this instead of invoking test executables directly)
 - `just test-all-integration` to include integration suites
 - `just test-project-integration <match>` for targeted integration runs
+- do not run `lake exe *_tests_exe` directly; use `just test-project <match>`
 
 `scripts/test-all.sh` behavior:
 
