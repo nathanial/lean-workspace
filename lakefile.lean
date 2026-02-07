@@ -488,6 +488,11 @@ lean_exe tracker where
   root := `Tracker.Entry
   moreLinkArgs := terminalUiLinkArgs
 
+lean_exe tracker_bench where
+  srcDir := "apps/tracker"
+  root := `TrackerBench.Main
+  moreLinkArgs := terminalUiLinkArgs
+
 lean_exe twenty48 where
   srcDir := "apps/twenty48"
   root := `Twenty48.Main

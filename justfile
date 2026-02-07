@@ -31,6 +31,10 @@ run-project project:
       lake exe "{{project}}"; \
     fi
 
+# Run tracker storage benchmarks (pass-through args, e.g. --issues=500 --iterations=30)
+tracker-bench *args:
+    lake exe tracker_bench -- {{args}}
+
 # Run package test driver (currently linalg suite)
 test:
     lake test

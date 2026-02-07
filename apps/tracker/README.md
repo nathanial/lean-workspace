@@ -113,6 +113,20 @@ Launch with `tracker` (no arguments) or `tracker tui`.
 - `r`: Refresh
 - `q`: Quit
 
+## Benchmarking
+
+Run storage/query benchmarks:
+
+```bash
+lake exe tracker_bench -- --issues=300 --iterations=20
+```
+
+Options:
+- `--issues=N`: number of synthetic issues to seed
+- `--iterations=N`: loop count for repeated operations
+- `--root=/tmp/path`: benchmark workspace path
+- `--keep-data`: keep generated benchmark data on disk
+
 ## Dependencies
 
 - [terminus](https://github.com/nathanial/terminus) - TUI framework
