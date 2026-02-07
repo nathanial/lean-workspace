@@ -135,32 +135,64 @@ private partial def deletePathRecursive (path : System.FilePath) : IO Unit := do
   else
     pure ()
 
+private def configKey (config : Config) : String :=
+  config.root.toString
+
+initialize sessionPoolRef : IO.Ref (Std.HashMap String Ledger.Persist.PersistentConnection) ←
+  IO.mkRef {}
+
+initialize nextIssueIdPoolRef : IO.Ref (Std.HashMap String Nat) ←
+  IO.mkRef {}
+
+private def putSession (config : Config) (pc : Ledger.Persist.PersistentConnection) : IO Unit := do
+  sessionPoolRef.modify (·.insert (configKey config) pc)
+
+private def putNextIssueId (config : Config) (nextId : Nat) : IO Unit := do
+  nextIssueIdPoolRef.modify (·.insert (configKey config) nextId)
+
+private def dropSession (config : Config) : IO Unit := do
+  sessionPoolRef.modify (·.erase (configKey config))
+
+private def dropNextIssueId (config : Config) : IO Unit := do
+  nextIssueIdPoolRef.modify (·.erase (configKey config))
+
+private def resetSessionState (config : Config) : IO Unit := do
+  dropSession config
+  dropNextIssueId config
+
+private def getNextIssueId? (config : Config) : IO (Option Nat) := do
+  return (← nextIssueIdPoolRef.get)[configKey config]?
+
+private def getSession (config : Config) : IO Ledger.Persist.PersistentConnection := do
+  let pool ← sessionPoolRef.get
+  match pool[configKey config]? with
+  | some pc => return pc
+  | none =>
+    let pc ← Ledger.Persist.PersistentConnection.create (ledgerFile config)
+    putSession config pc
+    return pc
+
+private def reserveEntityId (config : Config) : IO EntityId := do
+  let pc ← getSession config
+  let (eid, pc') := pc.allocEntityId
+  putSession config pc'
+  return eid
+
 /-- Load current database snapshot from the tracker journal. -/
 private def loadDb (config : Config) : IO Db := do
-  let conn ← Ledger.Persist.JSONL.replayJournal (ledgerFile config)
-  return conn.db
-
-/-- Persist a successful transaction report to the tracker journal. -/
-private def appendReport (path : System.FilePath) (report : TxReport) : IO Unit := do
-  let entry : TxLogEntry := {
-    txId := report.txId
-    txInstant := report.txInstant
-    datoms := report.txData
-  }
-  IO.FS.withFile path .append fun handle => do
-    Ledger.Persist.JSONL.appendEntry handle entry
+  let pc ← getSession config
+  return pc.db
 
 /-- Apply a transaction against current journal state and persist it. -/
 private def applyTx (config : Config) (tx : Transaction) : IO (Except TxError Db) := do
-  let path := ledgerFile config
-  let conn ← Ledger.Persist.JSONL.replayJournal path
+  let pc ← getSession config
   let instant ← nowMs
-  match conn.transact tx instant with
+  match ← pc.transact tx instant with
   | .error err =>
     return .error err
-  | .ok (conn', report) =>
-    appendReport path report
-    return .ok conn'.db
+  | .ok (pc', _) =>
+    putSession config pc'
+    return .ok pc'.db
 
 /-- Set a cardinality-one attribute by retracting any existing value first. -/
 private def setOneOps (db : Db) (entity : EntityId) (attr : Attribute) (newValue : Value) : Transaction :=
@@ -180,16 +212,28 @@ private def issueIdOfEntity? (db : Db) (entity : EntityId) : Option Nat := do
   let value ← db.getOne entity Attr.issueId
   natFromValue? value
 
-/-- Build an ID -> issue entity map for all issues in the db. -/
-private def issueEntityMap (db : Db) : Std.HashMap Nat EntityId :=
-  (db.entitiesWithAttr Attr.issueId).foldl (init := ({} : Std.HashMap Nat EntityId)) fun acc entity =>
-    match issueIdOfEntity? db entity with
-    | some id => acc.insert id entity
-    | none => acc
+/-- Compute the next tracker issue ID from current db facts. -/
+private def nextIssueIdFromDb (db : Db) : Nat := Id.run do
+  let mut maxId : Nat := 0
+  for entity in db.entitiesWithAttr Attr.issueId do
+    if let some id := issueIdOfEntity? db entity then
+      maxId := max maxId id
+  return maxId + 1
+
+/-- Reserve the next tracker issue ID, caching the sequence in-process. -/
+private def reserveIssueId (config : Config) (db : Db) : IO Nat := do
+  match ← getNextIssueId? config with
+  | some nextId =>
+    putNextIssueId config (nextId + 1)
+    return nextId
+  | none =>
+    let nextId := nextIssueIdFromDb db
+    putNextIssueId config (nextId + 1)
+    return nextId
 
 /-- Resolve an issue entity by numeric issue ID. -/
 private def findIssueEntity? (db : Db) (id : Nat) : Option EntityId :=
-  (issueEntityMap db)[id]?
+  db.entityWithAttrValue Attr.issueId (.int (Int.ofNat id))
 
 private def getStringD (db : Db) (entity : EntityId) (attr : Attribute) (fallback : String) : String :=
   match db.getOne entity attr with
@@ -288,10 +332,10 @@ private def issueFromEntity (db : Db) (issueEntity : EntityId) (id : Nat) : Issu
 
 /-- Load all issue entities and decode them as tracker issues. -/
 private def loadAllIssuesFromDb (db : Db) : Array Issue := Id.run do
-  let map := issueEntityMap db
   let mut issues : Array Issue := #[]
-  for (id, issueEntity) in map.toList do
-    issues := issues.push (issueFromEntity db issueEntity id)
+  for issueEntity in db.entitiesWithAttr Attr.issueId do
+    if let some id := issueIdOfEntity? db issueEntity then
+      issues := issues.push (issueFromEntity db issueEntity id)
   return issues.qsort (fun a b => a.id < b.id)
 
 /-- Gather legacy markdown issue files from .issues. -/
@@ -421,15 +465,17 @@ private def migrateLegacyIssues (config : Config) : IO Unit := do
 
     tx
 
-  let path := ledgerFile config
-  let conn ← Ledger.Persist.JSONL.replayJournal path
+  -- Drop any cached session before migration transact.
+  resetSessionState config
+  let pc ← Ledger.Persist.PersistentConnection.create (ledgerFile config)
   let instant ← nowMs
-  match conn.transact tx instant with
+  match ← pc.transact tx instant with
   | .error err =>
     throw (IO.userError s!"Failed to migrate legacy issues to Ledger: {err}")
-  | .ok (conn', report) =>
-    appendReport path report
-    let migratedIssues := loadAllIssuesFromDb conn'.db
+  | .ok (pc', _) =>
+    putSession config pc'
+    putNextIssueId config (nextIssueIdFromDb pc'.db)
+    let migratedIssues := loadAllIssuesFromDb pc'.db
     if migratedIssues.size != issues.size then
       throw (IO.userError s!"Migration verification failed: expected {issues.size}, got {migratedIssues.size}")
 
@@ -458,6 +504,7 @@ def initIssuesDir (root : System.FilePath) : IO Unit := do
   let path := ledgerFile config
   if ← path.pathExists then
     throw (IO.userError s!"Tracker database already exists: {path}")
+  resetSessionState config
   if ← hasIssuesDir root then
     migrateLegacyIssues config
   else
@@ -466,11 +513,13 @@ def initIssuesDir (root : System.FilePath) : IO Unit := do
 /-- Get next available issue ID from existing issues. -/
 def nextIssueId (config : Config) : IO Nat := do
   ensureReady config
-  let db ← loadDb config
-  let mut maxId : Nat := 0
-  for issue in loadAllIssuesFromDb db do
-    maxId := max maxId issue.id
-  return maxId + 1
+  match ← getNextIssueId? config with
+  | some nextId => return nextId
+  | none =>
+    let db ← loadDb config
+    let nextId := nextIssueIdFromDb db
+    putNextIssueId config nextId
+    return nextId
 
 /-- Load all issues from ledger storage. -/
 def loadAllIssues (config : Config) : IO (Array Issue) := do
@@ -480,8 +529,11 @@ def loadAllIssues (config : Config) : IO (Array Issue) := do
 
 /-- Find an issue by ID. -/
 def findIssue (config : Config) (id : Nat) : IO (Option Issue) := do
-  let issues ← loadAllIssues config
-  return issues.find? (·.id == id)
+  ensureReady config
+  let db ← loadDb config
+  match findIssueEntity? db id with
+  | some issueEntity => return some (issueFromEntity db issueEntity id)
+  | none => return none
 
 /-- Update an existing issue's scalar fields and labels. -/
 def updateIssue (config : Config) (id : Nat) (modify : Issue → Issue) : IO (Option Issue) := do
@@ -536,30 +588,27 @@ def updateIssue (config : Config) (id : Nat) (modify : Issue → Issue) : IO (Op
       tx := tx ++ [.retractEntity (.id relEntity)]
 
   -- Add relations for newly-added labels.
-  let mut allocDb := db
   let mut localLabelEntities : Std.HashMap String EntityId := {}
 
   for label in newLabels do
     if !oldLabels.contains label then
-      let (labelEntity, allocDb', localLabelEntities', tx') :=
+      let (labelEntity, localLabelEntities', tx') ←
         match localLabelEntities[label]? with
         | some entity =>
-          (entity, allocDb, localLabelEntities, tx)
+          pure (entity, localLabelEntities, tx)
         | none =>
           match db.entityWithAttrValue Attr.labelName (.string label) with
           | some existing =>
-            (existing, allocDb, localLabelEntities.insert label existing, tx)
+            pure (existing, localLabelEntities.insert label existing, tx)
           | none =>
-            let (newEntity, allocDb') := allocDb.allocEntityId
+            let newEntity ← reserveEntityId config
             let tx' := tx ++ [TxOp.add newEntity Attr.labelName (.string label)]
-            (newEntity, allocDb', localLabelEntities.insert label newEntity, tx')
+            pure (newEntity, localLabelEntities.insert label newEntity, tx')
 
-      allocDb := allocDb'
       localLabelEntities := localLabelEntities'
       tx := tx'
 
-      let (relEntity, allocDb'') := allocDb.allocEntityId
-      allocDb := allocDb''
+      let relEntity ← reserveEntityId config
       tx := tx ++ [
         TxOp.add relEntity Attr.issueLabelIssue (.ref issueEntity),
         TxOp.add relEntity Attr.issueLabelLabel (.ref labelEntity)
@@ -571,8 +620,10 @@ def updateIssue (config : Config) (id : Nat) (modify : Issue → Issue) : IO (Op
   match ← applyTx config tx with
   | .error err =>
     throw (IO.userError s!"Failed to update issue #{id}: {err}")
-  | .ok _ =>
-    return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Create a new issue. -/
 def createIssue (config : Config) (title : String) (description : String := "")
@@ -580,12 +631,10 @@ def createIssue (config : Config) (title : String) (description : String := "")
     (assignee : Option String := none) (project : Option String := none) : IO Issue := do
   ensureReady config
   let db ← loadDb config
-  let id ← nextIssueId config
+  let id ← reserveIssueId config db
   let timestamp ← nowIso8601
 
-  let mut allocDb := db
-  let (issueEntity, allocDb') := allocDb.allocEntityId
-  allocDb := allocDb'
+  let issueEntity ← reserveEntityId config
 
   let mut tx : Transaction := issueBaseOps issueEntity {
     id := id
@@ -605,25 +654,23 @@ def createIssue (config : Config) (title : String) (description : String := "")
 
   let mut localLabelEntities : Std.HashMap String EntityId := {}
   for label in dedupStrings labels do
-    let (labelEntity, allocDb', localLabelEntities', tx') :=
+    let (labelEntity, localLabelEntities', tx') ←
       match localLabelEntities[label]? with
       | some entity =>
-        (entity, allocDb, localLabelEntities, tx)
+        pure (entity, localLabelEntities, tx)
       | none =>
         match db.entityWithAttrValue Attr.labelName (.string label) with
         | some existing =>
-          (existing, allocDb, localLabelEntities.insert label existing, tx)
+          pure (existing, localLabelEntities.insert label existing, tx)
         | none =>
-          let (newEntity, allocDb') := allocDb.allocEntityId
+          let newEntity ← reserveEntityId config
           let tx' := tx ++ [TxOp.add newEntity Attr.labelName (.string label)]
-          (newEntity, allocDb', localLabelEntities.insert label newEntity, tx')
+          pure (newEntity, localLabelEntities.insert label newEntity, tx')
 
-    allocDb := allocDb'
     localLabelEntities := localLabelEntities'
     tx := tx'
 
-    let (relEntity, allocDb'') := allocDb.allocEntityId
-    allocDb := allocDb''
+    let relEntity ← reserveEntityId config
     tx := tx ++ [
       TxOp.add relEntity Attr.issueLabelIssue (.ref issueEntity),
       TxOp.add relEntity Attr.issueLabelLabel (.ref labelEntity)
@@ -632,9 +679,9 @@ def createIssue (config : Config) (title : String) (description : String := "")
   match ← applyTx config tx with
   | .error err =>
     throw (IO.userError s!"Failed to create issue: {err}")
-  | .ok _ =>
-    match (← findIssue config id) with
-    | some issue => return issue
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some entity => return issueFromEntity db' entity id
     | none => throw (IO.userError s!"Created issue #{id}, but failed to reload it")
 
 /-- Add a progress entry to an issue. -/
@@ -645,7 +692,7 @@ def addProgress (config : Config) (id : Nat) (message : String) : IO (Option Iss
     | return none
 
   let timestamp ← nowIso8601
-  let (progressEntity, _) := db.allocEntityId
+  let progressEntity ← reserveEntityId config
   let tx : Transaction :=
     setOneOps db issueEntity Attr.updated (.string timestamp) ++ [
       TxOp.add progressEntity Attr.progressIssue (.ref issueEntity),
@@ -655,7 +702,10 @@ def addProgress (config : Config) (id : Nat) (message : String) : IO (Option Iss
 
   match ← applyTx config tx with
   | .error err => throw (IO.userError s!"Failed to add progress to issue #{id}: {err}")
-  | .ok _ => return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Close an issue with optional closing comment. -/
 def closeIssue (config : Config) (id : Nat) (comment : Option String := none) : IO (Option Issue) := do
@@ -671,7 +721,7 @@ def closeIssue (config : Config) (id : Nat) (comment : Option String := none) : 
 
   match comment with
   | some msg =>
-    let (progressEntity, _) := db.allocEntityId
+    let progressEntity ← reserveEntityId config
     tx := tx ++ [
       TxOp.add progressEntity Attr.progressIssue (.ref issueEntity),
       TxOp.add progressEntity Attr.progressTimestamp (.string timestamp),
@@ -682,7 +732,10 @@ def closeIssue (config : Config) (id : Nat) (comment : Option String := none) : 
 
   match ← applyTx config tx with
   | .error err => throw (IO.userError s!"Failed to close issue #{id}: {err}")
-  | .ok _ => return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Reopen a closed issue. -/
 def reopenIssue (config : Config) (id : Nat) : IO (Option Issue) := do
@@ -692,7 +745,7 @@ def reopenIssue (config : Config) (id : Nat) : IO (Option Issue) := do
     | return none
 
   let timestamp ← nowIso8601
-  let (progressEntity, _) := db.allocEntityId
+  let progressEntity ← reserveEntityId config
   let tx : Transaction :=
     setOneOps db issueEntity Attr.status (.string Status.open_.toString) ++
     setOneOps db issueEntity Attr.updated (.string timestamp) ++ [
@@ -703,7 +756,10 @@ def reopenIssue (config : Config) (id : Nat) : IO (Option Issue) := do
 
   match ← applyTx config tx with
   | .error err => throw (IO.userError s!"Failed to reopen issue #{id}: {err}")
-  | .ok _ => return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Add a dependency (issue `id` is blocked by issue `blockedById`). -/
 def addBlockedBy (config : Config) (id : Nat) (blockedById : Nat) : IO (Option Issue) := do
@@ -722,9 +778,11 @@ def addBlockedBy (config : Config) (id : Nat) (blockedById : Nat) : IO (Option I
     | none => false
 
   if alreadyExists then
-    return (← findIssue config id)
+    match findIssueEntity? db id with
+    | some issueEntity => return some (issueFromEntity db issueEntity id)
+    | none => return none
 
-  let (depEntity, _) := db.allocEntityId
+  let depEntity ← reserveEntityId config
   let tx : Transaction := [
     TxOp.add depEntity Attr.depBlocked (.ref issueEntity),
     TxOp.add depEntity Attr.depBlocker (.ref blockerEntity)
@@ -732,7 +790,10 @@ def addBlockedBy (config : Config) (id : Nat) (blockedById : Nat) : IO (Option I
 
   match ← applyTx config tx with
   | .error err => throw (IO.userError s!"Failed to add dependency for issue #{id}: {err}")
-  | .ok _ => return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Remove a dependency relation if present. -/
 def removeBlockedBy (config : Config) (id : Nat) (blockedById : Nat) : IO (Option Issue) := do
@@ -755,11 +816,16 @@ def removeBlockedBy (config : Config) (id : Nat) (blockedById : Nat) : IO (Optio
   let tx : Transaction := removals.map (fun rel => TxOp.retractEntity (.id rel))
 
   if tx.isEmpty then
-    return (← findIssue config id)
+    match findIssueEntity? db id with
+    | some issueEntity => return some (issueFromEntity db issueEntity id)
+    | none => return none
 
   match ← applyTx config tx with
   | .error err => throw (IO.userError s!"Failed to remove dependency for issue #{id}: {err}")
-  | .ok _ => return (← findIssue config id)
+  | .ok db' =>
+    match findIssueEntity? db' id with
+    | some issueEntity => return some (issueFromEntity db' issueEntity id)
+    | none => return none
 
 /-- Filter for listing issues. -/
 structure ListFilter where
