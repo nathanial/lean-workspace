@@ -83,6 +83,33 @@ def addManyValues (db : Db) (eid : EntityId) (attr : Attribute) (n : Nat) : IO D
     | .error e => throw <| IO.userError s!"Transaction failed: {e}"
   return db
 
+private def removeIfExists (path : System.FilePath) : IO Unit := do
+  if ← path.pathExists then
+    IO.FS.removeFile path
+
+private def withFreshJournal (path : System.FilePath) (action : IO α) : IO α := do
+  let snapshotPath := Persist.Snapshot.defaultPath path
+  removeIfExists path
+  removeIfExists snapshotPath
+  try
+    action
+  finally
+    removeIfExists path
+    removeIfExists snapshotPath
+
+def createPersistedPeople (path : System.FilePath) (n : Nat) : IO Unit := do
+  let mut pc ← Persist.PersistentConnection.create path
+  for i in [:n] do
+    let (eid, pc') := pc.allocEntityId
+    let tx : Transaction := [
+      .add eid personName (.string s!"Person{i}"),
+      .add eid personAge (.int (Int.ofNat i))
+    ]
+    match ← pc'.transact tx with
+    | .ok (pc'', _) => pc := pc''
+    | .error e => throw <| IO.userError s!"Transaction failed: {e}"
+  pc.close
+
 testSuite "Performance Tests"
 
 /-! ## Transaction Performance -/
@@ -323,5 +350,35 @@ test "STRESS: entity with 500 values (extreme move pattern)" := do
   IO.println s!"  1000 getOne calls on entity with 500 values: {elapsed}ms"
   -- With O(n²) grouping, this should be noticeably slow
   ensure (elapsed < 30000) s!"Too slow: {elapsed}ms"
+
+/-! ## Persistence Access Pattern Performance -/
+
+test "PERSIST: replay-per-read vs persistent-connection reuse" := do
+  let journalPath : System.FilePath := "/tmp/ledger_perf_replay_vs_persistent.jsonl"
+  withFreshJournal journalPath do
+    let people := 800
+    let iterations := 12
+    let targetName := Value.string "Person400"
+
+    createPersistedPeople journalPath people
+
+    let (_, replayEachReadMs) ← timeMs do
+      for _ in [:iterations] do
+        let conn ← Persist.JSONL.replayJournal journalPath
+        let _ := conn.db.entityWithAttrValue personName targetName
+        pure ()
+
+    let pc ← Persist.PersistentConnection.create journalPath
+    let (_, reuseConnectionMs) ← timeMs do
+      for _ in [:iterations] do
+        let _ := pc.db.entityWithAttrValue personName targetName
+        pure ()
+    pc.close
+
+    IO.println s!"  replayJournal + query x{iterations}: {replayEachReadMs}ms"
+    IO.println s!"  persistent connection query x{iterations}: {reuseConnectionMs}ms"
+
+    ensure (replayEachReadMs > reuseConnectionMs)
+      s!"Expected replay-per-read to be slower, got replay={replayEachReadMs}ms reuse={reuseConnectionMs}ms"
 
 end Ledger.Tests.Performance
