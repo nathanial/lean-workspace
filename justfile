@@ -30,8 +30,17 @@ prune-merged-worktrees:
       fi; \
       if git merge-base --is-ancestor "$branch" master; then \
         echo "Removing $path (branch $branch merged into master)"; \
-        git worktree remove "$path"; \
-        removed=$((removed + 1)); \
+        if git worktree remove "$path"; then \
+          removed=$((removed + 1)); \
+          if git branch -d "$branch" >/dev/null 2>&1; then \
+            echo "Deleted local branch $branch"; \
+          else \
+            echo "Branch $branch could not be deleted with -d; forcing delete"; \
+            git branch -D "$branch"; \
+          fi; \
+        else \
+          echo "Failed to remove $path; skipping branch delete for $branch" >&2; \
+        fi; \
       fi; \
     }; \
     while IFS= read -r line; do \
