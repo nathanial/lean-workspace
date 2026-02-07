@@ -10,6 +10,7 @@ import Ledger.Core.Attribute
 import Ledger.Core.Value
 import Ledger.Core.Datom
 import Ledger.Db.TimeTravel
+import Lean
 import Staple.Json
 
 namespace Ledger.Persist.JSON
@@ -138,14 +139,46 @@ def escapeString (s : String) : String := Id.run do
       result := result.push c
   return result
 
-/-! ## JSON Parsing (via Staple.Json) -/
+/-! ## JSON Parsing -/
 
-open Staple.Json.Value
-
-private abbrev JValue := Staple.Json.Value
+private abbrev JValue := Lean.Json
 
 private def parseJsonValue (s : String) : Option JValue :=
-  Staple.Json.parse? s
+  (Lean.Json.parse s).toOption
+
+private def getField? (name : String) (v : JValue) : Option JValue :=
+  (v.getObjVal? name).toOption
+
+private def getStr? (v : JValue) : Option String :=
+  (v.getStr?).toOption
+
+private def getBool? (v : JValue) : Option Bool :=
+  (v.getBool?).toOption
+
+private def getNat? (v : JValue) : Option Nat :=
+  (v.getNat?).toOption
+
+private def getInt? (v : JValue) : Option Int :=
+  (v.getInt?).toOption
+
+private def getFloat? (v : JValue) : Option Float := do
+  let n ← (v.getNum?).toOption
+  return n.toFloat
+
+private def getArr? (v : JValue) : Option (Array JValue) :=
+  (v.getArr?).toOption
+
+private def getStrField? (name : String) (v : JValue) : Option String := do
+  let raw ← getField? name v
+  getStr? raw
+
+private def getNatField? (name : String) (v : JValue) : Option Nat := do
+  let raw ← getField? name v
+  getNat? raw
+
+private def getArrField? (name : String) (v : JValue) : Option (Array JValue) := do
+  let raw ← getField? name v
+  getArr? raw
 
 /-! ## Value Serialization -/
 

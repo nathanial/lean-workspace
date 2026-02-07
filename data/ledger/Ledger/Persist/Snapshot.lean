@@ -13,14 +13,28 @@ import Ledger.Db.Connection
 import Ledger.Index.Manager
 import Ledger.Persist.Policy
 import Ledger.Persist.JSON
-import Staple.Json
+import Lean
 
 namespace Ledger.Persist
 
 open Ledger.Persist.JSON
-open Staple.Json.Value
 
-private abbrev JValue := Staple.Json.Value
+private abbrev JValue := Lean.Json
+
+private def getField? (name : String) (v : JValue) : Option JValue :=
+  (v.getObjVal? name).toOption
+
+private def getNatField? (name : String) (v : JValue) : Option Nat := do
+  let raw ← getField? name v
+  (raw.getNat?).toOption
+
+private def getIntField? (name : String) (v : JValue) : Option Int := do
+  let raw ← getField? name v
+  (raw.getInt?).toOption
+
+private def getArrField? (name : String) (v : JValue) : Option (Array JValue) := do
+  let raw ← getField? name v
+  (raw.getArr?).toOption
 
 /-- Snapshot of the database and transaction log at a point in time. -/
 structure Snapshot where
@@ -105,7 +119,7 @@ private def fromJsonValue (v : JValue) : Option Snapshot := do
 
 /-- Deserialize a snapshot from JSON string. -/
 def fromJson (s : String) : Option Snapshot := do
-  let v ← Staple.Json.parse? s
+  let v ← (Lean.Json.parse s).toOption
   fromJsonValue v
 
 /-- Write a snapshot file. -/
