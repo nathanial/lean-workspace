@@ -8,16 +8,23 @@ import Tracker.Core.Storage
 import Tracker.CLI.Commands
 import Tracker.CLI.Handlers
 import Tracker.TUI.App
+import Tracker.GUI.App
 import Parlance
 
 namespace Tracker
 
 open Tracker.CLI
+open Tracker.GUI
 open Parlance
 
 /-- Print help message using Parlance's auto-generation -/
 def printHelp : IO Unit :=
-  trackerCommand.printHelp
+  do
+    trackerCommand.printHelp
+    IO.println ""
+    IO.println "UI modes:"
+    IO.println "  tracker         Launch interactive TUI"
+    IO.println "  tracker -gui    Launch graphical UI shell"
 
 /-- Launch TUI mode -/
 def launchTui (debug : Bool := false) : IO Unit := do
@@ -35,6 +42,14 @@ def launchTui (debug : Bool := false) : IO Unit := do
     IO.eprintln "Run 'tracker init' to initialize issue tracking."
     IO.Process.exit 1
 
+/-- Launch GUI mode. -/
+def launchGui : IO Unit := do
+  try
+    run
+  catch e =>
+    IO.eprintln s!"Error launching GUI: {e}"
+    IO.Process.exit 1
+
 /-- Main entry point -/
 def main (args : List String) : IO UInt32 := do
   -- No args = TUI mode
@@ -49,6 +64,11 @@ def main (args : List String) : IO UInt32 := do
 
   if args.contains "--version" || args.contains "-V" then
     IO.println "tracker 0.1.0"
+    return 0
+
+  -- Explicit GUI flag
+  if args.contains "-gui" || args.contains "--gui" then
+    launchGui
     return 0
 
   -- Parse command

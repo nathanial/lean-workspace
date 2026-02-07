@@ -14,4 +14,5 @@ import Tracker.CLI.Commands
 import Tracker.CLI.Output
 import Tracker.CLI.Handlers
 import Tracker.TUI
+import Tracker.GUI.App
 import Tracker.Main

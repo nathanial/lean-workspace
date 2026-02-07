@@ -39,6 +39,15 @@ tracker-bench *args:
 tracker-install:
     ./apps/tracker/install.sh
 
+# Launch tracker GUI shell (`tracker -gui`) from monorepo root.
+# On macOS, force system clang + SDK path for afferent framework linking.
+tracker-gui:
+    @if [[ "$(uname -s)" == "Darwin" ]]; then \
+      /bin/zsh -lc 'SDKROOT="$(xcrun --show-sdk-path)"; LEAN_CC=/usr/bin/clang LEAN_SYSROOT="$SDKROOT" LIBRARY_PATH=/opt/homebrew/lib:${LIBRARY_PATH:-} lake exe tracker -- -gui'; \
+    else \
+      lake exe tracker -- -gui; \
+    fi
+
 # Run package test driver (currently linalg suite)
 test:
     lake test

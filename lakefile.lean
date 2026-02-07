@@ -409,6 +409,34 @@ def afferentMetalLinkArgs : Array String := #[
   "-lcrypto"
 ]
 
+def trackerGuiLinkArgs : Array String := #[
+  ".native-libs/lib/libparlance_native.a",
+  ".native-libs/lib/libterminus_native.a",
+  ".native-libs/lib/libraster_native.a",
+  ".native-libs/lib/libchronos_native.a",
+  ".native-libs/lib/libwisp_native.a",
+  ".native-libs/lib/libafferent_native.a",
+  "-L/opt/homebrew/lib",
+  "-L/opt/homebrew/opt/openssl@3/lib",
+  "-L/opt/homebrew/opt/curl/lib",
+  "-framework", "Cocoa",
+  "-framework", "Metal",
+  "-framework", "MetalKit",
+  "-framework", "QuartzCore",
+  "-framework", "CoreText",
+  "-framework", "CoreGraphics",
+  "-framework", "Foundation",
+  "-lfreetype",
+  "-lz",
+  "-lbz2",
+  "-liconv",
+  "-lm",
+  "-lobjc",
+  "-lcurl",
+  "-lssl",
+  "-lcrypto"
+]
+
 lean_exe afferent_demos where
   srcDir := "graphics/afferent-demos"
   root := `AfferentDemos.Main
@@ -486,7 +514,7 @@ lean_exe todo_app where
 lean_exe tracker where
   srcDir := "apps/tracker"
   root := `Tracker.Entry
-  moreLinkArgs := terminalUiLinkArgs
+  moreLinkArgs := trackerGuiLinkArgs
 
 lean_exe tracker_bench where
   srcDir := "apps/tracker"

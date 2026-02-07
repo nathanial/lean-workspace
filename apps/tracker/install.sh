@@ -10,7 +10,12 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BINARY_PATH="$ROOT_DIR/.lake/build/bin/tracker"
 
 echo "Building tracker..."
-(cd "$ROOT_DIR" && lake build tracker)
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    SDKROOT="$(xcrun --show-sdk-path)"
+    (cd "$ROOT_DIR" && SDKROOT="$SDKROOT" LEAN_CC=/usr/bin/clang LEAN_SYSROOT="$SDKROOT" LIBRARY_PATH=/opt/homebrew/lib:${LIBRARY_PATH:-} lake build tracker)
+else
+    (cd "$ROOT_DIR" && lake build tracker)
+fi
 
 if [[ ! -f "$BINARY_PATH" ]]; then
     echo "Error: tracker binary not found at $BINARY_PATH"
