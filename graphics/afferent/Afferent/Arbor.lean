@@ -1,20 +1,23 @@
 /-
-  Arbor - Renderer-Agnostic Widget Library
+  Arbor - Afferent Widget Core
 
-  Arbor provides a declarative widget system that generates abstract
-  render commands instead of directly rendering to a specific backend.
+  Arbor provides the declarative widget model, layout/measurement pipeline,
+  event system, and render-command IR used by Afferent.
+
+  In this repository, production rendering executes through Afferent's
+  Canvas/Metal backend in `Afferent.Widget.Backend`.
 
   Key abstractions:
-  - RenderCommand: Abstract drawing operations (fillRect, fillText, etc.)
-  - TextMeasurer: Typeclass for measuring text (pluggable backends)
-  - Widget: Declarative widget tree (flex, grid, text, scroll, etc.)
+  - RenderCommand: backend-agnostic drawing operations
+  - TextMeasurer: text measurement interface (implemented by Afferent fonts)
+  - Widget: declarative widget tree (flex, grid, text, scroll, etc.)
 
   Usage:
   1. Build a widget tree using the DSL (row, column, text', box, etc.)
-  2. Measure the tree with measureWidget (using a TextMeasurer backend)
-  3. Compute layout with Trellis.layout
-  4. Collect render commands with collectCommands
-  5. Execute commands with your rendering backend
+  2. Measure the tree with `measureWidget`
+  3. Compute layout with `Trellis.layout`
+  4. Collect render commands with `collectCommands`
+  5. Execute commands with the Afferent widget backend
 -/
 
 -- Core types
@@ -38,11 +41,6 @@ import Afferent.Arbor.Event.Types
 import Afferent.Arbor.Event.HitTest
 import Afferent.Arbor.Event.Scroll
 import Afferent.Arbor.App.UI
-
--- Text-based rendering (for debugging/testing)
-import Afferent.Arbor.Text.Canvas
-import Afferent.Arbor.Text.Mode
-import Afferent.Arbor.Text.Renderer
 
 -- CSS-like styling DSL
 import Afferent.Arbor.Style.CSS
