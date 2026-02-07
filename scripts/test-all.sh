@@ -17,6 +17,10 @@ cd "$WORKSPACE_ROOT"
 
 # Use system clang for native fallback executables (Metal/ObjC frameworks).
 export LEAN_CC="${LEAN_CC:-/usr/bin/clang}"
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  SDKROOT="$(xcrun --show-sdk-path)"
+  export LEAN_SYSROOT="${LEAN_SYSROOT:-$SDKROOT}"
+fi
 if [ -d "/opt/homebrew/lib" ]; then
   export LIBRARY_PATH="/opt/homebrew/lib:${LIBRARY_PATH:-}"
 fi
