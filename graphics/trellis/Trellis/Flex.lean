@@ -70,40 +70,6 @@ inductive Visibility where
   | collapse  -- Collapsed: removed from main-axis flow, preserves line cross-size
 deriving Repr, BEq, Inhabited
 
-/-- Properties for a flex container. -/
-structure FlexContainer where
-  direction : FlexDirection := .row
-  wrap : FlexWrap := .nowrap
-  justifyContent : JustifyContent := .flexStart
-  alignItems : AlignItems := .stretch
-  alignContent : AlignContent := .stretch
-  gap : Length := 0          -- Gap between items on main axis
-  rowGap : Length := 0       -- Gap between lines on cross axis (when wrapped)
-  marginCollapse : Bool := false  -- Enable CSS margin collapsing (column only)
-deriving Repr, BEq, Inhabited
-
-namespace FlexContainer
-
-def default : FlexContainer := {}
-
-/-- Create a row flex container with optional gap. -/
-def row (gap : Length := 0) : FlexContainer :=
-  { direction := .row, gap := gap }
-
-/-- Create a column flex container with optional gap. -/
-def column (gap : Length := 0) : FlexContainer :=
-  { direction := .column, gap := gap }
-
-/-- Create a wrapping row container. -/
-def rowWrap (gap : Length := 0) (rowGap : Length := 0) : FlexContainer :=
-  { direction := .row, wrap := .wrap, gap := gap, rowGap := rowGap }
-
-/-- Create a centered container. -/
-def centered : FlexContainer :=
-  { justifyContent := .center, alignItems := .center }
-
-end FlexContainer
-
 /-- Properties for a flex item (child of flex container). -/
 structure FlexItem where
   grow : Float := 0          -- How much to grow relative to siblings (0 = don't grow)
@@ -131,5 +97,45 @@ def fixed (size : Length) : FlexItem :=
   { grow := 0, shrink := 0, basis := .length size }
 
 end FlexItem
+
+/-- Properties for a flex container. -/
+structure FlexContainer where
+  direction : FlexDirection := .row
+  wrap : FlexWrap := .nowrap
+  justifyContent : JustifyContent := .flexStart
+  alignItems : AlignItems := .stretch
+  alignContent : AlignContent := .stretch
+  gap : Length := 0          -- Gap between items on main axis
+  rowGap : Length := 0       -- Gap between lines on cross axis (when wrapped)
+  marginCollapse : Bool := false  -- Enable CSS margin collapsing (column only)
+  /-- Default flex item props for children that do not specify `item := .flexChild ...`. -/
+  defaultItem : FlexItem := FlexItem.default
+deriving Repr, BEq, Inhabited
+
+namespace FlexContainer
+
+def default : FlexContainer := {}
+
+/-- Create a row flex container with optional gap. -/
+def row (gap : Length := 0) : FlexContainer :=
+  { direction := .row, gap := gap }
+
+/-- Create a column flex container with optional gap. -/
+def column (gap : Length := 0) : FlexContainer :=
+  { direction := .column, gap := gap }
+
+/-- Create a wrapping row container. -/
+def rowWrap (gap : Length := 0) (rowGap : Length := 0) : FlexContainer :=
+  { direction := .row, wrap := .wrap, gap := gap, rowGap := rowGap }
+
+/-- Create a centered container. -/
+def centered : FlexContainer :=
+  { justifyContent := .center, alignItems := .center }
+
+/-- Create a vertical static-flow container (stacked children that do not grow or shrink by default). -/
+def staticColumn (gap : Length := 0) : FlexContainer :=
+  { direction := .column, gap := gap, defaultItem := { grow := 0, shrink := 0 } }
+
+end FlexContainer
 
 end Trellis

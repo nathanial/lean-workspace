@@ -124,12 +124,12 @@ def isAutoForIndefinite (dim : Dimension) (available? : Option Length) : Bool :=
 /-- Collect flex items from children with initial measurements.
     When available cross size is indefinite, percentage cross sizes are treated as auto. -/
 def collectFlexItems (axis : AxisInfo) (children : Array LayoutNode)
-    (availableMain : Length) (availableCross? : Option Length)
+    (defaultItem : FlexItem) (availableMain : Length) (availableCross? : Option Length)
     (getContentSize : LayoutNode → Length × Length) : Array FlexItemState := Id.run do
   let mut items : Array FlexItemState := #[]
   for idx in [:children.size] do
     let child := children[idx]!
-    let flexProps := child.flexItem?.getD FlexItem.default
+    let flexProps := child.flexItem?.getD defaultItem
     let visibility := flexProps.visibility
     let contentSize := getContentSize child
     let contentMain := axis.mainFromPair contentSize
@@ -644,7 +644,7 @@ def measureFlexCrossSizeGivenMain (container : FlexContainer) (children : Array 
   if flowChildren.isEmpty then
     return (0, 0)
 
-  let items := collectFlexItems axis flowChildren availableMain none getContentSize
+  let items := collectFlexItems axis flowChildren container.defaultItem availableMain none getContentSize
   if items.isEmpty then
     return (0, 0)
 
@@ -712,7 +712,7 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
 
   -- Phase 2: Collect items
   let (flowChildren, absChildren) := partitionAbsoluteFlex children
-  let items := collectFlexItems axis flowChildren availableMain (some availableCross) getContentSize
+  let items := collectFlexItems axis flowChildren container.defaultItem availableMain (some availableCross) getContentSize
   let hasCollapsed := items.any isCollapsed
 
   -- Fast path: 0 or 1 flow child (avoids sorting, line partitioning, and extra passes)
@@ -830,7 +830,7 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
      axis.crossSize availableWidth availableHeight)
 
   let (flowChildren, absChildren) := partitionAbsoluteFlex children
-  let items := collectFlexItems axis flowChildren availableMain (some availableCross) getContentSize
+  let items := collectFlexItems axis flowChildren container.defaultItem availableMain (some availableCross) getContentSize
   let hasCollapsed := items.any isCollapsed
 
   let mut debugLines : Array FlexLineDebug := #[]

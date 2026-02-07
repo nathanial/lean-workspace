@@ -576,6 +576,16 @@ def row' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
     pure (Afferent.Arbor.row (gap := gap) (style := style) widgets)
   pure result
 
+/-- Create a static-flow column container that collects children's renders.
+    Children stack vertically and do not grow/shrink unless they set `style.flexItem`. -/
+def staticColumn' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
+    (children : WidgetM α) : WidgetM α := do
+  let (result, childRenders) ← runWidgetChildren children
+  emit do
+    let widgets ← childRenders.mapM id
+    pure (Afferent.Arbor.staticColumn (gap := gap) (style := style) widgets)
+  pure result
+
 /-- Create a flex row with custom properties. -/
 def flexRow' (props : Trellis.FlexContainer) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
