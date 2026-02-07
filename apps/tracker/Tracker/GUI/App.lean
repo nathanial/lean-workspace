@@ -1,39 +1,52 @@
 /-
   Tracker.GUI.App
 
-  Minimal Afferent-powered GUI shell for Tracker.
+  Reactive Tracker GUI shell wiring.
 -/
+import Reactive
 import Afferent
+import Afferent.Canopy.Reactive
+import Tracker.GUI.Types
+import Tracker.GUI.Model
+import Tracker.GUI.Action
+import Tracker.GUI.Update
+import Tracker.GUI.Effect
+import Tracker.GUI.View
+import Tracker.GUI.Runtime
 
 namespace Tracker.GUI
 
-open Afferent
-open Afferent.FFI
+open Reactive Reactive.Host
+open Afferent.Canopy.Reactive
 
-/-- Launch a minimal Tracker GUI window. -/
-def run : IO Unit := do
-  let screenScale ← FFI.getScreenScale
+def createApp : ReactiveM GuiApp := do
+  let events ← getEvents
+  let (actionEvent, fireAction) ← Reactive.newTriggerEvent (t := Spider) (a := Action)
 
-  let baseWidth : Float := 960.0
-  let baseHeight : Float := 600.0
-  let physWidth := (baseWidth * screenScale).toUInt32
-  let physHeight := (baseHeight * screenScale).toUInt32
+  let modelDyn ← Reactive.foldDynM
+    (fun action model => do
+      let (nextModel, effects) := update model action
+      SpiderM.liftIO <| runEffects fireAction effects
+      pure nextModel)
+    Model.initial
+    actionEvent
 
-  let mut canvas ← Canvas.create physWidth physHeight "Tracker"
-  let titleFont ← Font.loadSystemScaled "monaco" 44.0 screenScale
+  let (_, render) ← runWidget do
+    let keyEvents ← useKeyboard
+    let keyActions ← Event.mapMaybeM
+      (fun keyData => actionFromKey keyData.event.key)
+      keyEvents
+    let keyDispatch ← Event.mapM fireAction keyActions
+    performEvent_ keyDispatch
 
-  while !(← canvas.shouldClose) do
-    canvas.pollEvents
+    let _ ← dynWidget modelDyn fun model => do
+      View.renderShell model fireAction
 
-    let ok ← canvas.beginFrame (Color.rgb 0.08 0.10 0.14)
-    if ok then
-      canvas ← CanvasM.run' (canvas.resetTransform) do
-        CanvasM.setFillColor Color.white
-        CanvasM.fillTextXY "Tracker" (48.0 * screenScale) (96.0 * screenScale) titleFont
+  events.registry.setupFocusClearing
+  pure { render := render, shutdown := pure () }
 
-      canvas ← canvas.endFrame
-
-  titleFont.destroy
-  canvas.destroy
+/-- Launch Tracker GUI runtime with the reactive shell app. -/
+def run : IO Unit :=
+  Runtime.run createApp
 
 end Tracker.GUI

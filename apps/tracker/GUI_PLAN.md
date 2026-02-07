@@ -85,6 +85,22 @@ Build a desktop GUI for Tracker (invoked via `tracker -gui`) as a single executa
 4. Effect runner calls `Tracker.Storage` and emits result actions.
 5. Model updates drive `dynWidget` subtrees and rerender.
 
+## FRP State Boundaries
+- Keep shared app/domain state in top-level `Model` dynamics:
+  - issue dataset/index/order
+  - current selection/filter/query
+  - loading/error/operation status
+  - effect request queue
+- Keep ephemeral widget interaction state inside widget-local FRP networks:
+  - text cursor/edit buffers while typing
+  - dropdown/tab open/hover state
+  - modal local visibility wiring
+  - scroll offsets and hover transitions
+- Lift state from widget-local to top-level only when:
+  - another subtree needs it, or
+  - it changes persisted/domain behavior.
+- This matches existing Canopy usage patterns (`textInput`, `tabView`, `modal`, `toastManager`) where widgets own local mechanics and expose events/dynamics for parent composition.
+
 ## Performance Strategy
 - Keep normalized in-memory model for active session.
 - Use `dynWidget` boundaries to avoid rebuilding entire UI tree each frame.
@@ -98,6 +114,7 @@ Build a desktop GUI for Tracker (invoked via `tracker -gui`) as a single executa
 - Add runtime loop + `createInputs` wiring.
 - Replace static text shell with Canopy layout skeleton.
 - Add basic focus/selection intent plumbing.
+- Enforce FRP boundaries: top-level model for pane focus + shell selection, widget-local state for controls.
 - Acceptance: `tracker -gui` shows stable reactive shell and handles keyboard/mouse events.
 
 ### M2: Read-Only Browser
