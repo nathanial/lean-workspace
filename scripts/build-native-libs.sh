@@ -67,6 +67,24 @@ ensure_quarry_sqlite_sources() {
   [ -f "$QUARRY_SQLITE_DIR/sqlite3.c" ]
 }
 
+maybe_ensure_selene_lua_sources() {
+  if [[ -d "$SELENE_LUA_DIR" ]] && compgen -G "$SELENE_LUA_DIR/*.c" > /dev/null; then
+    return 0
+  fi
+  ensure_selene_lua_sources || true
+}
+
+require_quarry_sqlite_sources() {
+  if [ -f "$QUARRY_SQLITE_DIR/sqlite3.c" ]; then
+    return 0
+  fi
+  ensure_quarry_sqlite_sources
+  if [ ! -f "$QUARRY_SQLITE_DIR/sqlite3.c" ]; then
+    echo "error: missing Quarry vendored SQLite at $QUARRY_SQLITE_DIR/sqlite3.c" >&2
+    return 1
+  fi
+}
+
 mkdir -p \
   .native-libs/obj/afferent \
   .native-libs/obj/raster \
@@ -156,7 +174,7 @@ mkdir -p .native-libs/obj/crypt
 # Selene native library (vendored Lua + FFI)
 rm -rf .native-libs/obj/selene
 mkdir -p .native-libs/obj/selene
-SELENE_LUA_DIR="util/selene/native/lua"
+maybe_ensure_selene_lua_sources
 if [[ -d "$SELENE_LUA_DIR" ]] && compgen -G "$SELENE_LUA_DIR/*.c" > /dev/null; then
   for src in "$SELENE_LUA_DIR"/*.c; do
     base="$(basename "$src")"
@@ -199,23 +217,20 @@ mkdir -p .native-libs/obj/jack
 # Quarry native library (uses vendored SQLite amalgamation)
 rm -rf .native-libs/obj/quarry
 mkdir -p .native-libs/obj/quarry
+require_quarry_sqlite_sources
 QUARRY_SQLITE="data/quarry/native/sqlite/sqlite3.c"
-if [[ -f "$QUARRY_SQLITE" ]]; then
-  /usr/bin/clang -std=c11 -c data/quarry/native/src/quarry_ffi.c -o .native-libs/obj/quarry/quarry_ffi.o \
-    -I"$LEAN_PREFIX/include" \
-    -Idata/quarry/native/sqlite
-  /usr/bin/clang -std=c11 -c "$QUARRY_SQLITE" -o .native-libs/obj/quarry/sqlite3.o \
-    -DSQLITE_THREADSAFE=1 \
-    -DSQLITE_ENABLE_COLUMN_METADATA=1 \
-    -DSQLITE_ENABLE_FTS5=1 \
-    -DSQLITE_ENABLE_RTREE=1 \
-    -Idata/quarry/native/sqlite
-  /usr/bin/libtool -static -o .native-libs/lib/libquarry_native.a \
-    .native-libs/obj/quarry/quarry_ffi.o \
-    .native-libs/obj/quarry/sqlite3.o
-else
-  echo "Skipping Quarry native library: vendored SQLite not found at $QUARRY_SQLITE"
-fi
+/usr/bin/clang -std=c11 -c data/quarry/native/src/quarry_ffi.c -o .native-libs/obj/quarry/quarry_ffi.o \
+  -I"$LEAN_PREFIX/include" \
+  -Idata/quarry/native/sqlite
+/usr/bin/clang -std=c11 -c "$QUARRY_SQLITE" -o .native-libs/obj/quarry/sqlite3.o \
+  -DSQLITE_THREADSAFE=1 \
+  -DSQLITE_ENABLE_COLUMN_METADATA=1 \
+  -DSQLITE_ENABLE_FTS5=1 \
+  -DSQLITE_ENABLE_RTREE=1 \
+  -Idata/quarry/native/sqlite
+/usr/bin/libtool -static -o .native-libs/lib/libquarry_native.a \
+  .native-libs/obj/quarry/quarry_ffi.o \
+  .native-libs/obj/quarry/sqlite3.o
 
 # Citadel native library (OpenSSL TLS bindings)
 rm -rf .native-libs/obj/citadel

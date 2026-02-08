@@ -210,7 +210,7 @@ lean_lib math_linalg where
 
 lean_lib math_linalg_tests where
   srcDir := "math/linalg"
-  roots := #[`LinalgTests.Main]
+  roots := #[`LinalgTests]
 
 lean_lib math_measures where
   srcDir := "math/measures"
