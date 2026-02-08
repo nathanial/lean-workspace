@@ -9,3 +9,10 @@ import QuarryTests.Row
 import QuarryTests.ErrorHandling
 import QuarryTests.Config
 import QuarryTests.UserFunctions
+import QuarryTests.Backup
+import QuarryTests.VirtualTable
+import QuarryTests.Extensions
+import QuarryTests.Blob
+import QuarryTests.Hook
+import QuarryTests.Serialize
+import QuarryTests.Chisel

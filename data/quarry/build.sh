@@ -1,10 +1,10 @@
 #!/bin/bash
 # Build Quarry with vendored SQLite amalgamation
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 SQLITE_VERSION="3470200"
 SQLITE_YEAR="2024"
@@ -25,13 +25,33 @@ fi
 
 # Build the specified target
 TARGET="${1:-Quarry}"
+NATIVE_TARGET="${2:-quarry-native}"
+
+if [ -f "$WORKSPACE_ROOT/lakefile.lean" ]; then
+    # Monorepo mode.
+    cd "$WORKSPACE_ROOT"
+    case "$TARGET" in
+        Quarry) TARGET="data_quarry" ;;
+        QuarryTests|QuarryTests.Main) TARGET="data_quarry_tests_lib" ;;
+    esac
+else
+    # Standalone mode.
+    cd "$SCRIPT_DIR"
+fi
 
 echo "Building $TARGET..."
 lake build "$TARGET"
 
-if [ "$TARGET" = "Quarry" ]; then
-    echo "Building quarry_native..."
-    lake build quarry_native
+if [ -f "$WORKSPACE_ROOT/lakefile.lean" ]; then
+    if [ "$NATIVE_TARGET" = "quarry-native" ]; then
+        echo "Building quarry native archive via scripts/build-native-libs.sh..."
+        ./scripts/build-native-libs.sh
+    fi
+else
+    if [ "$TARGET" = "Quarry" ] && [ "$NATIVE_TARGET" = "quarry-native" ]; then
+        echo "Building quarry_native..."
+        lake build quarry_native
+    fi
 fi
 
 echo "Build complete!"

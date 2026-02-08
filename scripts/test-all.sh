@@ -28,6 +28,17 @@ fi
 ran=0
 native_libs_built=0
 
+should_fallback_to_exe() {
+  local lean_output="$1"
+  if [[ "$lean_output" == *"Could not find native implementation of external declaration"* ]]; then
+    return 0
+  fi
+  if [[ "$lean_output" == *"error: object file"* && "$lean_output" == *"does not exist"* ]]; then
+    return 0
+  fi
+  return 1
+}
+
 run_suite() {
   local lib_target="$1"
   local main_file="$2"
@@ -48,7 +59,7 @@ run_suite() {
     return 0
   fi
 
-  if [[ "$lean_output" != *"Could not find native implementation of external declaration"* ]]; then
+  if ! should_fallback_to_exe "$lean_output"; then
     return "$lean_status"
   fi
 
