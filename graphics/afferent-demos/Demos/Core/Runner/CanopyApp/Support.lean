@@ -29,18 +29,36 @@ private def formatFloat (v : Float) (places : Nat := 2) : String :=
   else
     s
 
+private def formatPercent (v : Float) : String :=
+  s!"{formatFloat (v * 100.0) 1}%"
+
 private def formatStatsLines (stats : RunnerStats) : Array String :=
-  #[
-    s!"layout {formatFloat stats.layoutMs}ms • collect {formatFloat stats.collectMs}ms • exec {formatFloat stats.executeMs}ms",
-    s!"cmds {stats.commandCount} • widgets {stats.widgetCount} • layouts {stats.layoutCount}",
-    s!"draws {stats.drawCalls} • batched {stats.batchedCalls} • single {stats.individualCalls}",
-    s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses}",
-    s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
-  ]
+  let cacheTotal := stats.cacheHits + stats.cacheMisses
+  let cacheHitRate :=
+    if cacheTotal == 0 then 0.0
+    else stats.cacheHits.toFloat / cacheTotal.toFloat
+  let drawOps := stats.batchedCalls + stats.individualCalls
+  let batchCallRate :=
+    if drawOps == 0 then 0.0
+    else stats.batchedCalls.toFloat / drawOps.toFloat
+  let commandReduction :=
+    if stats.commandCount == 0 then 0.0
+    else
+      let reduced := stats.commandCount.toFloat - stats.coalescedCommandCount.toFloat
+      reduced / stats.commandCount.toFloat
+  let line1 := s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
+  let line2 := s!"layout {formatFloat stats.layoutMs}ms • collect {formatFloat stats.collectMs}ms • exec {formatFloat stats.executeMs}ms"
+  let line3 := s!"cmds raw {stats.commandCount} • coalesced {stats.coalescedCommandCount} • reduction {formatPercent commandReduction}"
+  let line4 := s!"widgets {stats.widgetCount} • layouts {stats.layoutCount} • draws {stats.drawCalls}"
+  let line5 := s!"draw calls batched {stats.batchedCalls} • single {stats.individualCalls} • batched rate {formatPercent batchCallRate}"
+  let line6 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
+  let line7 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
+  let line8 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
+  #[line1, line2, line3, line4, line5, line6, line7, line8]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
-  let footerHeight := 110.0 * env.screenScale
+  let footerHeight := 180.0 * env.screenScale
   let footerStyle : BoxStyle := {
     backgroundColor := some (Color.gray 0.08)
     padding := EdgeInsets.symmetric (6.0 * env.screenScale) (4.0 * env.screenScale)
