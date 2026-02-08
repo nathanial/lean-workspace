@@ -504,10 +504,20 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
   let maxNonOverlay := state.items.foldl (init := 0) fun acc item =>
     if item.inOverlay then acc else max acc item.zOrder
   let absBase := maxNonOverlay + 1
-  let items' := state.items.map fun item =>
-    if item.inOverlay then { item with zOrder := item.zOrder + absBase } else item
-
-  let bounds := items'.map (fun item => item.screenBounds)
+  let items' : Array HitTestIndexItem := Id.run do
+    let mut items := state.items
+    for idx in [:items.size] do
+      match items[idx]? with
+      | some item =>
+          if item.inOverlay then
+            items := items.set! idx { item with zOrder := item.zOrder + absBase }
+      | none => pure ()
+    pure items
+  let bounds : Array Linalg.AABB2D := Id.run do
+    let mut b := Array.mkEmpty items'.size
+    for item in items' do
+      b := b.push item.screenBounds
+    pure b
   let grid := Linalg.Spatial.Grid2D.buildAuto bounds
   { items := items', grid := grid, nameMap := state.nameMap, hasCustomHitTest := state.hasCustomHitTest }
 

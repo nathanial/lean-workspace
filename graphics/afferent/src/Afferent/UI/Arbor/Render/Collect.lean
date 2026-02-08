@@ -56,21 +56,6 @@ def isOverlayWidgetForRender (w : Widget) : Bool :=
   | some style => style.position == .absolute && style.layer == .overlay
   | none => false
 
-/-- Separate children into flow, absolute (in-flow), and overlay (deferred) buckets. -/
-def partitionChildren (children : Array Widget)
-    : (Array Widget × Array Widget × Array Widget) := Id.run do
-  let mut flow : Array Widget := #[]
-  let mut abs : Array Widget := #[]
-  let mut overlay : Array Widget := #[]
-  for child in children do
-    if isOverlayWidgetForRender child then
-      overlay := overlay.push child
-    else if isAbsoluteWidgetForRender child then
-      abs := abs.push child
-    else
-      flow := flow.push child
-  (flow, abs, overlay)
-
 /-- Collect box background and border render commands based on BoxStyle. -/
 def collectBoxStyle (rect : Trellis.LayoutRect) (style : BoxStyle) : CollectM Unit := do
   let r : Rect := ⟨⟨rect.x, rect.y⟩, ⟨rect.width, rect.height⟩⟩
@@ -153,25 +138,29 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
 
   | .flex _ _ _ style children =>
     collectBoxStyle borderRect style
-    -- Render flow children inline, then absolute children, defer overlay children
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
-    for child in flowChildren do
-      collectWidget child layouts
-    for child in absChildren do
-      collectWidget child layouts
-    for child in overlayChildren do
-      CollectM.deferOverlay child layouts
+    -- Preserve flow -> absolute -> overlay order without allocating partition arrays.
+    for child in children do
+      if !isAbsoluteWidgetForRender child then
+        collectWidget child layouts
+    for child in children do
+      if isAbsoluteWidgetForRender child && !isOverlayWidgetForRender child then
+        collectWidget child layouts
+    for child in children do
+      if isOverlayWidgetForRender child then
+        CollectM.deferOverlay child layouts
 
   | .grid _ _ _ style children =>
     collectBoxStyle borderRect style
-    -- Render flow children inline, then absolute children, defer overlay children
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
-    for child in flowChildren do
-      collectWidget child layouts
-    for child in absChildren do
-      collectWidget child layouts
-    for child in overlayChildren do
-      CollectM.deferOverlay child layouts
+    -- Preserve flow -> absolute -> overlay order without allocating partition arrays.
+    for child in children do
+      if !isAbsoluteWidgetForRender child then
+        collectWidget child layouts
+    for child in children do
+      if isAbsoluteWidgetForRender child && !isOverlayWidgetForRender child then
+        collectWidget child layouts
+    for child in children do
+      if isOverlayWidgetForRender child then
+        CollectM.deferOverlay child layouts
 
   | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
     -- Render background
@@ -573,35 +562,39 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
 
   | .flex _ _ _ style children =>
     collectBoxStyleCached borderRect style
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
     let mut flowIdx := 0
-    for child in flowChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
-      flowIdx := flowIdx + 1
+    for child in children do
+      if !isAbsoluteWidgetForRender child then
+        collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
+        flowIdx := flowIdx + 1
     let mut absIdx := flowIdx
-    for child in absChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
-      absIdx := absIdx + 1
+    for child in children do
+      if isAbsoluteWidgetForRender child && !isOverlayWidgetForRender child then
+        collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
+        absIdx := absIdx + 1
     let mut overlayIdx := absIdx
-    for child in overlayChildren do
-      CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
-      overlayIdx := overlayIdx + 1
+    for child in children do
+      if isOverlayWidgetForRender child then
+        CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
+        overlayIdx := overlayIdx + 1
 
   | .grid _ _ _ style children =>
     collectBoxStyleCached borderRect style
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
     let mut flowIdx := 0
-    for child in flowChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
-      flowIdx := flowIdx + 1
+    for child in children do
+      if !isAbsoluteWidgetForRender child then
+        collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
+        flowIdx := flowIdx + 1
     let mut absIdx := flowIdx
-    for child in absChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
-      absIdx := absIdx + 1
+    for child in children do
+      if isAbsoluteWidgetForRender child && !isOverlayWidgetForRender child then
+        collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
+        absIdx := absIdx + 1
     let mut overlayIdx := absIdx
-    for child in overlayChildren do
-      CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
-      overlayIdx := overlayIdx + 1
+    for child in children do
+      if isOverlayWidgetForRender child then
+        CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
+        overlayIdx := overlayIdx + 1
 
   | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
     collectBoxStyleCached borderRect style

@@ -34,10 +34,16 @@ structure ComponentRegistry where
   private mk ::
   /-- Counter for generating unique IDs. -/
   idCounter : IO.Ref Nat
+  /-- Cached auto-generated names by prefix and id to avoid per-frame string formatting. -/
+  namePool : IO.Ref (Std.HashMap String (Std.HashMap Nat String))
   /-- Names of focusable input widgets. -/
   inputNames : IO.Ref (Array String)
   /-- Names of all interactive widgets. -/
   interactiveNames : IO.Ref (Array String)
+  /-- Number of focusable input widgets registered this frame. -/
+  inputCount : IO.Ref Nat
+  /-- Number of interactive widgets registered this frame. -/
+  interactiveCount : IO.Ref Nat
   /-- Currently focused input (by auto-generated name). -/
   focusedInput : Dynamic Spider (Option String)
   /-- Trigger to change focus. -/
@@ -46,38 +52,74 @@ structure ComponentRegistry where
 /-- Create a new component registry. -/
 def ComponentRegistry.create : SpiderM ComponentRegistry := do
   let idCounter ← SpiderM.liftIO <| IO.mkRef 0
+  let namePool ← SpiderM.liftIO <| IO.mkRef {}
   let inputNames ← SpiderM.liftIO <| IO.mkRef #[]
   let interactiveNames ← SpiderM.liftIO <| IO.mkRef #[]
+  let inputCount ← SpiderM.liftIO <| IO.mkRef 0
+  let interactiveCount ← SpiderM.liftIO <| IO.mkRef 0
   let (focusEvent, fireFocus) ← newTriggerEvent (t := Spider) (a := Option String)
   let focusedInput ← holdDyn none focusEvent
-  pure { idCounter, inputNames, interactiveNames, focusedInput, fireFocus }
+  pure {
+    idCounter
+    namePool
+    inputNames
+    interactiveNames
+    inputCount
+    interactiveCount
+    focusedInput
+    fireFocus
+  }
 
 /-- Reset the registry for a new frame.
-    Clears the counter and name arrays to prevent unbounded growth. -/
+    Resets counters while retaining array capacity for reuse. -/
 def ComponentRegistry.reset (reg : ComponentRegistry) : IO Unit := do
   reg.idCounter.set 0
-  reg.inputNames.set #[]
-  reg.interactiveNames.set #[]
+  reg.inputCount.set 0
+  reg.interactiveCount.set 0
 
 /-- Get diagnostic stats from the registry. -/
 def ComponentRegistry.getStats (reg : ComponentRegistry) : IO (Nat × Nat × Nat) := do
   let counter ← reg.idCounter.get
-  let inputCount ← reg.inputNames.get
-  let interactiveCount ← reg.interactiveNames.get
-  pure (counter, inputCount.size, interactiveCount.size)
+  let inputCount ← reg.inputCount.get
+  let interactiveCount ← reg.interactiveCount.get
+  pure (counter, inputCount, interactiveCount)
 
 /-- Register a component and get an auto-generated name.
     - `namePrefix`: Component type prefix (e.g., "button", "text-input")
     - `isInput`: Whether this is a focusable input widget
     - `isInteractive`: Whether this widget responds to clicks -/
+private def appendNameAtCount (namesRef : IO.Ref (Array String)) (countRef : IO.Ref Nat)
+    (name : String) : IO Unit := do
+  let idx ← countRef.get
+  namesRef.modify fun names =>
+    if idx < names.size then
+      names.set! idx name
+    else
+      names.push name
+  countRef.set (idx + 1)
+
 def ComponentRegistry.register (reg : ComponentRegistry) (namePrefix : String)
     (isInput : Bool := false) (isInteractive : Bool := true) : IO String := do
   let id ← reg.idCounter.modifyGet fun n => (n, n + 1)
-  let name := s!"{namePrefix}-{id}"
+  let pools ← reg.namePool.get
+  let name ← match pools.get? namePrefix with
+    | some byId =>
+        match byId.get? id with
+        | some cached => pure cached
+        | none =>
+            let generated := s!"{namePrefix}-{id}"
+            let byId' := byId.insert id generated
+            reg.namePool.set (pools.insert namePrefix byId')
+            pure generated
+    | none =>
+        let generated := s!"{namePrefix}-{id}"
+        let byId := (∅ : Std.HashMap Nat String) |>.insert id generated
+        reg.namePool.set (pools.insert namePrefix byId)
+        pure generated
   if isInput then
-    reg.inputNames.modify (·.push name)
+    appendNameAtCount reg.inputNames reg.inputCount name
   if isInteractive then
-    reg.interactiveNames.modify (·.push name)
+    appendNameAtCount reg.interactiveNames reg.interactiveCount name
   pure name
 
 /-- Global reactive event streams that widgets subscribe to. -/
@@ -123,19 +165,23 @@ private def buildHoverChangeEvent (hoverEvent : Event Spider HoverData) (registr
     Reactive.Event.newNodeWithId (t := Spider) nodeId (hoverEvent.height.inc)
   let stateRef ← SpiderM.liftIO <| IO.mkRef (∅ : Std.HashMap String Bool)
   let _ ← Reactive.Host.Event.subscribeM hoverEvent fun data => do
-    let names ← registry.interactiveNames.get
-    if names.isEmpty then
+    let activeCount ← registry.interactiveCount.get
+    if activeCount == 0 then
       pure ()
     else
+      let names ← registry.interactiveNames.get
       let prev ← stateRef.get
       let mut next := prev
       let mut delta : Std.HashMap String Bool := {}
-      for name in names do
+      let mut i := 0
+      while i < activeCount do
+        let name := names[i]!
         let hovered := hoverChangedByName data name
         let prevVal := prev.getD name false
         if hovered != prevVal then
           next := next.insert name hovered
           delta := delta.insert name hovered
+        i := i + 1
       if !delta.isEmpty then
         stateRef.set next
         Reactive.Event.fire derived delta

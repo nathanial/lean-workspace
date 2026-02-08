@@ -78,6 +78,7 @@ def unifiedDemo : IO Unit := do
   let startTime ← IO.monoMsNow
 
   let statsRef ← IO.mkRef ({} : RunnerStats)
+  let indexForceRef ← IO.mkRef (0 : UInt64)
 
   let renderLoop : IO (Canvas × AppState) := do
     let mut c := canvas
@@ -287,33 +288,35 @@ def unifiedDemo : IO Unit := do
               Afferent.Canopy.Reactive.ReactiveEvents.getRegistryStats rs.events
             let indexRegistryEnd ← IO.monoNanosNow
             let indexCheckStart := indexRegistryEnd
-            let indexCacheHit := match rs.frameCache with
+            let indexCacheEligible := match rs.frameCache with
               | some cache =>
                   !cache.hitIndexHasCustom &&
-                    cache.layoutFingerprint == layouts.fingerprint &&
                     cache.registryCounter == registryCounter &&
                     cache.interactiveCount == interactiveCount
               | none => false
             let indexCheckEnd ← IO.monoNanosNow
             let indexBuildStart := indexCheckEnd
-            let hitIndex ← match rs.frameCache with
+            let layoutFingerprintCurrent := layouts.fingerprint
+            -- Force fingerprint at build/reuse time so attribution doesn't leak into check timing.
+            indexForceRef.set layoutFingerprintCurrent
+            let (indexCacheHit, layoutsForFrame, layoutFingerprint, hitIndex, hitIndexHasCustom) ← match rs.frameCache with
               | some cache =>
-                  if indexCacheHit then
-                    pure cache.hitIndex
+                  if indexCacheEligible && cache.layoutFingerprint == layoutFingerprintCurrent then
+                    pure (true, cache.layouts, cache.layoutFingerprint, cache.hitIndex, cache.hitIndexHasCustom)
                   else do
                     let rebuilt := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
-                    pure rebuilt
+                    pure (false, layouts, layoutFingerprintCurrent, rebuilt, rebuilt.hasCustomHitTest)
               | none => do
                   let rebuilt := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
-                  pure rebuilt
+                  pure (false, layouts, layoutFingerprintCurrent, rebuilt, rebuilt.hasCustomHitTest)
             let indexBuildEnd ← IO.monoNanosNow
             let indexStoreStart := indexBuildEnd
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
-              layouts := layouts
-              layoutFingerprint := layouts.fingerprint
+              layouts := layoutsForFrame
+              layoutFingerprint := layoutFingerprint
               hitIndex := hitIndex
-              hitIndexHasCustom := hitIndex.hasCustomHitTest
+              hitIndexHasCustom := hitIndexHasCustom
               registryCounter := registryCounter
               interactiveCount := interactiveCount
             } }
@@ -321,12 +324,12 @@ def unifiedDemo : IO Unit := do
 
             let collectStart ← IO.monoNanosNow
             let (commands, cacheHits, cacheMisses) ←
-              Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+              Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layoutsForFrame
             let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
             let (batchStats, c') ← CanvasM.run c do
               let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
-              Afferent.Widget.renderCustomWidgets measuredWidget layouts
+              Afferent.Widget.renderCustomWidgets measuredWidget layoutsForFrame
               pure batchStats
             let executeEnd ← IO.monoNanosNow
             c := c'
@@ -353,8 +356,8 @@ def unifiedDemo : IO Unit := do
             let accountedMs :=
               beginFrameMs + inputMs + reactiveMs + layoutMs + indexMs + collectMs + executeMs + endFrameMs
             let unaccountedMs := frameMs - accountedMs
-            let widgetCount := (Afferent.Arbor.Widget.allIds measuredWidget).size
-            let layoutCount := layouts.layouts.size
+            let layoutCount := layoutsForFrame.layouts.size
+            let widgetCount := layoutCount
             let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
             statsRef.set {
               frameMs := frameMs

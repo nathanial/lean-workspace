@@ -537,12 +537,24 @@ def useAllScrolls : ReactiveM (Event Spider ScrollData) := do
     Call this after all components have been created. -/
 def ComponentRegistry.setupFocusClearing (reg : ComponentRegistry) : ReactiveM Unit := do
   let inputs ← SpiderM.liftIO reg.inputNames.get
+  let inputCount ← SpiderM.liftIO reg.inputCount.get
   let interactives ← SpiderM.liftIO reg.interactiveNames.get
+  let interactiveCount ← SpiderM.liftIO reg.interactiveCount.get
+
+  let anyHitPrefix (names : Array String) (count : Nat) (data : ClickData) : Bool :=
+    Id.run do
+      let mut i := 0
+      let mut hit := false
+      while i < count && !hit do
+        if hitWidget data (names[i]!) then
+          hit := true
+        i := i + 1
+      pure hit
 
   let isInputClick (data : ClickData) : Bool :=
-    inputs.any (fun name => hitWidget data name)
+    anyHitPrefix inputs inputCount data
   let isNonInputInteractiveClick (data : ClickData) : Bool :=
-    interactives.any (fun name => hitWidget data name)
+    anyHitPrefix interactives interactiveCount data
 
   let allClicks ← useAllClicks
   let nonInputClicks ← Event.filterM

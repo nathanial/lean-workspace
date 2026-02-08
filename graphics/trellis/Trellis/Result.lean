@@ -144,9 +144,14 @@ def get! (r : LayoutResult) (nodeId : Nat) : ComputedLayout :=
 
 /-- Add a computed layout. Maintains both array and HashMap. -/
 def add (r : LayoutResult) (cl : ComputedLayout) : LayoutResult :=
-  { layouts := r.layouts.push cl
-    layoutMap := r.layoutMap.insert cl.nodeId cl
-    fingerprint := fpMixLayout r.fingerprint cl }
+  let layouts := r.layouts.push cl
+  let layoutMap := r.layoutMap.insert cl.nodeId cl
+  let fingerprint := fpMixLayout r.fingerprint cl
+  match layouts, layoutMap, fingerprint with
+  | layouts, layoutMap, fingerprint =>
+    { layouts := layouts
+      layoutMap := layoutMap
+      fingerprint := fingerprint }
 
 /-- Merge with another result. Maintains both array and HashMap. -/
 def merge (r1 r2 : LayoutResult) : LayoutResult :=
