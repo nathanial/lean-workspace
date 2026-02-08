@@ -2,7 +2,7 @@
   Cairn/Scene/Camera.lean - Orbit camera for static scene viewing
 -/
 
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 import Linalg
 
 namespace Cairn.Scene

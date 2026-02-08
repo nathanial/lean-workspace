@@ -4,8 +4,8 @@
   with stars rushing outward from a central vanishing point.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Shader.DSL
+import Afferent.UI.Arbor
+import Afferent.Runtime.Shader.DSL
 
 open Afferent CanvasM
 open Afferent.Shader

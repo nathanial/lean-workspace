@@ -9,10 +9,10 @@
   - Voxel widget uses dynWidget for reactive rebuilding
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
-import Afferent.Canopy.Widget.Layout.TabView
+import Afferent.UI.Widget
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
+import Afferent.UI.Canopy.Widget.Layout.TabView
 import Reactive
 import Cairn
 import Cairn.World.Async

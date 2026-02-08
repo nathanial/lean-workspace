@@ -2,7 +2,7 @@
   Cairn/State/GameState.lean - Consolidated game state
 -/
 
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 import Cairn.Core.Block
 import Cairn.World.Types
 import Cairn.World.World

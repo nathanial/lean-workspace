@@ -3,7 +3,7 @@
   Shows a 5x5 grid of spinning cubes with an FPS camera.
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 

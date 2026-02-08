@@ -2,7 +2,7 @@
   Cairn/Mesh.lean - Mesh generation helpers for voxels
 -/
 
-import Afferent.Render.Mesh
+import Afferent.Graphics.Render.Mesh
 
 namespace Cairn.Mesh
 

@@ -2,7 +2,7 @@
   Demo Card Helpers - Shared utilities for card-based demo widgets.
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Trellis
 
 open Afferent.Arbor

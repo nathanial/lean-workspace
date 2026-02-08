@@ -4,7 +4,7 @@
 -/
 import Afferent
 import Afferent.App.UIRunner
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Grove.Core.Types
 import Grove.Core.FileSystem
 import Grove.State.AppState

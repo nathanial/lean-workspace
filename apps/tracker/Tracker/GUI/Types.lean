@@ -1,4 +1,4 @@
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy.Reactive
 
 namespace Tracker.GUI
 

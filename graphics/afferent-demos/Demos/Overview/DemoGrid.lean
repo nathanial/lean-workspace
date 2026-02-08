@@ -3,8 +3,8 @@
   Uses pure Arbor widgets with responsive demo content.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Overview.Shapes
 import Demos.Overview.Transforms
 import Demos.Overview.Strokes

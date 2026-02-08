@@ -2,8 +2,8 @@
   Strokes Demo - Cards showing line widths and stroked paths.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Overview.Card
 import Trellis
 import Linalg.Core

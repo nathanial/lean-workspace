@@ -39,31 +39,31 @@ Afferent is a Lean 4 2D/3D graphics and UI framework targeting macOS with Metal 
 │   Lean 4 Application                 │  Main.lean, Demos/, Examples/
 │   (demos, examples, user code)       │
 ├──────────────────────────────────────┤
-│   Canopy (Reactive Widgets)          │  Afferent/Canopy/*.lean
+│   Canopy (Reactive Widgets)          │  src/Afferent/UI/Canopy/*.lean
 │   FRP-powered WidgetM, hooks, events │  (uses reactive library)
 ├──────────────────────────────────────┤
-│   Arbor (Widget Builders)            │  Afferent/Arbor/*.lean
+│   Arbor (Widget Builders)            │  src/Afferent/UI/Arbor/*.lean
 │   declarative widget construction    │  (uses trellis for layout)
 ├──────────────────────────────────────┤
-│   Widget System                      │  Afferent/Widget/*.lean
+│   Widget System                      │  src/Afferent/UI/Widget*.lean
 │   declarative UI, events, Elm arch   │
 ├──────────────────────────────────────┤
-│   Layout Engine                      │  Afferent/Layout/*.lean
+│   Layout Engine                      │  src/Afferent/UI/Layout.lean
 │   CSS Flexbox, Grid, constraints     │
 ├──────────────────────────────────────┤
-│   Canvas API                         │  Afferent/Canvas/*.lean
+│   Canvas API                         │  src/Afferent/Graphics/Canvas/*.lean
 │   2D drawing, state, transforms      │
 ├──────────────────────────────────────┤
-│   3D Rendering                       │  Afferent/Render/*.lean
+│   3D Rendering                       │  src/Afferent/Graphics/Render/*.lean
 │   Matrix4, FPSCamera, Mesh, Dynamic  │
 ├──────────────────────────────────────┤
-│   Core Types                         │  Afferent/Core/*.lean
+│   Core Types                         │  src/Afferent/Core/*.lean
 │   Point, Color, Rect, Path, Paint    │
 ├──────────────────────────────────────┤
-│   Text Rendering                     │  Afferent/Text/Font.lean
+│   Text Rendering                     │  src/Afferent/Graphics/Text/*.lean
 │   FreeType fonts, measurement        │
 ├──────────────────────────────────────┤
-│   FFI Layer                          │  Afferent/FFI/*.lean
+│   FFI Layer                          │  src/Afferent/Runtime/FFI/*.lean
 │   Window, Renderer, Texture, 3D      │
 ├──────────────────────────────────────┤
 │   Native Code                        │  native/src/

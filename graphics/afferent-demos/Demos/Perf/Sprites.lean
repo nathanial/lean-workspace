@@ -2,7 +2,7 @@
   Sprites Performance Test - Bunnymark-style textured sprites
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 

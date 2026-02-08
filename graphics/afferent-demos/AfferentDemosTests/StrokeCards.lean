@@ -4,8 +4,8 @@
 -/
 import Crucible
 import Afferent
-import Afferent.Arbor
-import Afferent.Widget
+import Afferent.UI.Arbor
+import Afferent.UI.Widget
 import Demos.Overview.Strokes
 import Trellis
 

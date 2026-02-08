@@ -2,7 +2,7 @@
   Cairn/Widget/Update.lean - State update logic for voxel scene widget
 -/
 
-import Afferent.FFI.Window
+import Afferent.Runtime.FFI.Window
 import Cairn.Widget.Core
 import Cairn.Input.Keys
 

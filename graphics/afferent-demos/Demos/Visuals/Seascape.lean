@@ -4,7 +4,7 @@
   Features interactive FPS camera controls (WASD + mouse look).
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Assimptor
 import Demos.Core.Demo
 import Trellis

@@ -4,8 +4,8 @@
   Placeholder implementation while the worldmap demo is being migrated.
 -/
 import Afferent
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import Demos.Core.Demo
 import Tileset
 

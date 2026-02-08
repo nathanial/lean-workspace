@@ -2,7 +2,7 @@
   Cairn/Physics/Player.lean - Player physics with AABB collision
 -/
 
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 import Cairn.Core.Block
 import Cairn.Core.Coords
 import Cairn.World.World

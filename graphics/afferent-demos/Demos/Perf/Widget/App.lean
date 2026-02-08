@@ -4,8 +4,8 @@
 -/
 import Reactive
 import Afferent
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import AfferentProgressBars.Canopy.Widget.Display.ProgressBar
 import AfferentSpinners.Canopy.Widget.Display.Spinner
 import AfferentCharts.Canopy.Widget.Charts

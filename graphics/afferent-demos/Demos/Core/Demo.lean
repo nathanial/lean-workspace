@@ -2,7 +2,7 @@
   Demo Typeclass - Shared demo environment and polymorphic demo handling.
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Init.Data.FloatArray
 import Trellis
 import Std.Data.HashMap

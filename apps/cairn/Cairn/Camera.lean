@@ -2,7 +2,7 @@
   Cairn/Camera.lean - Camera configuration and helpers
 -/
 
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 import Linalg
 
 namespace Cairn.Camera

@@ -5,7 +5,7 @@
 import Cairn.World.Types
 import Cairn.World.World
 import Linalg
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 
 namespace Cairn.World
 

@@ -2,7 +2,7 @@
   Cairn/Input/State.lean - Input state capture
 -/
 
-import Afferent.FFI.Window
+import Afferent.Runtime.FFI.Window
 import Cairn.Input.Keys
 
 namespace Cairn.Input

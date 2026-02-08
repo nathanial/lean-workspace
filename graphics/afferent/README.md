@@ -107,7 +107,7 @@ def myDrawing : Canvas Unit := do
 ### Widget System
 
 ```lean
-import Afferent.Widget
+import Afferent.UI.Widget
 
 def myUI : Widget :=
   Widget.column [
@@ -124,11 +124,11 @@ def myUI : Widget :=
 ### 3D Rendering
 
 ```lean
-import Afferent.Render.Matrix4
-import Afferent.Render.FPSCamera
+import Afferent
+import Afferent.Graphics.Render.FPSCamera
 
 -- Set up perspective projection
-let projection := Matrix4.perspective (Float.pi / 4) aspectRatio 0.1 1000.0
+let projection := Mat4.perspective (Float.pi / 4) aspectRatio 0.1 1000.0
 let view := camera.viewMatrix
 let mvp := projection * view * modelMatrix
 
@@ -140,7 +140,7 @@ renderer.drawMesh3D vertices indices mvp modelMatrix lightDir ambientFactor
 ### Layout System
 
 ```lean
-import Afferent.Layout
+import Afferent.UI.Layout
 
 -- Flexbox layout
 let container := LayoutNode.flex
@@ -191,23 +191,15 @@ let result := Layout.compute container (BoxConstraints.tight 800 600)
 
 ```
 afferent/
-├── Afferent/
-│   ├── Core/           # Point, Color, Rect, Path, Transform, Paint
-│   ├── Render/         # Tessellation, Matrix4, Mesh, FPSCamera, Dynamic
-│   ├── Canvas/         # Canvas monad, state management
-│   ├── Widget/         # Declarative UI system, events, hit testing
-│   ├── Layout/         # CSS Flexbox and Grid layout engine
-│   ├── Text/           # Font loading and text measurement
-│   └── FFI/            # Lean FFI bindings (Window, Renderer, Texture, Asset)
-├── Demos/              # 20+ demo applications
-│   ├── Runner.lean     # Multi-pane demo runner
-│   ├── Seascape.lean   # 3D ocean with Gerstner waves
-│   ├── Widgets.lean    # Widget system showcase
-│   ├── Layout.lean     # Layout algorithm demo
-│   └── ...             # Shapes, Gradients, Text, Animations, etc.
-├── Examples/
-│   ├── HelloTriangle.lean   # Minimal Metal example
-│   └── SpinningCubes.lean   # 3D cube rendering
+├── src/Afferent/
+│   ├── Core/                 # Point, Color, Rect, Path, Transform, Paint
+│   ├── Graphics/             # Canvas, rendering, text
+│   ├── UI/                   # Arbor, Canopy, widget backend, layout
+│   ├── Runtime/              # FFI + shader modules
+│   └── App/                  # Runtime/app helpers
+├── test/AfferentTests/       # Afferent test suites
+├── packages/                 # Add-on widget packages (buttons, charts, etc.)
+├── ../afferent-demos/        # Demo applications
 ├── native/
 │   ├── src/metal/      # Metal renderer, shaders, pipeline
 │   ├── src/common/     # FreeType, FloatBuffer, Assimp loader

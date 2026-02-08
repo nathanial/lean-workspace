@@ -4,8 +4,8 @@
   Uses pre-tessellated batched polygon rendering for high performance.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Render.Tessellation
+import Afferent.UI.Arbor
+import Afferent.Graphics.Render.Tessellation
 import Linalg
 import Tincture
 import Eschaton.Widget.ProvinceMap.State

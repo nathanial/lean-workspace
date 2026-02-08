@@ -5,9 +5,9 @@
   Demonstrates the css! macro for CSS-like style definitions.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
-import Afferent.Arbor.Style.CSS
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
+import Afferent.UI.Arbor.Style.CSS
 import Demos.Core.Demo
 import Trellis
 open Tincture (Color)

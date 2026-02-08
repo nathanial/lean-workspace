@@ -3,7 +3,7 @@
 -/
 import Crucible
 import Reactive
-import Afferent.Canopy.Reactive.Inputs
+import Afferent.UI.Canopy.Reactive.Inputs
 
 open Crucible
 open Reactive Reactive.Host

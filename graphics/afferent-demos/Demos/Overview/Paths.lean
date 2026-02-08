@@ -3,8 +3,8 @@
   Rendered as Arbor card widgets.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Widget
+import Afferent.UI.Arbor
+import Afferent.UI.Widget
 import Trellis
 import Demos.Overview.Card
 import Linalg.Core

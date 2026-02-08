@@ -3,7 +3,7 @@
   Demonstrates CPU orbit updates with GPU instancing.
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 import Init.Data.FloatArray

@@ -1,4 +1,4 @@
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Tracker.Core.Types
 import Tracker.GUI.Model
 
