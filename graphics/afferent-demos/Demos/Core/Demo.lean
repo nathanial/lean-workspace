@@ -14,9 +14,16 @@ namespace Demos
 structure RunnerStats where
   frameMs : Float := 0.0
   fps : Float := 0.0
+  beginFrameMs : Float := 0.0
+  inputMs : Float := 0.0
+  reactiveMs : Float := 0.0
   layoutMs : Float := 0.0
+  indexMs : Float := 0.0
   collectMs : Float := 0.0
   executeMs : Float := 0.0
+  endFrameMs : Float := 0.0
+  accountedMs : Float := 0.0
+  unaccountedMs : Float := 0.0
   commandCount : Nat := 0
   coalescedCommandCount : Nat := 0
   drawCalls : Nat := 0

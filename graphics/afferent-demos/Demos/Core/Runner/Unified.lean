@@ -84,7 +84,10 @@ def unifiedDemo : IO Unit := do
     let mut state : AppState := .loading {}
     let mut lastTime := startTime
     while !(← c.shouldClose) do
+      let frameStartNs ← IO.monoNanosNow
+      let beginFrameStartNs := frameStartNs
       let ok ← c.beginFrame Color.darkGray
+      let beginFrameEndNs ← IO.monoNanosNow
       if ok then
         let now ← IO.monoMsNow
         let t := (now - startTime).toFloat / 1000.0
@@ -128,6 +131,7 @@ def unifiedDemo : IO Unit := do
             c ← c.endFrame
         | .running rs =>
             let mut rs := rs
+            let inputStart ← IO.monoNanosNow
             let keyCode ← c.getKeyCode
             let click ← FFI.Window.getClick c.ctx.window
             let (mouseX, mouseY) ← FFI.Window.getMousePos c.ctx.window
@@ -252,10 +256,13 @@ def unifiedDemo : IO Unit := do
             if click.isSome then
               FFI.Window.clearClick c.ctx.window
 
+            let inputEnd ← IO.monoNanosNow
+            let reactiveStart := inputEnd
             rs.inputs.fireAnimationFrame dt
 
             let widgetBuilder ← rs.render
             rs := { rs with cachedWidget := widgetBuilder }
+            let reactiveEnd ← IO.monoNanosNow
 
             let (screenW, screenH) ← c.ctx.getCurrentSize
             if screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF then
@@ -274,6 +281,7 @@ def unifiedDemo : IO Unit := do
             let measuredWidget := measureResult.widget
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
+            let indexStart := layoutEnd
             let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
@@ -283,6 +291,7 @@ def unifiedDemo : IO Unit := do
             let interactiveNames :=
               hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
             rs.events.registry.interactiveNames.set interactiveNames
+            let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow
             let (commands, cacheHits, cacheMisses) ←
@@ -295,20 +304,39 @@ def unifiedDemo : IO Unit := do
               pure batchStats
             let executeEnd ← IO.monoNanosNow
             c := c'
+            let endFrameStart ← IO.monoNanosNow
+            c ← c.endFrame
+            let frameEndNs ← IO.monoNanosNow
+            let endFrameEnd := frameEndNs
+            let beginFrameMs := (beginFrameEndNs - beginFrameStartNs).toFloat / 1000000.0
+            let inputMs := (inputEnd - inputStart).toFloat / 1000000.0
+            let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
+            let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
             let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
-            let frameMs := dt * 1000.0
-            let fps := if dt > 0.0 then 1.0 / dt else 0.0
+            let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
+            let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
+            let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
+            let accountedMs :=
+              beginFrameMs + inputMs + reactiveMs + layoutMs + indexMs + collectMs + executeMs + endFrameMs
+            let unaccountedMs := frameMs - accountedMs
             let widgetCount := (Afferent.Arbor.Widget.allIds measuredWidget).size
             let layoutCount := layouts.layouts.size
             let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
             statsRef.set {
               frameMs := frameMs
               fps := fps
+              beginFrameMs := beginFrameMs
+              inputMs := inputMs
+              reactiveMs := reactiveMs
               layoutMs := layoutMs
+              indexMs := indexMs
               collectMs := collectMs
               executeMs := executeMs
+              endFrameMs := endFrameMs
+              accountedMs := accountedMs
+              unaccountedMs := unaccountedMs
               commandCount := commands.size
               coalescedCommandCount := batchStats.totalCommands
               drawCalls := drawCalls
@@ -328,8 +356,6 @@ def unifiedDemo : IO Unit := do
               widgetCount := widgetCount
               layoutCount := layoutCount
             }
-
-            c ← c.endFrame
             state := .running rs
     pure (c, state)
 
