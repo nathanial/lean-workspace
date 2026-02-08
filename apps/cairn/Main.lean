@@ -591,9 +591,7 @@ def main : IO Unit := do
       canopy.inputs.fireAnimationFrame dt
 
       -- Render the widget tree
-      let renderCommands ← Afferent.Arbor.collectCommandsCached canvas.renderCache measuredWidget layouts
-      canvas ← CanvasM.run' canvas (Afferent.Widget.executeCommandsBatched fontRegistry renderCommands)
-      canvas ← CanvasM.run' canvas (Afferent.Widget.renderCustomWidgets measuredWidget layouts)
+      canvas ← CanvasM.run' canvas (renderArborWidgetWithCustom fontRegistry widget currentW currentH)
 
       -- Debug text overlay (sample state again after FRP propagation)
       let states ← canopy.sceneStatesDyn.sample
