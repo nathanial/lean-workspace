@@ -2,7 +2,7 @@
   Cairn/Widget/Core.lean - Core types and state for voxel scene widget
 -/
 
-import Afferent.Render.FPSCamera
+import Afferent.Graphics.Render.FPSCamera
 import Cairn.World.Types
 import Cairn.World.World
 import Cairn.Camera

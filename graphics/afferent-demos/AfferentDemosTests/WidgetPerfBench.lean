@@ -5,9 +5,9 @@
 import Crucible
 import Reactive
 import Afferent
-import Afferent.Arbor
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Arbor
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import Demos.Perf.Widget.App
 import Trellis
 import Linalg.Geometry.AABB2D

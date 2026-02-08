@@ -3,8 +3,8 @@
 -/
 import Reactive
 import Afferent
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import Demos.Core.Demo
 import Demos.Linalg.KDTreeNearestNeighbor
 import Trellis

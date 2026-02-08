@@ -4,8 +4,8 @@
 import Reactive
 import Oracle.Reactive.Client
 import Afferent
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import AfferentChat.Canopy.Widget.Chat
 import Demos.Core.Demo
 

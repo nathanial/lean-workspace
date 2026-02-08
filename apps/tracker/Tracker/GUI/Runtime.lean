@@ -1,9 +1,9 @@
 import Reactive
 import Afferent
-import Afferent.Arbor
-import Afferent.Widget
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import Tracker.GUI.Types
 
 namespace Tracker.GUI.Runtime

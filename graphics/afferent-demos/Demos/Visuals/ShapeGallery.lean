@@ -4,8 +4,8 @@
   Includes both untransformed and transformed versions to test tessellation.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 import Linalg.Core

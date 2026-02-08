@@ -2,8 +2,8 @@
   Transforms Demo - Cards showing translation, scaling, rotation, and nesting.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Overview.Card
 import Trellis
 import Linalg.Core

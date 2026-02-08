@@ -4,8 +4,8 @@
   Uses the QuadShader DSL to render per-pixel gradients in the fragment shader.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Shader.DSL
+import Afferent.UI.Arbor
+import Afferent.Runtime.Shader.DSL
 import Tincture
 
 open Afferent.Arbor

@@ -3,7 +3,7 @@
   Demonstrates scaling a sprite on the CPU.
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 

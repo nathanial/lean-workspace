@@ -8,7 +8,7 @@ import Std.Data.HashSet
 import Worldmap.TileCoord
 import Worldmap.RetryLogic
 import Worldmap.Utils
-import Afferent.FFI.Texture
+import Afferent.Runtime.FFI.Texture
 
 namespace Worldmap
 

@@ -3,9 +3,9 @@
   Main entry point with window setup and FRP-based reactive game loop
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Widget
-import Afferent.Canopy
+import Afferent.UI.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Canopy
 import Eschaton
 import Reactive
 import Std.Internal.Async.Process

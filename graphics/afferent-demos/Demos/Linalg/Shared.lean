@@ -3,8 +3,8 @@
   Includes arrow drawing, coordinate grids, and transforms.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 import Linalg.Core

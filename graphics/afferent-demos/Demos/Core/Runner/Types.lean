@@ -2,8 +2,8 @@
   Demo Runner - Shared types and constants.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Canopy.Reactive
+import Afferent.UI.Arbor
+import Afferent.UI.Canopy.Reactive
 import Std.Data.HashMap
 import Init.Data.FloatArray
 

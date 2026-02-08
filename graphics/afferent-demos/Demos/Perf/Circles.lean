@@ -2,7 +2,7 @@
   Circles Performance Test - Bouncing circles
 -/
 import Afferent
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Trellis
 

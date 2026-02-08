@@ -3,8 +3,8 @@
   FRP-based province map rendering using Canopy's reactive widget system.
 -/
 import Afferent
-import Afferent.Arbor
-import Afferent.Canopy
+import Afferent.UI.Arbor
+import Afferent.UI.Canopy
 import Tincture
 import Trellis
 import Eschaton.Widget.ProvinceMap.State

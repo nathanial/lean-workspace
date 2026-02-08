@@ -11,8 +11,8 @@ import Worldmap.TileDiskCache
 import Worldmap.TileProvider
 import Worldmap.Prefetch
 import Wisp
-import Afferent.FFI.Texture
-import Afferent.FFI.Renderer
+import Afferent.Runtime.FFI.Texture
+import Afferent.Runtime.FFI.Renderer
 
 namespace Worldmap
 

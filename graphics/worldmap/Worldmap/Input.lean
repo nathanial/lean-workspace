@@ -6,7 +6,7 @@
 import Worldmap.State
 import Worldmap.Zoom
 import Worldmap.KeyCode
-import Afferent.FFI.Window
+import Afferent.Runtime.FFI.Window
 
 namespace Worldmap
 

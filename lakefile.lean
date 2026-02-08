@@ -121,19 +121,19 @@ lean_lib data_totem where
   roots := #[`Totem]
 
 lean_lib graphics_afferent where
-  srcDir := "graphics/afferent"
+  srcDir := "graphics/afferent/src"
   roots := #[`Afferent]
 
 lean_lib graphics_afferent_buttons where
-  srcDir := "graphics/afferent/widgets/afferent-buttons"
+  srcDir := "graphics/afferent/packages/afferent-buttons"
   roots := #[`AfferentButtons]
 
 lean_lib graphics_afferent_charts where
-  srcDir := "graphics/afferent/widgets/afferent-charts"
+  srcDir := "graphics/afferent/packages/afferent-charts"
   roots := #[`AfferentCharts]
 
 lean_lib graphics_afferent_chat where
-  srcDir := "graphics/afferent/widgets/afferent-chat"
+  srcDir := "graphics/afferent/packages/afferent-chat"
   roots := #[`AfferentChat]
 
 lean_lib graphics_afferent_demos where
@@ -141,27 +141,27 @@ lean_lib graphics_afferent_demos where
   roots := #[`Demos]
 
 lean_lib graphics_afferent_math where
-  srcDir := "graphics/afferent/widgets/afferent-math"
+  srcDir := "graphics/afferent/packages/afferent-math"
   roots := #[`AfferentMath]
 
 lean_lib graphics_afferent_progress_bars where
-  srcDir := "graphics/afferent/widgets/afferent-progress-bars"
+  srcDir := "graphics/afferent/packages/afferent-progress-bars"
   roots := #[`AfferentProgressBars]
 
 lean_lib graphics_afferent_spinners where
-  srcDir := "graphics/afferent/widgets/afferent-spinners"
+  srcDir := "graphics/afferent/packages/afferent-spinners"
   roots := #[`AfferentSpinners]
 
 lean_lib graphics_afferent_text_inputs where
-  srcDir := "graphics/afferent/widgets/afferent-text-inputs"
+  srcDir := "graphics/afferent/packages/afferent-text-inputs"
   roots := #[`AfferentTextInputs]
 
 lean_lib graphics_afferent_time_picker where
-  srcDir := "graphics/afferent/widgets/afferent-time-picker"
+  srcDir := "graphics/afferent/packages/afferent-time-picker"
   roots := #[`AfferentTimePicker]
 
 lean_lib graphics_afferent_worldmap where
-  srcDir := "graphics/afferent/widgets/afferent-worldmap"
+  srcDir := "graphics/afferent/packages/afferent-worldmap"
   roots := #[`AfferentWorldmap]
 
 lean_lib graphics_assimptor where
@@ -639,19 +639,19 @@ lean_lib data_totem_tests_lib where
   roots := #[`TotemTests]
 
 lean_lib graphics_afferent_tests_lib where
-  srcDir := "graphics/afferent"
+  srcDir := "graphics/afferent/test"
   roots := #[`AfferentTests]
 
 lean_lib graphics_afferent_buttons_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-buttons"
+  srcDir := "graphics/afferent/packages/afferent-buttons"
   roots := #[`AfferentButtonsTests]
 
 lean_lib graphics_afferent_charts_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-charts"
+  srcDir := "graphics/afferent/packages/afferent-charts"
   roots := #[`AfferentChartsTests]
 
 lean_lib graphics_afferent_chat_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-chat"
+  srcDir := "graphics/afferent/packages/afferent-chat"
   roots := #[`AfferentChatTests]
 
 lean_lib graphics_afferent_demos_tests_lib where
@@ -659,27 +659,27 @@ lean_lib graphics_afferent_demos_tests_lib where
   roots := #[`AfferentDemosTests]
 
 lean_lib graphics_afferent_math_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-math"
+  srcDir := "graphics/afferent/packages/afferent-math"
   roots := #[`AfferentMathTests]
 
 lean_lib graphics_afferent_progress_bars_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-progress-bars"
+  srcDir := "graphics/afferent/packages/afferent-progress-bars"
   roots := #[`AfferentProgressBarsTests]
 
 lean_lib graphics_afferent_spinners_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-spinners"
+  srcDir := "graphics/afferent/packages/afferent-spinners"
   roots := #[`AfferentSpinnersTests]
 
 lean_lib graphics_afferent_text_inputs_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-text-inputs"
+  srcDir := "graphics/afferent/packages/afferent-text-inputs"
   roots := #[`AfferentTextInputsTests]
 
 lean_lib graphics_afferent_time_picker_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-time-picker"
+  srcDir := "graphics/afferent/packages/afferent-time-picker"
   roots := #[`AfferentTimePickerTests]
 
 lean_lib graphics_afferent_worldmap_tests_lib where
-  srcDir := "graphics/afferent/widgets/afferent-worldmap"
+  srcDir := "graphics/afferent/packages/afferent-worldmap"
   roots := #[`AfferentWorldmapTests]
 
 lean_lib graphics_chroma_tests_lib where
@@ -966,17 +966,17 @@ lean_exe data_totem_tests_exe where
   root := `TotemTests.Main
 
 lean_exe graphics_afferent_buttons_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-buttons"
+  srcDir := "graphics/afferent/packages/afferent-buttons"
   root := `AfferentButtonsTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_charts_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-charts"
+  srcDir := "graphics/afferent/packages/afferent-charts"
   root := `AfferentChartsTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_chat_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-chat"
+  srcDir := "graphics/afferent/packages/afferent-chat"
   root := `AfferentChatTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
@@ -986,37 +986,37 @@ lean_exe graphics_afferent_demos_tests_exe where
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_math_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-math"
+  srcDir := "graphics/afferent/packages/afferent-math"
   root := `AfferentMathTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_progress_bars_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-progress-bars"
+  srcDir := "graphics/afferent/packages/afferent-progress-bars"
   root := `AfferentProgressBarsTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_spinners_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-spinners"
+  srcDir := "graphics/afferent/packages/afferent-spinners"
   root := `AfferentSpinnersTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_text_inputs_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-text-inputs"
+  srcDir := "graphics/afferent/packages/afferent-text-inputs"
   root := `AfferentTextInputsTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_time_picker_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-time-picker"
+  srcDir := "graphics/afferent/packages/afferent-time-picker"
   root := `AfferentTimePickerTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_worldmap_tests_exe where
-  srcDir := "graphics/afferent/widgets/afferent-worldmap"
+  srcDir := "graphics/afferent/packages/afferent-worldmap"
   root := `AfferentWorldmapTests.Main
   moreLinkArgs := afferentMetalLinkArgs
 
 lean_exe graphics_afferent_tests_exe where
-  srcDir := "graphics/afferent"
+  srcDir := "graphics/afferent/test"
   root := `AfferentTests
   moreLinkArgs := afferentMetalLinkArgs
 

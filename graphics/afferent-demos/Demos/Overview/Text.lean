@@ -2,8 +2,8 @@
   Text Demo - Cards showing font sizes, colors, and text on shapes.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Overview.Card
 import Trellis
 

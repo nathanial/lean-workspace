@@ -4,8 +4,8 @@
 -/
 import Afferent
 import Afferent.App.UIRunner
-import Afferent.FFI
-import Afferent.Arbor
+import Afferent.Runtime.FFI
+import Afferent.UI.Arbor
 import Grove.App
 
 open Afferent

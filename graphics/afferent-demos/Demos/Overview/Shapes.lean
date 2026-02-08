@@ -2,8 +2,8 @@
   Shapes Demo - Rendered via Arbor widgets using path render commands.
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Trellis
 import Demos.Overview.Card
 import Linalg.Core

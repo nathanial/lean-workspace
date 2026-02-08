@@ -2,8 +2,8 @@
   Shared helpers for rotation system demos (3D projection, simple shapes).
 -/
 import Afferent
-import Afferent.Widget
-import Afferent.Arbor
+import Afferent.UI.Widget
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Demos.Linalg.Shared
 import Linalg.Vec3

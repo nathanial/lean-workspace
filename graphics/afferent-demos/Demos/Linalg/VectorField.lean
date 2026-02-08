@@ -3,9 +3,9 @@
   Press 1-4 to switch field types.
 -/
 import Afferent
-import Afferent.Widget
+import Afferent.UI.Widget
 import AfferentMath.Widget.VectorField
-import Afferent.Arbor
+import Afferent.UI.Arbor
 import Demos.Core.Demo
 import Demos.Linalg.Shared
 import Trellis

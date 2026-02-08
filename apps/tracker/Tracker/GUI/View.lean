@@ -1,6 +1,6 @@
 import Afferent
-import Afferent.Canopy
-import Afferent.Canopy.Reactive
+import Afferent.UI.Canopy
+import Afferent.UI.Canopy.Reactive
 import Tracker.GUI.Action
 import Tracker.GUI.Model
 
