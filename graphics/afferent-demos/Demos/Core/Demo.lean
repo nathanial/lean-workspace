@@ -21,6 +21,10 @@ structure RunnerStats where
   reactiveRenderMs : Float := 0.0
   layoutMs : Float := 0.0
   indexMs : Float := 0.0
+  indexRegistryMs : Float := 0.0
+  indexCheckMs : Float := 0.0
+  indexBuildMs : Float := 0.0
+  indexStoreMs : Float := 0.0
   collectMs : Float := 0.0
   executeMs : Float := 0.0
   endFrameMs : Float := 0.0
@@ -44,6 +48,7 @@ structure RunnerStats where
   cacheMisses : Nat := 0
   widgetCount : Nat := 0
   layoutCount : Nat := 0
+  indexCacheHit : Bool := false
   deriving Inhabited
 
 structure DemoEnv where

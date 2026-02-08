@@ -57,7 +57,9 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line8 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
   let line9 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
   let line10 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10]
+  let line11 := s!"hit index cache {if stats.indexCacheHit then "hit" else "miss"}"
+  let line12 := s!"index split reg {formatFloat stats.indexRegistryMs}ms • check {formatFloat stats.indexCheckMs}ms • build/reuse {formatFloat stats.indexBuildMs}ms • store {formatFloat stats.indexStoreMs}ms"
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do

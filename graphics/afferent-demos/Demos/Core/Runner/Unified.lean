@@ -282,15 +282,41 @@ def unifiedDemo : IO Unit := do
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
             let indexStart := layoutEnd
-            let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+            let indexRegistryStart := indexStart
+            let (registryCounter, _, interactiveCount) ←
+              Afferent.Canopy.Reactive.ReactiveEvents.getRegistryStats rs.events
+            let indexRegistryEnd ← IO.monoNanosNow
+            let indexCheckStart := indexRegistryEnd
+            let indexCacheHit := match rs.frameCache with
+              | some cache =>
+                  !cache.hitIndexHasCustom &&
+                    cache.layoutFingerprint == layouts.fingerprint &&
+                    cache.registryCounter == registryCounter &&
+                    cache.interactiveCount == interactiveCount
+              | none => false
+            let indexCheckEnd ← IO.monoNanosNow
+            let indexBuildStart := indexCheckEnd
+            let hitIndex ← match rs.frameCache with
+              | some cache =>
+                  if indexCacheHit then
+                    pure cache.hitIndex
+                  else do
+                    let rebuilt := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                    pure rebuilt
+              | none => do
+                  let rebuilt := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                  pure rebuilt
+            let indexBuildEnd ← IO.monoNanosNow
+            let indexStoreStart := indexBuildEnd
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
               layouts := layouts
+              layoutFingerprint := layouts.fingerprint
               hitIndex := hitIndex
+              hitIndexHasCustom := hitIndex.hasCustomHitTest
+              registryCounter := registryCounter
+              interactiveCount := interactiveCount
             } }
-            let interactiveNames :=
-              hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
-            rs.events.registry.interactiveNames.set interactiveNames
             let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow
@@ -315,6 +341,10 @@ def unifiedDemo : IO Unit := do
             let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
             let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
+            let indexRegistryMs := (indexRegistryEnd - indexRegistryStart).toFloat / 1000000.0
+            let indexCheckMs := (indexCheckEnd - indexCheckStart).toFloat / 1000000.0
+            let indexBuildMs := (indexBuildEnd - indexBuildStart).toFloat / 1000000.0
+            let indexStoreMs := (indexEnd - indexStoreStart).toFloat / 1000000.0
             let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
@@ -336,6 +366,10 @@ def unifiedDemo : IO Unit := do
               reactiveRenderMs := reactiveRenderMs
               layoutMs := layoutMs
               indexMs := indexMs
+              indexRegistryMs := indexRegistryMs
+              indexCheckMs := indexCheckMs
+              indexBuildMs := indexBuildMs
+              indexStoreMs := indexStoreMs
               collectMs := collectMs
               executeMs := executeMs
               endFrameMs := endFrameMs
@@ -359,6 +393,7 @@ def unifiedDemo : IO Unit := do
               cacheMisses := cacheMisses
               widgetCount := widgetCount
               layoutCount := layoutCount
+              indexCacheHit := indexCacheHit
             }
             state := .running rs
     pure (c, state)

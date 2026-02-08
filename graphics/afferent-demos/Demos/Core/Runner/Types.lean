@@ -75,7 +75,11 @@ structure LoadedAssets where
 structure FrameCache where
   measuredWidget : Afferent.Arbor.Widget
   layouts : Trellis.LayoutResult
+  layoutFingerprint : UInt64
   hitIndex : Afferent.Arbor.HitTestIndex
+  hitIndexHasCustom : Bool
+  registryCounter : Nat
+  interactiveCount : Nat
 
 structure RunningState where
   assets : LoadedAssets

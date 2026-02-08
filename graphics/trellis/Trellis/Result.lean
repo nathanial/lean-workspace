@@ -100,11 +100,37 @@ end ComputedLayout
 structure LayoutResult where
   layouts : Array ComputedLayout
   layoutMap : Std.HashMap Nat ComputedLayout := {}
+  /-- Deterministic fingerprint of all `layouts` entries in insertion order. -/
+  fingerprint : UInt64 := 14695981039346656037
 deriving Inhabited
 
 namespace LayoutResult
 
-def empty : LayoutResult := ⟨#[], {}⟩
+private def fpPrime : UInt64 := 1099511628211
+
+private def fpMixUInt64 (h v : UInt64) : UInt64 :=
+  let x := v + 0x9e3779b97f4a7c15
+  (h ^^^ x) * fpPrime
+
+private def fpMixNat (h : UInt64) (n : Nat) : UInt64 :=
+  fpMixUInt64 h (UInt64.ofNat n)
+
+private def fpMixFloat (h : UInt64) (f : Float) : UInt64 :=
+  fpMixUInt64 h f.toUInt64
+
+private def fpMixRect (h : UInt64) (r : LayoutRect) : UInt64 :=
+  let h1 := fpMixFloat h r.x
+  let h2 := fpMixFloat h1 r.y
+  let h3 := fpMixFloat h2 r.width
+  fpMixFloat h3 r.height
+
+private def fpMixLayout (h : UInt64) (cl : ComputedLayout) : UInt64 :=
+  let h0 := fpMixUInt64 h 0xA1
+  let h1 := fpMixNat h0 cl.nodeId
+  let h2 := fpMixRect h1 cl.borderRect
+  fpMixRect h2 cl.contentRect
+
+def empty : LayoutResult := { layouts := #[], layoutMap := {} }
 
 /-- Find layout by node ID. O(1) HashMap lookup. -/
 def get (r : LayoutResult) (nodeId : Nat) : Option ComputedLayout :=
@@ -118,13 +144,13 @@ def get! (r : LayoutResult) (nodeId : Nat) : ComputedLayout :=
 
 /-- Add a computed layout. Maintains both array and HashMap. -/
 def add (r : LayoutResult) (cl : ComputedLayout) : LayoutResult :=
-  ⟨r.layouts.push cl, r.layoutMap.insert cl.nodeId cl⟩
+  { layouts := r.layouts.push cl
+    layoutMap := r.layoutMap.insert cl.nodeId cl
+    fingerprint := fpMixLayout r.fingerprint cl }
 
 /-- Merge with another result. Maintains both array and HashMap. -/
 def merge (r1 r2 : LayoutResult) : LayoutResult :=
-  let mergedMap := r2.layouts.foldl (init := r1.layoutMap) fun m cl =>
-    m.insert cl.nodeId cl
-  ⟨r1.layouts ++ r2.layouts, mergedMap⟩
+  r2.layouts.foldl (init := r1) fun acc cl => acc.add cl
 
 /-- Get all rects for rendering. -/
 def allRects (r : LayoutResult) : Array LayoutRect :=
@@ -132,10 +158,7 @@ def allRects (r : LayoutResult) : Array LayoutRect :=
 
 /-- Map over all layouts. Maintains both array and HashMap. -/
 def map (r : LayoutResult) (f : ComputedLayout → ComputedLayout) : LayoutResult :=
-  let newLayouts := r.layouts.map f
-  let newMap := newLayouts.foldl (init := {}) fun m cl =>
-    m.insert cl.nodeId cl
-  ⟨newLayouts, newMap⟩
+  r.layouts.foldl (init := LayoutResult.empty) fun acc cl => acc.add (f cl)
 
 /-- Translate all layouts by an offset. -/
 def translate (r : LayoutResult) (dx dy : Length) : LayoutResult :=

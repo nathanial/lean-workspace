@@ -352,7 +352,55 @@ structure HitTestIndex where
   items : Array HitTestIndexItem
   grid : Linalg.Spatial.Grid2D
   nameMap : Std.HashMap String WidgetId
+  /-- If true, index reuse should be disabled because custom hit callbacks may be dynamic. -/
+  hasCustomHitTest : Bool := false
 deriving Inhabited
+
+/-- Deterministic key for deciding whether a previously built hit-test index can be reused. -/
+structure HitTestIndexKey where
+  digest : UInt64
+  itemCount : Nat
+  nameCount : Nat
+  layoutCount : Nat
+  /-- If true, index reuse should be disabled because custom hit callbacks may be dynamic. -/
+  hasCustomHitTest : Bool := false
+deriving Repr, BEq, Inhabited
+
+private def keyOffsetBasis : UInt64 := 14695981039346656037
+private def keyPrime : UInt64 := 1099511628211
+
+private def keyMixByte (h : UInt64) (b : UInt8) : UInt64 :=
+  (h ^^^ b.toUInt64) * keyPrime
+
+private def keyMixUInt64 (h v : UInt64) : UInt64 :=
+  let h1 := keyMixByte h ((v &&& 0xFF).toUInt8)
+  let h2 := keyMixByte h1 (((v >>> 8) &&& 0xFF).toUInt8)
+  let h3 := keyMixByte h2 (((v >>> 16) &&& 0xFF).toUInt8)
+  let h4 := keyMixByte h3 (((v >>> 24) &&& 0xFF).toUInt8)
+  let h5 := keyMixByte h4 (((v >>> 32) &&& 0xFF).toUInt8)
+  let h6 := keyMixByte h5 (((v >>> 40) &&& 0xFF).toUInt8)
+  let h7 := keyMixByte h6 (((v >>> 48) &&& 0xFF).toUInt8)
+  keyMixByte h7 (((v >>> 56) &&& 0xFF).toUInt8)
+
+private def keyMixNat (h : UInt64) (n : Nat) : UInt64 :=
+  keyMixUInt64 h (UInt64.ofNat n)
+
+private def keyMixBool (h : UInt64) (b : Bool) : UInt64 :=
+  keyMixByte h (if b then 1 else 0)
+
+private def keyMixFloat (h : UInt64) (f : Float) : UInt64 :=
+  keyMixUInt64 h f.toUInt64
+
+private def keyMixWidgetTag (h : UInt64) (w : Widget) : UInt64 :=
+  let tag : UInt8 := match w with
+    | .flex .. => 1
+    | .grid .. => 2
+    | .text .. => 3
+    | .rect .. => 4
+    | .scroll .. => 5
+    | .spacer .. => 6
+    | .custom .. => 7
+  keyMixByte h tag
 
 private def toScreenPoint (t : HitTransform) (x y : Float) : Float × Float :=
   let screenX := x - t.scrollX
@@ -390,6 +438,7 @@ private structure HitTestBuildState where
   items : Array HitTestIndexItem := #[]
   zOrder : Nat := 0
   nameMap : Std.HashMap String WidgetId := {}
+  hasCustomHitTest : Bool := false
 deriving Inhabited
 
 /-- Build a spatial index for hit testing.
@@ -434,6 +483,12 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
       | some name => modify fun state => { state with nameMap := state.nameMap.insert name w.id }
       | none => pure ()
 
+      match w with
+      | .custom _ _ _ spec =>
+          if spec.hitTest.isSome then
+            modify fun state => { state with hasCustomHitTest := true }
+      | _ => pure ()
+
       let nextClipped := clippedNonAbs || (!isAbs && effectiveClip.isNone)
       let childClip := if isAbs then some screenBounds else effectiveClip
       let children := orderChildrenForHit w.children
@@ -454,7 +509,94 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
 
   let bounds := items'.map (fun item => item.screenBounds)
   let grid := Linalg.Spatial.Grid2D.buildAuto bounds
-  { items := items', grid := grid, nameMap := state.nameMap }
+  { items := items', grid := grid, nameMap := state.nameMap, hasCustomHitTest := state.hasCustomHitTest }
+
+/-- Compute a deterministic key from hit-test-relevant widget/layout state.
+    This key is suitable for reusing a previously built hit-test index when equal. -/
+partial def computeHitTestIndexKey (root : Widget) (layouts : Trellis.LayoutResult) : HitTestIndexKey :=
+  let layoutDigest := layouts.layouts.foldl (init := keyOffsetBasis) fun digest cl =>
+    let br := cl.borderRect
+    let cr := cl.contentRect
+    let h0 := keyMixByte digest 0x91
+    let h1 := keyMixNat h0 cl.nodeId
+    let h2 := keyMixFloat h1 br.x
+    let h3 := keyMixFloat h2 br.y
+    let h4 := keyMixFloat h3 br.width
+    let h5 := keyMixFloat h4 br.height
+    let h6 := keyMixFloat h5 cr.x
+    let h7 := keyMixFloat h6 cr.y
+    let h8 := keyMixFloat h7 cr.width
+    keyMixFloat h8 cr.height
+
+  let rec goWidget (w : Widget) (pathDepth : Nat)
+      (digest : UInt64) (itemCount nameCount : Nat) (hasCustomHitTest : Bool)
+      : UInt64 × Nat × Nat × Bool := Id.run do
+    let mut digest := keyMixByte digest 0xA1
+    digest := keyMixWidgetTag digest w
+    digest := keyMixNat digest w.id
+    digest := keyMixNat digest pathDepth
+    digest := keyMixBool digest (isAbsoluteWidgetForHit w)
+    digest := keyMixBool digest (isOverlayWidgetForHit w)
+
+    let mut itemCount := itemCount + 1
+    let mut nameCount := nameCount
+    let mut hasCustomHitTest := hasCustomHitTest
+
+    match Widget.name? w with
+    | some name =>
+        digest := keyMixByte digest 0xB1
+        digest := keyMixUInt64 digest (hash name)
+        nameCount := nameCount + 1
+    | none => pure ()
+
+    match w with
+    | .custom _ _ _ spec =>
+        let hasCustom := spec.hitTest.isSome
+        digest := keyMixByte digest 0xC1
+        digest := keyMixBool digest hasCustom
+        hasCustomHitTest := hasCustomHitTest || hasCustom
+    | .scroll _ _ _ scrollState contentW contentH _ _ =>
+        digest := keyMixByte digest 0xD1
+        digest := keyMixFloat digest scrollState.offsetX
+        digest := keyMixFloat digest scrollState.offsetY
+        digest := keyMixFloat digest contentW
+        digest := keyMixFloat digest contentH
+    | _ => pure ()
+
+    let mut childIdx := 0
+    for child in w.children do
+      digest := keyMixByte digest 0xE1
+      digest := keyMixNat digest childIdx
+      let (childDigest, childItems, childNames, childCustom) :=
+        goWidget child (pathDepth + 1) digest itemCount nameCount hasCustomHitTest
+      digest := childDigest
+      itemCount := childItems
+      nameCount := childNames
+      hasCustomHitTest := childCustom
+      childIdx := childIdx + 1
+
+    pure (digest, itemCount, nameCount, hasCustomHitTest)
+
+  let (digest, itemCount, nameCount, hasCustomHitTest) :=
+    goWidget root 0 layoutDigest 0 0 false
+
+  let digest :=
+    keyMixNat
+      (keyMixNat
+        (keyMixNat
+          (keyMixBool
+            (keyMixUInt64 digest (UInt64.ofNat layouts.layouts.size))
+            hasCustomHitTest)
+          itemCount)
+        nameCount)
+      layouts.layouts.size
+  {
+    digest := digest
+    itemCount := itemCount
+    nameCount := nameCount
+    layoutCount := layouts.layouts.size
+    hasCustomHitTest := hasCustomHitTest
+  }
 
 /-- Hit test using a pre-built spatial index (fast broad-phase). -/
 def hitTestPathIndexed (index : HitTestIndex) (x y : Float) : Array WidgetId := Id.run do
