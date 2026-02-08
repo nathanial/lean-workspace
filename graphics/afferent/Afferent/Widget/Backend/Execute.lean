@@ -7,13 +7,25 @@ import Afferent.Core.Transform
 import Afferent.Text.Font
 import Afferent.Text.Measurer
 import Afferent.Arbor
-import Afferent.Widget.Backend.Convert
 import Std.Data.HashMap
 
 namespace Afferent.Widget
 
 open Afferent
 open Afferent.Arbor
+
+/-- Convert a polygon (array of points) to a closed path. -/
+private def polygonToPath (points : Array Point) : Path :=
+  Id.run do
+    if points.size > 0 then
+      let first := points[0]!
+      let mut path := Path.empty.moveTo first
+      for i in [1:points.size] do
+        let p := points[i]!
+        path := path.lineTo p
+      return path.closePath
+    else
+      return Path.empty
 
 /-- Snap text positions to device pixels for axis-aligned transforms (scale + translate only). -/
 private def snapTextPosition (x y : Float) (transform : Transform) : (Float × Float) :=
