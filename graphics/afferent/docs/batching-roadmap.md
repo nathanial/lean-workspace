@@ -193,5 +193,5 @@ for (int i = 0; i < batchCount; i++) {
 - GPU time per frame
 - CPU time in coalescing/batching
 
-Use `renderArborWidgetWithStats` to get cache hit/miss ratios.
+Use `Afferent.Arbor.collectCommandsCachedWithStats` to get cache hit/miss ratios.
 Add `executeCommandsBatchedWithStats` return value logging for batch metrics.

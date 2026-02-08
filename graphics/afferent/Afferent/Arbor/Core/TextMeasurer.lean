@@ -43,4 +43,14 @@ class TextMeasurer (M : Type → Type) where
   /-- Get font metrics (ascender, descender, line height) without specific text. -/
   fontMetrics : FontId → M TextMetrics
 
+/-- Default pure measurer used by tests and other `Id`-only call sites.
+    Uses simple fixed-width metrics so pure layout logic can run without IO fonts. -/
+instance : TextMeasurer Id where
+  measureText text _fontId :=
+    let width := text.length.toFloat
+    let height := 1.0
+    pure (TextMetrics.simple width height)
+  measureChar _c _fontId := pure 1.0
+  fontMetrics _fontId := pure (TextMetrics.simple 0 1.0)
+
 end Afferent.Arbor

@@ -274,29 +274,6 @@ def collectCommandsWithSave (w : Widget) (layouts : Trellis.LayoutResult) : Arra
     renderDeferredOverlay
     CollectM.emit .restore
 
-/-- Collect debug border commands for all layout cells.
-    Draws a colored stroke rect around each widget's border rect.
-    Useful for debugging layout issues. -/
-partial def collectDebugBorders (w : Widget) (layouts : Trellis.LayoutResult)
-    (color : Color := ⟨0.5, 1.0, 0.5, 0.5⟩) (lineWidth : Float := 1.0) : CollectM Unit := do
-  let some computed := layouts.get w.id | return
-  let r := computed.borderRect
-  let rect : Rect := ⟨⟨r.x, r.y⟩, ⟨r.width, r.height⟩⟩
-  CollectM.emit (.strokeRect rect color lineWidth 0)
-
-  -- Recurse into children
-  for child in w.children do
-    collectDebugBorders child layouts color lineWidth
-
-/-- Collect both regular widget commands and debug borders.
-    Returns commands that render the widget with debug borders overlaid. -/
-def collectCommandsWithDebug (w : Widget) (layouts : Trellis.LayoutResult)
-    (borderColor : Color := ⟨0.5, 1.0, 0.5, 0.5⟩) : Array RenderCommand :=
-  CollectM.execute do
-    collectWidget w layouts
-    renderDeferredOverlay
-    collectDebugBorders w layouts borderColor
-
 /-! ## Cached Collection
 
 These functions provide render command caching at the widget level.

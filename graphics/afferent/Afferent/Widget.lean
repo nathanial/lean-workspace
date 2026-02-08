@@ -2,9 +2,13 @@
   Afferent Widget System
   Declarative, display-only widget system for building UIs.
 
-  This module re-exports Afferent.Arbor (the renderer-agnostic widget library) and provides
-  the Afferent rendering backend that converts Arbor RenderCommands to Metal-backed
-  CanvasM drawing calls.
+  This module re-exports `Afferent.Arbor` and provides the production rendering
+  backend used in this repository.
+
+  Render flow:
+  1. Arbor builds/measures/layouts widgets
+  2. Arbor emits RenderCommands
+  3. `Afferent.Widget.Backend` executes commands through CanvasM/Metal
 
   Usage:
   ```lean
@@ -32,7 +36,7 @@
 -- Re-export Arbor widget system (now under Afferent.Arbor)
 import Afferent.Arbor
 
--- Afferent-specific backend that renders Arbor widgets via CanvasM
+-- Afferent production backend that renders Arbor widgets via CanvasM/Metal
 import Afferent.Widget.Backend
 import Afferent.Text.Measurer
 
