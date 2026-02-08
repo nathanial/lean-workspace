@@ -17,6 +17,8 @@ structure RunnerStats where
   beginFrameMs : Float := 0.0
   inputMs : Float := 0.0
   reactiveMs : Float := 0.0
+  reactivePropagateMs : Float := 0.0
+  reactiveRenderMs : Float := 0.0
   layoutMs : Float := 0.0
   indexMs : Float := 0.0
   collectMs : Float := 0.0

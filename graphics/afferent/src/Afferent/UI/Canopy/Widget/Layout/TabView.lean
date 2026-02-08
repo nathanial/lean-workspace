@@ -202,8 +202,10 @@ structure TabViewResult where
     Emits the tab view widget and returns tab state.
     - `tabs`: Array of tab definitions (label and content)
     - `initialTab`: Initial active tab index
--/
-def tabView (tabs : Array TabDef) (initialTab : Nat := 0) : WidgetM TabViewResult := do
+    - `keepAlive`: If true, build all tab subtrees up front and keep them subscribed.
+      If false (default), only the active tab subtree is mounted. -/
+def tabView (tabs : Array TabDef) (initialTab : Nat := 0) (keepAlive : Bool := false)
+    : WidgetM TabViewResult := do
   let theme ← getThemeW
   let containerName ← registerComponentW "tabview" (isInteractive := false)
 
@@ -212,12 +214,6 @@ def tabView (tabs : Array TabDef) (initialTab : Nat := 0) : WidgetM TabViewResul
     let name ← registerComponentW "tab-header"
     headerNames := headerNames.push name
   let headerNameFn (i : Nat) : String := headerNames.getD i ""
-
-  -- Pre-run all tab contents to get their renders
-  let mut tabContentRenders : Array (Array ComponentRender) := #[]
-  for tab in tabs do
-    let (_, renders) ← runWidgetChildren tab.content
-    tabContentRenders := tabContentRenders.push renders
 
   let allClicks ← useAllClicks
 
@@ -234,23 +230,51 @@ def tabView (tabs : Array TabDef) (initialTab : Nat := 0) : WidgetM TabViewResul
 
   let tabsRef := tabs
 
-  -- Use dynWidget for efficient change-driven rebuilds
-  let renderState ← Dynamic.zipWithM (fun a h => (a, h)) activeTab hoveredTab
-  let _ ← dynWidget renderState fun (active, hovered) => do
-    emit do
-      let mut tabDefs : Array (String × WidgetBuilder) := #[]
-      for i in [:tabsRef.size] do
-        let tab := tabsRef[i]!
-        let renders := tabContentRenders[i]!
-        let contentWidgets ← renders.mapM id
+  if keepAlive then
+    -- Pre-run all tab contents and keep all subscriptions alive.
+    let mut tabContentRenders : Array (Array ComponentRender) := #[]
+    for tab in tabs do
+      let (_, renders) ← runWidgetChildren tab.content
+      tabContentRenders := tabContentRenders.push renders
+
+    let renderState ← Dynamic.zipWithM (fun a h => (a, h)) activeTab hoveredTab
+    let _ ← dynWidget renderState fun (active, hovered) => do
+      emit do
+        let mut tabDefs : Array (String × WidgetBuilder) := #[]
+        for i in [:tabsRef.size] do
+          let tab := tabsRef[i]!
+          let renders := tabContentRenders[i]!
+          let contentWidgets ← renders.mapM id
+          let contentStyle : BoxStyle := {
+            flexItem := some (Trellis.FlexItem.growing 1)
+            width := .percent 1.0
+            height := .percent 1.0
+          }
+          let content := column (gap := 0) (style := contentStyle) contentWidgets
+          tabDefs := tabDefs.push (tab.label, content)
+        pure (tabViewVisual containerName headerNameFn tabDefs active hovered theme)
+  else
+    -- Lazy mode: only the active tab subtree is mounted and subscribed.
+    let _ ← dynWidget activeTab fun active => do
+      let activeTabDef := tabsRef.getD active default
+      let (_, activeRenders) ← runWidgetChildren activeTabDef.content
+      emit do
+        let hovered ← hoveredTab.sample
+        let contentWidgets ← activeRenders.mapM id
         let contentStyle : BoxStyle := {
           flexItem := some (Trellis.FlexItem.growing 1)
           width := .percent 1.0
           height := .percent 1.0
         }
-        let content := column (gap := 0) (style := contentStyle) contentWidgets
-        tabDefs := tabDefs.push (tab.label, content)
-      pure (tabViewVisual containerName headerNameFn tabDefs active hovered theme)
+        let activeContent := column (gap := 0) (style := contentStyle) contentWidgets
+        let mut tabDefs : Array (String × WidgetBuilder) := #[]
+        for i in [:tabsRef.size] do
+          let tab := tabsRef[i]!
+          if i == active then
+            tabDefs := tabDefs.push (tab.label, activeContent)
+          else
+            tabDefs := tabDefs.push (tab.label, Afferent.Arbor.spacer 0 0)
+        pure (tabViewVisual containerName headerNameFn tabDefs active hovered theme)
 
   pure { onTabChange, activeTab }
 

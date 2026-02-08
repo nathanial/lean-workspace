@@ -259,7 +259,7 @@ def unifiedDemo : IO Unit := do
             let inputEnd ← IO.monoNanosNow
             let reactiveStart := inputEnd
             rs.inputs.fireAnimationFrame dt
-
+            let reactivePropagateEnd ← IO.monoNanosNow
             let widgetBuilder ← rs.render
             rs := { rs with cachedWidget := widgetBuilder }
             let reactiveEnd ← IO.monoNanosNow
@@ -310,6 +310,8 @@ def unifiedDemo : IO Unit := do
             let endFrameEnd := frameEndNs
             let beginFrameMs := (beginFrameEndNs - beginFrameStartNs).toFloat / 1000000.0
             let inputMs := (inputEnd - inputStart).toFloat / 1000000.0
+            let reactivePropagateMs := (reactivePropagateEnd - reactiveStart).toFloat / 1000000.0
+            let reactiveRenderMs := (reactiveEnd - reactivePropagateEnd).toFloat / 1000000.0
             let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
             let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
@@ -330,6 +332,8 @@ def unifiedDemo : IO Unit := do
               beginFrameMs := beginFrameMs
               inputMs := inputMs
               reactiveMs := reactiveMs
+              reactivePropagateMs := reactivePropagateMs
+              reactiveRenderMs := reactiveRenderMs
               layoutMs := layoutMs
               indexMs := indexMs
               collectMs := collectMs

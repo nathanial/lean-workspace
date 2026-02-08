@@ -48,7 +48,7 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
       reduced / stats.commandCount.toFloat
   let accountingGap := Float.abs stats.unaccountedMs
   let line1 := s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
-  let line2 := s!"begin {formatFloat stats.beginFrameMs}ms • input {formatFloat stats.inputMs}ms • reactive {formatFloat stats.reactiveMs}ms"
+  let line2 := s!"begin {formatFloat stats.beginFrameMs}ms • input {formatFloat stats.inputMs}ms • reactive {formatFloat stats.reactiveMs}ms (prop {formatFloat stats.reactivePropagateMs}ms • render {formatFloat stats.reactiveRenderMs}ms)"
   let line3 := s!"layout {formatFloat stats.layoutMs}ms • index {formatFloat stats.indexMs}ms • collect {formatFloat stats.collectMs}ms • exec {formatFloat stats.executeMs}ms • end {formatFloat stats.endFrameMs}ms"
   let line4 := s!"accounted {formatFloat stats.accountedMs}ms • unaccounted {formatFloat stats.unaccountedMs}ms (|gap| {formatFloat accountingGap}ms)"
   let line5 := s!"cmds raw {stats.commandCount} • coalesced {stats.coalescedCommandCount} • reduction {formatPercent commandReduction}"
