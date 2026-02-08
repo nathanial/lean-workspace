@@ -5,7 +5,6 @@
 import Cairn.Widget.Core
 import Cairn.Widget.Render
 import Cairn.Widget.Update
-import Cairn.Widget.Visual
 
 namespace Cairn
 
@@ -18,9 +17,6 @@ export Widget (
   updateVoxelSceneState
   updateVoxelSceneStateWithInput
   pollWorldUpdates
-  voxelSceneWidget
-  voxelSceneWidgetWithHighlight
-  voxelSceneWidgetStyled
 )
 
 end Cairn

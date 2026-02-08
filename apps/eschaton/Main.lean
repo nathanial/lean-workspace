@@ -323,31 +323,22 @@ def main : IO Unit := do
         let layouts := Trellis.layout measureResult.node currentW currentH
         let tLayout1 ← IO.monoMsNow
 
-        -- Timing: Collect phase
-        let tCollect0 ← IO.monoMsNow
-        let (commands, hits, misses) ←
-          Afferent.Arbor.collectCommandsCachedWithStats canvas.renderCache measureResult.widget layouts
-        let tCollect1 ← IO.monoMsNow
-
-        -- Timing: GPU phase - Execute commands and render custom widgets
-        let tGpu0 ← IO.monoMsNow
-        let (newBatchStats, newCanvas) ← CanvasM.run canvas do
-          let stats ← Afferent.Widget.executeCommandsBatchedWithStats fontRegistry commands
-          Afferent.Widget.renderCustomWidgets measureResult.widget layouts
-          return stats
+        -- Timing: Render phase (collect + execute + custom draw hooks)
+        let (newRenderStats, newCanvas) ← CanvasM.run canvas do
+          Afferent.Widget.renderArborWidgetWithCustomAndStats
+            fontRegistry starfieldWidget currentW currentH
         canvas := newCanvas
-        let tGpu1 ← IO.monoMsNow
 
         -- Update stats
         timeBuildMs := (tLayout0 - tBuild0).toFloat
         timeLayoutMs := (tLayout1 - tLayout0).toFloat
-        timeCollectMs := (tCollect1 - tCollect0).toFloat
-        timeGpuMs := (tGpu1 - tGpu0).toFloat
-        cacheHits := hits
-        cacheMisses := misses
-        commandCount := commands.size
+        timeCollectMs := newRenderStats.timeCollectMs
+        timeGpuMs := newRenderStats.timeExecuteMs + newRenderStats.timeCustomMs
+        cacheHits := newRenderStats.cacheHits
+        cacheMisses := newRenderStats.cacheMisses
+        commandCount := newRenderStats.batch.totalCommands
         widgetCount := Afferent.Arbor.Widget.widgetCount measureResult.widget
-        batchStats := newBatchStats
+        batchStats := newRenderStats.batch
 
         -- Title screen: show title text over starfield (in content area, excluding footer)
         let footerHeightPx := Eschaton.footerBarHeight * screenScale
@@ -452,32 +443,23 @@ def main : IO Unit := do
           }
           canvas.ctx.window.clearScroll
 
-        -- Timing: Collect phase
-        let tCollect0 ← IO.monoMsNow
-        let (provinceMapCommands, hits, misses) ←
-          Afferent.Arbor.collectCommandsCachedWithStats canvas.renderCache provinceMapMeasure.widget provinceMapLayouts
-        let tCollect1 ← IO.monoMsNow
-
-        -- Timing: GPU phase
-        let tGpu0 ← IO.monoMsNow
-        let (newBatchStats, newCanvas) ← CanvasM.run canvas do
-          let stats ← Afferent.Widget.executeCommandsBatchedWithStats fontRegistry provinceMapCommands
-          Afferent.Widget.renderCustomWidgets provinceMapMeasure.widget provinceMapLayouts
-          return stats
+        -- Timing: Render phase (collect + execute + custom draw hooks)
+        let (newRenderStats, newCanvas) ← CanvasM.run canvas do
+          Afferent.Widget.renderArborWidgetWithCustomAndStats
+            fontRegistry provinceMapWidgetTree currentW currentH
         canvas := newCanvas
-        let tGpu1 ← IO.monoMsNow
 
         -- Update stats for galaxy view
         timeUpdateMs := (tUpdate1 - tUpdate0).toFloat
         timeBuildMs := (tLayout0 - tBuild0).toFloat
         timeLayoutMs := (tLayout1 - tLayout0).toFloat
-        timeCollectMs := (tCollect1 - tCollect0).toFloat
-        timeGpuMs := (tGpu1 - tGpu0).toFloat
-        cacheHits := hits
-        cacheMisses := misses
-        commandCount := provinceMapCommands.size
+        timeCollectMs := newRenderStats.timeCollectMs
+        timeGpuMs := newRenderStats.timeExecuteMs + newRenderStats.timeCustomMs
+        cacheHits := newRenderStats.cacheHits
+        cacheMisses := newRenderStats.cacheMisses
+        commandCount := newRenderStats.batch.totalCommands
         widgetCount := Afferent.Arbor.Widget.widgetCount provinceMapMeasure.widget
-        batchStats := newBatchStats
+        batchStats := newRenderStats.batch
 
       -- Track work end time for present calculation
       lastWorkEndTime ← IO.monoMsNow
