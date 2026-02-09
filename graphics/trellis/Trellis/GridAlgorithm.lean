@@ -1289,15 +1289,15 @@ def layoutGridContainerInternal (container : GridContainer) (children : Array La
         subgridContexts := subgridContexts.push (item.node.id, { rows := rowCtx, cols := colCtx })
 
   -- Build result
-  let mut result := LayoutResult.withCapacity children.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty children.size
   for item in positionedItems do
     let rect := LayoutRect.mk' item.resolvedX item.resolvedY item.resolvedWidth item.resolvedHeight
-    result := result.add (ComputedLayout.simple item.node.id rect)
+    resultLayouts := resultLayouts.push (ComputedLayout.simple item.node.id rect)
 
   -- Absolute positioned children (do not affect grid flow)
   for child in absChildren do
     let rect := resolveAbsoluteRect child availableWidth availableHeight padding getContentSize
-    result := result.add (ComputedLayout.simple child.id rect)
+    resultLayouts := resultLayouts.push (ComputedLayout.simple child.id rect)
 
   let debugResult : Option GridLayoutDebug :=
     if debug then
@@ -1326,7 +1326,7 @@ def layoutGridContainerInternal (container : GridContainer) (children : Array La
       }
     else none
 
-  { result, subgridContexts, debug := debugResult }
+  { result := LayoutResult.ofLayouts resultLayouts, subgridContexts, debug := debugResult }
 
 /-- Layout a grid container (public wrapper). -/
 def layoutGridContainer (container : GridContainer) (children : Array LayoutNode)

@@ -204,7 +204,7 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
   let getSize : LayoutNode → Length × Length := fun node =>
     allSizes.getD node.id (0, 0)
 
-  let mut result : LayoutResult := LayoutResult.withCapacity allSizes.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty allSizes.size
   let mut stack : Array LayoutWorkItem := (Array.mkEmpty allSizes.size).push ⟨root, availableWidth, availableHeight, 0, 0, true, none⟩
 
   while !stack.isEmpty do
@@ -231,7 +231,7 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
     -- Create layout for this node (only for root; children are added by parent's container layout)
     if item.addOwnLayout then
       let nodeRect := LayoutRect.mk' item.offsetX item.offsetY width height
-      result := result.add (ComputedLayout.withPadding node.id nodeRect box.padding)
+      resultLayouts := resultLayouts.push (ComputedLayout.withPadding node.id nodeRect box.padding)
 
     -- Layout children based on container type
     match node.container with
@@ -244,7 +244,7 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
         }
       -- Add translated child layouts directly to avoid translate/merge allocations
       for cl in childResult.layouts do
-        result := result.add (translateLayout cl)
+        resultLayouts := resultLayouts.push (translateLayout cl)
 
       -- Push non-leaf children onto stack (their layouts are already in childResult)
       for child in node.children.reverse do
@@ -265,7 +265,7 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
         }
       -- Add translated child layouts directly to avoid translate/merge allocations
       for cl in childResult.layouts do
-        result := result.add (translateLayout cl)
+        resultLayouts := resultLayouts.push (translateLayout cl)
 
       -- Push non-leaf children onto stack (their layouts are already in childResult)
       for child in node.children.reverse do
@@ -280,7 +280,7 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
       -- Leaf node, no children to layout
       pure ()
 
-  result
+  LayoutResult.ofLayouts resultLayouts
 
 /-! ## Layout With Debug -/
 
@@ -290,7 +290,7 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
   let getSize : LayoutNode → Length × Length := fun node =>
     allSizes.getD node.id (0, 0)
 
-  let mut result : LayoutResult := LayoutResult.withCapacity allSizes.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty allSizes.size
   let mut debug : LayoutDebug := { intrinsicSizes := allSizes }
   let mut stack : Array LayoutWorkItem := (Array.mkEmpty allSizes.size).push ⟨root, availableWidth, availableHeight, 0, 0, true, none⟩
 
@@ -315,7 +315,7 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
 
     if item.addOwnLayout then
       let nodeRect := LayoutRect.mk' item.offsetX item.offsetY width height
-      result := result.add (ComputedLayout.withPadding node.id nodeRect box.padding)
+      resultLayouts := resultLayouts.push (ComputedLayout.withPadding node.id nodeRect box.padding)
 
     match node.container with
     | .flex props =>
@@ -328,7 +328,7 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
           contentRect := cl.contentRect.translate item.offsetX item.offsetY
         }
       for cl in childResult.layouts do
-        result := result.add (translateLayout cl)
+        resultLayouts := resultLayouts.push (translateLayout cl)
 
       for child in node.children.reverse do
         if !child.isLeaf then
@@ -349,7 +349,7 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
           contentRect := cl.contentRect.translate item.offsetX item.offsetY
         }
       for cl in childResult.layouts do
-        result := result.add (translateLayout cl)
+        resultLayouts := resultLayouts.push (translateLayout cl)
 
       for child in node.children.reverse do
         if !child.isLeaf then
@@ -362,6 +362,6 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
     | .none =>
       pure ()
 
-  { result, debug }
+  { result := LayoutResult.ofLayouts resultLayouts, debug }
 
 end Trellis

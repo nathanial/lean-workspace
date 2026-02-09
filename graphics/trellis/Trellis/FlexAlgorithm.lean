@@ -717,7 +717,7 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
 
   -- Fast path: 0 or 1 flow child (avoids sorting, line partitioning, and extra passes)
   if flowChildren.size <= 1 && !hasCollapsed then
-    let mut result := LayoutResult.withCapacity children.size
+    let mut resultLayouts : Array ComputedLayout := Array.mkEmpty children.size
     if items.size == 1 then
       let usedMain := computeLineMainSpace items container.gap
       let (crossSize, maxBaseline) := computeLineCrossSizeWithBaseline items
@@ -750,15 +750,15 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
       let (x, y) := axis.toXY mainPos crossPos
       let (width, height) := axis.toWidthHeight item.resolvedMainSize item.resolvedCrossSize
       let rect := LayoutRect.mk' x y width height
-      result := result.add (ComputedLayout.simple item.node.id rect)
+      resultLayouts := resultLayouts.push (ComputedLayout.simple item.node.id rect)
 
     -- Absolute positioned children (do not affect layout flow)
     for child in absChildren do
       if !isCollapsedNode child then
         let rect := resolveAbsoluteRectFlex child availableWidth availableHeight padding getContentSize
-        result := result.add (ComputedLayout.simple child.id rect)
+        resultLayouts := resultLayouts.push (ComputedLayout.simple child.id rect)
 
-    return result
+    return LayoutResult.ofLayouts resultLayouts
 
   -- Sort items by order (stable: items with same order keep source order)
   let items := sortFlexItems items
@@ -783,7 +783,7 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
     resolveCrossSizes line container.alignItems axis
 
   -- Phases 6-7: Position items within lines
-  let mut result := LayoutResult.withCapacity children.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty children.size
 
   for line in lines do
     -- Phase 6: Main axis positions
@@ -806,15 +806,15 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
         let (width, height) := axis.toWidthHeight item.resolvedMainSize item.resolvedCrossSize
 
         let rect := LayoutRect.mk' x y width height
-        result := result.add (ComputedLayout.simple item.node.id rect)
+        resultLayouts := resultLayouts.push (ComputedLayout.simple item.node.id rect)
 
   -- Absolute positioned children (do not affect layout flow)
   for child in absChildren do
     if !isCollapsedNode child then
       let rect := resolveAbsoluteRectFlex child availableWidth availableHeight padding getContentSize
-      result := result.add (ComputedLayout.simple child.id rect)
+      resultLayouts := resultLayouts.push (ComputedLayout.simple child.id rect)
 
-  result
+  LayoutResult.ofLayouts resultLayouts
 
 /-- Layout a flex container with debug output. -/
 def layoutFlexContainerDebug (container : FlexContainer) (children : Array LayoutNode)
@@ -836,7 +836,7 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
   let mut debugLines : Array FlexLineDebug := #[]
   let mut itemsDebug : Array FlexItemDebug := #[]
   let mut sortedItemsDebug : Array FlexItemDebug := #[]
-  let mut result := LayoutResult.withCapacity children.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty children.size
 
   if flowChildren.size <= 1 && !hasCollapsed then
     itemsDebug := items.map toFlexItemDebug
@@ -873,12 +873,12 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
       let (x, y) := axis.toXY mainPos crossPos
       let (width, height) := axis.toWidthHeight item.resolvedMainSize item.resolvedCrossSize
       let rect := LayoutRect.mk' x y width height
-      result := result.add (ComputedLayout.simple item.node.id rect)
+      resultLayouts := resultLayouts.push (ComputedLayout.simple item.node.id rect)
 
     for child in absChildren do
       if !isCollapsedNode child then
         let rect := resolveAbsoluteRectFlex child availableWidth availableHeight padding getContentSize
-        result := result.add (ComputedLayout.simple child.id rect)
+        resultLayouts := resultLayouts.push (ComputedLayout.simple child.id rect)
 
     let debug : FlexLayoutDebug := {
       container := container
@@ -889,7 +889,7 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
       sortedItems := sortedItemsDebug
       lines := debugLines
     }
-    return (result, debug)
+    return (LayoutResult.ofLayouts resultLayouts, debug)
 
   itemsDebug := items.map toFlexItemDebug
   let items := sortFlexItems items
@@ -924,12 +924,12 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
         let (x, y) := axis.toXY mainPos crossPos
         let (width, height) := axis.toWidthHeight item.resolvedMainSize item.resolvedCrossSize
         let rect := LayoutRect.mk' x y width height
-        result := result.add (ComputedLayout.simple item.node.id rect)
+        resultLayouts := resultLayouts.push (ComputedLayout.simple item.node.id rect)
 
   for child in absChildren do
     if !isCollapsedNode child then
       let rect := resolveAbsoluteRectFlex child availableWidth availableHeight padding getContentSize
-      result := result.add (ComputedLayout.simple child.id rect)
+      resultLayouts := resultLayouts.push (ComputedLayout.simple child.id rect)
 
   let debug : FlexLayoutDebug := {
     container := container
@@ -941,6 +941,6 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
     lines := debugLines
   }
 
-  (result, debug)
+  (LayoutResult.ofLayouts resultLayouts, debug)
 
 end Trellis
