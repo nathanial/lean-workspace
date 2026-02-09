@@ -47,6 +47,8 @@ private structure BenchConfig where
   screenH : Float := 1200.0
   dt : Float := 1.0 / 60.0
   withHover : Bool := true
+  /-- Diagnostic probe: emulate legacy interactive-name sync cost from hitIndex.nameMap. -/
+  includeNameMapSyncProbe : Bool := true
 
 deriving Inhabited
 
@@ -56,7 +58,8 @@ private structure BenchAccum where
   buildMs : Float := 0
   measureMs : Float := 0
   layoutMs : Float := 0
-  hitIndexMs : Float := 0
+  hitIndexBuildMs : Float := 0
+  nameMapSyncMs : Float := 0
   collectMs : Float := 0
   hitTestMs : Float := 0
   hoverMs : Float := 0
@@ -64,14 +67,15 @@ private structure BenchAccum where
 deriving Inhabited
 
 private def BenchAccum.add (acc : BenchAccum)
-    (update build measure layout hitIndex collect hitTest hover : Float) : BenchAccum :=
+    (update build measure layout hitIndexBuild nameMapSync collect hitTest hover : Float) : BenchAccum :=
   { acc with
     frames := acc.frames + 1
     updateMs := acc.updateMs + update
     buildMs := acc.buildMs + build
     measureMs := acc.measureMs + measure
     layoutMs := acc.layoutMs + layout
-    hitIndexMs := acc.hitIndexMs + hitIndex
+    hitIndexBuildMs := acc.hitIndexBuildMs + hitIndexBuild
+    nameMapSyncMs := acc.nameMapSyncMs + nameMapSync
     collectMs := acc.collectMs + collect
     hitTestMs := acc.hitTestMs + hitTest
     hoverMs := acc.hoverMs + hover
@@ -89,7 +93,8 @@ private structure BenchResult where
   buildMs : Float
   measureMs : Float
   layoutMs : Float
-  hitIndexMs : Float
+  hitIndexBuildMs : Float
+  nameMapSyncMs : Float
   collectMs : Float
   hitTestMs : Float
   hoverMs : Float
@@ -98,13 +103,14 @@ deriving Inhabited
 
 private def BenchResult.totalMs (r : BenchResult) : Float :=
   r.updateMs + r.buildMs + r.measureMs + r.layoutMs +
-    r.hitIndexMs + r.collectMs + r.hitTestMs + r.hoverMs
+    r.hitIndexBuildMs + r.nameMapSyncMs + r.collectMs + r.hitTestMs + r.hoverMs
 
 private def BenchResult.format (label : String) (r : BenchResult) : String :=
   s!"{label}: frames={r.frames}, targets={r.targetCount}, widgets={r.widgetCount}, nodes={r.layoutNodeCount}, " ++
   s!"update={fmtMs r.updateMs}ms, build={fmtMs r.buildMs}ms, measure={fmtMs r.measureMs}ms, " ++
   s!"layout={fmtMs r.layoutMs}ms, " ++
-  s!"hitIndex={fmtMs r.hitIndexMs}ms, collect={fmtMs r.collectMs}ms, " ++
+  s!"hitIndexBuild={fmtMs r.hitIndexBuildMs}ms, nameMapSync={fmtMs r.nameMapSyncMs}ms, " ++
+  s!"collect={fmtMs r.collectMs}ms, " ++
   s!"hitTest={fmtMs r.hitTestMs}ms, hover={fmtMs r.hoverMs}ms, total={fmtMs r.totalMs}ms"
 
 private def BenchResult.diff (base next : BenchResult) : BenchResult :=
@@ -116,7 +122,8 @@ private def BenchResult.diff (base next : BenchResult) : BenchResult :=
     buildMs := next.buildMs - base.buildMs
     measureMs := next.measureMs - base.measureMs
     layoutMs := next.layoutMs - base.layoutMs
-    hitIndexMs := next.hitIndexMs - base.hitIndexMs
+    hitIndexBuildMs := next.hitIndexBuildMs - base.hitIndexBuildMs
+    nameMapSyncMs := next.nameMapSyncMs - base.nameMapSyncMs
     collectMs := next.collectMs - base.collectMs
     hitTestMs := next.hitTestMs - base.hitTestMs
     hoverMs := next.hoverMs - base.hoverMs }
@@ -230,6 +237,7 @@ private def collectCentersByPrefix (index : HitTestIndex) (namePrefix : String) 
 private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     (registry : FontRegistry) (config : BenchConfig) (targetPrefix : String) : IO BenchResult := do
   let renderCache ← IO.mkRef RenderCache.empty
+  let interactiveNamesProbe ← IO.mkRef #[]
   let totalFrames := config.warmupFrames + config.sampleFrames
   let mut cache : Option BenchFrameCache := none
   let mut hoverPoints : Array (Float × Float) := #[]
@@ -290,6 +298,14 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     let tHitIndex0 ← IO.monoNanosNow
     let hitIndex := Afferent.Arbor.buildHitTestIndex measureResult.widget layouts
     let tHitIndex1 ← IO.monoNanosNow
+    let mut nameMapSyncMs := 0.0
+    if config.includeNameMapSyncProbe then
+      let tNameMap0 ← IO.monoNanosNow
+      let interactiveNames :=
+        hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
+      interactiveNamesProbe.set interactiveNames
+      let tNameMap1 ← IO.monoNanosNow
+      nameMapSyncMs := deltaMs tNameMap0 tNameMap1
 
     let tCollect0 ← IO.monoNanosNow
     let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
@@ -313,6 +329,7 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
         (deltaMs tMeasure0 tMeasure1)
         (deltaMs tLayout0 tLayout1)
         (deltaMs tHitIndex0 tHitIndex1)
+        nameMapSyncMs
         (deltaMs tCollect0 tCollect1)
         hitTestMs
         hoverMs
@@ -327,7 +344,8 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     buildMs := avg accum.buildMs frames
     measureMs := avg accum.measureMs frames
     layoutMs := avg accum.layoutMs frames
-    hitIndexMs := avg accum.hitIndexMs frames
+    hitIndexBuildMs := avg accum.hitIndexBuildMs frames
+    nameMapSyncMs := avg accum.nameMapSyncMs frames
     collectMs := avg accum.collectMs frames
     hitTestMs := avg accum.hitTestMs frames
     hoverMs := avg accum.hoverMs frames
