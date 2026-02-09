@@ -12,6 +12,64 @@ import Std.Data.HashMap
 
 namespace Afferent.Arbor
 
+/-! ## Measure Cache Runtime Controls and Instrumentation -/
+
+/-- Runtime settings for measure cache behavior. -/
+structure MeasureCacheConfig where
+  /-- Enable frame-to-frame measure cache lookups. -/
+  measureCacheEnabled : Bool := true
+deriving Repr, BEq, Inhabited
+
+/-- Cumulative instrumentation for measure cache behavior. -/
+structure MeasureCacheInstrumentation where
+  hits : Nat := 0
+  misses : Nat := 0
+  bypasses : Nat := 0
+  lookupNanos : Nat := 0
+  computeNanos : Nat := 0
+deriving Repr, BEq, Inhabited
+
+namespace MeasureCacheInstrumentation
+
+def add (a b : MeasureCacheInstrumentation) : MeasureCacheInstrumentation :=
+  { hits := a.hits + b.hits
+    misses := a.misses + b.misses
+    bypasses := a.bypasses + b.bypasses
+    lookupNanos := a.lookupNanos + b.lookupNanos
+    computeNanos := a.computeNanos + b.computeNanos }
+
+def diff (next prev : MeasureCacheInstrumentation) : MeasureCacheInstrumentation :=
+  { hits := next.hits - prev.hits
+    misses := next.misses - prev.misses
+    bypasses := next.bypasses - prev.bypasses
+    lookupNanos := next.lookupNanos - prev.lookupNanos
+    computeNanos := next.computeNanos - prev.computeNanos }
+
+end MeasureCacheInstrumentation
+
+initialize measureCacheConfigRef : IO.Ref MeasureCacheConfig ← IO.mkRef {}
+initialize measureCacheInstrumentationRef : IO.Ref MeasureCacheInstrumentation ← IO.mkRef {}
+
+/-- Get current measure cache runtime settings. -/
+def getMeasureCacheConfig : IO MeasureCacheConfig :=
+  measureCacheConfigRef.get
+
+/-- Set measure cache runtime settings. -/
+def setMeasureCacheConfig (config : MeasureCacheConfig) : IO Unit :=
+  measureCacheConfigRef.set config
+
+/-- Convenience: enable/disable measure cache lookups globally. -/
+def setMeasureCacheEnabled (enabled : Bool) : IO Unit :=
+  measureCacheConfigRef.modify fun c => { c with measureCacheEnabled := enabled }
+
+/-- Reset cumulative measure cache instrumentation counters. -/
+def resetMeasureCacheInstrumentation : IO Unit :=
+  measureCacheInstrumentationRef.set {}
+
+/-- Snapshot cumulative measure cache instrumentation counters. -/
+def snapshotMeasureCacheInstrumentation : IO MeasureCacheInstrumentation :=
+  measureCacheInstrumentationRef.get
+
 /-! ## Measure Cache
 
 Widget measurement is expensive due to text layout computation (FreeType calls).
@@ -337,37 +395,191 @@ def hitRate (ic : IntrinsicCache) : Float :=
 
 end IntrinsicCache
 
+/-! ## Cache Compatibility / Rehydration -/
+
+/-- Compare only the BoxStyle fields that affect measurement/layout. -/
+private def sameLayoutStyle (a b : BoxStyle) : Bool :=
+  a.padding == b.padding &&
+  a.margin == b.margin &&
+  a.width == b.width &&
+  a.height == b.height &&
+  a.minWidth == b.minWidth &&
+  a.maxWidth == b.maxWidth &&
+  a.minHeight == b.minHeight &&
+  a.maxHeight == b.maxHeight &&
+  a.position == b.position &&
+  a.top == b.top &&
+  a.right == b.right &&
+  a.bottom == b.bottom &&
+  a.left == b.left &&
+  a.flexItem == b.flexItem &&
+  a.gridItem == b.gridItem
+
+mutual
+
+private partial def measureInputsCompatibleChildren (current cached : Array Widget) : Bool := Id.run do
+  if current.size != cached.size then
+    return false
+  for i in [:current.size] do
+    if !measureInputsCompatible current[i]! cached[i]! then
+      return false
+  return true
+
+/-- True when cached measurement/layout is still valid for the current widget inputs.
+    Ignores visual-only fields that do not impact measurement. -/
+private partial def measureInputsCompatible (current cached : Widget) : Bool :=
+  match current, cached with
+  | .text id _ content font _ _ maxWidth _,
+    .text id' _ content' font' _ _ maxWidth' _ =>
+      id == id' &&
+      content == content' &&
+      font == font' &&
+      maxWidth == maxWidth'
+  | .rect id _ style,
+    .rect id' _ style' =>
+      id == id' && sameLayoutStyle style style'
+  | .spacer id _ width height,
+    .spacer id' _ width' height' =>
+      id == id' && width == width' && height == height'
+  | .custom id _ style spec,
+    .custom id' _ style' spec' =>
+      id == id' &&
+      sameLayoutStyle style style' &&
+      spec.generation == spec'.generation
+  | .flex id _ props style children,
+    .flex id' _ props' style' children' =>
+      id == id' &&
+      props == props' &&
+      sameLayoutStyle style style' &&
+      measureInputsCompatibleChildren children children'
+  | .grid id _ props style children,
+    .grid id' _ props' style' children' =>
+      id == id' &&
+      props == props' &&
+      sameLayoutStyle style style' &&
+      measureInputsCompatibleChildren children children'
+  | .scroll id _ style _ contentW contentH _ child,
+    .scroll id' _ style' _ contentW' contentH' _ child' =>
+      id == id' &&
+      sameLayoutStyle style style' &&
+      contentW == contentW' &&
+      contentH == contentH' &&
+      measureInputsCompatible child child'
+  | _, _ => false
+
+private partial def graftMeasuredChildren (current cached : Array Widget) : Array Widget := Id.run do
+  let mut out : Array Widget := Array.mkEmpty current.size
+  let n := min current.size cached.size
+  for i in [:n] do
+    out := out.push (graftMeasuredState current[i]! cached[i]!)
+  if n < current.size then
+    for i in [n:current.size] do
+      out := out.push current[i]!
+  return out
+
+/-- Preserve current widget fields while reusing cached computed text layout data. -/
+private partial def graftMeasuredState (current cached : Widget) : Widget :=
+  match current, cached with
+  | .text id name content font color align maxWidth textLayout,
+    .text id' _ content' font' _ _ maxWidth' cachedLayout =>
+      if id == id' && content == content' && font == font' && maxWidth == maxWidth' then
+        let mergedLayout := match textLayout with
+          | some tl => some tl
+          | none => cachedLayout
+        .text id name content font color align maxWidth mergedLayout
+      else
+        current
+  | .flex id name props style children,
+    .flex _ _ _ _ cachedChildren =>
+      .flex id name props style (graftMeasuredChildren children cachedChildren)
+  | .grid id name props style children,
+    .grid _ _ _ _ cachedChildren =>
+      .grid id name props style (graftMeasuredChildren children cachedChildren)
+  | .scroll id name style scrollState contentW contentH scrollbarConfig child,
+    .scroll _ _ _ _ _ _ _ cachedChild =>
+      .scroll id name style scrollState contentW contentH scrollbarConfig
+        (graftMeasuredState child cachedChild)
+  | _, _ => current
+
+end
+
 /-! ## Cached Measurement Functions -/
 
 /-- Cached version of measureWidget specialized for FontReaderT IO.
     Checks the cache first; on miss, measures and stores result. -/
 def measureWidgetCached (cache : IO.Ref MeasureCache) (w : Widget) (availWidth availHeight : Float)
     : Afferent.FontReaderT IO MeasureResult := do
-  let key : MeasureCacheKey := { widgetId := w.id, availWidth, availHeight }
-  let cacheState ← cache.get
-  match cacheState.find? key with
-  | some result =>
-    cache.modify fun c => (c.touch key).recordHit
-    pure result
-  | none =>
+  let config ← getMeasureCacheConfig
+  if !config.measureCacheEnabled then
+    let t0 ← IO.monoNanosNow
     let result ← measureWidget w availWidth availHeight
-    cache.modify fun c => (c.insert key result).recordMiss
+    let t1 ← IO.monoNanosNow
+    measureCacheInstrumentationRef.modify fun s =>
+      { s with bypasses := s.bypasses + 1, computeNanos := s.computeNanos + (t1 - t0) }
     pure result
+  else
+    let key : MeasureCacheKey := { widgetId := w.id, availWidth, availHeight }
+    let cacheState ← cache.get
+    let tLookup0 ← IO.monoNanosNow
+    match cacheState.find? key with
+    | some cachedResult =>
+      let tLookup1 ← IO.monoNanosNow
+      if measureInputsCompatible w cachedResult.widget then
+        let result := { cachedResult with widget := graftMeasuredState w cachedResult.widget }
+        cache.modify fun c => (c.touch key).recordHit
+        measureCacheInstrumentationRef.modify fun s =>
+          { s with hits := s.hits + 1, lookupNanos := s.lookupNanos + (tLookup1 - tLookup0) }
+        pure result
+      else
+        let tCompute0 ← IO.monoNanosNow
+        let result ← measureWidget w availWidth availHeight
+        let tCompute1 ← IO.monoNanosNow
+        cache.modify fun c => (c.insert key result).recordMiss
+        measureCacheInstrumentationRef.modify fun s =>
+          { s with
+              misses := s.misses + 1
+              lookupNanos := s.lookupNanos + (tLookup1 - tLookup0)
+              computeNanos := s.computeNanos + (tCompute1 - tCompute0) }
+        pure result
+    | none =>
+      let tLookup1 ← IO.monoNanosNow
+      let tCompute0 ← IO.monoNanosNow
+      let result ← measureWidget w availWidth availHeight
+      let tCompute1 ← IO.monoNanosNow
+      cache.modify fun c => (c.insert key result).recordMiss
+      measureCacheInstrumentationRef.modify fun s =>
+        { s with
+            misses := s.misses + 1
+            lookupNanos := s.lookupNanos + (tLookup1 - tLookup0)
+            computeNanos := s.computeNanos + (tCompute1 - tCompute0) }
+      pure result
 
 /-- Cached version of intrinsicSizeWithWidget specialized for FontReaderT IO.
     Checks the cache first; on miss, computes and stores result. -/
 def intrinsicSizeCached (cache : IO.Ref IntrinsicCache) (w : Widget)
     : Afferent.FontReaderT IO IntrinsicResult := do
-  let key : IntrinsicCacheKey := { widgetId := w.id }
-  let cacheState ← cache.get
-  match cacheState.find? key with
-  | some result =>
-    cache.modify fun c => (c.touch key).recordHit
-    pure result
-  | none =>
+  let config ← getMeasureCacheConfig
+  if !config.measureCacheEnabled then
     let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
-    let result : IntrinsicResult := { width, height, widget := updatedWidget }
-    cache.modify fun c => (c.insert key result).recordMiss
-    pure result
+    pure { width, height, widget := updatedWidget }
+  else
+    let key : IntrinsicCacheKey := { widgetId := w.id }
+    let cacheState ← cache.get
+    match cacheState.find? key with
+    | some cached =>
+      if measureInputsCompatible w cached.widget then
+        let result := { cached with widget := graftMeasuredState w cached.widget }
+        cache.modify fun c => (c.touch key).recordHit
+        pure result
+      else
+        let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
+        let result : IntrinsicResult := { width, height, widget := updatedWidget }
+        cache.modify fun c => (c.insert key result).recordMiss
+        pure result
+    | none =>
+      let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
+      let result : IntrinsicResult := { width, height, widget := updatedWidget }
+      cache.modify fun c => (c.insert key result).recordMiss
+      pure result
 
 end Afferent.Arbor

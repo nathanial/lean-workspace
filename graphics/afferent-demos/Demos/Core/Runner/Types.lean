@@ -103,6 +103,7 @@ structure RunningState where
   spiderEnv : Reactive.Host.SpiderEnv
   shutdown : IO Unit
   cachedWidget : Afferent.Arbor.WidgetBuilder
+  measureCache : IO.Ref Afferent.Arbor.MeasureCache
   frameCache : Option FrameCache := none
   frameScratch : FrameScratch
   phaseProbe : PhaseOrderProbe := {}

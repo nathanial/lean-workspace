@@ -70,6 +70,29 @@ def nodeContentSize (n : Trellis.LayoutNode) : Float × Float :=
   | some cs => (cs.width, cs.height)
   | none => (0, 0)
 
+private def measureSigHashRepr {α : Type} [Repr α] (value : α) : UInt64 :=
+  hash (toString (repr value))
+
+private def measureSigMix64 (x : UInt64) : UInt64 :=
+  let z1 := x + (0x9e3779b97f4a7c15 : UInt64)
+  let z2 := (z1 ^^^ (z1 >>> 30)) * (0xbf58476d1ce4e5b9 : UInt64)
+  let z3 := (z2 ^^^ (z2 >>> 27)) * (0x94d049bb133111eb : UInt64)
+  z3 ^^^ (z3 >>> 31)
+
+private def measureSigCombine (a b : UInt64) : UInt64 :=
+  let salt : UInt64 := 0x9e3779b97f4a7c15
+  measureSigMix64 (a ^^^ (b + salt) ^^^ (a <<< 6) ^^^ (a >>> 2))
+
+/-- Signature for measurement cache keys, combining subtree layout signature
+    with available-space constraints. -/
+def measureInputsSignature (w : Widget) (availWidth availHeight : Float) : UInt64 :=
+  let sig0 := measureSigCombine w.layoutSignature (measureSigHashRepr availWidth)
+  measureSigCombine sig0 (measureSigHashRepr availHeight)
+
+/-- Signature of measured layout-affecting outputs for this subtree. -/
+def measuredNodeSignature (result : MeasureResult) : UInt64 :=
+  result.node.layoutSignature
+
 /-- Measure a widget tree and convert to LayoutNode tree.
     Also computes and stores TextLayout for text widgets.
     Returns both the LayoutNode tree and the updated Widget tree with computed layouts.

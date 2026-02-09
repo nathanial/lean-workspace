@@ -57,6 +57,8 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line8 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
   let line9 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
   let line10 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
+  let line10b := s!"layout-cache hits {stats.layoutCacheHits} • misses {stats.layoutCacheMisses} • reused {stats.layoutReusedNodes} • recomputed {stats.layoutRecomputedNodes} • tracked {formatFloat stats.layoutTrackedMs}ms • strict {stats.layoutStrictValidationChecks}/{stats.layoutStrictValidationFailures}"
+  let line10c := s!"measure-cache hits {stats.measureCacheHits} • misses {stats.measureCacheMisses} • bypass {stats.measureCacheBypasses} • lookup {formatFloat stats.measureCacheLookupMs}ms • compute {formatFloat stats.measureCacheComputeMs}ms"
   let currentOrder :=
     if stats.probeCollectFirstThisFrame then "collect->index"
     else "index->collect"
@@ -71,11 +73,11 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
     else "drop-layout-temps"
   let line17 := s!"liveness probe {livenessOrder} • samples hold {stats.probeLivenessHoldSamples} no-hold {stats.probeLivenessNoHoldSamples}"
   let line18 := s!"liveness avg after-layout hold {formatFloat stats.probeLivenessHoldAfterLayoutAvgMs}ms no-hold {formatFloat stats.probeLivenessNoHoldAfterLayoutAvgMs}ms • before-sync hold {formatFloat stats.probeLivenessHoldBeforeSyncAvgMs}ms no-hold {formatFloat stats.probeLivenessNoHoldBeforeSyncAvgMs}ms"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15, line16, line17, line18]
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line10b, line10c, line11, line12, line13, line14, line15, line16, line17, line18]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
-  let footerHeight := 390.0 * env.screenScale
+  let footerHeight := 430.0 * env.screenScale
   let footerStyle : BoxStyle := {
     backgroundColor := some (Color.gray 0.08)
     padding := EdgeInsets.symmetric (6.0 * env.screenScale) (4.0 * env.screenScale)
@@ -84,7 +86,9 @@ def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM U
     flexItem := some (FlexItem.fixed footerHeight)
   }
   column' (gap := 2.0 * env.screenScale) (style := footerStyle) do
-    let _ ← dynWidget elapsedTime fun _ => do
+    -- Refresh diagnostics at 4 Hz so the footer does not invalidate layout every frame.
+    let statsTick ← Dynamic.mapM (fun t => (t * 4.0).toUInt64) elapsedTime
+    let _ ← dynWidget statsTick fun _ => do
       let stats ← SpiderM.liftIO env.statsRef.get
       let lines := formatStatsLines stats
       for line in lines do

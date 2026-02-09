@@ -5,6 +5,7 @@
 import Trellis.Types
 import Trellis.Flex
 import Trellis.Grid
+import Std.Data.HashMap
 
 namespace Trellis
 
@@ -97,6 +98,44 @@ instance : Inhabited LayoutNode :=
   ⟨LayoutNode.mk 0 {} .none .none Option.none #[]⟩
 
 namespace LayoutNode
+
+private def sigTag (tag : Nat) : UInt64 :=
+  UInt64.ofNat tag
+
+private def sigHashRepr {α : Type} [Repr α] (value : α) : UInt64 :=
+  hash (toString (repr value))
+
+private def sigMix64 (x : UInt64) : UInt64 :=
+  let z1 := x + (0x9e3779b97f4a7c15 : UInt64)
+  let z2 := (z1 ^^^ (z1 >>> 30)) * (0xbf58476d1ce4e5b9 : UInt64)
+  let z3 := (z2 ^^^ (z2 >>> 27)) * (0x94d049bb133111eb : UInt64)
+  z3 ^^^ (z3 >>> 31)
+
+private def sigCombine (a b : UInt64) : UInt64 :=
+  let salt : UInt64 := 0x9e3779b97f4a7c15
+  sigMix64 (a ^^^ (b + salt) ^^^ (a <<< 6) ^^^ (a >>> 2))
+
+private def localId : LayoutNode → Nat
+  | .mk id .. => id
+
+private def localChildren : LayoutNode → Array LayoutNode
+  | .mk _ _ _ _ _ children => children
+
+private def localLayoutSignature (node : LayoutNode) (childSigs : Array UInt64) : UInt64 :=
+  match node with
+  | .mk _ box container item content _ =>
+    let sig0 := sigTag 0x4c41594f5554 -- "LAYOUT"
+    let sig1 := sigCombine sig0 (sigHashRepr box)
+    let sig2 := sigCombine sig1 (sigHashRepr container)
+    let sig3 := sigCombine sig2 (sigHashRepr item)
+    let sig4 := sigCombine sig3 (sigHashRepr content)
+    let sig5 := sigCombine sig4 (UInt64.ofNat childSigs.size)
+    childSigs.foldl sigCombine sig5
+
+private inductive SignatureWorkItem where
+  | visit (node : LayoutNode)
+  | combine (node : LayoutNode)
+deriving Inhabited
 
 /-- Get the unique identifier of this node. -/
 def id : LayoutNode → Nat
@@ -226,13 +265,54 @@ def withChildren (n : LayoutNode) (children : Array LayoutNode) : LayoutNode :=
 def mapChildren (n : LayoutNode) (f : LayoutNode → LayoutNode) : LayoutNode :=
   n.withChildren (n.children.map f)
 
-/-- Count total nodes in tree. -/
-partial def nodeCount (n : LayoutNode) : Nat :=
-  1 + n.children.foldl (fun acc child => acc + child.nodeCount) 0
+/-- Stable signature for the subtree based only on layout-affecting fields. -/
+def layoutSignature (root : LayoutNode) : UInt64 := Id.run do
+  let mut signatures : Std.HashMap Nat UInt64 := {}
+  let mut stack : Array SignatureWorkItem := #[.visit root]
 
-/-- Get all node IDs in tree. -/
-partial def allIds (n : LayoutNode) : Array Nat :=
-  #[n.id] ++ n.children.flatMap allIds
+  while !stack.isEmpty do
+    let item := stack.back!
+    stack := stack.pop
+    match item with
+    | .visit node =>
+      if signatures.contains (localId node) then
+        continue
+      if (localChildren node).isEmpty then
+        signatures := signatures.insert (localId node) (localLayoutSignature node #[])
+      else
+        stack := stack.push (.combine node)
+        for child in (localChildren node).reverse do
+          stack := stack.push (.visit child)
+    | .combine node =>
+      let childSigs := (localChildren node).map fun child =>
+        signatures.getD (localId child) 0
+      signatures := signatures.insert (localId node) (localLayoutSignature node childSigs)
+
+  signatures.getD (localId root) 0
+
+/-- Count total nodes in tree using iterative DFS to stay stack-safe on deep trees. -/
+def nodeCount (n : LayoutNode) : Nat := Id.run do
+  let mut count := 0
+  let mut stack : Array LayoutNode := #[n]
+  while !stack.isEmpty do
+    let node := stack.back!
+    stack := stack.pop
+    count := count + 1
+    for child in node.children.reverse do
+      stack := stack.push child
+  return count
+
+/-- Get all node IDs in pre-order using iterative DFS to stay stack-safe on deep trees. -/
+def allIds (n : LayoutNode) : Array Nat := Id.run do
+  let mut ids : Array Nat := #[]
+  let mut stack : Array LayoutNode := #[n]
+  while !stack.isEmpty do
+    let node := stack.back!
+    stack := stack.pop
+    ids := ids.push node.id
+    for child in node.children.reverse do
+      stack := stack.push child
+  return ids
 
 end LayoutNode
 

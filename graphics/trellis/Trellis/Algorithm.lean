@@ -364,4 +364,116 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
 
   { result := LayoutResult.ofLayouts resultLayouts, debug }
 
+/-! ## Layout Cache Instrumentation (M0 scaffolding)
+
+This section provides runtime toggles and counters used by the demo runner and
+tests. Full subtree cache implementation is introduced in later milestones.
+-/
+
+/-- Runtime controls for layout instrumentation/caching. -/
+structure LayoutInstrumentationConfig where
+  /-- Enable layout cache path. M0 records misses/recompute counts only. -/
+  layoutCacheEnabled : Bool := false
+  /-- Run strict validation by comparing tracked layout result to baseline layout. -/
+  strictValidationMode : Bool := false
+deriving Repr, BEq, Inhabited
+
+/-- Per-call or cumulative instrumentation stats for layout execution. -/
+structure LayoutInstrumentationStats where
+  layoutCacheHits : Nat := 0
+  layoutCacheMisses : Nat := 0
+  reusedNodeCount : Nat := 0
+  recomputedNodeCount : Nat := 0
+  totalLayoutNanos : Nat := 0
+  strictValidationChecks : Nat := 0
+  strictValidationFailures : Nat := 0
+  strictValidationNanos : Nat := 0
+deriving Repr, BEq, Inhabited
+
+namespace LayoutInstrumentationStats
+
+def add (a b : LayoutInstrumentationStats) : LayoutInstrumentationStats :=
+  { layoutCacheHits := a.layoutCacheHits + b.layoutCacheHits
+    layoutCacheMisses := a.layoutCacheMisses + b.layoutCacheMisses
+    reusedNodeCount := a.reusedNodeCount + b.reusedNodeCount
+    recomputedNodeCount := a.recomputedNodeCount + b.recomputedNodeCount
+    totalLayoutNanos := a.totalLayoutNanos + b.totalLayoutNanos
+    strictValidationChecks := a.strictValidationChecks + b.strictValidationChecks
+    strictValidationFailures := a.strictValidationFailures + b.strictValidationFailures
+    strictValidationNanos := a.strictValidationNanos + b.strictValidationNanos }
+
+def diff (next prev : LayoutInstrumentationStats) : LayoutInstrumentationStats :=
+  { layoutCacheHits := next.layoutCacheHits - prev.layoutCacheHits
+    layoutCacheMisses := next.layoutCacheMisses - prev.layoutCacheMisses
+    reusedNodeCount := next.reusedNodeCount - prev.reusedNodeCount
+    recomputedNodeCount := next.recomputedNodeCount - prev.recomputedNodeCount
+    totalLayoutNanos := next.totalLayoutNanos - prev.totalLayoutNanos
+    strictValidationChecks := next.strictValidationChecks - prev.strictValidationChecks
+    strictValidationFailures := next.strictValidationFailures - prev.strictValidationFailures
+    strictValidationNanos := next.strictValidationNanos - prev.strictValidationNanos }
+
+end LayoutInstrumentationStats
+
+initialize layoutInstrumentationConfigRef : IO.Ref LayoutInstrumentationConfig ←
+  IO.mkRef {}
+
+initialize layoutInstrumentationStatsRef : IO.Ref LayoutInstrumentationStats ←
+  IO.mkRef {}
+
+/-- Get active layout instrumentation settings. -/
+def getLayoutInstrumentationConfig : IO LayoutInstrumentationConfig :=
+  layoutInstrumentationConfigRef.get
+
+/-- Set layout instrumentation settings. -/
+def setLayoutInstrumentationConfig (config : LayoutInstrumentationConfig) : IO Unit :=
+  layoutInstrumentationConfigRef.set config
+
+/-- Reset cumulative layout instrumentation counters. -/
+def resetLayoutInstrumentation : IO Unit :=
+  layoutInstrumentationStatsRef.set {}
+
+/-- Snapshot cumulative layout instrumentation counters. -/
+def snapshotLayoutInstrumentation : IO LayoutInstrumentationStats :=
+  layoutInstrumentationStatsRef.get
+
+/-- Record a layout stats sample into cumulative counters. -/
+def recordLayoutInstrumentation (stats : LayoutInstrumentationStats) : IO Unit :=
+  layoutInstrumentationStatsRef.modify (·.add stats)
+
+/-- Run layout and return M0 instrumentation stats for this call.
+    In M0, cache-enabled mode records misses/recomputed nodes only. -/
+def layoutWithInstrumentation (root : LayoutNode) (availableWidth availableHeight : Length)
+    (config : LayoutInstrumentationConfig := {}) : LayoutResult × LayoutInstrumentationStats :=
+  let result := layout root availableWidth availableHeight
+  let recomputed := root.nodeCount
+  let misses := if config.layoutCacheEnabled then 1 else 0
+  (result, {
+    layoutCacheHits := 0
+    layoutCacheMisses := misses
+    reusedNodeCount := 0
+    recomputedNodeCount := recomputed
+  })
+
+/-- IO wrapper that applies active runtime config, optional strict validation,
+    and records cumulative instrumentation. -/
+def layoutTrackedIO (root : LayoutNode) (availableWidth availableHeight : Length)
+    : IO (LayoutResult × LayoutInstrumentationStats) := do
+  let config ← getLayoutInstrumentationConfig
+  let t0 ← IO.monoNanosNow
+  let (result, baseStats) := layoutWithInstrumentation root availableWidth availableHeight config
+  let t1 ← IO.monoNanosNow
+  let mut stats := { baseStats with totalLayoutNanos := t1 - t0 }
+  if config.strictValidationMode then
+    let tVal0 ← IO.monoNanosNow
+    let baseline := layout root availableWidth availableHeight
+    let tVal1 ← IO.monoNanosNow
+    let failed := if baseline.layouts == result.layouts then 0 else 1
+    stats := { stats with
+      strictValidationChecks := 1
+      strictValidationFailures := failed
+      strictValidationNanos := tVal1 - tVal0
+    }
+  recordLayoutInstrumentation stats
+  pure (result, stats)
+
 end Trellis

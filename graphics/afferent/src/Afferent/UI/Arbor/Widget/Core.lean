@@ -140,6 +140,45 @@ def growFill : BoxStyle :=
 
 end BoxStyle
 
+private def sigHashRepr {α : Type} [Repr α] (value : α) : UInt64 :=
+  hash (toString (repr value))
+
+private def sigMix64 (x : UInt64) : UInt64 :=
+  let z1 := x + (0x9e3779b97f4a7c15 : UInt64)
+  let z2 := (z1 ^^^ (z1 >>> 30)) * (0xbf58476d1ce4e5b9 : UInt64)
+  let z3 := (z2 ^^^ (z2 >>> 27)) * (0x94d049bb133111eb : UInt64)
+  z3 ^^^ (z3 >>> 31)
+
+private def sigCombine (a b : UInt64) : UInt64 :=
+  let salt : UInt64 := 0x9e3779b97f4a7c15
+  sigMix64 (a ^^^ (b + salt) ^^^ (a <<< 6) ^^^ (a >>> 2))
+
+private def sigTag (tag : Nat) : UInt64 :=
+  UInt64.ofNat tag
+
+namespace BoxStyle
+
+/-- Stable signature over layout-affecting style fields only. -/
+def layoutSignature (style : BoxStyle) : UInt64 :=
+  let sig0 := sigTag 0x424f585354594c45 -- "BOXSTYLE"
+  let sig1 := sigCombine sig0 (sigHashRepr style.padding)
+  let sig2 := sigCombine sig1 (sigHashRepr style.margin)
+  let sig3 := sigCombine sig2 (sigHashRepr style.width)
+  let sig4 := sigCombine sig3 (sigHashRepr style.height)
+  let sig5 := sigCombine sig4 (sigHashRepr style.minWidth)
+  let sig6 := sigCombine sig5 (sigHashRepr style.maxWidth)
+  let sig7 := sigCombine sig6 (sigHashRepr style.minHeight)
+  let sig8 := sigCombine sig7 (sigHashRepr style.maxHeight)
+  let sig9 := sigCombine sig8 (sigHashRepr style.position)
+  let sig10 := sigCombine sig9 (sigHashRepr style.top)
+  let sig11 := sigCombine sig10 (sigHashRepr style.right)
+  let sig12 := sigCombine sig11 (sigHashRepr style.bottom)
+  let sig13 := sigCombine sig12 (sigHashRepr style.left)
+  let sig14 := sigCombine sig13 (sigHashRepr style.flexItem)
+  sigCombine sig14 (sigHashRepr style.gridItem)
+
+end BoxStyle
+
 /-- Custom widget specification.
     Provides measurement and render command collection. -/
 structure CustomSpec where
@@ -154,6 +193,9 @@ structure CustomSpec where
   /-- Cache generation number. Widgets with different generations are not cached together.
       This is automatically set by dynWidget to invalidate cache on rebuild. -/
   generation : Nat := 0
+  /-- Optional layout-affecting key for custom measurement invalidation.
+      Set this when `measure` depends on external state not encoded in style/children. -/
+  layoutKey : Option UInt64 := none
   /-- Skip render cache entirely. Use for widgets that change every frame (e.g., spinners)
       where caching adds overhead without benefit. -/
   skipCache : Bool := false
@@ -165,6 +207,9 @@ def default : CustomSpec :=
     collect := fun _ => #[]
     draw := none
     hitTest := none }
+
+def withLayoutKey (spec : CustomSpec) (key : UInt64) : CustomSpec :=
+  { spec with layoutKey := some key }
 
 end CustomSpec
 
@@ -272,6 +317,49 @@ def isContainer : Widget → Bool
 
 /-- Check if this widget is a leaf (no children). -/
 def isLeaf (w : Widget) : Bool := !w.isContainer
+
+mutual
+
+private partial def layoutSignatureChildren (children : Array Widget) : UInt64 :=
+  let sig0 := sigCombine (sigTag 0x4348494c4452454e) (UInt64.ofNat children.size) -- "CHILDREN"
+  children.foldl (fun acc child => sigCombine acc (layoutSignature child)) sig0
+
+/-- Stable signature over layout-affecting inputs for this widget subtree.
+    Excludes render-only fields such as colors, corner radius, layer, and hover visuals. -/
+partial def layoutSignature : Widget → UInt64
+  | .flex _ _ props style children =>
+    let sig0 := sigTag 0x574658 -- "WFX"
+    let sig1 := sigCombine sig0 (sigHashRepr props)
+    let sig2 := sigCombine sig1 style.layoutSignature
+    sigCombine sig2 (layoutSignatureChildren children)
+  | .grid _ _ props style children =>
+    let sig0 := sigTag 0x57475249 -- "WGRI"
+    let sig1 := sigCombine sig0 (sigHashRepr props)
+    let sig2 := sigCombine sig1 style.layoutSignature
+    sigCombine sig2 (layoutSignatureChildren children)
+  | .text _ _ content font _ _ maxWidth _ =>
+    let sig0 := sigTag 0x57545854 -- "WTXT"
+    let sig1 := sigCombine sig0 (sigHashRepr content)
+    let sig2 := sigCombine sig1 (sigHashRepr font)
+    sigCombine sig2 (sigHashRepr maxWidth)
+  | .rect _ _ style =>
+    sigCombine (sigTag 0x57524543) style.layoutSignature -- "WREC"
+  | .scroll _ _ style _ contentWidth contentHeight _ child =>
+    let sig0 := sigTag 0x57534352 -- "WSCR"
+    let sig1 := sigCombine sig0 style.layoutSignature
+    let sig2 := sigCombine sig1 (sigHashRepr contentWidth)
+    let sig3 := sigCombine sig2 (sigHashRepr contentHeight)
+    sigCombine sig3 (layoutSignature child)
+  | .spacer _ _ width height =>
+    let sig0 := sigTag 0x57535043 -- "WSPC"
+    let sig1 := sigCombine sig0 (sigHashRepr width)
+    sigCombine sig1 (sigHashRepr height)
+  | .custom _ _ style spec =>
+    let sig0 := sigTag 0x5753544d -- "WSTM"
+    let sig1 := sigCombine sig0 style.layoutSignature
+    sigCombine sig1 (sigHashRepr spec.layoutKey)
+
+end
 
 /-- Count total widgets in tree. -/
 partial def widgetCount (w : Widget) : Nat :=

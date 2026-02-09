@@ -45,13 +45,13 @@ private def layoutUI (reg : FontRegistry) (widget : Widget) (mode : LayoutMode)
     let intrH := intrResult.height
     -- Use cached measurement on the widget with pre-computed TextLayouts
     let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidgetCached measureCache intrResult.widget intrW intrH)
-    let layouts := Trellis.layout measureResult.node intrW intrH
+    let (layouts, _) ← Trellis.layoutTrackedIO measureResult.node intrW intrH
     let offsetX := (screenW - intrW) / 2
     let offsetY := (screenH - intrH) / 2
     pure { widget := measureResult.widget, layouts, offsetX, offsetY, renderWidth := intrW, renderHeight := intrH }
   | .fullscreen =>
     let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidgetCached measureCache widget screenW screenH)
-    let layouts := Trellis.layout measureResult.node screenW screenH
+    let (layouts, _) ← Trellis.layoutTrackedIO measureResult.node screenW screenH
     pure { widget := measureResult.widget, layouts, offsetX := 0, offsetY := 0, renderWidth := screenW, renderHeight := screenH }
 
 private def buildPointerEvents (window : FFI.Window) (offsetX offsetY : Float)

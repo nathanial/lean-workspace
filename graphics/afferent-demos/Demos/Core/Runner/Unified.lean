@@ -124,6 +124,7 @@ def unifiedDemo : IO Unit := do
                 ).run spiderEnv
                 spiderEnv.postBuildTrigger ()
                 let initialWidget ← appState.render
+                let measureCache ← IO.mkRef Afferent.Arbor.MeasureCache.empty
                 let frameScratch ← FrameScratch.create 4096 256 1024 1024 1024
                 state := .running {
                   assets := assets
@@ -133,6 +134,7 @@ def unifiedDemo : IO Unit := do
                   spiderEnv := spiderEnv
                   shutdown := appState.shutdown
                   cachedWidget := initialWidget
+                  measureCache := measureCache
                   frameScratch := frameScratch
                 }
             | none =>
@@ -267,7 +269,8 @@ def unifiedDemo : IO Unit := do
             if click.isSome then
               FFI.Window.clearClick c.ctx.window
 
-            let reusableHitIndex := rs.frameCache.map (·.hitIndex)
+            let previousFrameCache := rs.frameCache
+            let reusableHitIndex := previousFrameCache.map (·.hitIndex)
             rs := { rs with frameCache := none }
 
             let inputEnd ← IO.monoNanosNow
@@ -280,7 +283,8 @@ def unifiedDemo : IO Unit := do
 
             let sizeStart ← IO.monoNanosNow
             let (screenW, screenH) ← c.ctx.getCurrentSize
-            if screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF then
+            let viewportChanged := screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF
+            if viewportChanged then
               rs := { rs with assets := {
                 rs.assets with
                 physWidthF := screenW
@@ -294,10 +298,33 @@ def unifiedDemo : IO Unit := do
             let rootWidget := Afferent.Arbor.build widgetBuilder
             let buildEnd ← IO.monoNanosNow
             let layoutStart ← IO.monoNanosNow
+            let measureMetricsStart ← Afferent.Arbor.snapshotMeasureCacheInstrumentation
             let measureResult ← runWithFonts rs.assets.fontPack.registry
-              (Afferent.Arbor.measureWidget rootWidget screenW screenH)
+              (Afferent.Arbor.measureWidgetCached rs.measureCache rootWidget screenW screenH)
             let measuredWidget := measureResult.widget
-            let layouts := Trellis.layout measureResult.node screenW screenH
+            let measureMetricsEnd ← Afferent.Arbor.snapshotMeasureCacheInstrumentation
+            let measureMetrics := Afferent.Arbor.MeasureCacheInstrumentation.diff measureMetricsEnd measureMetricsStart
+            let canReuseLayout :=
+              !viewportChanged &&
+              measureMetrics.hits > 0 &&
+              measureMetrics.misses == 0 &&
+              measureMetrics.bypasses == 0
+            let (layouts, layoutInstr) ←
+              match previousFrameCache with
+              | some prev =>
+                  if canReuseLayout then
+                    let reused := prev.layouts.layouts.size
+                    pure (prev.layouts, {
+                      layoutCacheHits := 1
+                      layoutCacheMisses := 0
+                      reusedNodeCount := reused
+                      recomputedNodeCount := 0
+                      totalLayoutNanos := 0
+                    })
+                  else
+                    Trellis.layoutTrackedIO measureResult.node screenW screenH
+              | none =>
+                  Trellis.layoutTrackedIO measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
             let livenessHold := rs.phaseProbe.livenessHoldNext
             let deferredLayoutTemps :=
@@ -540,6 +567,9 @@ def unifiedDemo : IO Unit := do
                 0.0
               else
                 rs.phaseProbe.livenessNoHoldBeforeSyncTotalMs / rs.phaseProbe.livenessNoHoldSamples.toFloat
+            let layoutTrackedMs := layoutInstr.totalLayoutNanos.toFloat / 1000000.0
+            let measureCacheLookupMs := measureMetrics.lookupNanos.toFloat / 1000000.0
+            let measureCacheComputeMs := measureMetrics.computeNanos.toFloat / 1000000.0
             statsRef.set {
               frameMs := frameMs
               fps := fps
@@ -597,6 +627,18 @@ def unifiedDemo : IO Unit := do
               drawCallMs := batchStats.timeDrawCallsMs
               cacheHits := cacheHits
               cacheMisses := cacheMisses
+              layoutCacheHits := layoutInstr.layoutCacheHits
+              layoutCacheMisses := layoutInstr.layoutCacheMisses
+              layoutReusedNodes := layoutInstr.reusedNodeCount
+              layoutRecomputedNodes := layoutInstr.recomputedNodeCount
+              layoutTrackedMs := layoutTrackedMs
+              layoutStrictValidationChecks := layoutInstr.strictValidationChecks
+              layoutStrictValidationFailures := layoutInstr.strictValidationFailures
+              measureCacheHits := measureMetrics.hits
+              measureCacheMisses := measureMetrics.misses
+              measureCacheBypasses := measureMetrics.bypasses
+              measureCacheLookupMs := measureCacheLookupMs
+              measureCacheComputeMs := measureCacheComputeMs
               voluntaryCtxSwitchesDelta := voluntaryCtxSwitchesDelta
               involuntaryCtxSwitchesDelta := involuntaryCtxSwitchesDelta
               minorPageFaultsDelta := minorPageFaultsDelta
