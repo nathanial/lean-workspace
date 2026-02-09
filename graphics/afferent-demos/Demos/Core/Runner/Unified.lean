@@ -9,6 +9,7 @@ import Afferent.UI.Canopy
 import Afferent.UI.Canopy.Reactive
 import Demos.Core.Demo
 import Demos.Core.Runner.Loading
+import Demos.Core.Runner.FrameScratch
 import Demos.Core.Runner.Types
 import Demos.Core.Runner.CanopyApp
 import Demos.Perf.Lines
@@ -123,6 +124,7 @@ def unifiedDemo : IO Unit := do
                 ).run spiderEnv
                 spiderEnv.postBuildTrigger ()
                 let initialWidget ← appState.render
+                let frameScratch ← FrameScratch.create 4096 256 1024 1024 1024
                 state := .running {
                   assets := assets
                   render := appState.render
@@ -131,6 +133,7 @@ def unifiedDemo : IO Unit := do
                   spiderEnv := spiderEnv
                   shutdown := appState.shutdown
                   cachedWidget := initialWidget
+                  frameScratch := frameScratch
                 }
             | none =>
                 state := .loading ls
@@ -264,6 +267,9 @@ def unifiedDemo : IO Unit := do
             if click.isSome then
               FFI.Window.clearClick c.ctx.window
 
+            let reusableHitIndex := rs.frameCache.map (·.hitIndex)
+            rs := { rs with frameCache := none }
+
             let inputEnd ← IO.monoNanosNow
             let reactiveStart := inputEnd
             rs.inputs.fireAnimationFrame dt
@@ -300,29 +306,36 @@ def unifiedDemo : IO Unit := do
               else
                 none
             let collectFirst := rs.phaseProbe.collectFirstNext
-            let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexCollectStartNs, indexCollectEndNs) ←
+            let collectScratch ← rs.frameScratch.checkoutCollect
+            let hitScratch ← rs.frameScratch.checkoutHit
+            let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexCollectStartNs, indexCollectEndNs,
+                collectDeferredOverlayScratch, hitTestScratch) ←
               if collectFirst then
                 let collectStart ← IO.monoNanosNow
-                let (commands, cacheHits, cacheMisses) ←
-                  Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+                let (commands, cacheHits, cacheMisses, collectDeferredOverlayScratch) ←
+                  Afferent.Arbor.collectCommandsCachedWithStatsScratch c.renderCache measuredWidget layouts collectScratch
                 let collectEnd ← IO.monoNanosNow
                 let indexStart ← IO.monoNanosNow
-                let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                let (hitIndex, hitTestScratch) :=
+                  Afferent.Arbor.buildHitTestIndexWithScratch measuredWidget layouts reusableHitIndex hitScratch
                 let indexEnd ← IO.monoNanosNow
                 let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
                 let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
-                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, collectStart, indexEnd)
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, collectStart, indexEnd,
+                  collectDeferredOverlayScratch, hitTestScratch)
               else
                 let indexStart ← IO.monoNanosNow
-                let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                let (hitIndex, hitTestScratch) :=
+                  Afferent.Arbor.buildHitTestIndexWithScratch measuredWidget layouts reusableHitIndex hitScratch
                 let indexEnd ← IO.monoNanosNow
                 let collectStart ← IO.monoNanosNow
-                let (commands, cacheHits, cacheMisses) ←
-                  Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+                let (commands, cacheHits, cacheMisses, collectDeferredOverlayScratch) ←
+                  Afferent.Arbor.collectCommandsCachedWithStatsScratch c.renderCache measuredWidget layouts collectScratch
                 let collectEnd ← IO.monoNanosNow
                 let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
                 let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
-                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexStart, collectEnd)
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexStart, collectEnd,
+                  collectDeferredOverlayScratch, hitTestScratch)
             let syncStart ← IO.monoNanosNow
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
@@ -330,9 +343,12 @@ def unifiedDemo : IO Unit := do
               hitIndex := hitIndex
             } }
             let nameSyncStart ← IO.monoNanosNow
-            if rs.lastInteractiveNames != hitIndex.names then
+            let previousInteractiveNames ← rs.frameScratch.checkoutInteractiveNames
+            if previousInteractiveNames != hitIndex.names then
               rs.events.registry.interactiveNames.set hitIndex.names
-              rs := { rs with lastInteractiveNames := hitIndex.names }
+              rs.frameScratch.checkinInteractiveNames hitIndex.names
+            else
+              rs.frameScratch.checkinInteractiveNames previousInteractiveNames
             let nameSyncEnd ← IO.monoNanosNow
 
             let probe := rs.phaseProbe
@@ -358,6 +374,11 @@ def unifiedDemo : IO Unit := do
               Afferent.Widget.renderCustomWidgets measuredWidget layouts
               pure batchStats
             let executeEnd ← IO.monoNanosNow
+            rs.frameScratch.checkinCollect {
+              commands := commands.shrink 0
+              deferredOverlay := collectDeferredOverlayScratch
+            }
+            rs.frameScratch.checkinHit hitTestScratch
             let canvasSwapStart ← IO.monoNanosNow
             c := c'
             let canvasSwapEnd ← IO.monoNanosNow

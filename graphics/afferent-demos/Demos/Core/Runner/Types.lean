@@ -4,6 +4,7 @@
 import Afferent
 import Afferent.UI.Arbor
 import Afferent.UI.Canopy.Reactive
+import Demos.Core.Runner.FrameScratch
 import Std.Data.HashMap
 import Init.Data.FloatArray
 
@@ -103,8 +104,8 @@ structure RunningState where
   shutdown : IO Unit
   cachedWidget : Afferent.Arbor.WidgetBuilder
   frameCache : Option FrameCache := none
+  frameScratch : FrameScratch
   phaseProbe : PhaseOrderProbe := {}
-  lastInteractiveNames : Array String := #[]
   lastMouseX : Float := 0.0
   lastMouseY : Float := 0.0
   prevLeftDown : Bool := false

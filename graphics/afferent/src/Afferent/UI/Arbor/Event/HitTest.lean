@@ -355,6 +355,13 @@ structure HitTestIndex where
   parentMap : Std.HashMap WidgetId WidgetId
 deriving Inhabited
 
+/-- Reusable scratch buffers for hit-test index construction. -/
+structure HitTestBuildScratch where
+  bounds : Array Linalg.AABB2D := Array.mkEmpty 1024
+  nameMapCapacity : Nat := 1024
+  parentMapCapacity : Nat := 1024
+deriving Inhabited
+
 private def toScreenPoint (t : HitTransform) (x y : Float) : Float × Float :=
   let screenX := x - t.scrollX
   let screenY := y - t.scrollY
@@ -400,7 +407,9 @@ private def overlayZBoost : Nat := 1000000000
 
 /-- Build a spatial index for hit testing.
     This is a broad-phase accelerator; exact checks still use widget hit logic. -/
-partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) : HitTestIndex :=
+partial def buildHitTestIndexWithScratch (root : Widget) (layouts : Trellis.LayoutResult)
+    (reuseIndex : Option HitTestIndex) (scratch : HitTestBuildScratch)
+    : HitTestIndex × HitTestBuildScratch :=
   let rec go (w : Widget) (path : Array WidgetId) (parentId : Option WidgetId) (transform : HitTransform)
       (parentClip : Option Linalg.AABB2D) (clippedNonAbs : Bool) (inOverlay : Bool)
       : StateM HitTestBuildState Unit := do
@@ -474,23 +483,46 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
           go child currentPath (some w.id) childTransform childClip nextClipped overlayLayer
 
   let initialCapacity := max 8 layouts.layouts.size
+  let reusedItems := match reuseIndex with
+    | some idx => idx.items.shrink 0
+    | none => Array.mkEmpty initialCapacity
+  let reusedNames := match reuseIndex with
+    | some idx => idx.names.shrink 0
+    | none => Array.mkEmpty initialCapacity
+  let reusedNameMapCap := match reuseIndex with
+    | some idx => max scratch.nameMapCapacity (max initialCapacity idx.nameMap.size)
+    | none => max scratch.nameMapCapacity initialCapacity
+  let reusedParentMapCap := match reuseIndex with
+    | some idx => max scratch.parentMapCapacity (max initialCapacity idx.parentMap.size)
+    | none => max scratch.parentMapCapacity initialCapacity
   let initialState : HitTestBuildState := {
-    items := Array.mkEmpty initialCapacity
-    bounds := Array.mkEmpty initialCapacity
-    names := Array.mkEmpty initialCapacity
-    nameMap := Std.HashMap.emptyWithCapacity initialCapacity
-    parentMap := Std.HashMap.emptyWithCapacity initialCapacity
+    items := reusedItems
+    bounds := scratch.bounds.shrink 0
+    names := reusedNames
+    nameMap := Std.HashMap.emptyWithCapacity reusedNameMapCap
+    parentMap := Std.HashMap.emptyWithCapacity reusedParentMapCap
   }
   let (_, state) := (go root #[] none HitTransform.zero none false false).run initialState
 
   let grid := Linalg.Spatial.Grid2D.buildAuto state.bounds
-  {
+  let index := {
     items := state.items
     grid := grid
     names := state.names
     nameMap := state.nameMap
     parentMap := state.parentMap
   }
+  let nextScratch : HitTestBuildScratch := {
+    bounds := state.bounds.shrink 0
+    nameMapCapacity := max scratch.nameMapCapacity state.nameMap.size
+    parentMapCapacity := max scratch.parentMapCapacity state.parentMap.size
+  }
+  (index, nextScratch)
+
+/-- Build a spatial index for hit testing.
+    This is a broad-phase accelerator; exact checks still use widget hit logic. -/
+partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) : HitTestIndex :=
+  (buildHitTestIndexWithScratch root layouts none {}).1
 
 /-- Reconstruct root-to-target path for an indexed hit from parent links. -/
 private def reconstructIndexedPath (index : HitTestIndex) (wid : WidgetId) : Array WidgetId :=
