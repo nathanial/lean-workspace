@@ -31,6 +31,16 @@ structure RunnerStats where
   canvasSwapMs : Float := 0.0
   stateSwapMs : Float := 0.0
   endFrameMs : Float := 0.0
+  gapAfterLayoutMs : Float := 0.0
+  gapBeforeSyncMs : Float := 0.0
+  gapBeforeExecuteMs : Float := 0.0
+  gapBeforeCanvasSwapMs : Float := 0.0
+  gapBeforeEndFrameMs : Float := 0.0
+  gapBeforeStateSwapMs : Float := 0.0
+  indexCollectEnvelopeMs : Float := 0.0
+  indexCollectOverheadMs : Float := 0.0
+  boundaryGapTotalMs : Float := 0.0
+  residualUnaccountedMs : Float := 0.0
   accountedMs : Float := 0.0
   unaccountedMs : Float := 0.0
   commandCount : Nat := 0

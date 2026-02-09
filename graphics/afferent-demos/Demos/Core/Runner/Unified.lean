@@ -290,7 +290,7 @@ def unifiedDemo : IO Unit := do
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
             let collectFirst := rs.phaseProbe.collectFirstNext
-            let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses) ←
+            let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexCollectStartNs, indexCollectEndNs) ←
               if collectFirst then
                 let collectStart ← IO.monoNanosNow
                 let (commands, cacheHits, cacheMisses) ←
@@ -301,7 +301,7 @@ def unifiedDemo : IO Unit := do
                 let indexEnd ← IO.monoNanosNow
                 let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
                 let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
-                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses)
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, collectStart, indexEnd)
               else
                 let indexStart ← IO.monoNanosNow
                 let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
@@ -312,7 +312,7 @@ def unifiedDemo : IO Unit := do
                 let collectEnd ← IO.monoNanosNow
                 let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
                 let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
-                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses)
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexStart, collectEnd)
             let syncStart ← IO.monoNanosNow
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
@@ -359,6 +359,11 @@ def unifiedDemo : IO Unit := do
             let stateSwapEnd ← IO.monoNanosNow
             let usageEnd ← Std.Internal.IO.Process.getResourceUsage
             let frameEndNs := stateSwapEnd
+            let nsDiffMs := fun (startNs endNs : Nat) =>
+              if endNs >= startNs then
+                (endNs - startNs).toFloat / 1000000.0
+              else
+                0.0
             let beginFrameMs := (beginFrameEndNs - beginFrameStartNs).toFloat / 1000000.0
             let preInputMs := (inputStart - beginFrameEndNs).toFloat / 1000000.0
             let inputMs := (inputEnd - inputStart).toFloat / 1000000.0
@@ -379,6 +384,20 @@ def unifiedDemo : IO Unit := do
             let canvasSwapMs := (canvasSwapEnd - canvasSwapStart).toFloat / 1000000.0
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let stateSwapMs := (stateSwapEnd - stateSwapStart).toFloat / 1000000.0
+            let gapAfterLayoutMs := nsDiffMs layoutEnd indexCollectStartNs
+            let gapBeforeSyncMs := nsDiffMs indexCollectEndNs syncStart
+            let gapBeforeExecuteMs := nsDiffMs syncEnd executeStart
+            let gapBeforeCanvasSwapMs := nsDiffMs executeEnd canvasSwapStart
+            let gapBeforeEndFrameMs := nsDiffMs canvasSwapEnd endFrameStart
+            let gapBeforeStateSwapMs := nsDiffMs endFrameEnd stateSwapStart
+            let indexCollectEnvelopeMs := nsDiffMs indexCollectStartNs indexCollectEndNs
+            let indexCollectOverheadMs :=
+              if indexCollectEnvelopeMs >= indexMs + collectMs then
+                indexCollectEnvelopeMs - (indexMs + collectMs)
+              else
+                0.0
+            let boundaryGapTotalMs :=
+              gapAfterLayoutMs + gapBeforeSyncMs + gapBeforeExecuteMs + gapBeforeCanvasSwapMs + gapBeforeEndFrameMs + gapBeforeStateSwapMs
             let voluntaryCtxSwitchesDelta :=
               if usageEnd.voluntaryContextSwitches >= usageStart.voluntaryContextSwitches then
                 usageEnd.voluntaryContextSwitches - usageStart.voluntaryContextSwitches
@@ -404,6 +423,7 @@ def unifiedDemo : IO Unit := do
             let accountedMs :=
               beginFrameMs + preInputMs + inputMs + reactiveMs + sizeMs + buildMs + layoutMs + indexMs + collectMs + nameSyncMs + syncOverheadMs + executeMs + canvasSwapMs + stateSwapMs + endFrameMs
             let unaccountedMs := frameMs - accountedMs
+            let residualUnaccountedMs := frameMs - (accountedMs + boundaryGapTotalMs + indexCollectOverheadMs)
             let layoutCount := layouts.layouts.size
             -- Layout entries are one-per-widget for measured trees; avoid rebuilding all IDs.
             let widgetCount := layoutCount
@@ -450,6 +470,16 @@ def unifiedDemo : IO Unit := do
               canvasSwapMs := canvasSwapMs
               stateSwapMs := stateSwapMs
               endFrameMs := endFrameMs
+              gapAfterLayoutMs := gapAfterLayoutMs
+              gapBeforeSyncMs := gapBeforeSyncMs
+              gapBeforeExecuteMs := gapBeforeExecuteMs
+              gapBeforeCanvasSwapMs := gapBeforeCanvasSwapMs
+              gapBeforeEndFrameMs := gapBeforeEndFrameMs
+              gapBeforeStateSwapMs := gapBeforeStateSwapMs
+              indexCollectEnvelopeMs := indexCollectEnvelopeMs
+              indexCollectOverheadMs := indexCollectOverheadMs
+              boundaryGapTotalMs := boundaryGapTotalMs
+              residualUnaccountedMs := residualUnaccountedMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
               commandCount := commands.size

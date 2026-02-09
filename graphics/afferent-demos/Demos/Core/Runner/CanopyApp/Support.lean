@@ -50,7 +50,7 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line1 := s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
   let line2 := s!"begin {formatFloat stats.beginFrameMs}ms • pre-input {formatFloat stats.preInputMs}ms • input {formatFloat stats.inputMs}ms • reactive {formatFloat stats.reactiveMs}ms (prop {formatFloat stats.reactivePropagateMs}ms • render {formatFloat stats.reactiveRenderMs}ms)"
   let line3 := s!"size {formatFloat stats.sizeMs}ms • build {formatFloat stats.buildMs}ms • layout {formatFloat stats.layoutMs}ms • index {formatFloat stats.indexMs}ms • collect {formatFloat stats.collectMs}ms • names {formatFloat stats.nameSyncMs}ms • sync+ {formatFloat stats.syncOverheadMs}ms • exec {formatFloat stats.executeMs}ms • swap {formatFloat stats.canvasSwapMs}ms • state {formatFloat stats.stateSwapMs}ms • end {formatFloat stats.endFrameMs}ms"
-  let line4 := s!"accounted {formatFloat stats.accountedMs}ms • unaccounted {formatFloat stats.unaccountedMs}ms (|gap| {formatFloat accountingGap}ms)"
+  let line4 := s!"accounted {formatFloat stats.accountedMs}ms • unaccounted {formatFloat stats.unaccountedMs}ms (|gap| {formatFloat accountingGap}ms) • residual {formatFloat stats.residualUnaccountedMs}ms"
   let line5 := s!"cmds raw {stats.commandCount} • coalesced {stats.coalescedCommandCount} • reduction {formatPercent commandReduction}"
   let line6 := s!"widgets {stats.widgetCount} • layouts {stats.layoutCount} • draws {stats.drawCalls}"
   let line7 := s!"draw calls batched {stats.batchedCalls} • single {stats.individualCalls} • batched rate {formatPercent batchCallRate}"
@@ -63,11 +63,13 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line11 := s!"probe order {currentOrder} • samples index-first {stats.probeIndexFirstSamples} • collect-first {stats.probeCollectFirstSamples}"
   let line12 := s!"probe avg index first {formatFloat stats.probeIndexWhenFirstAvgMs}ms second {formatFloat stats.probeIndexWhenSecondAvgMs}ms (delta {formatFloat stats.probeIndexSecondPenaltyMs}ms) • collect first {formatFloat stats.probeCollectWhenFirstAvgMs}ms second {formatFloat stats.probeCollectWhenSecondAvgMs}ms (delta {formatFloat stats.probeCollectSecondPenaltyMs}ms)"
   let line13 := s!"sched vctx {stats.voluntaryCtxSwitchesDelta} • ivctx {stats.involuntaryCtxSwitchesDelta} • faults minor {stats.minorPageFaultsDelta} • major {stats.majorPageFaultsDelta}"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13]
+  let line14 := s!"gaps after-layout {formatFloat stats.gapAfterLayoutMs}ms • before-sync {formatFloat stats.gapBeforeSyncMs}ms • before-exec {formatFloat stats.gapBeforeExecuteMs}ms • before-swap {formatFloat stats.gapBeforeCanvasSwapMs}ms • before-end {formatFloat stats.gapBeforeEndFrameMs}ms • before-state {formatFloat stats.gapBeforeStateSwapMs}ms"
+  let line15 := s!"index+collect envelope {formatFloat stats.indexCollectEnvelopeMs}ms • overhead {formatFloat stats.indexCollectOverheadMs}ms • gap-total {formatFloat stats.boundaryGapTotalMs}ms"
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
-  let footerHeight := 286.0 * env.screenScale
+  let footerHeight := 330.0 * env.screenScale
   let footerStyle : BoxStyle := {
     backgroundColor := some (Color.gray 0.08)
     padding := EdgeInsets.symmetric (6.0 * env.screenScale) (4.0 * env.screenScale)
