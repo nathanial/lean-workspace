@@ -339,7 +339,6 @@ where
 structure HitTestIndexItem where
   widget : Widget
   layout : Trellis.ComputedLayout
-  path : Array WidgetId
   transform : HitTransform
   screenBounds : Linalg.AABB2D
   isAbsolute : Bool
@@ -351,7 +350,9 @@ deriving Inhabited
 structure HitTestIndex where
   items : Array HitTestIndexItem
   grid : Linalg.Spatial.Grid2D
+  names : Array String
   nameMap : Std.HashMap String WidgetId
+  parentMap : Std.HashMap WidgetId WidgetId
 deriving Inhabited
 
 private def toScreenPoint (t : HitTransform) (x y : Float) : Float × Float :=
@@ -388,21 +389,31 @@ private def isPointInsideWidget (w : Widget) (layout : Trellis.ComputedLayout) (
 
 private structure HitTestBuildState where
   items : Array HitTestIndexItem := #[]
+  bounds : Array Linalg.AABB2D := #[]
   zOrder : Nat := 0
+  names : Array String := #[]
   nameMap : Std.HashMap String WidgetId := {}
+  parentMap : Std.HashMap WidgetId WidgetId := {}
 deriving Inhabited
+
+private def overlayZBoost : Nat := 1000000000
 
 /-- Build a spatial index for hit testing.
     This is a broad-phase accelerator; exact checks still use widget hit logic. -/
 partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) : HitTestIndex :=
-  let rec go (w : Widget) (path : Array WidgetId) (transform : HitTransform)
+  let rec go (w : Widget) (path : Array WidgetId) (parentId : Option WidgetId) (transform : HitTransform)
       (parentClip : Option Linalg.AABB2D) (clippedNonAbs : Bool) (inOverlay : Bool)
       : StateM HitTestBuildState Unit := do
     match layouts.get w.id with
     | none => pure ()
     | some layout =>
+      match parentId with
+      | some pid =>
+          modify fun state => { state with parentMap := state.parentMap.insert w.id pid }
+      | none => pure ()
       let isAbs := isOverlayWidgetForHit w
       let overlayLayer := inOverlay || isAbs
+      let currentPath := path.push w.id
       let hitRect := localHitRect layout
       let screenBounds := rectToScreenBounds transform hitRect
       let effectiveClip :=
@@ -421,40 +432,73 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
         let item := {
           widget := w
           layout := layout
-          path := path.push w.id
           transform := transform
           screenBounds := bounds
           isAbsolute := isAbs
           inOverlay := overlayLayer
-          zOrder := state.zOrder
+          -- Overlay widgets must always win z-order over normal-flow widgets.
+          zOrder := if overlayLayer then state.zOrder + overlayZBoost else state.zOrder
         }
-        set { state with items := state.items.push item, zOrder := state.zOrder + 1 }
+        set {
+          state with
+          items := state.items.push item
+          bounds := state.bounds.push bounds
+          zOrder := state.zOrder + 1
+        }
 
       match Widget.name? w with
-      | some name => modify fun state => { state with nameMap := state.nameMap.insert name w.id }
+      | some name =>
+          modify fun state =>
+            let seen := state.nameMap.contains name
+            let names := if seen then state.names else state.names.push name
+            { state with
+              names := names
+              nameMap := state.nameMap.insert name w.id
+            }
       | none => pure ()
 
       let nextClipped := clippedNonAbs || (!isAbs && effectiveClip.isNone)
       let childClip := if isAbs then some screenBounds else effectiveClip
-      let children := orderChildrenForHit w.children
-      for child in children do
-        let childTransform :=
-          if isOverlayWidgetForHit child then transform
-          else childTransformFor w layout layouts transform
-        go child (path.push w.id) childTransform childClip nextClipped overlayLayer
+      -- Traverse in flow-first, absolute-second order without materializing a reordered array.
+      for child in w.children do
+        if !isAbsoluteWidgetForHit child then
+          let childTransform :=
+            if isOverlayWidgetForHit child then transform
+            else childTransformFor w layout layouts transform
+          go child currentPath (some w.id) childTransform childClip nextClipped overlayLayer
+      for child in w.children do
+        if isAbsoluteWidgetForHit child then
+          let childTransform :=
+            if isOverlayWidgetForHit child then transform
+            else childTransformFor w layout layouts transform
+          go child currentPath (some w.id) childTransform childClip nextClipped overlayLayer
 
-  let (_, state) := (go root #[] HitTransform.zero none false false).run {}
+  let (_, state) := (go root #[] none HitTransform.zero none false false).run {}
 
-  -- Ensure overlay widgets sort above non-overlay widgets.
-  let maxNonOverlay := state.items.foldl (init := 0) fun acc item =>
-    if item.inOverlay then acc else max acc item.zOrder
-  let absBase := maxNonOverlay + 1
-  let items' := state.items.map fun item =>
-    if item.inOverlay then { item with zOrder := item.zOrder + absBase } else item
+  let grid := Linalg.Spatial.Grid2D.buildAuto state.bounds
+  {
+    items := state.items
+    grid := grid
+    names := state.names
+    nameMap := state.nameMap
+    parentMap := state.parentMap
+  }
 
-  let bounds := items'.map (fun item => item.screenBounds)
-  let grid := Linalg.Spatial.Grid2D.buildAuto bounds
-  { items := items', grid := grid, nameMap := state.nameMap }
+/-- Reconstruct root-to-target path for an indexed hit from parent links. -/
+private def reconstructIndexedPath (index : HitTestIndex) (wid : WidgetId) : Array WidgetId :=
+  Id.run do
+    let mut acc : Array WidgetId := #[]
+    let mut current : Option WidgetId := some wid
+    let mut fuel := index.parentMap.size + 1
+    while fuel > 0 do
+      match current with
+      | some id =>
+          acc := acc.push id
+          current := index.parentMap.get? id
+          fuel := fuel - 1
+      | none =>
+          fuel := 0
+    acc.reverse
 
 /-- Hit test using a pre-built spatial index (fast broad-phase). -/
 def hitTestPathIndexed (index : HitTestIndex) (x y : Float) : Array WidgetId := Id.run do
@@ -475,7 +519,7 @@ def hitTestPathIndexed (index : HitTestIndex) (x y : Float) : Array WidgetId := 
                   best := some item
     | none => pure ()
   match best with
-  | some item => item.path
+  | some item => reconstructIndexedPath index item.widget.id
   | none => #[]
 
 /-- Hit test ID using a pre-built spatial index. -/

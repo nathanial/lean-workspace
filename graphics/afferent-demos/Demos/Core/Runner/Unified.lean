@@ -185,10 +185,12 @@ def unifiedDemo : IO Unit := do
                   c.clearKey
 
                 let mut releasedKeys : Array UInt16 := #[]
-                for (code, _) in rs.keysDown.toList do
+                releasedKeys ← rs.keysDown.foldM (init := releasedKeys) fun acc code _ => do
                   let down ← FFI.Window.isKeyDown c.ctx.window code
-                  if !down then
-                    releasedKeys := releasedKeys.push code
+                  if down then
+                    pure acc
+                  else
+                    pure (acc.push code)
 
                 if !releasedKeys.isEmpty then
                   let modifiers ← FFI.Window.getModifiers c.ctx.window
@@ -288,9 +290,7 @@ def unifiedDemo : IO Unit := do
               layouts := layouts
               hitIndex := hitIndex
             } }
-            let interactiveNames :=
-              hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
-            rs.events.registry.interactiveNames.set interactiveNames
+            rs.events.registry.interactiveNames.set hitIndex.names
             let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow
@@ -323,8 +323,9 @@ def unifiedDemo : IO Unit := do
             let accountedMs :=
               beginFrameMs + inputMs + reactiveMs + layoutMs + indexMs + collectMs + executeMs + endFrameMs
             let unaccountedMs := frameMs - accountedMs
-            let widgetCount := (Afferent.Arbor.Widget.allIds measuredWidget).size
             let layoutCount := layouts.layouts.size
+            -- Layout entries are one-per-widget for measured trees; avoid rebuilding all IDs.
+            let widgetCount := layoutCount
             let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
             statsRef.set {
               frameMs := frameMs
