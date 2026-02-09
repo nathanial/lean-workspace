@@ -258,9 +258,6 @@ def unifiedDemo : IO Unit := do
 
             let inputEnd ← IO.monoNanosNow
             let reactiveStart := inputEnd
-            -- Rebuild component name registries for this frame's widget tree.
-            -- Input dispatch above still uses previous-frame names.
-            rs.events.resetRegistry
             rs.inputs.fireAnimationFrame dt
             let reactivePropagateEnd ← IO.monoNanosNow
             let widgetBuilder ← rs.render
@@ -291,6 +288,9 @@ def unifiedDemo : IO Unit := do
               layouts := layouts
               hitIndex := hitIndex
             } }
+            let interactiveNames :=
+              hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
+            rs.events.registry.interactiveNames.set interactiveNames
             let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow

@@ -56,8 +56,10 @@ def ComponentRegistry.create : SpiderM ComponentRegistry := do
     Clears the counter and name arrays to prevent unbounded growth. -/
 def ComponentRegistry.reset (reg : ComponentRegistry) : IO Unit := do
   reg.idCounter.set 0
-  reg.inputNames.set #[]
-  reg.interactiveNames.set #[]
+  let inputNames ← reg.inputNames.get
+  let interactiveNames ← reg.interactiveNames.get
+  reg.inputNames.set (Array.mkEmpty inputNames.size)
+  reg.interactiveNames.set (Array.mkEmpty interactiveNames.size)
 
 /-- Get diagnostic stats from the registry. -/
 def ComponentRegistry.getStats (reg : ComponentRegistry) : IO (Nat × Nat × Nat) := do

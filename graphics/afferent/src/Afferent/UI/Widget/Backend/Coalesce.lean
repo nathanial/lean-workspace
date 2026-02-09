@@ -379,14 +379,15 @@ def computeBoundedCommands (cmds : Array RenderCommand) : Array BoundedCommand :
 def coalesceByCategory (bounded : Array BoundedCommand) : Array RenderCommand := Id.run do
   if bounded.isEmpty then return #[]
 
+  let bucketCap := max 16 (bounded.size / 4 + 1)
   -- 7 buckets for priorities 0-6: fillRect, fillCircle, strokeRect, strokeCircle, strokeLine, fillText, other
-  let mut bucket0 : Array RenderCommand := #[]  -- fillRect
-  let mut bucket1 : Array RenderCommand := #[]  -- fillCircle
-  let mut bucket2 : Array RenderCommand := #[]  -- strokeRect
-  let mut bucket3 : Array RenderCommand := #[]  -- strokeCircle
-  let mut bucket4 : Array RenderCommand := #[]  -- strokeLine
-  let mut bucket5 : Array RenderCommand := #[]  -- fillText
-  let mut bucket6 : Array RenderCommand := #[]  -- other
+  let mut bucket0 : Array RenderCommand := Array.mkEmpty bucketCap  -- fillRect
+  let mut bucket1 : Array RenderCommand := Array.mkEmpty bucketCap  -- fillCircle
+  let mut bucket2 : Array RenderCommand := Array.mkEmpty bucketCap  -- strokeRect
+  let mut bucket3 : Array RenderCommand := Array.mkEmpty bucketCap  -- strokeCircle
+  let mut bucket4 : Array RenderCommand := Array.mkEmpty bucketCap  -- strokeLine
+  let mut bucket5 : Array RenderCommand := Array.mkEmpty bucketCap  -- fillText
+  let mut bucket6 : Array RenderCommand := Array.mkEmpty (bucketCap / 2 + 1)  -- other
 
   -- Distribute into buckets (O(N))
   for bc in bounded do
@@ -422,17 +423,18 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
   -- Pre-allocate output array (at most bounded.size commands)
   let mut out : Array RenderCommand := Array.mkEmpty bounded.size
 
+  let bucketCap := max 16 (bounded.size / 4 + 1)
   -- Temporary buckets for current segment (reused across segments)
   -- Priority: fillRect(0), fillCircle(1), strokeRect(2), strokeCircle(3), strokeLine(4),
   --           strokeArcInstanced(5), fillText(6), fillPolygonInstanced(7)
-  let mut bucket0 : Array RenderCommand := #[]
-  let mut bucket1 : Array RenderCommand := #[]
-  let mut bucket2 : Array RenderCommand := #[]
-  let mut bucket3 : Array RenderCommand := #[]
-  let mut bucket4 : Array RenderCommand := #[]
-  let mut bucket5 : Array RenderCommand := #[]
-  let mut bucket6 : Array RenderCommand := #[]
-  let mut bucket7 : Array RenderCommand := #[]
+  let mut bucket0 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket1 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket2 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket3 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket4 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket5 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket6 : Array RenderCommand := Array.mkEmpty bucketCap
+  let mut bucket7 : Array RenderCommand := Array.mkEmpty (bucketCap / 2 + 1)
 
   for bc in bounded do
     if bc.cmd.category == .other then
@@ -445,9 +447,9 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
       for cmd in bucket5 do out := out.push cmd
       for cmd in bucket6 do out := out.push cmd
       for cmd in bucket7 do out := out.push cmd
-      bucket0 := #[]; bucket1 := #[]; bucket2 := #[]
-      bucket3 := #[]; bucket4 := #[]; bucket5 := #[]
-      bucket6 := #[]; bucket7 := #[]
+      bucket0 := Array.mkEmpty bucket0.size; bucket1 := Array.mkEmpty bucket1.size; bucket2 := Array.mkEmpty bucket2.size
+      bucket3 := Array.mkEmpty bucket3.size; bucket4 := Array.mkEmpty bucket4.size; bucket5 := Array.mkEmpty bucket5.size
+      bucket6 := Array.mkEmpty bucket6.size; bucket7 := Array.mkEmpty bucket7.size
       -- Add the "other" command directly
       out := out.push bc.cmd
     else

@@ -410,7 +410,12 @@ private def handleDrawFragment (reg : FontRegistry) (state : BatchState) (fragme
     (params : Array Float) : CanvasM BatchState := do
   let state ← flushForDrawFragment reg state
   if state.currentFragmentHash == some fragmentHash then
-    pure { state with fragmentParamsBatch := state.fragmentParamsBatch ++ params }
+    let merged := Id.run do
+      let mut acc := state.fragmentParamsBatch
+      for value in params do
+        acc := acc.push value
+      acc
+    pure { state with fragmentParamsBatch := merged }
   else
     let state ← if state.fragmentParamsBatch.isEmpty then
       pure state
