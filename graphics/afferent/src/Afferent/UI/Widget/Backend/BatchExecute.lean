@@ -15,6 +15,10 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
+/-- Clear an array while retaining capacity for its current size. -/
+private def clearRetain (arr : Array α) : Array α :=
+  Array.mkEmpty arr.size
+
 /-- Snap text positions to device pixels for axis-aligned transforms (scale + translate only). -/
 private def snapTextPosition (x y : Float) (transform : Transform) : (Float × Float) :=
   let eps : Float := 1.0e-4
@@ -28,37 +32,70 @@ private def snapTextPosition (x y : Float) (transform : Transform) : (Float × F
 
 private structure BatchState where
   rectBatch : Array RectBatchEntry
+  peakRectBatch : Nat
   strokeRectBatch : Array StrokeRectBatchEntry
+  peakStrokeRectBatch : Nat
   currentStrokeLineWidth : Float
   circleBatch : Array CircleBatchEntry
+  peakCircleBatch : Nat
   strokeCircleBatch : Array StrokeCircleBatchEntry
+  peakStrokeCircleBatch : Nat
   currentStrokeCircleLineWidth : Float
   textBatch : Array TextBatchEntry
+  peakTextBatch : Nat
   currentTextFontId : Option FontId
   fragmentParamsBatch : Array Float
+  peakFragmentParamsBatch : Nat
   currentFragmentHash : Option UInt64
   stats : BatchStats
   drawCallTimeNs : Nat
 
-private def initBatchState (totalCommands : Nat) : BatchState :=
-  { rectBatch := #[]
-    strokeRectBatch := #[]
+private structure BatchScratch where
+  rectCapacity : Nat := 0
+  strokeRectCapacity : Nat := 0
+  circleCapacity : Nat := 0
+  strokeCircleCapacity : Nat := 0
+  textCapacity : Nat := 0
+  fragmentParamsCapacity : Nat := 0
+deriving Inhabited
+
+initialize batchScratchRef : IO.Ref BatchScratch ← IO.mkRef default
+
+private def initBatchState (totalCommands : Nat) (scratch : BatchScratch) : BatchState :=
+  { rectBatch := Array.mkEmpty scratch.rectCapacity
+    peakRectBatch := 0
+    strokeRectBatch := Array.mkEmpty scratch.strokeRectCapacity
+    peakStrokeRectBatch := 0
     currentStrokeLineWidth := 0.0
-    circleBatch := #[]
-    strokeCircleBatch := #[]
+    circleBatch := Array.mkEmpty scratch.circleCapacity
+    peakCircleBatch := 0
+    strokeCircleBatch := Array.mkEmpty scratch.strokeCircleCapacity
+    peakStrokeCircleBatch := 0
     currentStrokeCircleLineWidth := 0.0
-    textBatch := #[]
+    textBatch := Array.mkEmpty scratch.textCapacity
+    peakTextBatch := 0
     currentTextFontId := none
-    fragmentParamsBatch := #[]
+    fragmentParamsBatch := Array.mkEmpty scratch.fragmentParamsCapacity
+    peakFragmentParamsBatch := 0
     currentFragmentHash := none
     stats := { totalCommands := totalCommands }
     drawCallTimeNs := 0 }
 
-private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
-  let cmds := coalesceByCategoryWithClip bounded
+private def rememberBatchScratch (state : BatchState) : IO Unit := do
+  batchScratchRef.modify fun caps => {
+    rectCapacity := max caps.rectCapacity state.peakRectBatch
+    strokeRectCapacity := max caps.strokeRectCapacity state.peakStrokeRectBatch
+    circleCapacity := max caps.circleCapacity state.peakCircleBatch
+    strokeCircleCapacity := max caps.strokeCircleCapacity state.peakStrokeCircleBatch
+    textCapacity := max caps.textCapacity state.peakTextBatch
+    fragmentParamsCapacity := max caps.fragmentParamsCapacity state.peakFragmentParamsBatch
+  }
+
+private def coalesceCommandsWithClip (cmds : Array RenderCommand) : IO (Array RenderCommand) := do
+  let cmds ← flattenAndCoalesceByCategoryWithClip cmds
   let cmds := mergeInstancedPolygons cmds
   let cmds := mergeInstancedArcs cmds
-  cmds
+  pure cmds
 
 private def computeLineMeta (lineCmds : Array RenderCommand) : (Nat × Float) :=
   Id.run do
@@ -107,7 +144,7 @@ private def flushRects (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       rectsBatched := state.stats.rectsBatched + state.rectBatch.size }
     pure { state with
-      rectBatch := #[]
+      rectBatch := clearRetain state.rectBatch
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -122,7 +159,7 @@ private def flushStrokeRects (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       strokeRectsBatched := state.stats.strokeRectsBatched + state.strokeRectBatch.size }
     pure { state with
-      strokeRectBatch := #[]
+      strokeRectBatch := clearRetain state.strokeRectBatch
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -137,7 +174,7 @@ private def flushCircles (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       circlesBatched := state.stats.circlesBatched + state.circleBatch.size }
     pure { state with
-      circleBatch := #[]
+      circleBatch := clearRetain state.circleBatch
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -152,7 +189,7 @@ private def flushStrokeCircles (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       circlesBatched := state.stats.circlesBatched + state.strokeCircleBatch.size }
     pure { state with
-      strokeCircleBatch := #[]
+      strokeCircleBatch := clearRetain state.strokeCircleBatch
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -171,14 +208,14 @@ private def flushTexts (reg : FontRegistry) (state : BatchState) : CanvasM Batch
           batchedCalls := state.stats.batchedCalls + 1
           textsBatched := state.stats.textsBatched + state.textBatch.size }
         pure { state with
-          textBatch := #[]
+          textBatch := clearRetain state.textBatch
           currentTextFontId := none
           stats := stats
           drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
       | none =>
-        pure { state with textBatch := #[], currentTextFontId := none }
+        pure { state with textBatch := clearRetain state.textBatch, currentTextFontId := none }
     | none =>
-      pure { state with textBatch := #[], currentTextFontId := none }
+      pure { state with textBatch := clearRetain state.textBatch, currentTextFontId := none }
 
 private def flushFragments (state : BatchState) : CanvasM BatchState := do
   if state.fragmentParamsBatch.isEmpty then
@@ -233,14 +270,14 @@ private def flushFragments (state : BatchState) : CanvasM BatchState := do
         let t1 ← IO.monoNanosNow
         let stats := { state.stats with batchedCalls := state.stats.batchedCalls + 1 }
         pure { state with
-          fragmentParamsBatch := #[]
+          fragmentParamsBatch := clearRetain state.fragmentParamsBatch
           currentFragmentHash := none
           stats := stats
           drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
       | none =>
-        pure { state with fragmentParamsBatch := #[], currentFragmentHash := none }
+        pure { state with fragmentParamsBatch := clearRetain state.fragmentParamsBatch, currentFragmentHash := none }
     | none =>
-      pure { state with fragmentParamsBatch := #[], currentFragmentHash := none }
+      pure { state with fragmentParamsBatch := clearRetain state.fragmentParamsBatch, currentFragmentHash := none }
 
 private def flushAll (reg : FontRegistry) (state : BatchState) : CanvasM BatchState := do
   let state ← flushRects state
@@ -301,7 +338,10 @@ private def handleFillRect (reg : FontRegistry) (state : BatchState) (rect : Rec
     r := color.r, g := color.g, b := color.b, a := color.a
     cornerRadius := cornerRadius
   }
-  pure { state with rectBatch := state.rectBatch.push entry }
+  let rectBatch := state.rectBatch.push entry
+  pure { state with
+    rectBatch := rectBatch
+    peakRectBatch := max state.peakRectBatch rectBatch.size }
 
 private def handleStrokeRect (reg : FontRegistry) (state : BatchState) (rect : Rect)
     (color : Color) (lineWidth : Float) (cornerRadius : Float) : CanvasM BatchState := do
@@ -313,8 +353,10 @@ private def handleStrokeRect (reg : FontRegistry) (state : BatchState) (rect : R
       r := color.r, g := color.g, b := color.b, a := color.a
       cornerRadius := cornerRadius
     }
+    let strokeRectBatch := state.strokeRectBatch.push entry
     pure { state with
-      strokeRectBatch := state.strokeRectBatch.push entry
+      strokeRectBatch := strokeRectBatch
+      peakStrokeRectBatch := max state.peakStrokeRectBatch strokeRectBatch.size
       currentStrokeLineWidth := lineWidth }
   else
     let state ← flushStrokeRects state
@@ -324,8 +366,10 @@ private def handleStrokeRect (reg : FontRegistry) (state : BatchState) (rect : R
       r := color.r, g := color.g, b := color.b, a := color.a
       cornerRadius := cornerRadius
     }
+    let strokeRectBatch := (clearRetain state.strokeRectBatch).push entry
     pure { state with
-      strokeRectBatch := #[entry]
+      strokeRectBatch := strokeRectBatch
+      peakStrokeRectBatch := max state.peakStrokeRectBatch strokeRectBatch.size
       currentStrokeLineWidth := lineWidth }
 
 private def handleFillCircle (reg : FontRegistry) (state : BatchState) (center : Point)
@@ -335,7 +379,10 @@ private def handleFillCircle (reg : FontRegistry) (state : BatchState) (center :
     centerX := center.x, centerY := center.y, radius := radius
     r := color.r, g := color.g, b := color.b, a := color.a
   }
-  pure { state with circleBatch := state.circleBatch.push entry }
+  let circleBatch := state.circleBatch.push entry
+  pure { state with
+    circleBatch := circleBatch
+    peakCircleBatch := max state.peakCircleBatch circleBatch.size }
 
 private def handleFillCircleBatch (reg : FontRegistry) (state : BatchState)
     (data : Array Float) (count : Nat) : CanvasM BatchState := do
@@ -361,8 +408,10 @@ private def handleStrokeCircle (reg : FontRegistry) (state : BatchState) (center
       centerX := center.x, centerY := center.y, radius := radius
       r := color.r, g := color.g, b := color.b, a := color.a
     }
+    let strokeCircleBatch := state.strokeCircleBatch.push entry
     pure { state with
-      strokeCircleBatch := state.strokeCircleBatch.push entry
+      strokeCircleBatch := strokeCircleBatch
+      peakStrokeCircleBatch := max state.peakStrokeCircleBatch strokeCircleBatch.size
       currentStrokeCircleLineWidth := lineWidth }
   else
     let state ← flushStrokeCircles state
@@ -370,8 +419,10 @@ private def handleStrokeCircle (reg : FontRegistry) (state : BatchState) (center
       centerX := center.x, centerY := center.y, radius := radius
       r := color.r, g := color.g, b := color.b, a := color.a
     }
+    let strokeCircleBatch := (clearRetain state.strokeCircleBatch).push entry
     pure { state with
-      strokeCircleBatch := #[entry]
+      strokeCircleBatch := strokeCircleBatch
+      peakStrokeCircleBatch := max state.peakStrokeCircleBatch strokeCircleBatch.size
       currentStrokeCircleLineWidth := lineWidth }
 
 private def handleFillText (reg : FontRegistry) (state : BatchState) (text : String)
@@ -387,8 +438,10 @@ private def handleFillText (reg : FontRegistry) (state : BatchState) (text : Str
       r := color.r, g := color.g, b := color.b, a := color.a
       transform := transformArr
     }
+    let textBatch := state.textBatch.push entry
     pure { state with
-      textBatch := state.textBatch.push entry
+      textBatch := textBatch
+      peakTextBatch := max state.peakTextBatch textBatch.size
       currentTextFontId := some fontId }
   else
     let state ← flushTexts reg state
@@ -397,15 +450,20 @@ private def handleFillText (reg : FontRegistry) (state : BatchState) (text : Str
       r := color.r, g := color.g, b := color.b, a := color.a
       transform := transformArr
     }
+    let textBatch := (clearRetain state.textBatch).push entry
     pure { state with
-      textBatch := #[entry]
+      textBatch := textBatch
+      peakTextBatch := max state.peakTextBatch textBatch.size
       currentTextFontId := some fontId }
 
 private def handleDrawFragment (reg : FontRegistry) (state : BatchState) (fragmentHash : UInt64)
     (params : Array Float) : CanvasM BatchState := do
   let state ← flushForDrawFragment reg state
   if state.currentFragmentHash == some fragmentHash then
-    pure { state with fragmentParamsBatch := state.fragmentParamsBatch ++ params }
+    let fragmentParamsBatch := state.fragmentParamsBatch ++ params
+    pure { state with
+      fragmentParamsBatch := fragmentParamsBatch
+      peakFragmentParamsBatch := max state.peakFragmentParamsBatch fragmentParamsBatch.size }
   else
     let state ← if state.fragmentParamsBatch.isEmpty then
       pure state
@@ -413,6 +471,7 @@ private def handleDrawFragment (reg : FontRegistry) (state : BatchState) (fragme
       flushFragments state
     pure { state with
       fragmentParamsBatch := params
+      peakFragmentParamsBatch := max state.peakFragmentParamsBatch params.size
       currentFragmentHash := some fragmentHash }
 
 private def handleNonBatchable (reg : FontRegistry) (state : BatchState)
@@ -502,23 +561,23 @@ private def drawLines (state : BatchState) (lineCmds : Array RenderCommand) (lin
     and consecutive fillCircle commands into batched draw calls.
     Returns batch statistics for performance monitoring. -/
 def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM BatchStats := do
-  -- Time: Flatten commands (transform tracking, simple geometry to absolute coords)
-  -- Use `pure` to force evaluation at this point in the monadic sequence
+  -- Flatten+coalesce is now a single streaming pass.
   let tFlatten0 ← IO.monoNanosNow
-  let bounded ← pure (computeBoundedCommands cmds)
   let tFlatten1 ← IO.monoNanosNow
 
   -- Time: Coalesce/sort commands by category while preserving clip/transform scopes
   let tCoalesce0 ← IO.monoNanosNow
-  let cmds ← pure (coalesceCommandsWithClip bounded)
+  let cmds ← coalesceCommandsWithClip cmds
   let tCoalesce1 ← IO.monoNanosNow
 
   -- Time: Main batch loop (batch building + draw calls)
   let tLoop0 ← IO.monoNanosNow
 
   let totalCommands := cmds.size
-  let mut state := initBatchState totalCommands
+  let scratch ← batchScratchRef.get
+  let mut state := initBatchState totalCommands scratch
   state ← processCommands reg cmds state
+  rememberBatchScratch state
   let tLoop1 ← IO.monoNanosNow
 
   -- Calculate timing in milliseconds

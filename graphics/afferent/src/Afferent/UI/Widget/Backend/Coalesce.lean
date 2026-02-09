@@ -473,6 +473,186 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
   for cmd in bucket7 do out := out.push cmd
   out
 
+/-- Single-pass variant for batching: flatten commands with transform tracking and
+    coalesce by category without materializing an intermediate `BoundedCommand` array. -/
+private structure ReuseArray (α : Type) where
+  data : Array α := #[]
+  count : Nat := 0
+deriving Inhabited
+
+private def ReuseArray.clear (buf : ReuseArray α) : ReuseArray α :=
+  { buf with count := 0 }
+
+private def ReuseArray.push (buf : ReuseArray α) (value : α) : ReuseArray α :=
+  let data :=
+    if buf.count < buf.data.size then
+      buf.data.set! buf.count value
+    else
+      buf.data.push value
+  { data := data, count := buf.count + 1 }
+
+private def ReuseArray.appendFrom (dst src : ReuseArray α) : ReuseArray α := Id.run do
+  let mut out := dst
+  let mut i := 0
+  while i < src.count do
+    match src.data[i]? with
+    | some value => out := out.push value
+    | none => pure ()
+    i := i + 1
+  pure out
+
+private def ReuseArray.toArray (buf : ReuseArray α) : Array α :=
+  if buf.count == buf.data.size then
+    buf.data
+  else
+    Id.run do
+      let mut out : Array α := Array.mkEmpty buf.count
+      let mut i := 0
+      while i < buf.count do
+        match buf.data[i]? with
+        | some value => out := out.push value
+        | none => pure ()
+        i := i + 1
+      pure out
+
+private structure ReuseTransformStack where
+  data : Array Transform := #[Transform.identity]
+  count : Nat := 1
+deriving Inhabited
+
+private def ReuseTransformStack.reset (stack : ReuseTransformStack) : ReuseTransformStack :=
+  let data :=
+    if stack.data.isEmpty then
+      #[Transform.identity]
+    else
+      stack.data.set! 0 Transform.identity
+  { data := data, count := 1 }
+
+private def ReuseTransformStack.back (stack : ReuseTransformStack) : Transform :=
+  if stack.count == 0 then
+    Transform.identity
+  else
+    stack.data[stack.count - 1]!
+
+private def ReuseTransformStack.push (stack : ReuseTransformStack) (value : Transform)
+    : ReuseTransformStack :=
+  let data :=
+    if stack.count < stack.data.size then
+      stack.data.set! stack.count value
+    else
+      stack.data.push value
+  { data := data, count := stack.count + 1 }
+
+private def ReuseTransformStack.pop (stack : ReuseTransformStack) : ReuseTransformStack :=
+  if stack.count > 1 then
+    { stack with count := stack.count - 1 }
+  else
+    stack
+
+private structure CoalesceScratch where
+  out : ReuseArray RenderCommand := {}
+  bucket0 : ReuseArray RenderCommand := {}
+  bucket1 : ReuseArray RenderCommand := {}
+  bucket2 : ReuseArray RenderCommand := {}
+  bucket3 : ReuseArray RenderCommand := {}
+  bucket4 : ReuseArray RenderCommand := {}
+  bucket5 : ReuseArray RenderCommand := {}
+  bucket6 : ReuseArray RenderCommand := {}
+  bucket7 : ReuseArray RenderCommand := {}
+  transformStack : ReuseTransformStack := {}
+deriving Inhabited
+
+initialize coalesceScratchRef : IO.Ref CoalesceScratch ← IO.mkRef default
+
+def flattenAndCoalesceByCategoryWithClip (cmds : Array RenderCommand) : IO (Array RenderCommand) := do
+  if cmds.isEmpty then
+    return #[]
+
+  let scratch ← coalesceScratchRef.get
+  let mut out := scratch.out.clear
+  let mut bucket0 := scratch.bucket0.clear
+  let mut bucket1 := scratch.bucket1.clear
+  let mut bucket2 := scratch.bucket2.clear
+  let mut bucket3 := scratch.bucket3.clear
+  let mut bucket4 := scratch.bucket4.clear
+  let mut bucket5 := scratch.bucket5.clear
+  let mut bucket6 := scratch.bucket6.clear
+  let mut bucket7 := scratch.bucket7.clear
+  let mut transformStack := scratch.transformStack.reset
+
+  for cmd in cmds do
+    let transform := transformStack.back
+    match cmd with
+    | .pushTranslate dx dy =>
+        let current := transformStack.back
+        transformStack := transformStack.push (current.translated dx dy)
+    | .pushScale sx sy =>
+        let current := transformStack.back
+        transformStack := transformStack.push (current.scaled sx sy)
+    | .pushRotate angle =>
+        let current := transformStack.back
+        transformStack := transformStack.push (current.rotated angle)
+    | .popTransform =>
+        transformStack := transformStack.pop
+    | .save =>
+        transformStack := transformStack.push transformStack.back
+    | .restore =>
+        transformStack := transformStack.pop
+    | _ => pure ()
+
+    let flatCmd := (flattenCommand cmd transform).1
+    if flatCmd.category == .other then
+      out := out.appendFrom bucket0
+      out := out.appendFrom bucket1
+      out := out.appendFrom bucket2
+      out := out.appendFrom bucket3
+      out := out.appendFrom bucket4
+      out := out.appendFrom bucket5
+      out := out.appendFrom bucket6
+      out := out.appendFrom bucket7
+      bucket0 := bucket0.clear
+      bucket1 := bucket1.clear
+      bucket2 := bucket2.clear
+      bucket3 := bucket3.clear
+      bucket4 := bucket4.clear
+      bucket5 := bucket5.clear
+      bucket6 := bucket6.clear
+      bucket7 := bucket7.clear
+      out := out.push flatCmd
+    else
+      match flatCmd.category.sortPriority with
+      | 0 => bucket0 := bucket0.push flatCmd
+      | 1 => bucket1 := bucket1.push flatCmd
+      | 2 => bucket2 := bucket2.push flatCmd
+      | 3 => bucket3 := bucket3.push flatCmd
+      | 4 => bucket4 := bucket4.push flatCmd
+      | 5 => bucket5 := bucket5.push flatCmd
+      | 6 => bucket6 := bucket6.push flatCmd
+      | _ => bucket7 := bucket7.push flatCmd
+
+  out := out.appendFrom bucket0
+  out := out.appendFrom bucket1
+  out := out.appendFrom bucket2
+  out := out.appendFrom bucket3
+  out := out.appendFrom bucket4
+  out := out.appendFrom bucket5
+  out := out.appendFrom bucket6
+  out := out.appendFrom bucket7
+
+  coalesceScratchRef.set {
+    out := out
+    bucket0 := bucket0
+    bucket1 := bucket1
+    bucket2 := bucket2
+    bucket3 := bucket3
+    bucket4 := bucket4
+    bucket5 := bucket5
+    bucket6 := bucket6
+    bucket7 := bucket7
+    transformStack := transformStack
+  }
+  pure out.toArray
+
 /-- Merge fillPolygonInstanced commands with the same pathHash into single commands.
     This converts N separate draw calls into M draw calls where M = number of unique pathHashes. -/
 def mergeInstancedPolygons (cmds : Array RenderCommand) : Array RenderCommand := Id.run do

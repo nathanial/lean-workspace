@@ -10,6 +10,10 @@ import Trellis
 
 namespace Afferent.Arbor
 
+/-- Clear an array while retaining enough capacity for its current size. -/
+private def clearRetain (arr : Array α) : Array α :=
+  Array.mkEmpty arr.size
+
 /-- Render command collector state. -/
 structure CollectState where
   commands : Array RenderCommand := #[]
@@ -239,7 +243,7 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
 partial def renderDeferredOverlay : CollectM Unit := do
   let state ← get
   -- Clear the deferred list before processing (in case rendering adds more)
-  set { state with deferredOverlay := #[] }
+  set { state with deferredOverlay := clearRetain state.deferredOverlay }
   for (widget, layouts) in state.deferredOverlay do
     collectWidget widget layouts
   -- Check if any new overlay elements were deferred during rendering
@@ -357,12 +361,21 @@ structure CachedCollectState where
   commands : Array RenderCommand := #[]
   /-- Deferred overlay widgets with their path keys for cache key generation. -/
   deferredOverlay : Array (Widget × Trellis.LayoutResult × CacheKey) := #[]
+  /-- Peak deferred overlay queue length observed this pass (for capacity reuse). -/
+  maxDeferredOverlay : Nat := 0
   cacheHits : Nat := 0
   cacheMisses : Nat := 0
   metrics : Option CollectMetrics := none
   /-- Enable LRU touch updates only after a miss occurs in this collection pass. -/
   touchEnabled : Bool := false
 deriving Inhabited
+
+private structure CachedCollectScratch where
+  commandCapacity : Nat := 0
+  deferredCapacity : Nat := 0
+deriving Inhabited
+
+initialize cachedCollectScratchRef : IO.Ref CachedCollectScratch ← IO.mkRef default
 
 /-- Cached collector monad with IO for cache access. -/
 abbrev CachedCollectM := StateT CachedCollectState IO
@@ -393,7 +406,11 @@ def emitAll (cmds : Array RenderCommand) : CachedCollectM Unit := do
       metrics.emitAllCount.modify (· + 1)
 
 def deferOverlay (w : Widget) (layouts : Trellis.LayoutResult) (pathKey : CacheKey) : CachedCollectM Unit := do
-  modify fun s => { s with deferredOverlay := s.deferredOverlay.push (w, layouts, pathKey) }
+  modify fun s =>
+    let deferredOverlay := s.deferredOverlay.push (w, layouts, pathKey)
+    { s with
+      deferredOverlay := deferredOverlay
+      maxDeferredOverlay := max s.maxDeferredOverlay deferredOverlay.size }
 
 def recordCacheHit : CachedCollectM Unit := do
   modify fun s => { s with cacheHits := s.cacheHits + 1 }
@@ -646,7 +663,7 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
 /-- Render all deferred overlay widgets (cached version). -/
 partial def renderDeferredOverlayCached (cache : IO.Ref RenderCache) : CachedCollectM Unit := do
   let state ← get
-  set { state with deferredOverlay := #[] }
+  set { state with deferredOverlay := clearRetain state.deferredOverlay }
   for (widget, layouts, widgetPathKey) in state.deferredOverlay do
     collectWidgetCached cache widget layouts widgetPathKey
   let newState ← get
@@ -659,10 +676,19 @@ partial def renderDeferredOverlayCached (cache : IO.Ref RenderCache) : CachedCol
 def collectCommandsCached (cache : IO.Ref RenderCache) (w : Widget)
     (layouts : Trellis.LayoutResult) : IO (Array RenderCommand) := do
   let metricsOpt ← collectMetricsRef.get
+  let scratch ← cachedCollectScratchRef.get
+  let initState : CachedCollectState := {
+    commands := Array.mkEmpty scratch.commandCapacity
+    deferredOverlay := Array.mkEmpty scratch.deferredCapacity
+    metrics := metricsOpt
+  }
   let ((), state) ← StateT.run (do
-    modify fun s => { s with metrics := metricsOpt }
     collectWidgetCached cache w layouts rootPathKey  -- Start with root path key
-    renderDeferredOverlayCached cache) {}
+    renderDeferredOverlayCached cache) initState
+  cachedCollectScratchRef.modify fun caps => {
+    commandCapacity := max caps.commandCapacity state.commands.size
+    deferredCapacity := max caps.deferredCapacity state.maxDeferredOverlay
+  }
   pure state.commands
 
 /-- Collect render commands with caching and return statistics.
@@ -670,10 +696,19 @@ def collectCommandsCached (cache : IO.Ref RenderCache) (w : Widget)
 def collectCommandsCachedWithStats (cache : IO.Ref RenderCache) (w : Widget)
     (layouts : Trellis.LayoutResult) : IO (Array RenderCommand × Nat × Nat) := do
   let metricsOpt ← collectMetricsRef.get
+  let scratch ← cachedCollectScratchRef.get
+  let initState : CachedCollectState := {
+    commands := Array.mkEmpty scratch.commandCapacity
+    deferredOverlay := Array.mkEmpty scratch.deferredCapacity
+    metrics := metricsOpt
+  }
   let ((), state) ← StateT.run (do
-    modify fun s => { s with metrics := metricsOpt }
     collectWidgetCached cache w layouts rootPathKey  -- Start with root path key
-    renderDeferredOverlayCached cache) {}
+    renderDeferredOverlayCached cache) initState
+  cachedCollectScratchRef.modify fun caps => {
+    commandCapacity := max caps.commandCapacity state.commands.size
+    deferredCapacity := max caps.deferredCapacity state.maxDeferredOverlay
+  }
   pure (state.commands, state.cacheHits, state.cacheMisses)
 
 end Afferent.Arbor
