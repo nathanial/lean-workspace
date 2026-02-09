@@ -41,15 +41,16 @@ private structure BatchState where
   drawCallTimeNs : Nat
 
 private def initBatchState (totalCommands : Nat) : BatchState :=
-  { rectBatch := #[]
-    strokeRectBatch := #[]
+  let perCategoryCap := max 64 (totalCommands / 3 + 1)
+  { rectBatch := Array.mkEmpty perCategoryCap
+    strokeRectBatch := Array.mkEmpty perCategoryCap
     currentStrokeLineWidth := 0.0
-    circleBatch := #[]
-    strokeCircleBatch := #[]
+    circleBatch := Array.mkEmpty 16
+    strokeCircleBatch := Array.mkEmpty 16
     currentStrokeCircleLineWidth := 0.0
-    textBatch := #[]
+    textBatch := Array.mkEmpty perCategoryCap
     currentTextFontId := none
-    fragmentParamsBatch := #[]
+    fragmentParamsBatch := Array.mkEmpty 16
     currentFragmentHash := none
     stats := { totalCommands := totalCommands }
     drawCallTimeNs := 0 }
@@ -107,7 +108,7 @@ private def flushRects (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       rectsBatched := state.stats.rectsBatched + state.rectBatch.size }
     pure { state with
-      rectBatch := #[]
+      rectBatch := Array.mkEmpty state.rectBatch.size
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -122,7 +123,7 @@ private def flushStrokeRects (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       strokeRectsBatched := state.stats.strokeRectsBatched + state.strokeRectBatch.size }
     pure { state with
-      strokeRectBatch := #[]
+      strokeRectBatch := Array.mkEmpty state.strokeRectBatch.size
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -137,7 +138,7 @@ private def flushCircles (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       circlesBatched := state.stats.circlesBatched + state.circleBatch.size }
     pure { state with
-      circleBatch := #[]
+      circleBatch := Array.mkEmpty state.circleBatch.size
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -152,7 +153,7 @@ private def flushStrokeCircles (state : BatchState) : CanvasM BatchState := do
       batchedCalls := state.stats.batchedCalls + 1
       circlesBatched := state.stats.circlesBatched + state.strokeCircleBatch.size }
     pure { state with
-      strokeCircleBatch := #[]
+      strokeCircleBatch := Array.mkEmpty state.strokeCircleBatch.size
       stats := stats
       drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
 
@@ -171,14 +172,14 @@ private def flushTexts (reg : FontRegistry) (state : BatchState) : CanvasM Batch
           batchedCalls := state.stats.batchedCalls + 1
           textsBatched := state.stats.textsBatched + state.textBatch.size }
         pure { state with
-          textBatch := #[]
+          textBatch := Array.mkEmpty state.textBatch.size
           currentTextFontId := none
           stats := stats
           drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
       | none =>
-        pure { state with textBatch := #[], currentTextFontId := none }
+        pure { state with textBatch := Array.mkEmpty state.textBatch.size, currentTextFontId := none }
     | none =>
-      pure { state with textBatch := #[], currentTextFontId := none }
+      pure { state with textBatch := Array.mkEmpty state.textBatch.size, currentTextFontId := none }
 
 private def flushFragments (state : BatchState) : CanvasM BatchState := do
   if state.fragmentParamsBatch.isEmpty then
@@ -233,14 +234,18 @@ private def flushFragments (state : BatchState) : CanvasM BatchState := do
         let t1 ← IO.monoNanosNow
         let stats := { state.stats with batchedCalls := state.stats.batchedCalls + 1 }
         pure { state with
-          fragmentParamsBatch := #[]
+          fragmentParamsBatch := Array.mkEmpty state.fragmentParamsBatch.size
           currentFragmentHash := none
           stats := stats
           drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
       | none =>
-        pure { state with fragmentParamsBatch := #[], currentFragmentHash := none }
+        pure { state with
+          fragmentParamsBatch := Array.mkEmpty state.fragmentParamsBatch.size
+          currentFragmentHash := none }
     | none =>
-      pure { state with fragmentParamsBatch := #[], currentFragmentHash := none }
+      pure { state with
+        fragmentParamsBatch := Array.mkEmpty state.fragmentParamsBatch.size
+        currentFragmentHash := none }
 
 private def flushAll (reg : FontRegistry) (state : BatchState) : CanvasM BatchState := do
   let state ← flushRects state

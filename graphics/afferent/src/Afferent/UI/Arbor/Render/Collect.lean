@@ -351,6 +351,7 @@ def CollectMetrics.snapshot (m : CollectMetrics) : IO CollectMetricsSnapshot := 
   }
 
 initialize collectMetricsRef : IO.Ref (Option CollectMetrics) ← IO.mkRef none
+initialize collectCommandCapacityHintRef : IO.Ref Nat ← IO.mkRef 4096
 
 def enableCollectMetrics : IO CollectMetrics := do
   let metrics ← CollectMetrics.new
@@ -666,10 +667,14 @@ partial def renderDeferredOverlayCached (cache : IO.Ref RenderCache) : CachedCol
 def collectCommandsCached (cache : IO.Ref RenderCache) (w : Widget)
     (layouts : Trellis.LayoutResult) : IO (Array RenderCommand) := do
   let metricsOpt ← collectMetricsRef.get
+  let capacityHint ← collectCommandCapacityHintRef.get
   let ((), state) ← StateT.run (do
-    modify fun s => { s with metrics := metricsOpt }
     collectWidgetCached cache w layouts rootPathKey  -- Start with root path key
-    renderDeferredOverlayCached cache) {}
+    renderDeferredOverlayCached cache) {
+      commands := Array.mkEmpty capacityHint
+      metrics := metricsOpt
+    }
+  collectCommandCapacityHintRef.set (max 256 state.commands.size)
   pure state.commands
 
 /-- Collect render commands with caching and return statistics.
@@ -677,10 +682,14 @@ def collectCommandsCached (cache : IO.Ref RenderCache) (w : Widget)
 def collectCommandsCachedWithStats (cache : IO.Ref RenderCache) (w : Widget)
     (layouts : Trellis.LayoutResult) : IO (Array RenderCommand × Nat × Nat) := do
   let metricsOpt ← collectMetricsRef.get
+  let capacityHint ← collectCommandCapacityHintRef.get
   let ((), state) ← StateT.run (do
-    modify fun s => { s with metrics := metricsOpt }
     collectWidgetCached cache w layouts rootPathKey  -- Start with root path key
-    renderDeferredOverlayCached cache) {}
+    renderDeferredOverlayCached cache) {
+      commands := Array.mkEmpty capacityHint
+      metrics := metricsOpt
+    }
+  collectCommandCapacityHintRef.set (max 256 state.commands.size)
   pure (state.commands, state.cacheHits, state.cacheMisses)
 
 end Afferent.Arbor
