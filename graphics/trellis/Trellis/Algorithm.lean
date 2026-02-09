@@ -37,8 +37,9 @@ deriving Inhabited
     Returns a HashMap from node ID to (width, height).
     Uses explicit stack to avoid stack overflow with deep nesting. -/
 def measureAllIntrinsicSizes (root : LayoutNode) : Std.HashMap Nat (Length × Length) := Id.run do
-  let mut sizes : Std.HashMap Nat (Length × Length) := {}
-  let mut stack : Array MeasureWorkItem := #[.visit root]
+  let estimatedNodes := max 8 root.nodeCount
+  let mut sizes : Std.HashMap Nat (Length × Length) := Std.HashMap.emptyWithCapacity estimatedNodes
+  let mut stack : Array MeasureWorkItem := (Array.mkEmpty estimatedNodes).push (.visit root)
 
   while !stack.isEmpty do
     let item := stack.back!
@@ -90,7 +91,7 @@ where
     if childSizes.isEmpty then
       return (padding.horizontal, padding.vertical)
 
-    let mut visibleSizes : Array (Length × Length) := #[]
+    let mut visibleSizes : Array (Length × Length) := Array.mkEmpty childSizes.size
     for idx in [:childSizes.size] do
       let child := children[idx]!
       let size := childSizes[idx]!
@@ -203,8 +204,8 @@ def layout (root : LayoutNode) (availableWidth availableHeight : Length) : Layou
   let getSize : LayoutNode → Length × Length := fun node =>
     allSizes.getD node.id (0, 0)
 
-  let mut result : LayoutResult := LayoutResult.empty
-  let mut stack : Array LayoutWorkItem := #[⟨root, availableWidth, availableHeight, 0, 0, true, none⟩]
+  let mut result : LayoutResult := LayoutResult.withCapacity allSizes.size
+  let mut stack : Array LayoutWorkItem := (Array.mkEmpty allSizes.size).push ⟨root, availableWidth, availableHeight, 0, 0, true, none⟩
 
   while !stack.isEmpty do
     let item := stack.back!
@@ -289,9 +290,9 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
   let getSize : LayoutNode → Length × Length := fun node =>
     allSizes.getD node.id (0, 0)
 
-  let mut result : LayoutResult := LayoutResult.empty
+  let mut result : LayoutResult := LayoutResult.withCapacity allSizes.size
   let mut debug : LayoutDebug := { intrinsicSizes := allSizes }
-  let mut stack : Array LayoutWorkItem := #[⟨root, availableWidth, availableHeight, 0, 0, true, none⟩]
+  let mut stack : Array LayoutWorkItem := (Array.mkEmpty allSizes.size).push ⟨root, availableWidth, availableHeight, 0, 0, true, none⟩
 
   while !stack.isEmpty do
     let item := stack.back!

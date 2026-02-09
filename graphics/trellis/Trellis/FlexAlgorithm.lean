@@ -717,7 +717,7 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
 
   -- Fast path: 0 or 1 flow child (avoids sorting, line partitioning, and extra passes)
   if flowChildren.size <= 1 && !hasCollapsed then
-    let mut result := LayoutResult.empty
+    let mut result := LayoutResult.withCapacity children.size
     if items.size == 1 then
       let usedMain := computeLineMainSpace items container.gap
       let (crossSize, maxBaseline) := computeLineCrossSizeWithBaseline items
@@ -783,7 +783,7 @@ def layoutFlexContainer (container : FlexContainer) (children : Array LayoutNode
     resolveCrossSizes line container.alignItems axis
 
   -- Phases 6-7: Position items within lines
-  let mut result := LayoutResult.empty
+  let mut result := LayoutResult.withCapacity children.size
 
   for line in lines do
     -- Phase 6: Main axis positions
@@ -836,7 +836,7 @@ def layoutFlexContainerDebug (container : FlexContainer) (children : Array Layou
   let mut debugLines : Array FlexLineDebug := #[]
   let mut itemsDebug : Array FlexItemDebug := #[]
   let mut sortedItemsDebug : Array FlexItemDebug := #[]
-  let mut result := LayoutResult.empty
+  let mut result := LayoutResult.withCapacity children.size
 
   if flowChildren.size <= 1 && !hasCollapsed then
     itemsDebug := items.map toFlexItemDebug

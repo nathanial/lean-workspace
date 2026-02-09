@@ -1289,7 +1289,7 @@ def layoutGridContainerInternal (container : GridContainer) (children : Array La
         subgridContexts := subgridContexts.push (item.node.id, { rows := rowCtx, cols := colCtx })
 
   -- Build result
-  let mut result := LayoutResult.empty
+  let mut result := LayoutResult.withCapacity children.size
   for item in positionedItems do
     let rect := LayoutRect.mk' item.resolvedX item.resolvedY item.resolvedWidth item.resolvedHeight
     result := result.add (ComputedLayout.simple item.node.id rect)

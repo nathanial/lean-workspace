@@ -104,7 +104,18 @@ deriving Inhabited
 
 namespace LayoutResult
 
-def empty : LayoutResult := ⟨#[], {}⟩
+/-- Create an empty result with reserved capacity for layouts/map entries. -/
+def withCapacity (capacity : Nat) : LayoutResult :=
+  { layouts := Array.mkEmpty capacity
+    layoutMap := Std.HashMap.emptyWithCapacity capacity }
+
+def empty : LayoutResult := withCapacity 0
+
+/-- Build a result from an existing layout array in one map-build pass. -/
+def ofLayouts (layouts : Array ComputedLayout) : LayoutResult :=
+  let layoutMap := layouts.foldl (init := Std.HashMap.emptyWithCapacity layouts.size) fun m cl =>
+    m.insert cl.nodeId cl
+  { layouts, layoutMap }
 
 /-- Find layout by node ID. O(1) HashMap lookup. -/
 def get (r : LayoutResult) (nodeId : Nat) : Option ComputedLayout :=
@@ -133,7 +144,7 @@ def allRects (r : LayoutResult) : Array LayoutRect :=
 /-- Map over all layouts. Maintains both array and HashMap. -/
 def map (r : LayoutResult) (f : ComputedLayout → ComputedLayout) : LayoutResult :=
   let newLayouts := r.layouts.map f
-  let newMap := newLayouts.foldl (init := {}) fun m cl =>
+  let newMap := newLayouts.foldl (init := Std.HashMap.emptyWithCapacity newLayouts.size) fun m cl =>
     m.insert cl.nodeId cl
   ⟨newLayouts, newMap⟩
 

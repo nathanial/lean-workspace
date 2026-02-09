@@ -449,11 +449,11 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
       match Widget.name? w with
       | some name =>
           modify fun state =>
-            let seen := state.nameMap.contains name
-            let names := if seen then state.names else state.names.push name
+            let (existing, nameMap) := state.nameMap.getThenInsertIfNew? name w.id
+            let names := if existing.isSome then state.names else state.names.push name
             { state with
               names := names
-              nameMap := state.nameMap.insert name w.id
+              nameMap := nameMap
             }
       | none => pure ()
 
@@ -473,7 +473,15 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
             else childTransformFor w layout layouts transform
           go child currentPath (some w.id) childTransform childClip nextClipped overlayLayer
 
-  let (_, state) := (go root #[] none HitTransform.zero none false false).run {}
+  let initialCapacity := max 8 layouts.layouts.size
+  let initialState : HitTestBuildState := {
+    items := Array.mkEmpty initialCapacity
+    bounds := Array.mkEmpty initialCapacity
+    names := Array.mkEmpty initialCapacity
+    nameMap := Std.HashMap.emptyWithCapacity initialCapacity
+    parentMap := Std.HashMap.emptyWithCapacity initialCapacity
+  }
+  let (_, state) := (go root #[] none HitTransform.zero none false false).run initialState
 
   let grid := Linalg.Spatial.Grid2D.buildAuto state.bounds
   {
