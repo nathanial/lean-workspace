@@ -13,6 +13,7 @@ import Demos.Core.Runner.Types
 import Demos.Core.Runner.CanopyApp
 import Demos.Perf.Lines
 import Std.Data.HashMap
+import Std.Internal.Async.Process
 import Init.Data.FloatArray
 
 set_option maxRecDepth 1024
@@ -84,6 +85,7 @@ def unifiedDemo : IO Unit := do
     let mut state : AppState := .loading {}
     let mut lastTime := startTime
     while !(← c.shouldClose) do
+      let usageStart ← Std.Internal.IO.Process.getResourceUsage
       let frameStartNs ← IO.monoNanosNow
       let beginFrameStartNs := frameStartNs
       let ok ← c.beginFrame Color.darkGray
@@ -266,6 +268,7 @@ def unifiedDemo : IO Unit := do
             rs := { rs with cachedWidget := widgetBuilder }
             let reactiveEnd ← IO.monoNanosNow
 
+            let sizeStart ← IO.monoNanosNow
             let (screenW, screenH) ← c.ctx.getCurrentSize
             if screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF then
               rs := { rs with assets := {
@@ -275,70 +278,177 @@ def unifiedDemo : IO Unit := do
                 physWidth := screenW.toUInt32
                 physHeight := screenH.toUInt32
               } }
+            let sizeEnd ← IO.monoNanosNow
 
+            let buildStart ← IO.monoNanosNow
             let rootWidget := Afferent.Arbor.build widgetBuilder
+            let buildEnd ← IO.monoNanosNow
             let layoutStart ← IO.monoNanosNow
             let measureResult ← runWithFonts rs.assets.fontPack.registry
               (Afferent.Arbor.measureWidget rootWidget screenW screenH)
             let measuredWidget := measureResult.widget
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
-            let indexStart := layoutEnd
-            let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+            let collectFirst := rs.phaseProbe.collectFirstNext
+            let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses) ←
+              if collectFirst then
+                let collectStart ← IO.monoNanosNow
+                let (commands, cacheHits, cacheMisses) ←
+                  Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+                let collectEnd ← IO.monoNanosNow
+                let indexStart ← IO.monoNanosNow
+                let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                let indexEnd ← IO.monoNanosNow
+                let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
+                let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses)
+              else
+                let indexStart ← IO.monoNanosNow
+                let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+                let indexEnd ← IO.monoNanosNow
+                let collectStart ← IO.monoNanosNow
+                let (commands, cacheHits, cacheMisses) ←
+                  Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+                let collectEnd ← IO.monoNanosNow
+                let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
+                let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
+                pure (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses)
+            let syncStart ← IO.monoNanosNow
             rs := { rs with frameCache := some {
               measuredWidget := measuredWidget
               layouts := layouts
               hitIndex := hitIndex
             } }
-            rs.events.registry.interactiveNames.set hitIndex.names
-            let indexEnd ← IO.monoNanosNow
+            let nameSyncStart ← IO.monoNanosNow
+            if rs.lastInteractiveNames != hitIndex.names then
+              rs.events.registry.interactiveNames.set hitIndex.names
+              rs := { rs with lastInteractiveNames := hitIndex.names }
+            let nameSyncEnd ← IO.monoNanosNow
 
-            let collectStart ← IO.monoNanosNow
-            let (commands, cacheHits, cacheMisses) ←
-              Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
-            let collectEnd ← IO.monoNanosNow
+            let probe := rs.phaseProbe
+            let probe :=
+              if collectFirst then
+                { probe with
+                  collectFirstSamples := probe.collectFirstSamples + 1
+                  collectFirstCollectTotalMs := probe.collectFirstCollectTotalMs + collectMs
+                  collectFirstIndexTotalMs := probe.collectFirstIndexTotalMs + indexMs
+                }
+              else
+                { probe with
+                  indexFirstSamples := probe.indexFirstSamples + 1
+                  indexFirstIndexTotalMs := probe.indexFirstIndexTotalMs + indexMs
+                  indexFirstCollectTotalMs := probe.indexFirstCollectTotalMs + collectMs
+                }
+            let probe := { probe with collectFirstNext := !collectFirst }
+            rs := { rs with phaseProbe := probe }
+            let syncEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
             let (batchStats, c') ← CanvasM.run c do
               let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
               Afferent.Widget.renderCustomWidgets measuredWidget layouts
               pure batchStats
             let executeEnd ← IO.monoNanosNow
+            let canvasSwapStart ← IO.monoNanosNow
             c := c'
+            let canvasSwapEnd ← IO.monoNanosNow
             let endFrameStart ← IO.monoNanosNow
             c ← c.endFrame
-            let frameEndNs ← IO.monoNanosNow
-            let endFrameEnd := frameEndNs
+            let endFrameEnd ← IO.monoNanosNow
+            let stateSwapStart ← IO.monoNanosNow
+            state := .running rs
+            let stateSwapEnd ← IO.monoNanosNow
+            let usageEnd ← Std.Internal.IO.Process.getResourceUsage
+            let frameEndNs := stateSwapEnd
             let beginFrameMs := (beginFrameEndNs - beginFrameStartNs).toFloat / 1000000.0
+            let preInputMs := (inputStart - beginFrameEndNs).toFloat / 1000000.0
             let inputMs := (inputEnd - inputStart).toFloat / 1000000.0
             let reactivePropagateMs := (reactivePropagateEnd - reactiveStart).toFloat / 1000000.0
             let reactiveRenderMs := (reactiveEnd - reactivePropagateEnd).toFloat / 1000000.0
             let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
+            let sizeMs := (sizeEnd - sizeStart).toFloat / 1000000.0
+            let buildMs := (buildEnd - buildStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
-            let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
-            let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
+            let nameSyncMs := (nameSyncEnd - nameSyncStart).toFloat / 1000000.0
+            let syncMs := (syncEnd - syncStart).toFloat / 1000000.0
+            let syncOverheadMs :=
+              if syncMs >= nameSyncMs then
+                syncMs - nameSyncMs
+              else
+                0.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
+            let canvasSwapMs := (canvasSwapEnd - canvasSwapStart).toFloat / 1000000.0
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
+            let stateSwapMs := (stateSwapEnd - stateSwapStart).toFloat / 1000000.0
+            let voluntaryCtxSwitchesDelta :=
+              if usageEnd.voluntaryContextSwitches >= usageStart.voluntaryContextSwitches then
+                usageEnd.voluntaryContextSwitches - usageStart.voluntaryContextSwitches
+              else
+                0
+            let involuntaryCtxSwitchesDelta :=
+              if usageEnd.involuntaryContextSwitches >= usageStart.involuntaryContextSwitches then
+                usageEnd.involuntaryContextSwitches - usageStart.involuntaryContextSwitches
+              else
+                0
+            let minorPageFaultsDelta :=
+              if usageEnd.minorPageFaults >= usageStart.minorPageFaults then
+                usageEnd.minorPageFaults - usageStart.minorPageFaults
+              else
+                0
+            let majorPageFaultsDelta :=
+              if usageEnd.majorPageFaults >= usageStart.majorPageFaults then
+                usageEnd.majorPageFaults - usageStart.majorPageFaults
+              else
+                0
             let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
             let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
             let accountedMs :=
-              beginFrameMs + inputMs + reactiveMs + layoutMs + indexMs + collectMs + executeMs + endFrameMs
+              beginFrameMs + preInputMs + inputMs + reactiveMs + sizeMs + buildMs + layoutMs + indexMs + collectMs + nameSyncMs + syncOverheadMs + executeMs + canvasSwapMs + stateSwapMs + endFrameMs
             let unaccountedMs := frameMs - accountedMs
             let layoutCount := layouts.layouts.size
             -- Layout entries are one-per-widget for measured trees; avoid rebuilding all IDs.
             let widgetCount := layoutCount
             let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
+            let indexWhenFirstAvgMs :=
+              if rs.phaseProbe.indexFirstSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.indexFirstIndexTotalMs / rs.phaseProbe.indexFirstSamples.toFloat
+            let indexWhenSecondAvgMs :=
+              if rs.phaseProbe.collectFirstSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.collectFirstIndexTotalMs / rs.phaseProbe.collectFirstSamples.toFloat
+            let collectWhenFirstAvgMs :=
+              if rs.phaseProbe.collectFirstSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.collectFirstCollectTotalMs / rs.phaseProbe.collectFirstSamples.toFloat
+            let collectWhenSecondAvgMs :=
+              if rs.phaseProbe.indexFirstSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.indexFirstCollectTotalMs / rs.phaseProbe.indexFirstSamples.toFloat
+            let indexSecondPenaltyMs := indexWhenSecondAvgMs - indexWhenFirstAvgMs
+            let collectSecondPenaltyMs := collectWhenSecondAvgMs - collectWhenFirstAvgMs
             statsRef.set {
               frameMs := frameMs
               fps := fps
               beginFrameMs := beginFrameMs
+              preInputMs := preInputMs
               inputMs := inputMs
               reactiveMs := reactiveMs
               reactivePropagateMs := reactivePropagateMs
               reactiveRenderMs := reactiveRenderMs
+              sizeMs := sizeMs
+              buildMs := buildMs
               layoutMs := layoutMs
               indexMs := indexMs
               collectMs := collectMs
+              nameSyncMs := nameSyncMs
+              syncOverheadMs := syncOverheadMs
               executeMs := executeMs
+              canvasSwapMs := canvasSwapMs
+              stateSwapMs := stateSwapMs
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
@@ -358,10 +468,22 @@ def unifiedDemo : IO Unit := do
               drawCallMs := batchStats.timeDrawCallsMs
               cacheHits := cacheHits
               cacheMisses := cacheMisses
+              voluntaryCtxSwitchesDelta := voluntaryCtxSwitchesDelta
+              involuntaryCtxSwitchesDelta := involuntaryCtxSwitchesDelta
+              minorPageFaultsDelta := minorPageFaultsDelta
+              majorPageFaultsDelta := majorPageFaultsDelta
               widgetCount := widgetCount
               layoutCount := layoutCount
+              probeCollectFirstThisFrame := collectFirst
+              probeIndexFirstSamples := rs.phaseProbe.indexFirstSamples
+              probeCollectFirstSamples := rs.phaseProbe.collectFirstSamples
+              probeIndexWhenFirstAvgMs := indexWhenFirstAvgMs
+              probeIndexWhenSecondAvgMs := indexWhenSecondAvgMs
+              probeCollectWhenFirstAvgMs := collectWhenFirstAvgMs
+              probeCollectWhenSecondAvgMs := collectWhenSecondAvgMs
+              probeIndexSecondPenaltyMs := indexSecondPenaltyMs
+              probeCollectSecondPenaltyMs := collectSecondPenaltyMs
             }
-            state := .running rs
     pure (c, state)
 
   let renderTask ← IO.asTask (prio := .dedicated) renderLoop

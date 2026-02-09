@@ -77,6 +77,16 @@ structure FrameCache where
   layouts : Trellis.LayoutResult
   hitIndex : Afferent.Arbor.HitTestIndex
 
+structure PhaseOrderProbe where
+  collectFirstNext : Bool := false
+  indexFirstSamples : Nat := 0
+  indexFirstIndexTotalMs : Float := 0.0
+  indexFirstCollectTotalMs : Float := 0.0
+  collectFirstSamples : Nat := 0
+  collectFirstCollectTotalMs : Float := 0.0
+  collectFirstIndexTotalMs : Float := 0.0
+  deriving Inhabited
+
 structure RunningState where
   assets : LoadedAssets
   render : Afferent.Canopy.Reactive.ComponentRender
@@ -86,6 +96,8 @@ structure RunningState where
   shutdown : IO Unit
   cachedWidget : Afferent.Arbor.WidgetBuilder
   frameCache : Option FrameCache := none
+  phaseProbe : PhaseOrderProbe := {}
+  lastInteractiveNames : Array String := #[]
   lastMouseX : Float := 0.0
   lastMouseY : Float := 0.0
   prevLeftDown : Bool := false

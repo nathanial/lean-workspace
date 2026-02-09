@@ -15,14 +15,21 @@ structure RunnerStats where
   frameMs : Float := 0.0
   fps : Float := 0.0
   beginFrameMs : Float := 0.0
+  preInputMs : Float := 0.0
   inputMs : Float := 0.0
   reactiveMs : Float := 0.0
   reactivePropagateMs : Float := 0.0
   reactiveRenderMs : Float := 0.0
+  sizeMs : Float := 0.0
+  buildMs : Float := 0.0
   layoutMs : Float := 0.0
   indexMs : Float := 0.0
   collectMs : Float := 0.0
+  nameSyncMs : Float := 0.0
+  syncOverheadMs : Float := 0.0
   executeMs : Float := 0.0
+  canvasSwapMs : Float := 0.0
+  stateSwapMs : Float := 0.0
   endFrameMs : Float := 0.0
   accountedMs : Float := 0.0
   unaccountedMs : Float := 0.0
@@ -42,8 +49,21 @@ structure RunnerStats where
   drawCallMs : Float := 0.0
   cacheHits : Nat := 0
   cacheMisses : Nat := 0
+  voluntaryCtxSwitchesDelta : UInt64 := 0
+  involuntaryCtxSwitchesDelta : UInt64 := 0
+  minorPageFaultsDelta : UInt64 := 0
+  majorPageFaultsDelta : UInt64 := 0
   widgetCount : Nat := 0
   layoutCount : Nat := 0
+  probeCollectFirstThisFrame : Bool := false
+  probeIndexFirstSamples : Nat := 0
+  probeCollectFirstSamples : Nat := 0
+  probeIndexWhenFirstAvgMs : Float := 0.0
+  probeIndexWhenSecondAvgMs : Float := 0.0
+  probeCollectWhenFirstAvgMs : Float := 0.0
+  probeCollectWhenSecondAvgMs : Float := 0.0
+  probeIndexSecondPenaltyMs : Float := 0.0
+  probeCollectSecondPenaltyMs : Float := 0.0
   deriving Inhabited
 
 structure DemoEnv where

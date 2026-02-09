@@ -92,8 +92,8 @@ static inline void afferent_window_push_click(struct AfferentWindow *w, uint8_t 
         self.metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
         self.metalLayer.framebufferOnly = YES;
         self.metalLayer.frame = self.bounds;
-        // Enable vsync for smooth animation
-        self.metalLayer.displaySyncEnabled = YES;
+        // Disable vsync to expose CPU-side bottlenecks without display pacing.
+        self.metalLayer.displaySyncEnabled = NO;
         // Avoid blocking the render loop while waiting for a drawable.
         self.metalLayer.allowsNextDrawableTimeout = NO;
         // Triple buffering for smoother frame pacing
