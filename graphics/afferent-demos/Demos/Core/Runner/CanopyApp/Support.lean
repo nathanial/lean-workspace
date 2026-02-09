@@ -62,14 +62,20 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
     else "index->collect"
   let line11 := s!"probe order {currentOrder} • samples index-first {stats.probeIndexFirstSamples} • collect-first {stats.probeCollectFirstSamples}"
   let line12 := s!"probe avg index first {formatFloat stats.probeIndexWhenFirstAvgMs}ms second {formatFloat stats.probeIndexWhenSecondAvgMs}ms (delta {formatFloat stats.probeIndexSecondPenaltyMs}ms) • collect first {formatFloat stats.probeCollectWhenFirstAvgMs}ms second {formatFloat stats.probeCollectWhenSecondAvgMs}ms (delta {formatFloat stats.probeCollectSecondPenaltyMs}ms)"
-  let line13 := s!"sched vctx {stats.voluntaryCtxSwitchesDelta} • ivctx {stats.involuntaryCtxSwitchesDelta} • faults minor {stats.minorPageFaultsDelta} • major {stats.majorPageFaultsDelta}"
+  let line13 := s!"cpu user {formatFloat stats.cpuUserMsDelta}ms • sys {formatFloat stats.cpuSystemMsDelta}ms • sched vctx {stats.voluntaryCtxSwitchesDelta} • ivctx {stats.involuntaryCtxSwitchesDelta} • faults minor {stats.minorPageFaultsDelta} • major {stats.majorPageFaultsDelta}"
   let line14 := s!"gaps after-layout {formatFloat stats.gapAfterLayoutMs}ms • before-sync {formatFloat stats.gapBeforeSyncMs}ms • before-exec {formatFloat stats.gapBeforeExecuteMs}ms • before-swap {formatFloat stats.gapBeforeCanvasSwapMs}ms • before-end {formatFloat stats.gapBeforeEndFrameMs}ms • before-state {formatFloat stats.gapBeforeStateSwapMs}ms"
   let line15 := s!"index+collect envelope {formatFloat stats.indexCollectEnvelopeMs}ms • overhead {formatFloat stats.indexCollectOverheadMs}ms • gap-total {formatFloat stats.boundaryGapTotalMs}ms"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15]
+  let line16 := s!"mi rssΔ {formatFloat stats.processRssDeltaKb}kb • commitΔ {formatFloat stats.processCommitDeltaKb}kb • faultsΔ {stats.processPageFaultsDelta} • rss now {formatFloat stats.processCurrentRssKb}kb (peak {formatFloat stats.processPeakRssKb}kb) • commit now {formatFloat stats.processCurrentCommitKb}kb (peak {formatFloat stats.processPeakCommitKb}kb)"
+  let livenessOrder :=
+    if stats.probeLivenessHoldThisFrame then "hold-layout-temps"
+    else "drop-layout-temps"
+  let line17 := s!"liveness probe {livenessOrder} • samples hold {stats.probeLivenessHoldSamples} no-hold {stats.probeLivenessNoHoldSamples}"
+  let line18 := s!"liveness avg after-layout hold {formatFloat stats.probeLivenessHoldAfterLayoutAvgMs}ms no-hold {formatFloat stats.probeLivenessNoHoldAfterLayoutAvgMs}ms • before-sync hold {formatFloat stats.probeLivenessHoldBeforeSyncAvgMs}ms no-hold {formatFloat stats.probeLivenessNoHoldBeforeSyncAvgMs}ms"
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15, line16, line17, line18]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
-  let footerHeight := 330.0 * env.screenScale
+  let footerHeight := 390.0 * env.screenScale
   let footerStyle : BoxStyle := {
     backgroundColor := some (Color.gray 0.08)
     padding := EdgeInsets.symmetric (6.0 * env.screenScale) (4.0 * env.screenScale)

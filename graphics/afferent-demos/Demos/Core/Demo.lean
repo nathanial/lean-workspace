@@ -31,6 +31,15 @@ structure RunnerStats where
   canvasSwapMs : Float := 0.0
   stateSwapMs : Float := 0.0
   endFrameMs : Float := 0.0
+  cpuUserMsDelta : Float := 0.0
+  cpuSystemMsDelta : Float := 0.0
+  processRssDeltaKb : Float := 0.0
+  processCommitDeltaKb : Float := 0.0
+  processCurrentRssKb : Float := 0.0
+  processPeakRssKb : Float := 0.0
+  processCurrentCommitKb : Float := 0.0
+  processPeakCommitKb : Float := 0.0
+  processPageFaultsDelta : Nat := 0
   gapAfterLayoutMs : Float := 0.0
   gapBeforeSyncMs : Float := 0.0
   gapBeforeExecuteMs : Float := 0.0
@@ -74,6 +83,13 @@ structure RunnerStats where
   probeCollectWhenSecondAvgMs : Float := 0.0
   probeIndexSecondPenaltyMs : Float := 0.0
   probeCollectSecondPenaltyMs : Float := 0.0
+  probeLivenessHoldThisFrame : Bool := false
+  probeLivenessHoldSamples : Nat := 0
+  probeLivenessNoHoldSamples : Nat := 0
+  probeLivenessHoldAfterLayoutAvgMs : Float := 0.0
+  probeLivenessNoHoldAfterLayoutAvgMs : Float := 0.0
+  probeLivenessHoldBeforeSyncAvgMs : Float := 0.0
+  probeLivenessNoHoldBeforeSyncAvgMs : Float := 0.0
   deriving Inhabited
 
 structure DemoEnv where

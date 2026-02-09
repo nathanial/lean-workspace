@@ -85,6 +85,13 @@ structure PhaseOrderProbe where
   collectFirstSamples : Nat := 0
   collectFirstCollectTotalMs : Float := 0.0
   collectFirstIndexTotalMs : Float := 0.0
+  livenessHoldNext : Bool := false
+  livenessHoldSamples : Nat := 0
+  livenessHoldAfterLayoutTotalMs : Float := 0.0
+  livenessHoldBeforeSyncTotalMs : Float := 0.0
+  livenessNoHoldSamples : Nat := 0
+  livenessNoHoldAfterLayoutTotalMs : Float := 0.0
+  livenessNoHoldBeforeSyncTotalMs : Float := 0.0
   deriving Inhabited
 
 structure RunningState where

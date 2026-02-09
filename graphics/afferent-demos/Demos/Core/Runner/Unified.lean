@@ -24,6 +24,9 @@ open Afferent.Canopy.Reactive
 
 namespace Demos
 
+@[noinline] private def keepAliveOption {α : Type} (value : Option α) : Bool :=
+  value.isSome
+
 /-- Unified visual demo - single Canopy widget tree with demo tabs. -/
 def unifiedDemo : IO Unit := do
   IO.println "Unified Canopy Demo Shell"
@@ -86,6 +89,7 @@ def unifiedDemo : IO Unit := do
     let mut lastTime := startTime
     while !(← c.shouldClose) do
       let usageStart ← Std.Internal.IO.Process.getResourceUsage
+      let processInfoStart ← FFI.Runtime.getProcessInfo
       let frameStartNs ← IO.monoNanosNow
       let beginFrameStartNs := frameStartNs
       let ok ← c.beginFrame Color.darkGray
@@ -289,6 +293,12 @@ def unifiedDemo : IO Unit := do
             let measuredWidget := measureResult.widget
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
+            let livenessHold := rs.phaseProbe.livenessHoldNext
+            let deferredLayoutTemps :=
+              if livenessHold then
+                some (widgetBuilder, rootWidget, measureResult)
+              else
+                none
             let collectFirst := rs.phaseProbe.collectFirstNext
             let (indexMs, collectMs, hitIndex, commands, cacheHits, cacheMisses, indexCollectStartNs, indexCollectEndNs) ←
               if collectFirst then
@@ -357,13 +367,27 @@ def unifiedDemo : IO Unit := do
             let stateSwapStart ← IO.monoNanosNow
             state := .running rs
             let stateSwapEnd ← IO.monoNanosNow
+            let livenessHoldObserved := keepAliveOption deferredLayoutTemps
             let usageEnd ← Std.Internal.IO.Process.getResourceUsage
+            let processInfoEnd ← FFI.Runtime.getProcessInfo
             let frameEndNs := stateSwapEnd
             let nsDiffMs := fun (startNs endNs : Nat) =>
               if endNs >= startNs then
                 (endNs - startNs).toFloat / 1000000.0
               else
                 0.0
+            let intDeltaFloat := fun (startInt endInt : Int) =>
+              if endInt >= startInt then
+                (Int.toNat (endInt - startInt)).toFloat
+              else
+                0.0
+            let natDelta := fun (startNat endNat : Nat) =>
+              if endNat >= startNat then
+                endNat - startNat
+              else
+                0
+            let bytesToKb := fun (bytes : Nat) =>
+              bytes.toFloat / 1024.0
             let beginFrameMs := (beginFrameEndNs - beginFrameStartNs).toFloat / 1000000.0
             let preInputMs := (inputStart - beginFrameEndNs).toFloat / 1000000.0
             let inputMs := (inputEnd - inputStart).toFloat / 1000000.0
@@ -384,6 +408,15 @@ def unifiedDemo : IO Unit := do
             let canvasSwapMs := (canvasSwapEnd - canvasSwapStart).toFloat / 1000000.0
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let stateSwapMs := (stateSwapEnd - stateSwapStart).toFloat / 1000000.0
+            let cpuUserMsDelta := intDeltaFloat usageStart.cpuUserTime.val usageEnd.cpuUserTime.val
+            let cpuSystemMsDelta := intDeltaFloat usageStart.cpuSystemTime.val usageEnd.cpuSystemTime.val
+            let processRssDeltaKb := bytesToKb (natDelta processInfoStart.currentRssBytes processInfoEnd.currentRssBytes)
+            let processCommitDeltaKb := bytesToKb (natDelta processInfoStart.currentCommitBytes processInfoEnd.currentCommitBytes)
+            let processCurrentRssKb := bytesToKb processInfoEnd.currentRssBytes
+            let processPeakRssKb := bytesToKb processInfoEnd.peakRssBytes
+            let processCurrentCommitKb := bytesToKb processInfoEnd.currentCommitBytes
+            let processPeakCommitKb := bytesToKb processInfoEnd.peakCommitBytes
+            let processPageFaultsDelta := natDelta processInfoStart.pageFaults processInfoEnd.pageFaults
             let gapAfterLayoutMs := nsDiffMs layoutEnd indexCollectStartNs
             let gapBeforeSyncMs := nsDiffMs indexCollectEndNs syncStart
             let gapBeforeExecuteMs := nsDiffMs syncEnd executeStart
@@ -424,6 +457,22 @@ def unifiedDemo : IO Unit := do
               beginFrameMs + preInputMs + inputMs + reactiveMs + sizeMs + buildMs + layoutMs + indexMs + collectMs + nameSyncMs + syncOverheadMs + executeMs + canvasSwapMs + stateSwapMs + endFrameMs
             let unaccountedMs := frameMs - accountedMs
             let residualUnaccountedMs := frameMs - (accountedMs + boundaryGapTotalMs + indexCollectOverheadMs)
+            let probe := rs.phaseProbe
+            let probe :=
+              if livenessHoldObserved then
+                { probe with
+                  livenessHoldSamples := probe.livenessHoldSamples + 1
+                  livenessHoldAfterLayoutTotalMs := probe.livenessHoldAfterLayoutTotalMs + gapAfterLayoutMs
+                  livenessHoldBeforeSyncTotalMs := probe.livenessHoldBeforeSyncTotalMs + gapBeforeSyncMs
+                }
+              else
+                { probe with
+                  livenessNoHoldSamples := probe.livenessNoHoldSamples + 1
+                  livenessNoHoldAfterLayoutTotalMs := probe.livenessNoHoldAfterLayoutTotalMs + gapAfterLayoutMs
+                  livenessNoHoldBeforeSyncTotalMs := probe.livenessNoHoldBeforeSyncTotalMs + gapBeforeSyncMs
+                }
+            let probe := { probe with livenessHoldNext := !livenessHoldObserved }
+            rs := { rs with phaseProbe := probe }
             let layoutCount := layouts.layouts.size
             -- Layout entries are one-per-widget for measured trees; avoid rebuilding all IDs.
             let widgetCount := layoutCount
@@ -450,6 +499,26 @@ def unifiedDemo : IO Unit := do
                 rs.phaseProbe.indexFirstCollectTotalMs / rs.phaseProbe.indexFirstSamples.toFloat
             let indexSecondPenaltyMs := indexWhenSecondAvgMs - indexWhenFirstAvgMs
             let collectSecondPenaltyMs := collectWhenSecondAvgMs - collectWhenFirstAvgMs
+            let livenessHoldAfterLayoutAvgMs :=
+              if rs.phaseProbe.livenessHoldSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.livenessHoldAfterLayoutTotalMs / rs.phaseProbe.livenessHoldSamples.toFloat
+            let livenessNoHoldAfterLayoutAvgMs :=
+              if rs.phaseProbe.livenessNoHoldSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.livenessNoHoldAfterLayoutTotalMs / rs.phaseProbe.livenessNoHoldSamples.toFloat
+            let livenessHoldBeforeSyncAvgMs :=
+              if rs.phaseProbe.livenessHoldSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.livenessHoldBeforeSyncTotalMs / rs.phaseProbe.livenessHoldSamples.toFloat
+            let livenessNoHoldBeforeSyncAvgMs :=
+              if rs.phaseProbe.livenessNoHoldSamples == 0 then
+                0.0
+              else
+                rs.phaseProbe.livenessNoHoldBeforeSyncTotalMs / rs.phaseProbe.livenessNoHoldSamples.toFloat
             statsRef.set {
               frameMs := frameMs
               fps := fps
@@ -470,6 +539,15 @@ def unifiedDemo : IO Unit := do
               canvasSwapMs := canvasSwapMs
               stateSwapMs := stateSwapMs
               endFrameMs := endFrameMs
+              cpuUserMsDelta := cpuUserMsDelta
+              cpuSystemMsDelta := cpuSystemMsDelta
+              processRssDeltaKb := processRssDeltaKb
+              processCommitDeltaKb := processCommitDeltaKb
+              processCurrentRssKb := processCurrentRssKb
+              processPeakRssKb := processPeakRssKb
+              processCurrentCommitKb := processCurrentCommitKb
+              processPeakCommitKb := processPeakCommitKb
+              processPageFaultsDelta := processPageFaultsDelta
               gapAfterLayoutMs := gapAfterLayoutMs
               gapBeforeSyncMs := gapBeforeSyncMs
               gapBeforeExecuteMs := gapBeforeExecuteMs
@@ -513,7 +591,15 @@ def unifiedDemo : IO Unit := do
               probeCollectWhenSecondAvgMs := collectWhenSecondAvgMs
               probeIndexSecondPenaltyMs := indexSecondPenaltyMs
               probeCollectSecondPenaltyMs := collectSecondPenaltyMs
+              probeLivenessHoldThisFrame := livenessHoldObserved
+              probeLivenessHoldSamples := rs.phaseProbe.livenessHoldSamples
+              probeLivenessNoHoldSamples := rs.phaseProbe.livenessNoHoldSamples
+              probeLivenessHoldAfterLayoutAvgMs := livenessHoldAfterLayoutAvgMs
+              probeLivenessNoHoldAfterLayoutAvgMs := livenessNoHoldAfterLayoutAvgMs
+              probeLivenessHoldBeforeSyncAvgMs := livenessHoldBeforeSyncAvgMs
+              probeLivenessNoHoldBeforeSyncAvgMs := livenessNoHoldBeforeSyncAvgMs
             }
+            state := .running rs
     pure (c, state)
 
   let renderTask ← IO.asTask (prio := .dedicated) renderLoop
