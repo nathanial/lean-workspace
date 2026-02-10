@@ -83,6 +83,9 @@ def unifiedDemo : IO Unit := do
   let startTime ← IO.monoMsNow
 
   let statsRef ← IO.mkRef ({} : RunnerStats)
+  let prevLayoutConfig ← Trellis.getLayoutInstrumentationConfig
+  Trellis.setLayoutInstrumentationConfig { prevLayoutConfig with layoutCacheEnabled := true }
+  Trellis.resetLayoutCache
 
   let renderLoop : IO (Canvas × AppState) := do
     let mut c := canvas
@@ -304,27 +307,7 @@ def unifiedDemo : IO Unit := do
             let measuredWidget := measureResult.widget
             let measureMetricsEnd ← Afferent.Arbor.snapshotMeasureCacheInstrumentation
             let measureMetrics := Afferent.Arbor.MeasureCacheInstrumentation.diff measureMetricsEnd measureMetricsStart
-            let canReuseLayout :=
-              !viewportChanged &&
-              measureMetrics.hits > 0 &&
-              measureMetrics.misses == 0 &&
-              measureMetrics.bypasses == 0
-            let (layouts, layoutInstr) ←
-              match previousFrameCache with
-              | some prev =>
-                  if canReuseLayout then
-                    let reused := prev.layouts.layouts.size
-                    pure (prev.layouts, {
-                      layoutCacheHits := 1
-                      layoutCacheMisses := 0
-                      reusedNodeCount := reused
-                      recomputedNodeCount := 0
-                      totalLayoutNanos := 0
-                    })
-                  else
-                    Trellis.layoutTrackedIO measureResult.node screenW screenH
-              | none =>
-                  Trellis.layoutTrackedIO measureResult.node screenW screenH
+            let (layouts, layoutInstr) ← Trellis.layoutTrackedIO measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
             let livenessHold := rs.phaseProbe.livenessHoldNext
             let deferredLayoutTemps :=
@@ -679,5 +662,7 @@ def unifiedDemo : IO Unit := do
       rs.spiderEnv.currentScope.dispose
       cleanupAssets rs.assets
   c.destroy
+  Trellis.setLayoutInstrumentationConfig prevLayoutConfig
+  Trellis.resetLayoutCache
 
 end Demos

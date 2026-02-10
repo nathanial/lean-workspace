@@ -63,11 +63,16 @@ private structure BenchAccum where
   collectMs : Float := 0
   hitTestMs : Float := 0
   hoverMs : Float := 0
+  layoutCacheHits : Nat := 0
+  layoutCacheMisses : Nat := 0
+  layoutReusedNodes : Nat := 0
+  layoutRecomputedNodes : Nat := 0
 
 deriving Inhabited
 
 private def BenchAccum.add (acc : BenchAccum)
-    (update build measure layout hitIndexBuild nameMapSync collect hitTest hover : Float) : BenchAccum :=
+    (update build measure layout hitIndexBuild nameMapSync collect hitTest hover : Float)
+    (layoutCacheHits layoutCacheMisses layoutReusedNodes layoutRecomputedNodes : Nat) : BenchAccum :=
   { acc with
     frames := acc.frames + 1
     updateMs := acc.updateMs + update
@@ -79,6 +84,10 @@ private def BenchAccum.add (acc : BenchAccum)
     collectMs := acc.collectMs + collect
     hitTestMs := acc.hitTestMs + hitTest
     hoverMs := acc.hoverMs + hover
+    layoutCacheHits := acc.layoutCacheHits + layoutCacheHits
+    layoutCacheMisses := acc.layoutCacheMisses + layoutCacheMisses
+    layoutReusedNodes := acc.layoutReusedNodes + layoutReusedNodes
+    layoutRecomputedNodes := acc.layoutRecomputedNodes + layoutRecomputedNodes
   }
 
 private def avg (sum : Float) (frames : Nat) : Float :=
@@ -98,6 +107,10 @@ private structure BenchResult where
   collectMs : Float
   hitTestMs : Float
   hoverMs : Float
+  layoutCacheHits : Nat
+  layoutCacheMisses : Nat
+  layoutReusedNodes : Nat
+  layoutRecomputedNodes : Nat
 
 deriving Inhabited
 
@@ -105,13 +118,22 @@ private def BenchResult.totalMs (r : BenchResult) : Float :=
   r.updateMs + r.buildMs + r.measureMs + r.layoutMs +
     r.hitIndexBuildMs + r.nameMapSyncMs + r.collectMs + r.hitTestMs + r.hoverMs
 
+private def BenchResult.layoutCacheHitRate (r : BenchResult) : Float :=
+  let total := r.layoutCacheHits + r.layoutCacheMisses
+  if total == 0 then 0 else r.layoutCacheHits.toFloat / total.toFloat
+
+private def BenchResult.layoutRecomputeRatio (r : BenchResult) : Float :=
+  let total := r.layoutReusedNodes + r.layoutRecomputedNodes
+  if total == 0 then 0 else r.layoutRecomputedNodes.toFloat / total.toFloat
+
 private def BenchResult.format (label : String) (r : BenchResult) : String :=
   s!"{label}: frames={r.frames}, targets={r.targetCount}, widgets={r.widgetCount}, nodes={r.layoutNodeCount}, " ++
   s!"update={fmtMs r.updateMs}ms, build={fmtMs r.buildMs}ms, measure={fmtMs r.measureMs}ms, " ++
   s!"layout={fmtMs r.layoutMs}ms, " ++
   s!"hitIndexBuild={fmtMs r.hitIndexBuildMs}ms, nameMapSync={fmtMs r.nameMapSyncMs}ms, " ++
   s!"collect={fmtMs r.collectMs}ms, " ++
-  s!"hitTest={fmtMs r.hitTestMs}ms, hover={fmtMs r.hoverMs}ms, total={fmtMs r.totalMs}ms"
+  s!"hitTest={fmtMs r.hitTestMs}ms, hover={fmtMs r.hoverMs}ms, total={fmtMs r.totalMs}ms, " ++
+  s!"layoutCache hitRate={fmtMs (r.layoutCacheHitRate * 100.0)}%, recomputeRatio={fmtMs (r.layoutRecomputeRatio * 100.0)}%"
 
 private def BenchResult.diff (base next : BenchResult) : BenchResult :=
   { frames := next.frames
@@ -126,7 +148,11 @@ private def BenchResult.diff (base next : BenchResult) : BenchResult :=
     nameMapSyncMs := next.nameMapSyncMs - base.nameMapSyncMs
     collectMs := next.collectMs - base.collectMs
     hitTestMs := next.hitTestMs - base.hitTestMs
-    hoverMs := next.hoverMs - base.hoverMs }
+    hoverMs := next.hoverMs - base.hoverMs
+    layoutCacheHits := next.layoutCacheHits - base.layoutCacheHits
+    layoutCacheMisses := next.layoutCacheMisses - base.layoutCacheMisses
+    layoutReusedNodes := next.layoutReusedNodes - base.layoutReusedNodes
+    layoutRecomputedNodes := next.layoutRecomputedNodes - base.layoutRecomputedNodes }
 
 private structure BenchAssets where
   registry : FontRegistry
@@ -236,120 +262,203 @@ private def collectCentersByPrefix (index : HitTestIndex) (namePrefix : String) 
 
 private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     (registry : FontRegistry) (config : BenchConfig) (targetPrefix : String) : IO BenchResult := do
-  let renderCache ← IO.mkRef RenderCache.empty
-  let interactiveNamesProbe ← IO.mkRef #[]
-  let totalFrames := config.warmupFrames + config.sampleFrames
-  let mut cache : Option BenchFrameCache := none
-  let mut hoverPoints : Array (Float × Float) := #[]
-  let mut targetCount : Nat := 0
-  let mut widgetCount : Nat := 0
-  let mut layoutNodeCount : Nat := 0
-  let mut accum : BenchAccum := {}
+  let prevLayoutConfig ← Trellis.getLayoutInstrumentationConfig
+  Trellis.setLayoutInstrumentationConfig
+    { prevLayoutConfig with layoutCacheEnabled := true, strictValidationMode := false }
+  Trellis.resetLayoutCache
+  try
+    let renderCache ← IO.mkRef RenderCache.empty
+    let interactiveNamesProbe ← IO.mkRef #[]
+    let totalFrames := config.warmupFrames + config.sampleFrames
+    let mut cache : Option BenchFrameCache := none
+    let mut hoverPoints : Array (Float × Float) := #[]
+    let mut targetCount : Nat := 0
+    let mut widgetCount : Nat := 0
+    let mut layoutNodeCount : Nat := 0
+    let mut accum : BenchAccum := {}
 
-  for frameIdx in [0:totalFrames] do
-    let mut hitTestMs := 0.0
-    let mut hoverMs := 0.0
-    if config.withHover then
-      match cache with
-      | some cached =>
-          let fallback := (config.screenW / 2.0, config.screenH / 2.0)
-          let point :=
-            if hoverPoints.isEmpty then fallback
-            else hoverPoints.getD (frameIdx % hoverPoints.size) fallback
-          let (x, y) := point
-          let tHit0 ← IO.monoNanosNow
-          let hitPath := Afferent.Arbor.hitTestPathIndexed cached.hitIndex x y
-          let tHit1 ← IO.monoNanosNow
-          let hoverData : HoverData := {
-            x := x
-            y := y
-            hitPath := hitPath
-            widget := cached.widget
-            layouts := cached.layouts
-            nameMap := cached.hitIndex.nameMap
-          }
-          let tHover0 ← IO.monoNanosNow
-          inputs.fireHover hoverData
-          let tHover1 ← IO.monoNanosNow
-          hitTestMs := deltaMs tHit0 tHit1
-          hoverMs := deltaMs tHover0 tHover1
-      | none => pure ()
+    for frameIdx in [0:totalFrames] do
+      let mut hitTestMs := 0.0
+      let mut hoverMs := 0.0
+      if config.withHover then
+        match cache with
+        | some cached =>
+            let fallback := (config.screenW / 2.0, config.screenH / 2.0)
+            let point :=
+              if hoverPoints.isEmpty then fallback
+              else hoverPoints.getD (frameIdx % hoverPoints.size) fallback
+            let (x, y) := point
+            let tHit0 ← IO.monoNanosNow
+            let hitPath := Afferent.Arbor.hitTestPathIndexed cached.hitIndex x y
+            let tHit1 ← IO.monoNanosNow
+            let hoverData : HoverData := {
+              x := x
+              y := y
+              hitPath := hitPath
+              widget := cached.widget
+              layouts := cached.layouts
+              nameMap := cached.hitIndex.nameMap
+            }
+            let tHover0 ← IO.monoNanosNow
+            inputs.fireHover hoverData
+            let tHover1 ← IO.monoNanosNow
+            hitTestMs := deltaMs tHit0 tHit1
+            hoverMs := deltaMs tHover0 tHover1
+        | none => pure ()
 
-    let tUpdate0 ← IO.monoNanosNow
-    inputs.fireAnimationFrame config.dt
-    let builder ← render
-    let tUpdate1 ← IO.monoNanosNow
+      let tUpdate0 ← IO.monoNanosNow
+      inputs.fireAnimationFrame config.dt
+      let builder ← render
+      let tUpdate1 ← IO.monoNanosNow
 
-    let tBuild0 ← IO.monoNanosNow
-    let widget := Afferent.Arbor.buildFrom 0 builder
-    let tBuild1 ← IO.monoNanosNow
+      let tBuild0 ← IO.monoNanosNow
+      let widget := Afferent.Arbor.buildFrom 0 builder
+      let tBuild1 ← IO.monoNanosNow
 
-    let tMeasure0 ← IO.monoNanosNow
-    let measureResult ← Afferent.runWithFonts registry
-      (Afferent.Arbor.measureWidget widget config.screenW config.screenH)
-    let tMeasure1 ← IO.monoNanosNow
+      let tMeasure0 ← IO.monoNanosNow
+      let measureResult ← Afferent.runWithFonts registry
+        (Afferent.Arbor.measureWidget widget config.screenW config.screenH)
+      let tMeasure1 ← IO.monoNanosNow
 
-    let tLayout0 ← IO.monoNanosNow
-    let layouts := Trellis.layout measureResult.node config.screenW config.screenH
-    let layoutCount := layouts.layouts.size
-    let _ := layouts.layoutMap.size
-    let tLayout1 ← IO.monoNanosNow
+      let tLayout0 ← IO.monoNanosNow
+      let (layouts, layoutInstr) ← Trellis.layoutTrackedIO measureResult.node config.screenW config.screenH
+      let layoutCount := layouts.layouts.size
+      let _ := layouts.layoutMap.size
+      let tLayout1 ← IO.monoNanosNow
 
-    let tHitIndex0 ← IO.monoNanosNow
-    let hitIndex := Afferent.Arbor.buildHitTestIndex measureResult.widget layouts
-    let tHitIndex1 ← IO.monoNanosNow
-    let mut nameMapSyncMs := 0.0
-    if config.includeNameMapSyncProbe then
-      let tNameMap0 ← IO.monoNanosNow
-      let interactiveNames :=
-        hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
-      interactiveNamesProbe.set interactiveNames
-      let tNameMap1 ← IO.monoNanosNow
-      nameMapSyncMs := deltaMs tNameMap0 tNameMap1
+      let tHitIndex0 ← IO.monoNanosNow
+      let hitIndex := Afferent.Arbor.buildHitTestIndex measureResult.widget layouts
+      let tHitIndex1 ← IO.monoNanosNow
+      let mut nameMapSyncMs := 0.0
+      if config.includeNameMapSyncProbe then
+        let tNameMap0 ← IO.monoNanosNow
+        let interactiveNames :=
+          hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
+        interactiveNamesProbe.set interactiveNames
+        let tNameMap1 ← IO.monoNanosNow
+        nameMapSyncMs := deltaMs tNameMap0 tNameMap1
 
-    let tCollect0 ← IO.monoNanosNow
-    let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
-      measureResult.widget layouts
-    let tCollect1 ← IO.monoNanosNow
+      let tCollect0 ← IO.monoNanosNow
+      let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
+        measureResult.widget layouts
+      let tCollect1 ← IO.monoNanosNow
 
-    cache := some { widget := measureResult.widget, layouts := layouts, hitIndex := hitIndex }
+      cache := some { widget := measureResult.widget, layouts := layouts, hitIndex := hitIndex }
 
-    if hoverPoints.isEmpty then
-      hoverPoints := collectCentersByPrefix hitIndex targetPrefix
-      targetCount := hoverPoints.size
-    if widgetCount == 0 then
-      widgetCount := measureResult.widget.widgetCount
-    if layoutNodeCount == 0 then
-      layoutNodeCount := layoutCount
+      if hoverPoints.isEmpty then
+        hoverPoints := collectCentersByPrefix hitIndex targetPrefix
+        targetCount := hoverPoints.size
+      if widgetCount == 0 then
+        widgetCount := measureResult.widget.widgetCount
+      if layoutNodeCount == 0 then
+        layoutNodeCount := layoutCount
 
-    if frameIdx >= config.warmupFrames then
-      accum := accum.add
-        (deltaMs tUpdate0 tUpdate1)
-        (deltaMs tBuild0 tBuild1)
-        (deltaMs tMeasure0 tMeasure1)
-        (deltaMs tLayout0 tLayout1)
-        (deltaMs tHitIndex0 tHitIndex1)
-        nameMapSyncMs
-        (deltaMs tCollect0 tCollect1)
-        hitTestMs
-        hoverMs
+      if frameIdx >= config.warmupFrames then
+        accum := accum.add
+          (deltaMs tUpdate0 tUpdate1)
+          (deltaMs tBuild0 tBuild1)
+          (deltaMs tMeasure0 tMeasure1)
+          (deltaMs tLayout0 tLayout1)
+          (deltaMs tHitIndex0 tHitIndex1)
+          nameMapSyncMs
+          (deltaMs tCollect0 tCollect1)
+          hitTestMs
+          hoverMs
+          layoutInstr.layoutCacheHits
+          layoutInstr.layoutCacheMisses
+          layoutInstr.reusedNodeCount
+          layoutInstr.recomputedNodeCount
 
-  let frames := accum.frames
-  pure {
-    frames := frames
-    targetCount := targetCount
-    widgetCount := widgetCount
-    layoutNodeCount := layoutNodeCount
-    updateMs := avg accum.updateMs frames
-    buildMs := avg accum.buildMs frames
-    measureMs := avg accum.measureMs frames
-    layoutMs := avg accum.layoutMs frames
-    hitIndexBuildMs := avg accum.hitIndexBuildMs frames
-    nameMapSyncMs := avg accum.nameMapSyncMs frames
-    collectMs := avg accum.collectMs frames
-    hitTestMs := avg accum.hitTestMs frames
-    hoverMs := avg accum.hoverMs frames
-  }
+    let frames := accum.frames
+    pure {
+      frames := frames
+      targetCount := targetCount
+      widgetCount := widgetCount
+      layoutNodeCount := layoutNodeCount
+      updateMs := avg accum.updateMs frames
+      buildMs := avg accum.buildMs frames
+      measureMs := avg accum.measureMs frames
+      layoutMs := avg accum.layoutMs frames
+      hitIndexBuildMs := avg accum.hitIndexBuildMs frames
+      nameMapSyncMs := avg accum.nameMapSyncMs frames
+      collectMs := avg accum.collectMs frames
+      hitTestMs := avg accum.hitTestMs frames
+      hoverMs := avg accum.hoverMs frames
+      layoutCacheHits := accum.layoutCacheHits
+      layoutCacheMisses := accum.layoutCacheMisses
+      layoutReusedNodes := accum.layoutReusedNodes
+      layoutRecomputedNodes := accum.layoutRecomputedNodes
+    }
+  finally
+    Trellis.setLayoutInstrumentationConfig prevLayoutConfig
+    Trellis.resetLayoutCache
+
+private def buildLargeStaticSubtree : LayoutNode := Id.run do
+  let mut rowNodes : Array LayoutNode := #[]
+  let mut nextId : Nat := 1000
+  for _row in [0:40] do
+    let mut leaves : Array LayoutNode := #[]
+    for _col in [0:40] do
+      let leafId := nextId
+      nextId := nextId + 1
+      leaves := leaves.push (LayoutNode.leaf' leafId 20 12)
+    let rowId := nextId
+    nextId := nextId + 1
+    let rowNode :=
+      LayoutNode.row rowId leaves (gap := 2) (box := {
+        width := .length 1200
+        height := .length 12
+      })
+    rowNodes := rowNodes.push rowNode
+  let rootId := nextId
+  LayoutNode.column rootId rowNodes (gap := 2) (box := { width := .length 1200 })
+
+private def animatedAncestorTree (staticSubtree : LayoutNode) (frame : Nat) : LayoutNode :=
+  let wobble : Float := if frame % 2 == 0 then 0 else 40
+  let animatedHeader := LayoutNode.leaf' 10 (220 + wobble) 24
+  LayoutNode.column 0 #[animatedHeader, staticSubtree] (gap := 8) (box := {
+    width := .length 1400
+    height := .length 900
+  })
+
+private structure CacheProbeResult where
+  hits : Nat := 0
+  misses : Nat := 0
+  reusedNodes : Nat := 0
+  recomputedNodes : Nat := 0
+deriving Inhabited
+
+private def CacheProbeResult.hitRate (r : CacheProbeResult) : Float :=
+  let total := r.hits + r.misses
+  if total == 0 then 0 else r.hits.toFloat / total.toFloat
+
+private def CacheProbeResult.recomputeRatio (r : CacheProbeResult) : Float :=
+  let total := r.reusedNodes + r.recomputedNodes
+  if total == 0 then 0 else r.recomputedNodes.toFloat / total.toFloat
+
+private def runStaticSubtreeProbe (warmupFrames sampleFrames : Nat) : IO CacheProbeResult := do
+  let prevLayoutConfig ← Trellis.getLayoutInstrumentationConfig
+  Trellis.setLayoutInstrumentationConfig
+    { prevLayoutConfig with layoutCacheEnabled := true, strictValidationMode := false }
+  Trellis.resetLayoutCache
+  try
+    let staticSubtree := buildLargeStaticSubtree
+    let totalFrames := warmupFrames + sampleFrames
+    let mut result : CacheProbeResult := {}
+    for frameIdx in [0:totalFrames] do
+      let tree := animatedAncestorTree staticSubtree frameIdx
+      let (_layouts, stats) ← Trellis.layoutTrackedIO tree 1400 900
+      if frameIdx >= warmupFrames then
+        result := {
+          hits := result.hits + stats.layoutCacheHits
+          misses := result.misses + stats.layoutCacheMisses
+          reusedNodes := result.reusedNodes + stats.reusedNodeCount
+          recomputedNodes := result.recomputedNodes + stats.recomputedNodeCount
+        }
+    pure result
+  finally
+    Trellis.setLayoutInstrumentationConfig prevLayoutConfig
+    Trellis.resetLayoutCache
 
 open Crucible
 
@@ -438,6 +547,50 @@ test "stepper pipeline baseline vs hover" := do
 
     ensure (hover.targetCount == 1000)
       s!"Expected 1000 stepper buttons, got {hover.targetCount}"
+    ensure (baseline.layoutCacheHitRate >= 0.50)
+      s!"Expected stepper baseline layout-cache hit rate >= 50%, got {fmtMs (baseline.layoutCacheHitRate * 100.0)}%"
+    ensure (baseline.layoutRecomputeRatio <= 0.60)
+      s!"Expected stepper baseline recompute ratio <= 60%, got {fmtMs (baseline.layoutRecomputeRatio * 100.0)}%"
+    ensure (hover.layoutCacheHitRate >= 0.40)
+      s!"Expected stepper hover layout-cache hit rate >= 40%, got {fmtMs (hover.layoutCacheHitRate * 100.0)}%"
+    ensure (hover.layoutRecomputeRatio <= 0.70)
+      s!"Expected stepper hover recompute ratio <= 70%, got {fmtMs (hover.layoutRecomputeRatio * 100.0)}%"
+  finally
+    appBaseline.shutdown
+    appHover.shutdown
+    destroyBenchAssets assets
+
+test "layout cache reuses static large subtree under animated ancestor" := do
+  let probe ← runStaticSubtreeProbe 4 20
+  IO.println s!"subtree-cache probe: hits={probe.hits}, misses={probe.misses}, reused={probe.reusedNodes}, recomputed={probe.recomputedNodes}, hitRate={fmtMs (probe.hitRate * 100.0)}%, recomputeRatio={fmtMs (probe.recomputeRatio * 100.0)}%"
+  ensure (probe.hitRate >= 0.80)
+    s!"Expected layout-cache hit rate >= 80% for static subtree scenario, got {fmtMs (probe.hitRate * 100.0)}%"
+  ensure (probe.recomputeRatio <= 0.30)
+    s!"Expected recompute ratio <= 30% for static subtree scenario, got {fmtMs (probe.recomputeRatio * 100.0)}%"
+
+test "mixed pipeline partial updates retain layout cache reuse" := do
+  let assets ← loadBenchAssets
+  let appBaseline ← initBenchApp assets .mixed
+  let appHover ← initBenchApp assets .mixed
+
+  let baseConfig : BenchConfig := { withHover := false }
+  let hoverConfig : BenchConfig := { withHover := true }
+
+  try
+    let baseline ← runBench appBaseline.render appBaseline.inputs assets.registry baseConfig "switch-"
+    let hover ← runBench appHover.render appHover.inputs assets.registry hoverConfig "switch-"
+    let delta := BenchResult.diff baseline hover
+
+    IO.println (BenchResult.format "baseline (mixed)" baseline)
+    IO.println (BenchResult.format "hover (mixed)" hover)
+    IO.println (BenchResult.format "delta(hover-baseline) (mixed)" delta)
+
+    ensure (hover.targetCount > 0)
+      "Expected at least one hover target in mixed tree"
+    ensure (hover.layoutCacheHits > 0)
+      "Expected mixed hover scenario to record layout-cache hits"
+    ensure (hover.layoutRecomputeRatio < 0.95)
+      s!"Expected mixed hover recompute ratio < 95%, got {fmtMs (hover.layoutRecomputeRatio * 100.0)}%"
   finally
     appBaseline.shutdown
     appHover.shutdown

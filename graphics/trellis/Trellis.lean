@@ -9,5 +9,6 @@ import Trellis.Grid
 import Trellis.Axis
 import Trellis.Node
 import Trellis.Result
+import Trellis.LayoutCache
 import Trellis.Debug
 import Trellis.Algorithm

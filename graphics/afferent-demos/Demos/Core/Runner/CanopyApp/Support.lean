@@ -46,6 +46,14 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
     else
       let reduced := stats.commandCount.toFloat - stats.coalescedCommandCount.toFloat
       reduced / stats.commandCount.toFloat
+  let layoutCacheTotal := stats.layoutCacheHits + stats.layoutCacheMisses
+  let layoutCacheHitRate :=
+    if layoutCacheTotal == 0 then 0.0
+    else stats.layoutCacheHits.toFloat / layoutCacheTotal.toFloat
+  let layoutNodeTotal := stats.layoutReusedNodes + stats.layoutRecomputedNodes
+  let layoutRecomputeRatio :=
+    if layoutNodeTotal == 0 then 0.0
+    else stats.layoutRecomputedNodes.toFloat / layoutNodeTotal.toFloat
   let accountingGap := Float.abs stats.unaccountedMs
   let line1 := s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
   let line2 := s!"begin {formatFloat stats.beginFrameMs}ms • pre-input {formatFloat stats.preInputMs}ms • input {formatFloat stats.inputMs}ms • reactive {formatFloat stats.reactiveMs}ms (prop {formatFloat stats.reactivePropagateMs}ms • render {formatFloat stats.reactiveRenderMs}ms)"
@@ -57,7 +65,7 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line8 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
   let line9 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
   let line10 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
-  let line10b := s!"layout-cache hits {stats.layoutCacheHits} • misses {stats.layoutCacheMisses} • reused {stats.layoutReusedNodes} • recomputed {stats.layoutRecomputedNodes} • tracked {formatFloat stats.layoutTrackedMs}ms • strict {stats.layoutStrictValidationChecks}/{stats.layoutStrictValidationFailures}"
+  let line10b := s!"layout-cache hits {stats.layoutCacheHits} • misses {stats.layoutCacheMisses} • hit rate {formatPercent layoutCacheHitRate} • reused {stats.layoutReusedNodes} • recomputed {stats.layoutRecomputedNodes} ({formatPercent layoutRecomputeRatio}) • tracked {formatFloat stats.layoutTrackedMs}ms • strict {stats.layoutStrictValidationChecks}/{stats.layoutStrictValidationFailures}"
   let line10c := s!"measure-cache hits {stats.measureCacheHits} • misses {stats.measureCacheMisses} • bypass {stats.measureCacheBypasses} • lookup {formatFloat stats.measureCacheLookupMs}ms • compute {formatFloat stats.measureCacheComputeMs}ms"
   let currentOrder :=
     if stats.probeCollectFirstThisFrame then "collect->index"

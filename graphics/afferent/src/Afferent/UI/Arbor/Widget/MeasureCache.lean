@@ -75,33 +75,25 @@ def snapshotMeasureCacheInstrumentation : IO MeasureCacheInstrumentation :=
 Widget measurement is expensive due to text layout computation (FreeType calls).
 This cache stores MeasureResult across frames to avoid redundant measurement.
 
-Widget IDs are auto-generated sequentially (0, 1, 2...) by `freshId` each frame.
-Same widget tree structure -> same IDs, so caching by (widgetId, constraints) works
-when the tree structure is stable.
+Keys include both widget identity and a layout-affecting input signature, so
+cache hits are reused only when measurement inputs are unchanged.
 
 Key insight: `measureWidget` already reuses TextLayout if present in the widget.
 By caching the entire MeasureResult (which contains the updated widget with
 computed TextLayout), we get text layout reuse automatically. -/
 
 /-- Key for looking up cached measurements.
-    Combines widget ID with available space constraints. -/
+    Combines widget identity with layout-affecting input signature. -/
 structure MeasureCacheKey where
   widgetId : Nat
-  availWidth : Float
-  availHeight : Float
+  inputSig : UInt64
 deriving BEq
-
-/-- Hash a Float by converting to UInt64 bits with quantization for stability. -/
-private def hashFloat (f : Float) : UInt64 :=
-  -- Quantize to 0.1 precision to reduce cache misses from tiny variations
-  (f * 10).toUInt64
 
 instance : Hashable MeasureCacheKey where
   hash k :=
     let h1 := hash k.widgetId
-    let h2 := hashFloat k.availWidth
-    let h3 := hashFloat k.availHeight
-    mixHash (mixHash h1 h2) h3
+    let h2 := hash k.inputSig
+    mixHash h1 h2
 
 /-- Default maximum number of cached entries. -/
 def defaultMeasureCacheCapacity : Nat := 512
@@ -252,10 +244,17 @@ end MeasureCache
 For centered layout, we also need to cache intrinsic size computation.
 This avoids the double traversal problem. -/
 
-/-- Key for caching intrinsic size by widget ID. -/
+/-- Key for caching intrinsic size by widget and layout-affecting inputs. -/
 structure IntrinsicCacheKey where
   widgetId : Nat
-deriving BEq, Hashable
+  inputSig : UInt64
+deriving BEq
+
+instance : Hashable IntrinsicCacheKey where
+  hash k :=
+    let h1 := hash k.widgetId
+    let h2 := hash k.inputSig
+    mixHash h1 h2
 
 /-- Result of intrinsicSizeWithWidget: dimensions plus updated widget with TextLayouts. -/
 structure IntrinsicResult where
@@ -395,77 +394,9 @@ def hitRate (ic : IntrinsicCache) : Float :=
 
 end IntrinsicCache
 
-/-! ## Cache Compatibility / Rehydration -/
-
-/-- Compare only the BoxStyle fields that affect measurement/layout. -/
-private def sameLayoutStyle (a b : BoxStyle) : Bool :=
-  a.padding == b.padding &&
-  a.margin == b.margin &&
-  a.width == b.width &&
-  a.height == b.height &&
-  a.minWidth == b.minWidth &&
-  a.maxWidth == b.maxWidth &&
-  a.minHeight == b.minHeight &&
-  a.maxHeight == b.maxHeight &&
-  a.position == b.position &&
-  a.top == b.top &&
-  a.right == b.right &&
-  a.bottom == b.bottom &&
-  a.left == b.left &&
-  a.flexItem == b.flexItem &&
-  a.gridItem == b.gridItem
+/-! ## Cache Rehydration -/
 
 mutual
-
-private partial def measureInputsCompatibleChildren (current cached : Array Widget) : Bool := Id.run do
-  if current.size != cached.size then
-    return false
-  for i in [:current.size] do
-    if !measureInputsCompatible current[i]! cached[i]! then
-      return false
-  return true
-
-/-- True when cached measurement/layout is still valid for the current widget inputs.
-    Ignores visual-only fields that do not impact measurement. -/
-private partial def measureInputsCompatible (current cached : Widget) : Bool :=
-  match current, cached with
-  | .text id _ content font _ _ maxWidth _,
-    .text id' _ content' font' _ _ maxWidth' _ =>
-      id == id' &&
-      content == content' &&
-      font == font' &&
-      maxWidth == maxWidth'
-  | .rect id _ style,
-    .rect id' _ style' =>
-      id == id' && sameLayoutStyle style style'
-  | .spacer id _ width height,
-    .spacer id' _ width' height' =>
-      id == id' && width == width' && height == height'
-  | .custom id _ style spec,
-    .custom id' _ style' spec' =>
-      id == id' &&
-      sameLayoutStyle style style' &&
-      spec.generation == spec'.generation
-  | .flex id _ props style children,
-    .flex id' _ props' style' children' =>
-      id == id' &&
-      props == props' &&
-      sameLayoutStyle style style' &&
-      measureInputsCompatibleChildren children children'
-  | .grid id _ props style children,
-    .grid id' _ props' style' children' =>
-      id == id' &&
-      props == props' &&
-      sameLayoutStyle style style' &&
-      measureInputsCompatibleChildren children children'
-  | .scroll id _ style _ contentW contentH _ child,
-    .scroll id' _ style' _ contentW' contentH' _ child' =>
-      id == id' &&
-      sameLayoutStyle style style' &&
-      contentW == contentW' &&
-      contentH == contentH' &&
-      measureInputsCompatible child child'
-  | _, _ => false
 
 private partial def graftMeasuredChildren (current cached : Array Widget) : Array Widget := Id.run do
   let mut out : Array Widget := Array.mkEmpty current.size
@@ -518,29 +449,18 @@ def measureWidgetCached (cache : IO.Ref MeasureCache) (w : Widget) (availWidth a
       { s with bypasses := s.bypasses + 1, computeNanos := s.computeNanos + (t1 - t0) }
     pure result
   else
-    let key : MeasureCacheKey := { widgetId := w.id, availWidth, availHeight }
+    let key : MeasureCacheKey :=
+      { widgetId := w.id, inputSig := measureInputsSignature w availWidth availHeight }
     let cacheState ← cache.get
     let tLookup0 ← IO.monoNanosNow
     match cacheState.find? key with
     | some cachedResult =>
       let tLookup1 ← IO.monoNanosNow
-      if measureInputsCompatible w cachedResult.widget then
-        let result := { cachedResult with widget := graftMeasuredState w cachedResult.widget }
-        cache.modify fun c => (c.touch key).recordHit
-        measureCacheInstrumentationRef.modify fun s =>
-          { s with hits := s.hits + 1, lookupNanos := s.lookupNanos + (tLookup1 - tLookup0) }
-        pure result
-      else
-        let tCompute0 ← IO.monoNanosNow
-        let result ← measureWidget w availWidth availHeight
-        let tCompute1 ← IO.monoNanosNow
-        cache.modify fun c => (c.insert key result).recordMiss
-        measureCacheInstrumentationRef.modify fun s =>
-          { s with
-              misses := s.misses + 1
-              lookupNanos := s.lookupNanos + (tLookup1 - tLookup0)
-              computeNanos := s.computeNanos + (tCompute1 - tCompute0) }
-        pure result
+      let result := { cachedResult with widget := graftMeasuredState w cachedResult.widget }
+      cache.modify fun c => (c.touch key).recordHit
+      measureCacheInstrumentationRef.modify fun s =>
+        { s with hits := s.hits + 1, lookupNanos := s.lookupNanos + (tLookup1 - tLookup0) }
+      pure result
     | none =>
       let tLookup1 ← IO.monoNanosNow
       let tCompute0 ← IO.monoNanosNow
@@ -563,19 +483,13 @@ def intrinsicSizeCached (cache : IO.Ref IntrinsicCache) (w : Widget)
     let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
     pure { width, height, widget := updatedWidget }
   else
-    let key : IntrinsicCacheKey := { widgetId := w.id }
+    let key : IntrinsicCacheKey := { widgetId := w.id, inputSig := w.layoutSignature }
     let cacheState ← cache.get
     match cacheState.find? key with
     | some cached =>
-      if measureInputsCompatible w cached.widget then
-        let result := { cached with widget := graftMeasuredState w cached.widget }
-        cache.modify fun c => (c.touch key).recordHit
-        pure result
-      else
-        let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
-        let result : IntrinsicResult := { width, height, widget := updatedWidget }
-        cache.modify fun c => (c.insert key result).recordMiss
-        pure result
+      let result := { cached with widget := graftMeasuredState w cached.widget }
+      cache.modify fun c => (c.touch key).recordHit
+      pure result
     | none =>
       let (width, height, updatedWidget) ← intrinsicSizeWithWidget w
       let result : IntrinsicResult := { width, height, widget := updatedWidget }

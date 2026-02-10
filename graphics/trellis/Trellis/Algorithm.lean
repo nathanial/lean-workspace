@@ -13,6 +13,7 @@ import Trellis.Grid
 import Trellis.Node
 import Trellis.Axis
 import Trellis.Result
+import Trellis.LayoutCache
 import Trellis.Debug
 import Trellis.FlexAlgorithm
 import Trellis.GridAlgorithm
@@ -364,15 +365,268 @@ def layoutDebug (root : LayoutNode) (availableWidth availableHeight : Length) : 
 
   { result := LayoutResult.ofLayouts resultLayouts, debug }
 
-/-! ## Layout Cache Instrumentation (M0 scaffolding)
+/-! ## Cached Layout Engine (M3) -/
 
-This section provides runtime toggles and counters used by the demo runner and
-tests. Full subtree cache implementation is introduced in later milestones.
--/
+private def sigTag (tag : Nat) : UInt64 :=
+  UInt64.ofNat tag
+
+private def sigHashRepr {α : Type} [Repr α] (value : α) : UInt64 :=
+  hash (toString (repr value))
+
+private def sigMix64 (x : UInt64) : UInt64 :=
+  let z1 := x + (0x9e3779b97f4a7c15 : UInt64)
+  let z2 := (z1 ^^^ (z1 >>> 30)) * (0xbf58476d1ce4e5b9 : UInt64)
+  let z3 := (z2 ^^^ (z2 >>> 27)) * (0x94d049bb133111eb : UInt64)
+  z3 ^^^ (z3 >>> 31)
+
+private def sigCombine (a b : UInt64) : UInt64 :=
+  let salt : UInt64 := 0x9e3779b97f4a7c15
+  sigMix64 (a ^^^ (b + salt) ^^^ (a <<< 6) ^^^ (a >>> 2))
+
+private def localLayoutSignature (node : LayoutNode) (childSigs : Array UInt64) : UInt64 :=
+  let sig0 := sigTag 0x4c41594f5554 -- "LAYOUT"
+  let sig1 := sigCombine sig0 (sigHashRepr node.box)
+  let sig2 := sigCombine sig1 (sigHashRepr node.container)
+  let sig3 := sigCombine sig2 (sigHashRepr node.item)
+  let sig4 := sigCombine sig3 (sigHashRepr node.content)
+  let sig5 := sigCombine sig4 (UInt64.ofNat childSigs.size)
+  childSigs.foldl sigCombine sig5
+
+private inductive SignatureWorkItem where
+  | visit (node : LayoutNode)
+  | combine (node : LayoutNode)
+deriving Inhabited
+
+/-- Compute subtree layout signatures for all nodes in one post-order pass. -/
+private def measureAllLayoutSignatures (root : LayoutNode) : Std.HashMap Nat UInt64 := Id.run do
+  let estimatedNodes := max 8 root.nodeCount
+  let mut signatures : Std.HashMap Nat UInt64 := Std.HashMap.emptyWithCapacity estimatedNodes
+  let mut stack : Array SignatureWorkItem := (Array.mkEmpty estimatedNodes).push (.visit root)
+  while !stack.isEmpty do
+    let item := stack.back!
+    stack := stack.pop
+    match item with
+    | .visit node =>
+      if signatures.contains node.id then
+        continue
+      if node.children.isEmpty then
+        signatures := signatures.insert node.id (localLayoutSignature node #[])
+      else
+        stack := stack.push (.combine node)
+        for child in node.children.reverse do
+          stack := stack.push (.visit child)
+    | .combine node =>
+      let childSigs := node.children.map fun child =>
+        signatures.getD child.id 0
+      signatures := signatures.insert node.id (localLayoutSignature node childSigs)
+  signatures
+
+private def subgridContextSignature (subgridContext : Option SubgridContext) : UInt64 :=
+  sigHashRepr subgridContext
+
+private def buildLayoutCacheKey (signatures : Std.HashMap Nat UInt64)
+    (item : LayoutWorkItem) : LayoutCacheKey :=
+  { subtreeId := item.node.id
+    signature := signatures.getD item.node.id 0
+    availableWidth := item.availableWidth
+    availableHeight := item.availableHeight
+    subgridSignature := subgridContextSignature item.subgridContext }
+
+private def appendTranslatedLayouts
+    (target : Array ComputedLayout)
+    (source : Array ComputedLayout)
+    (dx dy : Length)
+    (skipRoot : Bool := false) : Array ComputedLayout := Id.run do
+  let mut out := target
+  let start := if skipRoot then min 1 source.size else 0
+  for i in [start:source.size] do
+    let cl := source[i]!
+    out := out.push {
+      cl with
+      borderRect := cl.borderRect.translate dx dy
+      contentRect := cl.contentRect.translate dx dy
+    }
+  out
+
+private def findLayoutByNodeId (layouts : Array ComputedLayout) (nodeId : Nat) : Option ComputedLayout := Id.run do
+  for cl in layouts do
+    if cl.nodeId == nodeId then
+      return some cl
+  none
+
+private structure PendingCacheBuild where
+  nodeId : Nat
+  cacheKey : LayoutCacheKey
+  rootLocal : ComputedLayout
+  childLayoutsLocal : Array ComputedLayout
+  nonLeafChildIds : Array Nat
+deriving Inhabited
+
+private inductive CachedLayoutWorkItem where
+  | visit (item : LayoutWorkItem)
+  | complete (pending : PendingCacheBuild)
+deriving Inhabited
+
+/-- Internal cache-pass stats before timing/validation decoration. -/
+private structure CachePassStats where
+  layoutCacheHits : Nat := 0
+  layoutCacheMisses : Nat := 0
+  reusedNodeCount : Nat := 0
+  recomputedNodeCount : Nat := 0
+
+/-- Cached tracked layout pass. Uses LRU subtree cache and returns updated state. -/
+private def layoutWithCacheState (cache : LayoutCache)
+    (root : LayoutNode) (availableWidth availableHeight : Length)
+    : LayoutResult × CachePassStats × LayoutCache := Id.run do
+  let allSizes := measureAllIntrinsicSizes root
+  let allSignatures := measureAllLayoutSignatures root
+  let getSize : LayoutNode → Length × Length := fun node =>
+    allSizes.getD node.id (0, 0)
+
+  let estimatedNodes := max 8 allSizes.size
+  let mut resultLayouts : Array ComputedLayout := Array.mkEmpty estimatedNodes
+  let mut stack : Array CachedLayoutWorkItem :=
+    (Array.mkEmpty estimatedNodes).push (.visit ⟨root, availableWidth, availableHeight, 0, 0, true, none⟩)
+  let mut cacheState := cache
+  let mut localSubtrees : Std.HashMap Nat (Array ComputedLayout) :=
+    Std.HashMap.emptyWithCapacity estimatedNodes
+  let mut hits := 0
+  let mut misses := 0
+  let mut reusedNodes := 0
+
+  while !stack.isEmpty do
+    let work := stack.back!
+    stack := stack.pop
+    match work with
+    | .visit item =>
+      let node := item.node
+      let box := node.box
+      let contentSize := getSize node
+      let isContainer := !node.isLeaf
+      let resolvedWidth := match box.width with
+        | .auto => if isContainer then item.availableWidth else contentSize.1
+        | dim => dim.resolve item.availableWidth contentSize.1
+      let resolvedHeight := match box.height with
+        | .auto => if isContainer then item.availableHeight else contentSize.2
+        | dim => dim.resolve item.availableHeight contentSize.2
+      let (resolvedWidth, resolvedHeight) := applyAspectRatio resolvedWidth resolvedHeight
+        box.width.isAuto box.height.isAuto box.aspectRatio
+      let width := box.clampWidth resolvedWidth
+      let height := box.clampHeight resolvedHeight
+      let rootLocal :=
+        ComputedLayout.withPadding node.id (LayoutRect.mk' 0 0 width height) box.padding
+
+      if node.isLeaf then
+        if item.addOwnLayout then
+          resultLayouts := resultLayouts.push {
+            rootLocal with
+            borderRect := rootLocal.borderRect.translate item.offsetX item.offsetY
+            contentRect := rootLocal.contentRect.translate item.offsetX item.offsetY
+          }
+      else
+        let cacheKey := buildLayoutCacheKey allSignatures item
+        match cacheState.find? cacheKey with
+        | some cached =>
+          hits := hits + 1
+          let skipRoot := !item.addOwnLayout
+          let reusedNow :=
+            if skipRoot then
+              cached.layouts.size - min 1 cached.layouts.size
+            else
+              cached.layouts.size
+          reusedNodes := reusedNodes + reusedNow
+          resultLayouts := appendTranslatedLayouts resultLayouts cached.layouts item.offsetX item.offsetY skipRoot
+          localSubtrees := localSubtrees.insert node.id cached.layouts
+          cacheState := cacheState.touch cacheKey
+        | none =>
+          misses := misses + 1
+          if item.addOwnLayout then
+            resultLayouts := resultLayouts.push {
+              rootLocal with
+              borderRect := rootLocal.borderRect.translate item.offsetX item.offsetY
+              contentRect := rootLocal.contentRect.translate item.offsetX item.offsetY
+            }
+          match node.container with
+          | .flex props =>
+            let childResult := layoutFlexContainer props node.children width height box.padding getSize
+            resultLayouts := appendTranslatedLayouts resultLayouts childResult.layouts item.offsetX item.offsetY
+            let nonLeafChildIds := node.children.foldl (init := #[]) fun acc child =>
+              if child.isLeaf then acc else acc.push child.id
+            stack := stack.push (.complete {
+              nodeId := node.id
+              cacheKey := cacheKey
+              rootLocal := rootLocal
+              childLayoutsLocal := childResult.layouts
+              nonLeafChildIds := nonLeafChildIds
+            })
+            for child in node.children.reverse do
+              if !child.isLeaf then
+                if let some cl := childResult.get child.id then
+                  stack := stack.push (.visit ⟨child, cl.borderRect.width, cl.borderRect.height,
+                    cl.borderRect.x + item.offsetX, cl.borderRect.y + item.offsetY, false, none⟩)
+          | .grid props =>
+            let childLayout := layoutGridContainerInternal props node.children width height box.padding
+              getSize item.subgridContext false
+            let childResult := childLayout.result
+            resultLayouts := appendTranslatedLayouts resultLayouts childResult.layouts item.offsetX item.offsetY
+            let nonLeafChildIds := node.children.foldl (init := #[]) fun acc child =>
+              if child.isLeaf then acc else acc.push child.id
+            stack := stack.push (.complete {
+              nodeId := node.id
+              cacheKey := cacheKey
+              rootLocal := rootLocal
+              childLayoutsLocal := childResult.layouts
+              nonLeafChildIds := nonLeafChildIds
+            })
+            for child in node.children.reverse do
+              if !child.isLeaf then
+                if let some cl := childResult.get child.id then
+                  let subgridCtx := findSubgridContext childLayout.subgridContexts child.id
+                  stack := stack.push (.visit ⟨child, cl.borderRect.width, cl.borderRect.height,
+                    cl.borderRect.x + item.offsetX, cl.borderRect.y + item.offsetY, false, subgridCtx⟩)
+          | .none =>
+            let localLayouts := #[rootLocal]
+            localSubtrees := localSubtrees.insert node.id localLayouts
+            cacheState := cacheState.insert cacheKey { layouts := localLayouts }
+
+    | .complete pending =>
+      let mut localLayouts : Array ComputedLayout := Array.mkEmpty (pending.childLayoutsLocal.size + 1)
+      localLayouts := localLayouts.push pending.rootLocal
+      for cl in pending.childLayoutsLocal do
+        localLayouts := localLayouts.push cl
+      for childId in pending.nonLeafChildIds do
+        match localSubtrees[childId]? with
+        | some childLocal =>
+          localSubtrees := localSubtrees.erase childId
+          if let some childDirect := findLayoutByNodeId pending.childLayoutsLocal childId then
+            for i in [1:childLocal.size] do
+              let cl := childLocal[i]!
+              localLayouts := localLayouts.push {
+                cl with
+                borderRect := cl.borderRect.translate childDirect.borderRect.x childDirect.borderRect.y
+                contentRect := cl.contentRect.translate childDirect.borderRect.x childDirect.borderRect.y
+              }
+        | none =>
+          pure ()
+      localSubtrees := localSubtrees.insert pending.nodeId localLayouts
+      cacheState := cacheState.insert pending.cacheKey { layouts := localLayouts }
+
+  let totalNodes := root.nodeCount
+  let reusedNodeCount := min reusedNodes totalNodes
+  let recomputedNodeCount := totalNodes - reusedNodeCount
+  let stats : CachePassStats := {
+    layoutCacheHits := hits
+    layoutCacheMisses := misses
+    reusedNodeCount := reusedNodeCount
+    recomputedNodeCount := recomputedNodeCount
+  }
+  (LayoutResult.ofLayouts resultLayouts, stats, cacheState)
+
+/-! ## Layout Cache Instrumentation -/
 
 /-- Runtime controls for layout instrumentation/caching. -/
 structure LayoutInstrumentationConfig where
-  /-- Enable layout cache path. M0 records misses/recompute counts only. -/
+  /-- Enable subtree layout cache path in `layoutTrackedIO`. -/
   layoutCacheEnabled : Bool := false
   /-- Run strict validation by comparing tracked layout result to baseline layout. -/
   strictValidationMode : Bool := false
@@ -420,6 +674,9 @@ initialize layoutInstrumentationConfigRef : IO.Ref LayoutInstrumentationConfig �
 initialize layoutInstrumentationStatsRef : IO.Ref LayoutInstrumentationStats ←
   IO.mkRef {}
 
+initialize layoutCacheRef : IO.Ref LayoutCache ←
+  IO.mkRef LayoutCache.empty
+
 /-- Get active layout instrumentation settings. -/
 def getLayoutInstrumentationConfig : IO LayoutInstrumentationConfig :=
   layoutInstrumentationConfigRef.get
@@ -436,23 +693,35 @@ def resetLayoutInstrumentation : IO Unit :=
 def snapshotLayoutInstrumentation : IO LayoutInstrumentationStats :=
   layoutInstrumentationStatsRef.get
 
+/-- Clear persistent subtree layout cache entries. -/
+def resetLayoutCache : IO Unit :=
+  layoutCacheRef.set LayoutCache.empty
+
 /-- Record a layout stats sample into cumulative counters. -/
 def recordLayoutInstrumentation (stats : LayoutInstrumentationStats) : IO Unit :=
   layoutInstrumentationStatsRef.modify (·.add stats)
 
-/-- Run layout and return M0 instrumentation stats for this call.
-    In M0, cache-enabled mode records misses/recomputed nodes only. -/
+/-- Pure instrumentation helper.
+    Cache-enabled mode uses an empty cache state (single-call simulation). -/
 def layoutWithInstrumentation (root : LayoutNode) (availableWidth availableHeight : Length)
     (config : LayoutInstrumentationConfig := {}) : LayoutResult × LayoutInstrumentationStats :=
-  let result := layout root availableWidth availableHeight
-  let recomputed := root.nodeCount
-  let misses := if config.layoutCacheEnabled then 1 else 0
-  (result, {
-    layoutCacheHits := 0
-    layoutCacheMisses := misses
-    reusedNodeCount := 0
-    recomputedNodeCount := recomputed
-  })
+  if config.layoutCacheEnabled then
+    let (result, cacheStats, _cache') := layoutWithCacheState LayoutCache.empty root availableWidth availableHeight
+    let stats : LayoutInstrumentationStats := {
+      layoutCacheHits := cacheStats.layoutCacheHits
+      layoutCacheMisses := cacheStats.layoutCacheMisses
+      reusedNodeCount := cacheStats.reusedNodeCount
+      recomputedNodeCount := cacheStats.recomputedNodeCount
+    }
+    (result, stats)
+  else
+    let result := layout root availableWidth availableHeight
+    (result, {
+      layoutCacheHits := 0
+      layoutCacheMisses := 0
+      reusedNodeCount := 0
+      recomputedNodeCount := root.nodeCount
+    })
 
 /-- IO wrapper that applies active runtime config, optional strict validation,
     and records cumulative instrumentation. -/
@@ -460,7 +729,20 @@ def layoutTrackedIO (root : LayoutNode) (availableWidth availableHeight : Length
     : IO (LayoutResult × LayoutInstrumentationStats) := do
   let config ← getLayoutInstrumentationConfig
   let t0 ← IO.monoNanosNow
-  let (result, baseStats) := layoutWithInstrumentation root availableWidth availableHeight config
+  let (result, baseStats) ←
+    if config.layoutCacheEnabled then
+      let cacheState ← layoutCacheRef.get
+      let (result, cacheStats, cacheState') := layoutWithCacheState cacheState root availableWidth availableHeight
+      layoutCacheRef.set cacheState'
+      let stats : LayoutInstrumentationStats := {
+        layoutCacheHits := cacheStats.layoutCacheHits
+        layoutCacheMisses := cacheStats.layoutCacheMisses
+        reusedNodeCount := cacheStats.reusedNodeCount
+        recomputedNodeCount := cacheStats.recomputedNodeCount
+      }
+      pure (result, stats)
+    else
+      pure (layoutWithInstrumentation root availableWidth availableHeight config)
   let t1 ← IO.monoNanosNow
   let mut stats := { baseStats with totalLayoutNanos := t1 - t0 }
   if config.strictValidationMode then
@@ -468,10 +750,11 @@ def layoutTrackedIO (root : LayoutNode) (availableWidth availableHeight : Length
     let baseline := layout root availableWidth availableHeight
     let tVal1 ← IO.monoNanosNow
     let failed := if baseline.layouts == result.layouts then 0 else 1
+    let validationNanos := max 1 (tVal1 - tVal0)
     stats := { stats with
       strictValidationChecks := 1
       strictValidationFailures := failed
-      strictValidationNanos := tVal1 - tVal0
+      strictValidationNanos := validationNanos
     }
   recordLayoutInstrumentation stats
   pure (result, stats)

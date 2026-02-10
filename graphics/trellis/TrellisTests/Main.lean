@@ -1,6 +1,7 @@
 import Crucible
 import TrellisTests.LayoutTests
 import TrellisTests.LayoutCacheInstrumentationTests
+import TrellisTests.LayoutCacheCorrectnessTests
 import TrellisTests.LayoutSignatureTests
 import TrellisTests.PerformanceTests
 
