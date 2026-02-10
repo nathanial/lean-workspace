@@ -80,12 +80,24 @@ namespace OccupancyGrid
   (1 : UInt64) <<< bit.toUInt64
 
 /-- Bit mask covering [startBit, endBit) within a single UInt64 word. -/
-def maskRange (startBit endBit : Nat) : UInt64 := Id.run do
-  let stop := min endBit 64
-  let mut mask : UInt64 := 0
-  for b in [startBit:stop] do
-    mask := mask ||| bitMask b
-  mask
+@[inline] def maskRange (startBit endBit : Nat) : UInt64 :=
+  if startBit >= endBit then
+    0
+  else
+    let allBits : UInt64 := (0 : UInt64) - 1
+    let lower := if startBit == 0 then
+      allBits
+    else if startBit >= 64 then
+      0
+    else
+      allBits <<< startBit.toUInt64
+    let upper := if endBit == 0 then
+      0
+    else if endBit >= 64 then
+      allBits
+    else
+      ((1 : UInt64) <<< endBit.toUInt64) - 1
+    lower &&& upper
 
 /-- Create an empty occupancy grid. -/
 def create (rows cols : Nat) : OccupancyGrid :=
@@ -143,6 +155,56 @@ def isAreaAvailable (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Na
 /-- Specialized 1x1 availability check. -/
 def isCellAvailable (grid : OccupancyGrid) (row col : Nat) : Bool :=
   !grid.isOccupied row col
+
+/-- Find the first set bit at or after `startBit` in a word. -/
+def firstSetBitFrom (word : UInt64) (startBit : Nat) : Option Nat := Id.run do
+  let mut b := startBit
+  while b < 64 do
+    if (word &&& bitMask b) != 0 then
+      return some b
+    b := b + 1
+  none
+
+/-- Find the first available column in a row for a contiguous span.
+    Used to accelerate dense row auto-placement. -/
+def findFirstAvailableColInRow (grid : OccupancyGrid) (row colStart colLimit colSpan : Nat)
+    : Option Nat := Id.run do
+  if colSpan == 0 || colStart >= colLimit then
+    return none
+  if colSpan > colLimit - colStart then
+    return none
+  if row >= grid.cells.size then
+    return some colStart
+
+  let maxStart := colLimit - colSpan
+  let rowWords := grid.cells[row]!
+  let allBits : UInt64 := (0 : UInt64) - 1
+  let mut c := colStart
+  while c <= maxStart do
+    let wordIdx := c / 64
+    let bit := c % 64
+    if wordIdx < rowWords.size then
+      let word := rowWords[wordIdx]!
+      if colSpan == 1 then
+        let freeBits := ~~~word
+        match firstSetBitFrom freeBits bit with
+        | some freeBit =>
+          let candidate := wordIdx * 64 + freeBit
+          if candidate <= maxStart then
+            return some candidate
+          return none
+        | none =>
+          c := (wordIdx + 1) * 64
+      else if bit == 0 && word == allBits then
+        c := c + 64
+      else if grid.isAreaAvailable row (row + 1) c (c + colSpan) then
+        return some c
+      else
+        c := c + 1
+    else
+      -- Beyond allocated words means all cells are clear.
+      return some c
+  none
 
 /-- Mark a range of cells as occupied. -/
 def markOccupied (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Nat) : OccupancyGrid := Id.run do
@@ -872,29 +934,47 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
   else
     -- Row-major: outer loop rows, inner loop columns (default behavior)
     let maxRow := occ.rows + 10
-    for r in [startRow:maxRow] do
-      if found then break
-      let colStart := if !isDense && r == startRow then startCol else 0
-      for c in [colStart:cols] do
+    if isDense && rowSpan == 1 then
+      for r in [0:maxRow] do
         if found then break
-        if c + colSpan <= cols then
-          if r + rowSpan > occ.rows then
-            occ := occ.extendRows (r + rowSpan)
-          let fits := if singleCell then
-            occ.isCellAvailable r c
+        if r + 1 > occ.rows then
+          occ := occ.extendRows (r + 1)
+        match occ.findFirstAvailableColInRow r 0 cols colSpan with
+        | some c =>
+          foundRow := r
+          foundCol := c
+          found := true
+          if c + colSpan < cols then
+            newCursorRow := r
+            newCursorCol := c + colSpan
           else
-            occ.isAreaAvailable r (r + rowSpan) c (c + colSpan)
-          if fits then
-            foundRow := r
-            foundCol := c
-            found := true
-            -- Update cursor to next position
-            if c + colSpan < cols then
-              newCursorRow := r
-              newCursorCol := c + colSpan
+            newCursorRow := r + 1
+            newCursorCol := 0
+        | none => pure ()
+    else
+      for r in [startRow:maxRow] do
+        if found then break
+        let colStart := if !isDense && r == startRow then startCol else 0
+        for c in [colStart:cols] do
+          if found then break
+          if c + colSpan <= cols then
+            if r + rowSpan > occ.rows then
+              occ := occ.extendRows (r + rowSpan)
+            let fits := if singleCell then
+              occ.isCellAvailable r c
             else
-              newCursorRow := r + 1
-              newCursorCol := 0
+              occ.isAreaAvailable r (r + rowSpan) c (c + colSpan)
+            if fits then
+              foundRow := r
+              foundCol := c
+              found := true
+              -- Update cursor to next position
+              if c + colSpan < cols then
+                newCursorRow := r
+                newCursorCol := c + colSpan
+              else
+                newCursorRow := r + 1
+                newCursorCol := 0
 
   -- Mark area as occupied
   if foundRow + rowSpan > occ.rows then
