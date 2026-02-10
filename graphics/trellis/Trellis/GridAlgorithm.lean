@@ -882,6 +882,38 @@ def placeAllItems (items : Array GridItemState) (container : GridContainer)
     (areas : Array GridArea) : Array GridItemState × Nat × Nat := Id.run do
   let cols := max 1 explicitCols
   let rows := max 1 explicitRows
+
+  -- Fast path: row-flow sparse auto-placement with only 1x1 auto items.
+  -- This is the dominant case for large regular grids and avoids occupancy scans.
+  let canUseDirectRowAutoPlacement := Id.run do
+    if container.autoFlow != .row then
+      return false
+    for item in items do
+      let gridItem := item.node.gridItem?.getD GridItem.default
+      let placement := gridItem.placement
+      if gridItem.area.isSome then
+        return false
+      if hasExplicitPlacement placement.row || hasExplicitPlacement placement.column then
+        return false
+      if getSpanCount placement.row != 1 || getSpanCount placement.column != 1 then
+        return false
+    true
+
+  if canUseDirectRowAutoPlacement then
+    let mut placed : Array GridItemState := #[]
+    let mut fastMaxRow := rows
+    let mut fastMaxCol := cols
+    for i in [:items.size] do
+      let item := items[i]!
+      let rowStart := i / cols
+      let colStart := i % cols
+      let rowEnd := rowStart + 1
+      let colEnd := colStart + 1
+      fastMaxRow := max fastMaxRow rowEnd
+      fastMaxCol := max fastMaxCol colEnd
+      placed := placed.push { item with rowStart, rowEnd, colStart, colEnd }
+    return (placed, fastMaxRow, fastMaxCol)
+
   let mut placedItems : Array GridItemState := #[]
   let mut occupancy := OccupancyGrid.create rows cols
   let mut maxRow := rows
