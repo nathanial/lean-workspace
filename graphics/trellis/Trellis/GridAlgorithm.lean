@@ -503,24 +503,26 @@ def resolveTrackBaseSize (size : TrackSize) (available : Length) : Length :=
   | .fitContent maxLen => min maxLen available
   | .subgrid => 0
 
-/-- Calculate the maximum content size for items in a given track (including margins). -/
-def maxContentInTrack (items : Array GridItemState) (trackIdx : Nat) (isColumn : Bool) : Length :=
-  items.foldl (fun acc item =>
-    let inTrack := if isColumn then
-      item.colStart <= trackIdx && trackIdx < item.colEnd
-    else
-      item.rowStart <= trackIdx && trackIdx < item.rowEnd
-    if inTrack then
-      -- For spanning items, divide content size by span count
-      let span := if isColumn then item.colEnd - item.colStart else item.rowEnd - item.rowStart
-      -- Include margins in content size
-      let size := if isColumn then
-        item.contentWidth + item.margin.horizontal
-      else
-        item.contentHeight + item.margin.vertical
-      max acc (size / span.toFloat)
-    else acc
-  ) 0
+/-- Calculate max content contribution per track in one pass (including margins).
+    For spanning items, contribution to each covered track is `size / span`. -/
+def maxContentByTrack (items : Array GridItemState) (trackCount : Nat) (isColumn : Bool)
+    : Array Length := Id.run do
+  let mut trackMax : Array Length := (List.replicate trackCount 0).toArray
+  for item in items do
+    let start := if isColumn then item.colStart else item.rowStart
+    let stop := if isColumn then item.colEnd else item.rowEnd
+    if start < trackCount then
+      let endTrack := min stop trackCount
+      if start < endTrack then
+        let span := max 1 (stop - start)
+        let size := if isColumn then
+          item.contentWidth + item.margin.horizontal
+        else
+          item.contentHeight + item.margin.vertical
+        let perTrack := size / span.toFloat
+        for trackIdx in [start:endTrack] do
+          trackMax := trackMax.set! trackIdx (max trackMax[trackIdx]! perTrack)
+  trackMax
 
 /-- Compute the available width for a grid item from resolved column tracks. -/
 def computeItemWidthFromTracks (item : GridItemState) (colTracks : Array ResolvedTrack)
@@ -567,11 +569,13 @@ def remeasureWrappedFlexItems (items : Array GridItemState) (colTracks : Array R
 /-- Size tracks based on content and fixed sizes. -/
 def sizeTracksToContent (tracks : Array ResolvedTrack) (items : Array GridItemState)
     (isColumn : Bool) (available : Length) : Array ResolvedTrack := Id.run do
+  let trackContentMax := maxContentByTrack items tracks.size isColumn
   let mut result := tracks
   for i in [:tracks.size] do
     let track := tracks[i]!
+    let content := trackContentMax[i]!
     let baseSize := match track.size with
-      | .fixed .auto => maxContentInTrack items i isColumn
+      | .fixed .auto => content
       | .fixed dim => dim.resolve available 0
       | .fr _ => 0  -- Fr tracks sized in fr resolution phase
       | .minmax minTrack maxTrack =>
@@ -582,13 +586,12 @@ def sizeTracksToContent (tracks : Array ResolvedTrack) (items : Array GridItemSt
           minSz  -- Will be grown in fr resolution phase
         else
           -- Grow based on content, clamped between min and max
-          let content := maxContentInTrack items i isColumn
           let maxSz := resolveTrackBaseSize maxTrack available
           max minSz (min content maxSz)
       | .fitContent maxLen =>
-        min (maxContentInTrack items i isColumn) maxLen
+        min content maxLen
       | .subgrid =>
-        maxContentInTrack items i isColumn
+        content
     result := result.set! i { track with baseSize, resolvedSize := baseSize }
   result
 
