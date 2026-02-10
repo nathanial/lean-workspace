@@ -275,7 +275,7 @@ end TreemapChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def treemapChartVisual (name : String) (data : TreemapChart.Data)
+def treemapChartVisual (name : ComponentId) (data : TreemapChart.Data)
     (theme : Theme) (dims : TreemapChart.Dimensions := TreemapChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -292,7 +292,7 @@ def treemapChartVisual (name : String) (data : TreemapChart.Data)
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive TreemapChart Components (FRP-based)
 

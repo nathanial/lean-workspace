@@ -60,9 +60,9 @@ end Toast
     - `dismissName`: Optional widget name for dismiss button
     - `opacity`: Opacity for fade in/out animation (0.0 to 1.0)
 -/
-def toastVisual (name : String) (message : String)
+def toastVisual (name : Option ComponentId) (message : String)
     (variant : ToastVariant := .info) (theme : Theme)
-    (dismissName : Option String := none) (opacity : Float := 1.0)
+    (dismissName : Option ComponentId := none) (opacity : Float := 1.0)
     (dims : Toast.Dimensions := Toast.defaultDimensions) : WidgetBuilder := do
   let (accentColor, bgColor, textColor) := Toast.variantColors variant
   let iconChar := Toast.variantIcon variant
@@ -101,7 +101,7 @@ def toastVisual (name : String) (message : String)
       cornerRadius := 4
     }
     let dismissText ← text' "✕" theme.smallFont (textColor.withAlpha 0.7) .center
-    let dismissBtn := Widget.rect dismissId (some dName) dismissStyle
+    let dismissBtn := Widget.rectC dismissId dName dismissStyle
 
     let rowId ← freshId
     let rowProps : Trellis.FlexContainer := {
@@ -123,7 +123,9 @@ def toastVisual (name : String) (message : String)
   }
 
   let containerProps : Trellis.FlexContainer := { Trellis.FlexContainer.row 0 with alignItems := .center }
-  pure (.flex wid (some name) containerProps containerStyle #[finalContent])
+  match name with
+  | some componentId => pure (Widget.flexC wid componentId containerProps containerStyle #[finalContent])
+  | none => pure (.flex wid none containerProps containerStyle #[finalContent])
 
 /-- Build a toast container that positions toasts at the bottom-right of the screen.
     Uses absolute positioning to overlay on top of other content.
@@ -131,7 +133,7 @@ def toastVisual (name : String) (message : String)
     - `toasts`: Array of toast widgets to display
     - `gap`: Vertical gap between toasts
 -/
-def toastContainerVisual (name : String) (toasts : Array Widget)
+def toastContainerVisual (name : ComponentId) (toasts : Array Widget)
     (gap : Float := 8.0) : WidgetBuilder := do
   let wid ← freshId
 
@@ -148,7 +150,7 @@ def toastContainerVisual (name : String) (toasts : Array Widget)
     alignItems := .flexEnd
   }
 
-  pure (.flex wid (some name) props containerStyle toasts)
+  pure (Widget.flexC wid name props containerStyle toasts)
 
 /-! ## Reactive Toast Components (FRP-based)
 
@@ -239,8 +241,7 @@ def toastManager (defaultDuration : Float := 3.0) : WidgetM ToastManagerResult :
         pure do
           let mut toastWidgets : Array Widget := #[]
           for toast in currentToasts do
-            let toastName := s!"toast-{toast.id}"
-            let widget ← toastVisual toastName toast.message toast.variant theme
+            let widget ← toastVisual none toast.message toast.variant theme
             toastWidgets := toastWidgets.push widget
           toastContainerVisual containerName toastWidgets
 

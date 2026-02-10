@@ -367,7 +367,7 @@ def drawField3D (view : MathView3D.View) (field : Vec3 → Vec3)
   pure resultMax
 
 /-- Build a vector field widget using MathView2D. -/
-def vectorField2DVisual (name : Option String := none)
+def vectorField2DVisual (name : Option ComponentId := none)
     (config : Config2D := {}) (font : Font)
     (field : Vec2 → Vec2) : WidgetBuilder :=
   MathView2D.mathView2DVisual name config.view font (fun view => do
@@ -383,7 +383,7 @@ def vectorField2D (config : Config2D := {}) (font : Font)
   vectorField2DVisual none config font field
 
 /-- Build a vector field widget using MathView3D. -/
-def vectorField3DVisual (name : Option String := none)
+def vectorField3DVisual (name : Option ComponentId := none)
     (config : Config3D := {}) (font : Font)
     (field : Vec3 → Vec3) : WidgetBuilder :=
   MathView3D.mathView3DVisual name config.view font (fun view => do

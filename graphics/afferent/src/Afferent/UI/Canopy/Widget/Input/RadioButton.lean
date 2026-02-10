@@ -39,7 +39,7 @@ end RadioButton
     - `selected`: Whether this radio button is currently selected
     - `state`: Widget interaction state (hover, focus, etc.)
 -/
-def radioButtonVisual (name : String) (labelText : String) (theme : Theme)
+def radioButtonVisual (name : ComponentId) (labelText : String) (theme : Theme)
     (selected : Bool) (state : WidgetState := {}) : WidgetBuilder := do
   let colors := theme.input
   let circleSize : Float := 20.0
@@ -61,7 +61,7 @@ def radioButtonVisual (name : String) (labelText : String) (theme : Theme)
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.row 8 with alignItems := .center }
   let circle ← radioCircle
   let label ← text' labelText theme.font theme.text .left
-  pure (.flex wid (some name) props {} #[circle, label])
+  pure (Widget.flexC wid name props {} #[circle, label])
 
 /-! ## Reactive RadioGroup Components (FRP-based)
 
@@ -89,7 +89,7 @@ structure RadioGroupResult where
 def radioGroup (options : Array RadioOption) (initialSelection : String)
     : WidgetM RadioGroupResult := do
   let theme ← getThemeW
-  let mut optionNames : Array String := #[]
+  let mut optionNames : Array ComponentId := #[]
   for _ in options do
     let name ← registerComponentW "radio"
     optionNames := optionNames.push name

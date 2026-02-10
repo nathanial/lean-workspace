@@ -136,7 +136,7 @@ def arrowSpec (dir : ArrowDirection) (theme : Theme) (size : Float) : CustomSpec
 end DatePicker
 
 /-- Build a navigation button for date picker header. -/
-def datePickerNavButtonVisual (name : String) (dir : DatePicker.ArrowDirection)
+def datePickerNavButtonVisual (name : ComponentId) (dir : DatePicker.ArrowDirection)
     (theme : Theme) (hovered : Bool) (config : DatePickerConfig := {}) : WidgetBuilder := do
   let bg := if hovered then theme.secondary.backgroundHover else theme.panel.background
   let style : BoxStyle := {
@@ -155,7 +155,7 @@ def datePickerNavButtonVisual (name : String) (dir : DatePicker.ArrowDirection)
     alignItems := .center
     justifyContent := .center
   }
-  pure (.flex wid (some name) props style #[icon])
+  pure (Widget.flexC wid name props style #[icon])
 
 /-- Build the weekday label row. -/
 def datePickerWeekdayRowVisual (theme : Theme) (config : DatePickerConfig := {}) : WidgetBuilder := do
@@ -178,7 +178,7 @@ def datePickerWeekdayRowVisual (theme : Theme) (config : DatePickerConfig := {})
   row (gap := config.cellGap) (style := {}) labels
 
 /-- Build a single day cell. -/
-def datePickerDayCellVisual (name : String) (labelText : String)
+def datePickerDayCellVisual (name : ComponentId) (labelText : String)
     (isSelected isHovered isCurrentMonth : Bool)
     (theme : Theme) (config : DatePickerConfig := {}) : WidgetBuilder := do
   let bgColor :=
@@ -202,11 +202,11 @@ def datePickerDayCellVisual (name : String) (labelText : String)
     justifyContent := .center
   }
   let text ← text' labelText theme.font textColor .center
-  pure (.flex wid (some name) props style #[text])
+  pure (Widget.flexC wid name props style #[text])
 
 /-- Build the date picker visual. -/
-def datePickerVisual (containerName prevName nextName : String)
-    (cellNameFn : Nat → String)
+def datePickerVisual (containerName prevName nextName : ComponentId)
+    (cellNameFn : Nat → ComponentId)
     (viewYear viewMonth : Nat) (selected : Option DatePickerDate)
     (hoveredCell : Option Nat) (prevHovered nextHovered : Bool)
     (theme : Theme) (config : DatePickerConfig := {}) : WidgetBuilder := do
@@ -281,7 +281,7 @@ def datePickerVisual (containerName prevName nextName : String)
     gap := config.sectionGap
     alignItems := .stretch
   }
-  pure (.flex outerWid (some containerName) outerProps outerStyle #[header, weekdayRow, gridWidget])
+  pure (Widget.flexC outerWid containerName outerProps outerStyle #[header, weekdayRow, gridWidget])
 
 /-! ## Reactive DatePicker Components (FRP-based) -/
 
@@ -312,11 +312,11 @@ def datePicker (initialDate : DatePickerDate) (config : DatePickerConfig := {})
   let nextName ← registerComponentW "date-picker-next"
 
   let cellCount := 42
-  let mut cellNames : Array String := #[]
+  let mut cellNames : Array ComponentId := #[]
   for _ in [:cellCount] do
     let name ← registerComponentW "date-picker-day"
     cellNames := cellNames.push name
-  let cellNameFn (i : Nat) : String := cellNames.getD i ""
+  let cellNameFn (i : Nat) : ComponentId := cellNames.getD i 0
 
   let allClicks ← useAllClicks
   let prevHover ← useHover prevName

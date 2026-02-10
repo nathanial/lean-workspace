@@ -25,7 +25,7 @@ def quaternionVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 && data.click.button != 1 then
       id
     else
-      match data.nameMap.get? quatName with
+      match data.componentMap.get? quatName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>
@@ -64,7 +64,7 @@ def quaternionVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? quatName with
+    match data.componentMap.get? quatName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

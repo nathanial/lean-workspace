@@ -50,7 +50,7 @@ def defaultConfig : MenuBarConfig := {}
 end MenuBar
 
 /-- Build a single menu bar trigger button. -/
-def menuBarTriggerVisual (name : String) (label : String) (isOpen : Bool)
+def menuBarTriggerVisual (name : ComponentId) (label : String) (isOpen : Bool)
     (isHovered : Bool) (enabled : Bool) (theme : Theme)
     (config : MenuBarConfig := MenuBar.defaultConfig) : WidgetBuilder := do
   let bgColor :=
@@ -73,12 +73,12 @@ def menuBarTriggerVisual (name : String) (label : String) (isOpen : Bool)
     alignItems := .center
   }
   let textWidget ← text' label theme.font textColor .center
-  pure (.flex wid (some name) props style #[textWidget])
+  pure (Widget.flexC wid name props style #[textWidget])
 
 /-- Build the complete menu bar visual with triggers and open menu. -/
-def menuBarVisual (triggerNames : Array String)
-    (containerNameFn : Nat → MenuPath → String)
-    (itemNameFn : Nat → MenuPath → String)
+def menuBarVisual (triggerNames : Array ComponentId)
+    (containerNameFn : Nat → MenuPath → ComponentId)
+    (itemNameFn : Nat → MenuPath → ComponentId)
     (menus : Array MenuBarMenu)
     (openMenuIdx : Option Nat) (openSubmenuPath : MenuPath)
     (hoveredPath : Option MenuPath) (hoveredTrigger : Option Nat)
@@ -90,7 +90,7 @@ def menuBarVisual (triggerNames : Array String)
     let menu := menus.getD i { label := "", items := #[] }
     let isOpen := openMenuIdx == some i
     let isHovered := hoveredTrigger == some i
-    let trigger ← menuBarTriggerVisual (triggerNames.getD i "") menu.label
+    let trigger ← menuBarTriggerVisual (triggerNames.getD i 0) menu.label
       isOpen isHovered menu.enabled theme config
     triggers := triggers.push trigger
 
@@ -141,14 +141,14 @@ def menuBar (menus : Array MenuBarMenu)
     (config : MenuBarConfig := MenuBar.defaultConfig) : WidgetM MenuBarResult := do
   let theme ← getThemeW
   -- Register trigger names
-  let mut triggerNames : Array String := #[]
+  let mut triggerNames : Array ComponentId := #[]
   for i in [:menus.size] do
     let name ← registerComponentW s!"menubar-trigger-{i}"
     triggerNames := triggerNames.push name
 
   -- Register item names and container names for all menus
-  let mut allItemNames : Std.HashMap (Nat × MenuPath) String := {}
-  let mut allContainerNames : Std.HashMap (Nat × MenuPath) String := {}
+  let mut allItemNames : Std.HashMap (Nat × MenuPath) ComponentId := {}
+  let mut allContainerNames : Std.HashMap (Nat × MenuPath) ComponentId := {}
   for i in [:menus.size] do
     let menu := menus.getD i { label := "", items := #[] }
     let itemNames ← registerMenuItemNames menu.items
@@ -158,10 +158,10 @@ def menuBar (menus : Array MenuBarMenu)
     for (path, name) in containerNames.toList do
       allContainerNames := allContainerNames.insert (i, path) name
 
-  let itemNameFn (menuIdx : Nat) (path : MenuPath) : String :=
-    allItemNames.getD (menuIdx, path) ""
-  let containerNameFn (menuIdx : Nat) (path : MenuPath) : String :=
-    allContainerNames.getD (menuIdx, path) ""
+  let itemNameFn (menuIdx : Nat) (path : MenuPath) : ComponentId :=
+    allItemNames.getD (menuIdx, path) 0
+  let containerNameFn (menuIdx : Nat) (path : MenuPath) : ComponentId :=
+    allContainerNames.getD (menuIdx, path) 0
 
   -- Collect all paths for each menu
   let allPathsByMenu : Array (List MenuPath) := menus.map fun menu =>
@@ -178,7 +178,7 @@ def menuBar (menus : Array MenuBarMenu)
   let triggerHoverTargets := triggerNames.mapIdx fun i name => (name, i)
   let hoveredTriggerChanges ← StateT.lift (hoverEventForTargets triggerHoverTargets)
 
-  let mut itemHoverTargets : Array (String × (Nat × MenuPath)) := #[]
+  let mut itemHoverTargets : Array (ComponentId × (Nat × MenuPath)) := #[]
   for menuIdx in [:menus.size] do
     let paths := allPathsByMenu.getD menuIdx []
     for path in paths do
@@ -188,7 +188,7 @@ def menuBar (menus : Array MenuBarMenu)
   -- Update trigger widths from hover data
   let _ ← performEvent_ (← Event.mapM (fun data => do
     for i in [:triggerNames.size] do
-      let name := triggerNames.getD i ""
+      let name := triggerNames.getD i 0
       if hitWidgetHover data name then
         match findWidgetIdByName data.widget name with
         | some widgetId =>
@@ -203,7 +203,7 @@ def menuBar (menus : Array MenuBarMenu)
   -- Find which trigger was clicked
   let findClickedTrigger (data : ClickData) : Option Nat :=
     (List.range menus.size).findSome? fun i =>
-      if hitWidget data (triggerNames.getD i "") then
+      if hitWidget data (triggerNames.getD i 0) then
         let menu := menus.getD i { label := "", items := #[] }
         if menu.enabled then some i else none
       else none
@@ -231,7 +231,7 @@ def menuBar (menus : Array MenuBarMenu)
 
   -- Check if click is on any trigger
   let isClickOnTrigger (data : ClickData) : Bool :=
-    (List.range triggerNames.size).any fun i => hitWidget data (triggerNames.getD i "")
+    (List.range triggerNames.size).any fun i => hitWidget data (triggerNames.getD i 0)
 
   -- Click-outside detection
   let isClickOutside (data : ClickData) : Bool :=

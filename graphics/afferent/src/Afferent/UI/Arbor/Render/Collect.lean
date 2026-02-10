@@ -131,10 +131,10 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
   let contentRect := computed.contentRect
 
   match w with
-  | .rect _ _ style =>
+  | .rect _ _ style _ =>
     collectBoxStyle borderRect style
 
-  | .text _ _ content font color align _ textLayoutOpt =>
+  | .text _ _ content font color align _ textLayoutOpt _ =>
     match textLayoutOpt with
     | some textLayout =>
       collectWrappedText contentRect font color align textLayout
@@ -143,37 +143,49 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
       -- (this path shouldn't normally be hit if measureWidget was called)
       collectSingleLineText contentRect content font color align contentRect.width 16.0
 
-  | .spacer _ _ _ _ =>
+  | .spacer _ _ _ _ _ =>
     -- Spacers don't render anything
     pure ()
 
-  | .custom _ _ style spec =>
+  | .custom _ _ style spec _ =>
     collectBoxStyle borderRect style
     CollectM.emitAll (spec.collect computed)
 
-  | .flex _ _ _ style children =>
+  | .flex _ _ _ style children _ =>
     collectBoxStyle borderRect style
-    -- Render flow children inline, then absolute children, defer overlay children
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
-    for child in flowChildren do
-      collectWidget child layouts
+    -- Fast path for common static-flow UIs: avoid allocating a flow array.
+    let mut absChildren : Array Widget := #[]
+    let mut overlayChildren : Array Widget := #[]
+    for child in children do
+      if isOverlayWidgetForRender child then
+        overlayChildren := overlayChildren.push child
+      else if isAbsoluteWidgetForRender child then
+        absChildren := absChildren.push child
+      else
+        collectWidget child layouts
     for child in absChildren do
       collectWidget child layouts
     for child in overlayChildren do
       CollectM.deferOverlay child layouts
 
-  | .grid _ _ _ style children =>
+  | .grid _ _ _ style children _ =>
     collectBoxStyle borderRect style
-    -- Render flow children inline, then absolute children, defer overlay children
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
-    for child in flowChildren do
-      collectWidget child layouts
+    -- Same optimization as flex: process flow children immediately.
+    let mut absChildren : Array Widget := #[]
+    let mut overlayChildren : Array Widget := #[]
+    for child in children do
+      if isOverlayWidgetForRender child then
+        overlayChildren := overlayChildren.push child
+      else if isAbsoluteWidgetForRender child then
+        absChildren := absChildren.push child
+      else
+        collectWidget child layouts
     for child in absChildren do
       collectWidget child layouts
     for child in overlayChildren do
       CollectM.deferOverlay child layouts
 
-  | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
+  | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child _ =>
     -- Render background
     collectBoxStyle borderRect style
     let viewportW := contentRect.width
@@ -460,20 +472,20 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
   let contentRect := computed.contentRect
 
   match w with
-  | .rect _ _ style =>
+  | .rect _ _ style _ =>
     collectBoxStyleCached borderRect style
 
-  | .text _ _ content font color align _ textLayoutOpt =>
+  | .text _ _ content font color align _ textLayoutOpt _ =>
     match textLayoutOpt with
     | some textLayout =>
       collectWrappedTextCached contentRect font color align textLayout
     | none =>
       collectSingleLineTextCached contentRect content font color align contentRect.width 16.0
 
-  | .spacer _ _ _ _ =>
+  | .spacer _ _ _ _ _ =>
     pure ()
 
-  | .custom _ name style spec =>
+  | .custom _ name style spec _ =>
     collectBoxStyleCached borderRect style
 
     -- Skip cache entirely for widgets that change every frame (e.g., spinners)
@@ -571,13 +583,19 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
       CachedCollectM.emitAll cmds
       CachedCollectM.recordCacheMiss
 
-  | .flex _ _ _ style children =>
+  | .flex _ _ _ style children _ =>
     collectBoxStyleCached borderRect style
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
+    let mut absChildren : Array Widget := #[]
+    let mut overlayChildren : Array Widget := #[]
     let mut flowIdx := 0
-    for child in flowChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
-      flowIdx := flowIdx + 1
+    for child in children do
+      if isOverlayWidgetForRender child then
+        overlayChildren := overlayChildren.push child
+      else if isAbsoluteWidgetForRender child then
+        absChildren := absChildren.push child
+      else
+        collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
+        flowIdx := flowIdx + 1
     let mut absIdx := flowIdx
     for child in absChildren do
       collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
@@ -587,13 +605,19 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
       CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
       overlayIdx := overlayIdx + 1
 
-  | .grid _ _ _ style children =>
+  | .grid _ _ _ style children _ =>
     collectBoxStyleCached borderRect style
-    let (flowChildren, absChildren, overlayChildren) := partitionChildren children
+    let mut absChildren : Array Widget := #[]
+    let mut overlayChildren : Array Widget := #[]
     let mut flowIdx := 0
-    for child in flowChildren do
-      collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
-      flowIdx := flowIdx + 1
+    for child in children do
+      if isOverlayWidgetForRender child then
+        overlayChildren := overlayChildren.push child
+      else if isAbsoluteWidgetForRender child then
+        absChildren := absChildren.push child
+      else
+        collectWidgetCached cache child layouts (childPathKey pathKey flowIdx)
+        flowIdx := flowIdx + 1
     let mut absIdx := flowIdx
     for child in absChildren do
       collectWidgetCached cache child layouts (childPathKey pathKey absIdx)
@@ -603,7 +627,7 @@ partial def collectWidgetCached (cache : IO.Ref RenderCache)
       CachedCollectM.deferOverlay child layouts (childPathKey pathKey overlayIdx)
       overlayIdx := overlayIdx + 1
 
-  | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child =>
+  | .scroll _ _ style scrollState contentWidth contentHeight scrollbarConfig child _ =>
     collectBoxStyleCached borderRect style
     let clipRect : Rect := ⟨⟨contentRect.x, contentRect.y⟩, ⟨contentRect.width, contentRect.height⟩⟩
     let viewportW := contentRect.width

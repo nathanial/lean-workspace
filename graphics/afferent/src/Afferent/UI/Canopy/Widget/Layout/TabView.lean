@@ -42,7 +42,7 @@ end TabView
     - `theme`: Theme for styling
     - `dims`: Dimension configuration
 -/
-def tabHeaderVisual (name : String) (label : String) (isActive : Bool)
+def tabHeaderVisual (name : ComponentId) (label : String) (isActive : Bool)
     (isHovered : Bool) (theme : Theme) (dims : TabView.Dimensions := {}) : WidgetBuilder := do
   -- Tab colors based on state
   let bgColor := if isActive then theme.primary.background.withAlpha 0.15
@@ -95,7 +95,7 @@ def tabHeaderVisual (name : String) (label : String) (isActive : Bool)
   }
   let content : Widget := .flex contentWid none contentProps contentStyle #[textWidget]
 
-  pure (.flex outerWid (some name) outerProps tabStyle #[content, indicator])
+  pure (Widget.flexC outerWid name outerProps tabStyle #[content, indicator])
 
 /-- Build a complete visual tab view widget.
     - `name`: Base widget name
@@ -106,7 +106,7 @@ def tabHeaderVisual (name : String) (label : String) (isActive : Bool)
     - `theme`: Theme for styling
     - `dims`: Dimension configuration
 -/
-def tabViewVisual (name : String) (headerNameFn : Nat → String)
+def tabViewVisual (name : ComponentId) (headerNameFn : Nat → ComponentId)
     (tabs : Array (String × WidgetBuilder))
     (activeTab : Nat) (hoveredTab : Option Nat) (theme : Theme)
     (dims : TabView.Dimensions := {}) : WidgetBuilder := do
@@ -175,7 +175,7 @@ def tabViewVisual (name : String) (headerNameFn : Nat → String)
     height := .percent 1.0
   }
 
-  pure (.grid outerWid (some name) outerProps outerStyle #[tabBar, divider, contentPanel])
+  pure (Widget.gridC outerWid name outerProps outerStyle #[tabBar, divider, contentPanel])
 
 /-! ## Reactive TabView Components (FRP-based)
 
@@ -209,11 +209,11 @@ def tabView (tabs : Array TabDef) (initialTab : Nat := 0) (keepAlive : Bool := f
   let theme ← getThemeW
   let containerName ← registerComponentW "tabview" (isInteractive := false)
 
-  let mut headerNames : Array String := #[]
+  let mut headerNames : Array ComponentId := #[]
   for _ in tabs do
     let name ← registerComponentW "tab-header"
     headerNames := headerNames.push name
-  let headerNameFn (i : Nat) : String := headerNames.getD i ""
+  let headerNameFn (i : Nat) : ComponentId := headerNames.getD i 0
 
   let allClicks ← useAllClicks
 

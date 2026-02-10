@@ -145,7 +145,8 @@ def dispatchEvent {Msg : Type} (event : Event) (root : Widget) (layouts : Trelli
     match globalPos with
     | none => pure ()
     | some p =>
-      let path := hitTestPath root layouts p.x p.y
+      let hitIndex := buildHitTestIndex root layouts
+      let path := hitTestPathIndexed hitIndex p.x p.y
       if path.isEmpty then
         pure ()
       else

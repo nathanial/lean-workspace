@@ -114,7 +114,7 @@ end SearchInput
     - `placeholder`: Placeholder text when empty
     - `clearHovered`: Whether the clear button is hovered
 -/
-def searchInputVisual (name : String) (clearName : String) (theme : Theme)
+def searchInputVisual (name : ComponentId) (clearName : ComponentId) (theme : Theme)
     (state : TextInputState) (placeholder : String) (clearHovered : Bool)
     (dims : SearchInput.Dimensions := {}) : WidgetBuilder := do
   let colors := theme.input
@@ -157,7 +157,7 @@ def searchInputVisual (name : String) (clearName : String) (theme : Theme)
       minWidth := some dims.clearButtonSize
       minHeight := some dims.clearButtonSize
     }
-    let clearButton : Widget := .flex clearButtonWid (some clearName) {
+    let clearButton : Widget := Widget.flexC clearButtonWid clearName {
       direction := .row
       alignItems := .center
       justifyContent := .center
@@ -172,7 +172,7 @@ def searchInputVisual (name : String) (clearName : String) (theme : Theme)
     justifyContent := .flexStart
     gap := 4
   }
-  pure (.flex wid (some name) props containerStyle (#[searchIcon, inputContent] ++ clearWidgets))
+  pure (Widget.flexC wid name props containerStyle (#[searchIcon, inputContent] ++ clearWidgets))
 
 /-! ## Reactive SearchInput Components (FRP-based) -/
 

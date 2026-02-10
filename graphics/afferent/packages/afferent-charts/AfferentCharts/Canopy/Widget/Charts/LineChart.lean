@@ -247,7 +247,7 @@ end LineChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def lineChartVisual (name : String) (data : Array Float)
+def lineChartVisual (name : ComponentId) (data : Array Float)
     (labels : Array String := #[])
     (variant : LineChartVariant := .primary) (theme : Theme)
     (dims : LineChart.Dimensions := LineChart.defaultDimensions) : WidgetBuilder := do
@@ -259,7 +259,7 @@ def lineChartVisual (name : String) (data : Array Float)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-series line chart visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -268,7 +268,7 @@ def lineChartVisual (name : String) (data : Array Float)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def multiSeriesLineChartVisual (name : String) (series : Array LineChart.Series)
+def multiSeriesLineChartVisual (name : ComponentId) (series : Array LineChart.Series)
     (labels : Array String := #[]) (theme : Theme)
     (dims : LineChart.Dimensions := LineChart.defaultDimensions) : WidgetBuilder := do
   let wid ← freshId
@@ -279,7 +279,7 @@ def multiSeriesLineChartVisual (name : String) (series : Array LineChart.Series)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive LineChart Components (FRP-based)
 

@@ -119,7 +119,7 @@ end Menu
     - `theme`: Theme for styling
     - `config`: Menu configuration
 -/
-def menuItemVisual (name : String) (item : MenuItem) (isHovered : Bool)
+def menuItemVisual (name : ComponentId) (item : MenuItem) (isHovered : Bool)
     (theme : Theme) (config : MenuConfig := Menu.defaultConfig) : WidgetBuilder := do
   match item with
   | .separator =>
@@ -138,7 +138,7 @@ def menuItemVisual (name : String) (item : MenuItem) (isHovered : Bool)
     let lineWid ← freshId
     let lineWidget : Widget := .rect lineWid none lineStyle
     let props : Trellis.FlexContainer := { direction := .column, gap := 0 }
-    pure (.flex wid (some name) props containerStyle #[lineWidget])
+    pure (Widget.flexC wid name props containerStyle #[lineWidget])
   | .action label enabled =>
     let bgColor := if !enabled then theme.input.background
       else if isHovered then theme.input.backgroundHover
@@ -156,7 +156,7 @@ def menuItemVisual (name : String) (item : MenuItem) (isHovered : Bool)
       alignItems := .center
     }
     let textWidget ← text' label theme.font textColor .left
-    pure (.flex wid (some name) props itemStyle #[textWidget])
+    pure (Widget.flexC wid name props itemStyle #[textWidget])
   | .submenu label _ enabled =>
     let bgColor := if !enabled then theme.input.background
       else if isHovered then theme.input.backgroundHover
@@ -176,7 +176,7 @@ def menuItemVisual (name : String) (item : MenuItem) (isHovered : Bool)
     }
     let textWidget ← text' label theme.font textColor .left
     let arrowWidget ← text' "›" theme.font textColor .right
-    pure (.flex wid (some name) props itemStyle #[textWidget, arrowWidget])
+    pure (Widget.flexC wid name props itemStyle #[textWidget, arrowWidget])
 
 /-- Build a submenu popup at a given path.
     - `containerNameFn`: Function to get container name by path
@@ -190,7 +190,7 @@ def menuItemVisual (name : String) (item : MenuItem) (isHovered : Bool)
     - `offsetX`: X offset for positioning (accumulated from parent menus)
     - `offsetY`: Y offset for positioning
 -/
-partial def submenuVisual (containerNameFn : MenuPath → String) (itemNameFn : MenuPath → String)
+partial def submenuVisual (containerNameFn : MenuPath → ComponentId) (itemNameFn : MenuPath → ComponentId)
     (items : Array MenuItem) (path : MenuPath) (openSubmenuPath : MenuPath)
     (hoveredPath : Option MenuPath) (theme : Theme) (config : MenuConfig := Menu.defaultConfig)
     (offsetX : Float := 0) (offsetY : Float := 0) : WidgetBuilder := do
@@ -220,7 +220,7 @@ partial def submenuVisual (containerNameFn : MenuPath → String) (itemNameFn : 
 
   let menuWid ← freshId
   let menuProps : Trellis.FlexContainer := { direction := .column, gap := 0 }
-  let menuWidget : Widget := .flex menuWid (some (containerNameFn path)) menuProps menuStyle menuWidgets
+  let menuWidget : Widget := Widget.flexC menuWid (containerNameFn path) menuProps menuStyle menuWidgets
 
   -- Check if we need to render any open submenus at this level
   -- A submenu at index i (path ++ [i]) is open if openSubmenuPath starts with path ++ [i]
@@ -268,8 +268,8 @@ partial def submenuVisual (containerNameFn : MenuPath → String) (itemNameFn : 
     - `triggerHeight`: Height of the trigger widget for positioning
     - `triggerBuilders`: Trigger widget builders to compose
 -/
-def menuVisual (containerNameFn : MenuPath → String) (triggerName : String)
-    (itemNameFn : MenuPath → String) (items : Array MenuItem) (isOpen : Bool)
+def menuVisual (containerNameFn : MenuPath → ComponentId) (triggerName : ComponentId)
+    (itemNameFn : MenuPath → ComponentId) (items : Array MenuItem) (isOpen : Bool)
     (openSubmenuPath : MenuPath) (hoveredPath : Option MenuPath) (theme : Theme)
     (config : MenuConfig := Menu.defaultConfig) (triggerHeight : Float := 32.0)
     (triggerBuilders : Array WidgetBuilder) : WidgetBuilder := do
@@ -282,7 +282,7 @@ def menuVisual (containerNameFn : MenuPath → String) (triggerName : String)
   -- Build trigger container
   let triggerWid ← freshId
   let triggerProps : Trellis.FlexContainer := { direction := .column, gap := 0 }
-  let trigger : Widget := .flex triggerWid (some triggerName) triggerProps {} triggerWidgets
+  let trigger : Widget := Widget.flexC triggerWid triggerName triggerProps {} triggerWidgets
 
   if isOpen then
     -- Build the root menu (and any open submenus)
@@ -313,8 +313,8 @@ def menuVisual (containerNameFn : MenuPath → String) (triggerName : String)
 
 /-- Register names for all menu items recursively. Returns a map from path to name. -/
 partial def registerMenuItemNames (items : Array MenuItem) (parentPath : MenuPath := #[])
-    : WidgetM (Std.HashMap MenuPath String) := do
-  let mut names : Std.HashMap MenuPath String := {}
+    : WidgetM (Std.HashMap MenuPath ComponentId) := do
+  let mut names : Std.HashMap MenuPath ComponentId := {}
   for i in [:items.size] do
     let path := parentPath.push i
     let name ← registerComponentW "menu-item"
@@ -329,8 +329,8 @@ partial def registerMenuItemNames (items : Array MenuItem) (parentPath : MenuPat
 
 /-- Register container names for all submenus recursively. -/
 partial def registerSubmenuContainerNames (items : Array MenuItem) (parentPath : MenuPath := #[])
-    : WidgetM (Std.HashMap MenuPath String) := do
-  let mut names : Std.HashMap MenuPath String := {}
+    : WidgetM (Std.HashMap MenuPath ComponentId) := do
+  let mut names : Std.HashMap MenuPath ComponentId := {}
   -- Root container
   let rootName ← registerComponentW "menu" (isInteractive := false)
   names := names.insert parentPath rootName
@@ -371,8 +371,8 @@ def menu (items : Array MenuItem)
   -- Register names for all items and containers recursively
   let itemNames ← registerMenuItemNames items
   let containerNames ← registerSubmenuContainerNames items
-  let itemNameFn (path : MenuPath) : String := itemNames.getD path ""
-  let containerNameFn (path : MenuPath) : String := containerNames.getD path ""
+  let itemNameFn (path : MenuPath) : ComponentId := itemNames.getD path 0
+  let containerNameFn (path : MenuPath) : ComponentId := containerNames.getD path 0
 
   -- All paths for hit testing
   let allPaths := collectAllPaths items

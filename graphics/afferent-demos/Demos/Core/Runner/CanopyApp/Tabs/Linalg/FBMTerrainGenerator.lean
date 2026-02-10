@@ -29,7 +29,7 @@ def fbmTerrainGeneratorTabContent (env : DemoEnv) : WidgetM Unit := do
         fun (s : Demos.Linalg.FBMTerrainState) =>
           { s with dragging := .camera, lastMouseX := data.click.x, lastMouseY := data.click.y }
     | 0 =>
-        match data.nameMap.get? terrainName with
+        match data.componentMap.get? terrainName with
         | some wid =>
             match data.layouts.get wid with
             | some layout =>
@@ -70,7 +70,7 @@ def fbmTerrainGeneratorTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? terrainName with
+    match data.componentMap.get? terrainName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

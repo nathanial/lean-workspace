@@ -171,7 +171,7 @@ end ComboBox
     - `placeholder`: Placeholder text when empty
     - `config`: ComboBox configuration
 -/
-def comboBoxInputVisual (name : String) (theme : Theme)
+def comboBoxInputVisual (name : ComponentId) (theme : Theme)
     (state : ComboBoxState) (placeholder : String)
     (config : ComboBoxConfig := {}) : WidgetBuilder := do
   let colors := theme.input
@@ -212,7 +212,7 @@ def comboBoxInputVisual (name : String) (theme : Theme)
     justifyContent := .spaceBetween
     gap := 4
   }
-  pure (.flex wid (some name) props containerStyle #[inputContent, arrowWidget])
+  pure (Widget.flexC wid name props containerStyle #[inputContent, arrowWidget])
 
 /-- Build a visual combo box menu item.
     - `name`: Widget name for hit testing
@@ -222,7 +222,7 @@ def comboBoxInputVisual (name : String) (theme : Theme)
     - `isLast`: Whether this is the last item
     - `theme`: Theme for styling
 -/
-def comboBoxMenuItemVisual (name : String) (optionText : String)
+def comboBoxMenuItemVisual (name : ComponentId) (optionText : String)
     (isHovered : Bool) (isFirst : Bool) (isLast : Bool)
     (theme : Theme) (config : ComboBoxConfig := {}) : WidgetBuilder := do
   let bgColor := if isHovered then theme.input.backgroundHover else theme.input.background
@@ -248,7 +248,7 @@ def comboBoxMenuItemVisual (name : String) (optionText : String)
   }
 
   let textWidget ← text' optionText theme.font textColor .left
-  pure (.flex wid (some name) props itemStyle #[textWidget])
+  pure (Widget.flexC wid name props itemStyle #[textWidget])
 
 /-- Build a complete visual combo box widget.
     - `containerName`: Base widget name for the container
@@ -260,8 +260,8 @@ def comboBoxMenuItemVisual (name : String) (optionText : String)
     - `placeholder`: Placeholder text
     - `config`: ComboBox configuration
 -/
-def comboBoxVisual (containerName : String) (inputName : String)
-    (optionNameFn : Nat → String)
+def comboBoxVisual (containerName : ComponentId) (inputName : ComponentId)
+    (optionNameFn : Nat → ComponentId)
     (filteredOptions : Array (Nat × String)) (state : ComboBoxState)
     (theme : Theme) (placeholder : String)
     (config : ComboBoxConfig := {}) : WidgetBuilder := do
@@ -309,7 +309,7 @@ def comboBoxVisual (containerName : String) (inputName : String)
       direction := .column
       gap := 0
     }
-    pure (.flex outerWid (some containerName) outerProps {} #[input, menu])
+    pure (Widget.flexC outerWid containerName outerProps {} #[input, menu])
   else
     -- Just the input when closed
     let outerWid ← freshId
@@ -317,7 +317,7 @@ def comboBoxVisual (containerName : String) (inputName : String)
       direction := .column
       gap := 0
     }
-    pure (.flex outerWid (some containerName) outerProps {} #[input])
+    pure (Widget.flexC outerWid containerName outerProps {} #[input])
 
 /-! ## Reactive ComboBox Components (FRP-based) -/
 
@@ -354,11 +354,11 @@ def comboBox (options : Array String) (placeholder : String := "Type to search..
   let inputName ← registerComponentW "combobox-input" (isInput := true)
 
   -- Register option names (for max options)
-  let mut optionNames : Array String := #[]
+  let mut optionNames : Array ComponentId := #[]
   for _ in options do
     let name ← registerComponentW "combobox-option"
     optionNames := optionNames.push name
-  let optionNameFn (i : Nat) : String := optionNames.getD i ""
+  let optionNameFn (i : Nat) : ComponentId := optionNames.getD i 0
 
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput

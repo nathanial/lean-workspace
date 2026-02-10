@@ -61,7 +61,7 @@ structure CheckboxResult where
   isChecked : Reactive.Dynamic Spider Bool
 
 /-- Build the visual for a checkbox given its state (pure WidgetBuilder). -/
-def checkboxVisual (name : String) (labelText : String) (theme : Theme)
+def checkboxVisual (name : ComponentId) (labelText : String) (theme : Theme)
     (checked : Bool) (state : WidgetState) : WidgetBuilder := do
   let colors := theme.input
   let boxSize : Float := 20.0
@@ -92,7 +92,7 @@ def checkboxVisual (name : String) (labelText : String) (theme : Theme)
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.row 8 with alignItems := .center }
   let checkBox ← checkboxBox
   let label ← text' labelText theme.font theme.text .left
-  pure (.flex wid (some name) props {} #[checkBox, label])
+  pure (Widget.flexC wid name props {} #[checkBox, label])
 
 /-- Create a reactive checkbox component using WidgetM.
     Emits the checkbox widget and returns toggle state.

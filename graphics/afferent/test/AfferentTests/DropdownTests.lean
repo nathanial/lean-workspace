@@ -27,14 +27,18 @@ def testFont : FontId := { id := 0, name := "test", size := 14.0 }
 /-- Test theme for widget tests. -/
 def testTheme : Theme := { Theme.dark with font := testFont, smallFont := testFont }
 
+def dropdownId : ComponentId := 7100
+def triggerId : ComponentId := 7101
+def optionIdBase : ComponentId := 7200
+
 /-- Default option name generator for dropdown items. -/
-def optionNameFn (i : Nat) : String := s!"dropdown-option-{i}"
+def optionNameFn (i : Nat) : ComponentId := optionIdBase + i
 
 /-- Build an open dropdown visual for testing. -/
 def openDropdown (options : Array String) (selectedIndex : Nat := 0) : WidgetBuilder := do
-  dropdownVisual "dropdown" "dropdown-trigger" optionNameFn options selectedIndex true none testTheme {}
+  dropdownVisual dropdownId triggerId optionNameFn options selectedIndex true none testTheme {}
 
-test "dropdown hitTestPath finds open menu item" := do
+test "dropdown indexed hit test finds open menu item" := do
   let options := #["One", "Two", "Three"]
   let builder := openDropdown options
   let (widget, _) ← builder.run {}
@@ -43,6 +47,7 @@ test "dropdown hitTestPath finds open menu item" := do
   let viewportH := 180.0
   let measureResult : MeasureResult := measureWidget (M := Id) widget viewportW viewportH
   let layouts := Trellis.layout measureResult.node viewportW viewportH
+  let hitIndex := buildHitTestIndex measureResult.widget layouts
 
   let optionId ← match findWidgetIdByName measureResult.widget (optionNameFn 1) with
     | some wid => pure wid
@@ -54,7 +59,7 @@ test "dropdown hitTestPath finds open menu item" := do
   let clickX := optionLayout.borderRect.x + optionLayout.borderRect.width / 2
   let clickY := optionLayout.borderRect.y + optionLayout.borderRect.height / 2
 
-  let path := hitTestPath measureResult.widget layouts clickX clickY
+  let path := hitTestPathIndexed hitIndex clickX clickY
   ensure (path.any (· == optionId))
     s!"Expected hit path to include option id {optionId}, got {path}"
 
@@ -83,7 +88,7 @@ test "dropdown hitTestPathIndexed finds open menu item" := do
   ensure (path.any (· == optionId))
     s!"Expected indexed hit path to include option id {optionId}, got {path}"
 
-test "dropdown hit testing accounts for scroll offset" := do
+test "dropdown indexed hit testing accounts for scroll offset" := do
   let options := #["One", "Two", "Three"]
   let dropdownBuilder := openDropdown options
   let spacerHeight := 180.0
@@ -103,6 +108,7 @@ test "dropdown hit testing accounts for scroll offset" := do
 
   let measureResult : MeasureResult := measureWidget (M := Id) widget viewportW viewportH
   let layouts := Trellis.layout measureResult.node viewportW viewportH
+  let hitIndex := buildHitTestIndex measureResult.widget layouts
 
   let optionId ← match findWidgetIdByName measureResult.widget (optionNameFn 1) with
     | some wid => pure wid
@@ -114,7 +120,7 @@ test "dropdown hit testing accounts for scroll offset" := do
   let clickX := optionLayout.borderRect.x + optionLayout.borderRect.width / 2
   let clickY := optionLayout.borderRect.y + optionLayout.borderRect.height / 2 - scrollOffset
 
-  let path := hitTestPath measureResult.widget layouts clickX clickY
+  let path := hitTestPathIndexed hitIndex clickX clickY
   ensure (path.any (· == optionId))
     s!"Expected scrolled hit path to include option id {optionId}, got {path}"
 

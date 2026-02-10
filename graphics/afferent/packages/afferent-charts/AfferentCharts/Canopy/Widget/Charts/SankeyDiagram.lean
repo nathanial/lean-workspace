@@ -357,7 +357,7 @@ end SankeyDiagram
     - `theme`: Theme for styling
     - `dims`: Diagram dimensions (margins only - actual size from layout)
 -/
-def sankeyDiagramVisualCached (name : String) (cached : SankeyDiagram.CachedLayout)
+def sankeyDiagramVisualCached (name : ComponentId) (cached : SankeyDiagram.CachedLayout)
     (data : SankeyDiagram.Data) (theme : Theme)
     (dims : SankeyDiagram.Dimensions := SankeyDiagram.defaultDimensions)
     : WidgetBuilder := do
@@ -375,7 +375,7 @@ def sankeyDiagramVisualCached (name : String) (cached : SankeyDiagram.CachedLayo
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive SankeyDiagram Components (FRP-based)
 

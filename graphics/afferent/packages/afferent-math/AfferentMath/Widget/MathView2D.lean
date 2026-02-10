@@ -213,7 +213,7 @@ private def withContentRect (layout : Trellis.ComputedLayout)
   draw rect.width rect.height
   restore
 
-def mathView2DVisual (name : Option String := none)
+def mathView2DVisual (name : Option ComponentId := none)
     (config : Config := {})
     (font : Font)
     (drawContent : View → CanvasM Unit) : WidgetBuilder := do

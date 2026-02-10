@@ -28,11 +28,11 @@ def styleToBoxConstraints (style : BoxStyle) : Trellis.BoxConstraints :=
 
 /-- Extract BoxStyle from a Widget (if it has one). -/
 def widgetBoxStyle : Widget → Option BoxStyle
-  | .flex _ _ _ style _ => some style
-  | .grid _ _ _ style _ => some style
-  | .rect _ _ style => some style
-  | .custom _ _ style _ => some style
-  | .scroll _ _ style _ _ _ _ _ => some style
+  | .flex _ _ _ style _ _ => some style
+  | .grid _ _ _ style _ _ => some style
+  | .rect _ _ style _ => some style
+  | .custom _ _ style _ _ => some style
+  | .scroll _ _ style _ _ _ _ _ _ => some style
   | .text .. => none
   | .spacer .. => none
 
@@ -77,7 +77,7 @@ def nodeContentSize (n : Trellis.LayoutNode) : Float × Float :=
 partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Widget) (availWidth availHeight : Float)
     : M MeasureResult := do
   match w with
-  | .text id name content font color align maxWidthOpt textLayoutOpt =>
+  | .text id name content font color align maxWidthOpt textLayoutOpt componentId =>
     -- Compute text layout if not already computed
     let effectiveMaxWidth := maxWidthOpt.getD availWidth
     let textLayout ← match textLayoutOpt with
@@ -90,21 +90,21 @@ partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
 
     let contentSize := Trellis.ContentSize.mk' textLayout.maxWidth textLayout.totalHeight
     let node := Trellis.LayoutNode.leaf id contentSize
-    let updatedWidget := Widget.text id name content font color align maxWidthOpt (some textLayout)
+    let updatedWidget := Widget.text id name content font color align maxWidthOpt (some textLayout) componentId
     pure ⟨node, updatedWidget⟩
 
-  | .rect id _ style =>
+  | .rect id _ style _ =>
     let box := styleToBoxConstraints style
     let contentW := style.minWidth.getD 0
     let contentH := style.minHeight.getD 0
     let node := Trellis.LayoutNode.leaf id (Trellis.ContentSize.mk' contentW contentH) box
     pure ⟨node, w⟩
 
-  | .spacer id _ width height =>
+  | .spacer id _ width height _ =>
     let node := Trellis.LayoutNode.leaf id (Trellis.ContentSize.mk' width height)
     pure ⟨node, w⟩
 
-  | .custom id _ style spec =>
+  | .custom id _ style spec _ =>
     let box := styleToBoxConstraints style
     let (measuredW, measuredH) := spec.measure availWidth availHeight
     let contentW := max measuredW box.minWidth
@@ -112,7 +112,7 @@ partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
     let node := Trellis.LayoutNode.leaf id (Trellis.ContentSize.mk' contentW contentH) box
     pure ⟨node, w⟩
 
-  | .flex id name props style children =>
+  | .flex id name props style children componentId =>
     let box := styleToBoxConstraints style
     -- Recursively measure children, applying flexItem properties
     let mut childNodes : Array Trellis.LayoutNode := #[]
@@ -148,10 +148,10 @@ partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
 
     let node :=
       Trellis.LayoutNode.mk id box (.flex props) .none (some (Trellis.ContentSize.mk' contentW contentH)) childNodes
-    let updatedWidget := Widget.flex id name props style updatedChildren
+    let updatedWidget := Widget.flex id name props style updatedChildren componentId
     pure ⟨node, updatedWidget⟩
 
-  | .grid id name props style children =>
+  | .grid id name props style children componentId =>
     let box := styleToBoxConstraints style
     -- Recursively measure children
     let mut childNodes : Array Trellis.LayoutNode := #[]
@@ -190,10 +190,10 @@ partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
 
     let node :=
       Trellis.LayoutNode.mk id box (.grid props) .none (some (Trellis.ContentSize.mk' contentW contentH)) childNodes
-    let updatedWidget := Widget.grid id name props style updatedChildren
+    let updatedWidget := Widget.grid id name props style updatedChildren componentId
     pure ⟨node, updatedWidget⟩
 
-  | .scroll id name style scrollState contentW contentH scrollbarConfig child =>
+  | .scroll id name style scrollState contentW contentH scrollbarConfig child componentId =>
     let box := styleToBoxConstraints style
     -- Measure child with content size as available space
     let childResult ← measureWidget child contentW contentH
@@ -222,7 +222,7 @@ partial def measureWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
     let node :=
       Trellis.LayoutNode.mk id box (.flex Trellis.FlexContainer.default) .none
         (some (Trellis.ContentSize.mk' viewportBorderW viewportBorderH)) #[childNode]
-    let updatedWidget := Widget.scroll id name style scrollState contentW contentH scrollbarConfig childResult.widget
+    let updatedWidget := Widget.scroll id name style scrollState contentW contentH scrollbarConfig childResult.widget componentId
     pure ⟨node, updatedWidget⟩
 
 /-- Convenience function that just returns the LayoutNode. -/
@@ -236,7 +236,7 @@ def toLayoutNode {M : Type → Type} [Monad M] [TextMeasurer M] (w : Widget) (av
     Used for centering and auto-sizing. -/
 partial def intrinsicSize {M : Type → Type} [Monad M] [TextMeasurer M] (w : Widget) : M (Float × Float) := do
   match w with
-  | .text _ _ content font _ _ maxWidthOpt textLayoutOpt =>
+  | .text _ _ content font _ _ maxWidthOpt textLayoutOpt _ =>
     -- Use existing TextLayout if available, otherwise compute
     match textLayoutOpt with
     | some tl => pure (tl.maxWidth, tl.totalHeight)
@@ -248,21 +248,21 @@ partial def intrinsicSize {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
         measureSingleLine font content
       pure (textLayout.maxWidth, textLayout.totalHeight)
 
-  | .rect _ _ style =>
+  | .rect _ _ style _ =>
     let w := style.minWidth.getD 0
     let h := style.minHeight.getD 0
     pure (w, h)
 
-  | .spacer _ _ w h =>
+  | .spacer _ _ w h _ =>
     pure (w, h)
 
-  | .custom _ _ style spec =>
+  | .custom _ _ style spec _ =>
     let (measuredW, measuredH) := spec.measure 1000000000.0 1000000000.0
     let contentW := max measuredW (style.minWidth.getD 0)
     let contentH := max measuredH (style.minHeight.getD 0)
     pure (contentW, contentH)
 
-  | .flex _ _ props style children =>
+  | .flex _ _ props style children _ =>
     let padding := style.padding
     let gap := props.gap
     let isColumn := !props.direction.isHorizontal
@@ -286,7 +286,7 @@ partial def intrinsicSize {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
     -- Apply min constraints
     pure (max rawW (style.minWidth.getD 0), max rawH (style.minHeight.getD 0))
 
-  | .grid _ _ props style children =>
+  | .grid _ _ props style children _ =>
     let padding := style.padding
     let numCols := props.templateColumns.tracks.size
     let numCols := if numCols == 0 then 1 else numCols  -- Default to 1 column
@@ -313,7 +313,7 @@ partial def intrinsicSize {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
     -- Apply min constraints
     pure (max rawW (style.minWidth.getD 0), max rawH (style.minHeight.getD 0))
 
-  | .scroll _ _ style _ contentW contentH _ _ =>
+  | .scroll _ _ style _ contentW contentH _ _ _ =>
     -- Scroll containers use their viewport size (from style) or content size
     let w := style.minWidth.getD contentW
     let h := style.minHeight.getD contentH
@@ -326,7 +326,7 @@ partial def intrinsicSize {M : Type → Type} [Monad M] [TextMeasurer M] (w : Wi
 partial def intrinsicSizeWithWidget {M : Type → Type} [Monad M] [TextMeasurer M] (w : Widget)
     : M (Float × Float × Widget) := do
   match w with
-  | .text id name content font color align maxWidthOpt textLayoutOpt =>
+  | .text id name content font color align maxWidthOpt textLayoutOpt componentId =>
     -- Use existing TextLayout if available, otherwise compute
     match textLayoutOpt with
     | some tl => pure (tl.maxWidth, tl.totalHeight, w)
@@ -336,24 +336,24 @@ partial def intrinsicSizeWithWidget {M : Type → Type} [Monad M] [TextMeasurer 
         wrapText font content effectiveMaxWidth
       else
         measureSingleLine font content
-      let updatedWidget := Widget.text id name content font color align maxWidthOpt (some textLayout)
+      let updatedWidget := Widget.text id name content font color align maxWidthOpt (some textLayout) componentId
       pure (textLayout.maxWidth, textLayout.totalHeight, updatedWidget)
 
-  | .rect _ _ style =>
+  | .rect _ _ style _ =>
     let width := style.minWidth.getD 0
     let height := style.minHeight.getD 0
     pure (width, height, w)
 
-  | .spacer _ _ width height =>
+  | .spacer _ _ width height _ =>
     pure (width, height, w)
 
-  | .custom _ _ style spec =>
+  | .custom _ _ style spec _ =>
     let (measuredW, measuredH) := spec.measure 1000000000.0 1000000000.0
     let contentW := max measuredW (style.minWidth.getD 0)
     let contentH := max measuredH (style.minHeight.getD 0)
     pure (contentW, contentH, w)
 
-  | .flex id name props style children =>
+  | .flex id name props style children componentId =>
     let padding := style.padding
     let gap := props.gap
     let isColumn := !props.direction.isHorizontal
@@ -382,10 +382,10 @@ partial def intrinsicSizeWithWidget {M : Type → Type} [Monad M] [TextMeasurer 
     -- Apply min constraints
     let finalW := max rawW (style.minWidth.getD 0)
     let finalH := max rawH (style.minHeight.getD 0)
-    let updatedWidget := Widget.flex id name props style updatedChildren
+    let updatedWidget := Widget.flex id name props style updatedChildren componentId
     pure (finalW, finalH, updatedWidget)
 
-  | .grid id name props style children =>
+  | .grid id name props style children componentId =>
     let padding := style.padding
     let numCols := props.templateColumns.tracks.size
     let numCols := if numCols == 0 then 1 else numCols  -- Default to 1 column
@@ -417,16 +417,16 @@ partial def intrinsicSizeWithWidget {M : Type → Type} [Monad M] [TextMeasurer 
     -- Apply min constraints
     let finalW := max rawW (style.minWidth.getD 0)
     let finalH := max rawH (style.minHeight.getD 0)
-    let updatedWidget := Widget.grid id name props style updatedChildren
+    let updatedWidget := Widget.grid id name props style updatedChildren componentId
     pure (finalW, finalH, updatedWidget)
 
-  | .scroll id name style scrollState contentW contentH scrollbarConfig child =>
+  | .scroll id name style scrollState contentW contentH scrollbarConfig child componentId =>
     -- Measure child to get updated child with TextLayouts
     let (_, _, updatedChild) ← intrinsicSizeWithWidget child
     -- Scroll containers use their viewport size (from style) or content size
     let w := style.minWidth.getD contentW
     let h := style.minHeight.getD contentH
-    let updatedWidget := Widget.scroll id name style scrollState contentW contentH scrollbarConfig updatedChild
+    let updatedWidget := Widget.scroll id name style scrollState contentW contentH scrollbarConfig updatedChild componentId
     pure (w + style.padding.horizontal, h + style.padding.vertical, updatedWidget)
 
 end Afferent.Arbor

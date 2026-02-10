@@ -79,7 +79,7 @@ end Slider
     - `value`: Current value (0.0-1.0)
     - `state`: Widget interaction state (hover, focus, etc.)
 -/
-def sliderVisual (name : String) (labelText : Option String) (theme : Theme)
+def sliderVisual (name : ComponentId) (labelText : Option String) (theme : Theme)
     (value : Float) (state : WidgetState := {}) : WidgetBuilder := do
   let dims := Slider.defaultDimensions
 
@@ -96,12 +96,12 @@ def sliderVisual (name : String) (labelText : Option String) (theme : Theme)
   match labelText with
   | some text =>
     let label ← text' text theme.font theme.text .left
-    pure (.flex wid (some name) props {} #[track, label])
+    pure (Widget.flexC wid name props {} #[track, label])
   | none =>
-    pure (.flex wid (some name) props {} #[track])
+    pure (Widget.flexC wid name props {} #[track])
 
 /-- Build a visual slider without label (WidgetBuilder version). -/
-def sliderOnlyVisual (name : String) (theme : Theme)
+def sliderOnlyVisual (name : ComponentId) (theme : Theme)
     (value : Float) (state : WidgetState := {}) : WidgetBuilder :=
   sliderVisual name none theme value state
 

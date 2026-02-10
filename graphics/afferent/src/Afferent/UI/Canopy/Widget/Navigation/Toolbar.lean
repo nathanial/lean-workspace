@@ -37,7 +37,7 @@ structure ToolbarResult where
   onAction : Reactive.Event Spider String
 
 /-- Build toolbar button visual. -/
-private def toolbarButtonVisual (name : String) (action : ToolbarAction)
+private def toolbarButtonVisual (name : ComponentId) (action : ToolbarAction)
     (theme : Theme) (state : WidgetState) : WidgetBuilder := do
   let colors := Button.variantColors theme action.variant
   let bgColor := Button.backgroundColor colors state
@@ -89,7 +89,7 @@ def toolbar (actions : Array ToolbarAction)
       }
 
   -- Register button names and collect click events
-  let mut buttonNames : Array String := #[]
+  let mut buttonNames : Array ComponentId := #[]
   for _ in actions do
     let name ← registerComponentW "toolbar-btn"
     buttonNames := buttonNames.push name
@@ -99,7 +99,7 @@ def toolbar (actions : Array ToolbarAction)
   -- Find which button was clicked
   let findClickedAction (data : ClickData) : Option String :=
     (List.range actions.size).findSome? fun i =>
-      let name := buttonNames.getD i ""
+      let name := buttonNames.getD i 0
       if hitWidget data name then
         some (actions.getD i { id := "", label := "" }).id
       else

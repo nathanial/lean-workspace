@@ -148,7 +148,7 @@ def isClickable (btn : PageButton) (current totalPages : Nat) : Bool :=
 end Pagination
 
 /-- Build a single pagination button visual. -/
-def paginationButtonVisual (name : String) (btn : PageButton) (current totalPages : Nat)
+def paginationButtonVisual (name : ComponentId) (btn : PageButton) (current totalPages : Nat)
     (hovered : Bool) (theme : Theme) (config : PaginationConfig := {}) : WidgetBuilder := do
   let isEnabled := Pagination.isClickable btn current totalPages
   let isCurrentPage := match btn with
@@ -184,10 +184,10 @@ def paginationButtonVisual (name : String) (btn : PageButton) (current totalPage
     justifyContent := .center
   }
   let label ← text' (Pagination.buttonText btn) theme.font textColor .center
-  pure (.flex wid (some name) props style #[label])
+  pure (Widget.flexC wid name props style #[label])
 
 /-- Build the complete pagination bar visual. -/
-def paginationVisual (containerName : String) (buttonNameFn : Nat → String)
+def paginationVisual (containerName : ComponentId) (buttonNameFn : Nat → ComponentId)
     (buttons : Array PageButton) (current totalPages : Nat) (hoveredIdx : Option Nat)
     (theme : Theme) (config : PaginationConfig := {}) : WidgetBuilder := do
   let mut children : Array Widget := #[]
@@ -200,7 +200,7 @@ def paginationVisual (containerName : String) (buttonNameFn : Nat → String)
   let outerStyle : BoxStyle := {}
   let outerWid ← freshId
   let outerProps : FlexContainer := { direction := .row, gap := config.gap, alignItems := .center }
-  pure (.flex outerWid (some containerName) outerProps outerStyle children)
+  pure (Widget.flexC outerWid containerName outerProps outerStyle children)
 
 /-! ## Reactive Pagination Component -/
 
@@ -233,11 +233,11 @@ def pagination (totalPages : Nat) (initialPage : Nat := 0)
 
   -- Register names for each button position (we register for max possible buttons)
   let maxButtons := config.maxVisiblePages + 2  -- +2 for prev/next
-  let mut buttonNames : Array String := #[]
+  let mut buttonNames : Array ComponentId := #[]
   for _ in [:maxButtons] do
     let name ← registerComponentW "pagination-btn"
     buttonNames := buttonNames.push name
-  let buttonNameFn (i : Nat) : String := buttonNames.getD i ""
+  let buttonNameFn (i : Nat) : ComponentId := buttonNames.getD i 0
 
   -- Click detection
   let allClicks ← useAllClicks

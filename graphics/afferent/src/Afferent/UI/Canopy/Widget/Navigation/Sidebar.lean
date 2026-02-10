@@ -34,7 +34,7 @@ structure SidebarResult where
   toggle : IO Unit
 
 /-- Build toggle button visual. -/
-private def toggleButtonVisual (name : String) (theme : Theme)
+private def toggleButtonVisual (name : ComponentId) (theme : Theme)
     (collapsed : Bool) (hovered : Bool) : WidgetBuilder := do
   let bgColor := if hovered then theme.secondary.backgroundHover else Color.transparent
   let textColor := theme.textMuted

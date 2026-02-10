@@ -3,6 +3,7 @@
   Unit tests for the list box widget functionality.
 -/
 import AfferentTests.Framework
+import Afferent.Graphics.Text.Font
 import Afferent.UI.Canopy.Widget.Data.ListBox
 import Afferent.UI.Canopy.Reactive.Component
 import Afferent.UI.Arbor
@@ -24,27 +25,30 @@ def testFont : FontId := { id := 0, name := "test", size := 14.0 }
 /-- Test theme for widget tests. -/
 def testTheme : Theme := { Theme.dark with font := testFont, smallFont := testFont }
 
+def listItemIdBase : ComponentId := 5000
+def listScrollId : ComponentId := 6000
+def missingComponentId : ComponentId := 999999
+
+def listItemId (i : Nat) : ComponentId :=
+  listItemIdBase + i
+
 /-! ## Widget Tree Helpers -/
 
 /-- Find the first scroll widget in a tree (depth-first). -/
 partial def findScrollWidget (w : Widget) : Option (WidgetId × ScrollbarRenderConfig) :=
   match w with
-  | .scroll id _ _ _ _ _ scrollbarConfig _ => some (id, scrollbarConfig)
+  | .scroll id _ _ _ _ _ scrollbarConfig _ _ => some (id, scrollbarConfig)
   | _ =>
       w.children.foldl (init := none) fun acc child =>
         match acc with
         | some _ => acc
         | none => findScrollWidget child
 
-/-- Collect widget IDs for list box items (by name prefix). -/
-partial def collectListBoxItemIds (w : Widget) : Array WidgetId :=
-  let ids :=
-    match w.name? with
-    | some name =>
-        if name.startsWith "listbox-item-" then #[w.id] else #[]
-    | none => #[]
-  w.children.foldl (init := ids) fun acc child =>
-    acc ++ collectListBoxItemIds child
+partial def findScrollState (w : Widget) : Option ScrollState :=
+  match w with
+  | .scroll _ _ _ scrollState _ _ _ _ _ => some scrollState
+  | _ =>
+      w.children.findSome? findScrollState
 
 /-! ## ListBoxSelectionMode Tests -/
 
@@ -129,24 +133,22 @@ test "selection on empty array" := do
 
 /-! ## Visual Structure Tests -/
 
-test "listBoxItemVisual creates widget with correct name" := do
-  let itemName := "listbox-item-0"
-  let builder := listBoxItemVisual itemName "Apple" false false testTheme
+test "listBoxItemVisual creates widget with correct component id" := do
+  let itemId := listItemId 0
+  let builder := listBoxItemVisual itemId "Apple" false false testTheme
   let (widget, _) ← builder.run {}
-  -- Check the widget has the correct name
-  let widgetName := Widget.name? widget
-  ensure (widgetName == some itemName) s!"Expected name '{itemName}', got {widgetName}"
+  ensure (Widget.componentId? widget == some itemId)
+    s!"Expected component id {itemId}, got {Widget.componentId? widget}"
 
-test "listBoxItemVisual creates widget with name in structure" := do
-  let itemName := "test-item-5"
-  let builder := listBoxItemVisual itemName "Banana" true false testTheme
+test "listBoxItemVisual creates widget with component id in structure" := do
+  let itemId := listItemId 5
+  let builder := listBoxItemVisual itemId "Banana" true false testTheme
   let (widget, _) ← builder.run {}
-  -- Use findWidgetIdByName to verify the name is findable
-  let found := findWidgetIdByName widget itemName
-  ensure found.isSome s!"Widget with name '{itemName}' should be findable"
+  let found := findWidgetIdByName widget itemId
+  ensure found.isSome s!"Widget with component id {itemId} should be findable"
 
 test "listBoxItemsVisual creates column with items" := do
-  let itemNameFn (i : Nat) : String := s!"item-{i}"
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["Apple", "Banana", "Cherry"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
@@ -157,25 +159,23 @@ test "listBoxItemsVisual creates column with items" := do
     ensure (children.size == 3) s!"Should have 3 children, got {children.size}"
   | _ => ensure false "Expected flex widget"
 
-test "listBoxItemsVisual items have correct names" := do
-  let itemNameFn (i : Nat) : String := s!"test-item-{i}"
+test "listBoxItemsVisual items have correct component ids" := do
+  let itemNameFn (i : Nat) : ComponentId := listItemId (100 + i)
   let items := #["Apple", "Banana", "Cherry"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
-  -- Verify each item name is findable
+  -- Verify each item component id is findable
   for i in [:items.size] do
     let found := findWidgetIdByName widget (itemNameFn i)
-    ensure found.isSome s!"Item '{itemNameFn i}' should be findable in widget tree"
+    ensure found.isSome s!"Item component id {itemNameFn i} should be findable in widget tree"
 
-test "listBoxItemsVisual container has NO name" := do
-  -- This test documents the current behavior - the container is unnamed
-  let itemNameFn (i : Nat) : String := s!"item-{i}"
+test "listBoxItemsVisual container has NO component id" := do
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["Apple", "Banana"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
-  -- The container itself has no name
-  let containerName := Widget.name? widget
-  ensure (containerName.isNone) s!"Container should have no name, but got {containerName}"
+  ensure (Widget.componentId? widget).isNone
+    s!"Container should not have a component id, but got {Widget.componentId? widget}"
 
 /-! ## Item Index Calculation Tests -/
 
@@ -227,42 +227,38 @@ test "computeItemIndex returns none for item index beyond count" := do
 
 test "hitWidget finds named item in widget tree" := do
   -- Create a simple list box visual
-  let itemNameFn (i : Nat) : String := s!"listbox-item-{i}"
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["Apple", "Banana", "Cherry"]
   let builder := listBoxItemsVisual itemNameFn items #[1] none testTheme
   let (widget, _) ← builder.run {}
 
-  -- Verify findWidgetIdByName works for each item
+  -- Verify findWidgetIdByName works for each item component id
   for i in [:items.size] do
-    let name := itemNameFn i
-    let found := findWidgetIdByName widget name
-    ensure found.isSome s!"findWidgetIdByName should find '{name}'"
+    let componentId := itemNameFn i
+    let found := findWidgetIdByName widget componentId
+    ensure found.isSome s!"findWidgetIdByName should find component {componentId}"
 
-test "findWidgetIdByName returns none for non-existent name" := do
-  let itemNameFn (i : Nat) : String := s!"item-{i}"
+test "findWidgetIdByName returns none for non-existent component id" := do
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["Apple", "Banana"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
 
-  let found := findWidgetIdByName widget "non-existent-container"
-  ensure found.isNone "Should not find non-existent widget name"
+  let found := findWidgetIdByName widget missingComponentId
+  ensure found.isNone "Should not find non-existent component id"
 
-test "searching for 'listbox-container' in items visual returns none" := do
-  -- This test documents why the current hit testing fails
-  let itemNameFn (i : Nat) : String := s!"listbox-item-{i}"
+test "searching for unregistered container component id returns none" := do
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["Apple", "Banana", "Cherry"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
-
-  -- The current implementation searches for "listbox-container" but
-  -- listBoxItemsVisual does NOT name the container
-  let found := findWidgetIdByName widget "listbox-container"
-  ensure found.isNone "listbox-container should NOT be found (this is the bug)"
+  let found := findWidgetIdByName widget (listItemIdBase - 1)
+  ensure found.isNone "Unregistered container component should not be found"
 
 /-! ## Widget Tree Layout Tests -/
 
 test "listBoxItemsVisual with 12 items creates all 12 in tree" := do
-  let itemNameFn (i : Nat) : String := s!"item-{i}"
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
   let items := #["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
@@ -272,7 +268,7 @@ test "listBoxItemsVisual with 12 items creates all 12 in tree" := do
     ensure found.isSome s!"Item '{itemNameFn i}' (index {i}) should exist in widget tree"
 
 test "all items have unique widget IDs" := do
-  let itemNameFn (i : Nat) : String := s!"item-{i}"
+  let itemNameFn (i : Nat) : ComponentId := listItemId (200 + i)
   let items := #["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
   let builder := listBoxItemsVisual itemNameFn items #[] none testTheme
   let (widget, _) ← builder.run {}
@@ -289,7 +285,7 @@ test "all items have unique widget IDs" := do
 test "listBox items reach scrollbar track in scroll container" := do
   let items := (List.range 12).map (fun i => s!"Item {i}") |>.toArray
   let config := { ListBox.defaultConfig with maxVisibleItems := 6 }
-  let itemNameFn (i : Nat) : String := s!"listbox-item-{i}"
+  let itemNameFn (i : Nat) : ComponentId := listItemId i
 
   -- Build a wide scroll container with list box items inside.
   let contentW := 200.0
@@ -302,7 +298,7 @@ test "listBox items reach scrollbar track in scroll container" := do
   }
   let scrollbarConfig : ScrollbarRenderConfig := {}
   let itemsBuilder := listBoxItemsVisual itemNameFn items #[] none testTheme config
-  let scrollBuilder := namedScroll "listbox-scroll-test" scrollStyle contentW contentH {} scrollbarConfig itemsBuilder
+  let scrollBuilder := namedScroll listScrollId scrollStyle contentW contentH {} scrollbarConfig itemsBuilder
   let (widget, _) ← scrollBuilder.run {}
 
   let viewportW := 600.0
@@ -310,8 +306,8 @@ test "listBox items reach scrollbar track in scroll container" := do
   let measureResult : MeasureResult := (measureWidget (M := Id) widget viewportW viewportH)
   let layouts := Trellis.layout measureResult.node viewportW viewportH
 
-  let itemIds := collectListBoxItemIds measureResult.widget
-  ensure (!itemIds.isEmpty) "Expected listBox items to be present in widget tree"
+  let firstItemId := findWidgetIdByName measureResult.widget (itemNameFn 0)
+  ensure firstItemId.isSome "Expected listBox items to be present in widget tree"
 
   match findScrollWidget measureResult.widget with
   | some (scrollId, scrollbarConfig) =>
@@ -320,7 +316,7 @@ test "listBox items reach scrollbar track in scroll container" := do
       s!"Expected content height {contentH} to exceed viewport {scrollLayout.contentRect.height}"
     ensure (scrollLayout.contentRect.width > contentW)
       s!"Expected viewport width {scrollLayout.contentRect.width} to exceed content width {contentW}"
-    let itemLayout := layouts.get! itemIds[0]!
+    let itemLayout := layouts.get! firstItemId.get!
     let trackX := scrollLayout.contentRect.x + scrollLayout.contentRect.width - scrollbarConfig.thickness
     let itemRight := itemLayout.borderRect.x + itemLayout.borderRect.width
     ensure (itemLayout.borderRect.width > contentW)
@@ -329,6 +325,78 @@ test "listBox items reach scrollbar track in scroll container" := do
       s!"Item right edge {itemRight} should reach scrollbar track x {trackX}"
   | none =>
     ensure false "Expected to find a scroll container in listBox widget"
+
+test "listBox selection after scroll uses scrolled hit target" := do
+  let font ← Afferent.Font.loadSystem "Monaco" 14
+  let (fontRegistry, listFont) := Afferent.FontRegistry.empty.register font "list-test"
+  let fontRegistry := fontRegistry.setDefault font
+  let listTheme : Theme := { Theme.dark with font := listFont, smallFont := listFont }
+  let selectedAfterClick ← runSpider do
+    let items := (List.range 12).map (fun i => s!"Item {i}") |>.toArray
+    let config := { ListBox.defaultConfig with maxVisibleItems := 6 }
+    let viewportW := 260.0
+    let viewportH := 260.0
+    let (events, inputs) ← createInputs fontRegistry listTheme
+    let selectedRef ← SpiderM.liftIO <| IO.mkRef (none : Option (Dynamic Spider (Array Nat)))
+
+    let (_, render) ← ReactiveM.run events do
+      runWidget do
+        let result ← listBox items config
+        SpiderM.liftIO <| selectedRef.set (some result.selectedItems)
+        pure ()
+
+    let initialBuilder ← render
+    let initialWidget := Afferent.Arbor.build initialBuilder
+    let initialMeasured := Afferent.Arbor.measureWidget (M := Id) initialWidget viewportW viewportH
+    let initialLayouts := Trellis.layout initialMeasured.node viewportW viewportH
+    let initialComponentMap := buildNameMap initialMeasured.widget
+    let (scrollWidgetId, _) := match findScrollWidget initialMeasured.widget with
+      | some found => found
+      | none => panic! "Expected listBox to render a scroll widget"
+
+    -- Scroll down exactly 64px (2 rows at default height 32px).
+    inputs.fireScroll {
+      scroll := { x := 20, y := 20, deltaX := 0, deltaY := -3.2, modifiers := {} }
+      hitPath := #[scrollWidgetId]
+      widget := initialMeasured.widget
+      layouts := initialLayouts
+      componentMap := initialComponentMap
+    }
+
+    let scrolledBuilder ← render
+    let scrolledWidget := Afferent.Arbor.build scrolledBuilder
+    let scrolledMeasured := Afferent.Arbor.measureWidget (M := Id) scrolledWidget viewportW viewportH
+    let scrolledLayouts := Trellis.layout scrolledMeasured.node viewportW viewportH
+    let scrolledHitIndex := buildHitTestIndex scrolledMeasured.widget scrolledLayouts
+    let scrolledOffsetY := match findScrollState scrolledMeasured.widget with
+      | some scrollState => scrollState.offsetY
+      | none => panic! "Expected scrolled listBox to expose scroll state"
+    ensure (scrolledOffsetY > 0)
+      s!"Expected listBox offset after wheel scroll to be positive, got {scrolledOffsetY}"
+    let (scrolledScrollWidgetId, _) := match findScrollWidget scrolledMeasured.widget with
+      | some found => found
+      | none => panic! "Expected scrolled listBox to render a scroll widget"
+    let scrollLayout := scrolledLayouts.get! scrolledScrollWidgetId
+
+    let clickX := scrollLayout.contentRect.x + 20
+    let clickY := scrollLayout.contentRect.y + config.itemHeight / 2
+    let clickPath := hitTestPathIndexed scrolledHitIndex clickX clickY
+
+    inputs.fireClick {
+      click := { button := 0, x := clickX, y := clickY, modifiers := (0 : UInt16) }
+      hitPath := clickPath
+      widget := scrolledMeasured.widget
+      layouts := scrolledLayouts
+      componentMap := scrolledHitIndex.componentMap
+    }
+
+    match ← SpiderM.liftIO selectedRef.get with
+    | some selectedDyn => selectedDyn.sample
+    | none => panic! "Expected selected-items dynamic to be captured"
+
+  ensure (selectedAfterClick == #[2])
+    s!"Expected top click after 64px scroll to select item 2, got {selectedAfterClick}"
+  Afferent.Font.destroy font
 
 
 

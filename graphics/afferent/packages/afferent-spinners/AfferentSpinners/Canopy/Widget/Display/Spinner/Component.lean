@@ -57,7 +57,7 @@ end Spinner
     - `config`: Spinner configuration
     - `theme`: Theme for styling
 -/
-def spinnerVisual (name : String) (t : Float) (config : Spinner.Config)
+def spinnerVisual (name : ComponentId) (t : Float) (config : Spinner.Config)
     (theme : Theme) : WidgetBuilder := do
   let color := Spinner.getColor config theme
   let baseSpec := Spinner.variantSpec config.variant t color config.dims
@@ -71,7 +71,7 @@ def spinnerVisual (name : String) (t : Float) (config : Spinner.Config)
     minHeight := some config.dims.size
   }
 
-  pure (.flex wid (some name) props {} #[spinnerWidget])
+  pure (Widget.flexC wid name props {} #[spinnerWidget])
 
 /-! ## Reactive Spinner Component (FRP-based) -/
 

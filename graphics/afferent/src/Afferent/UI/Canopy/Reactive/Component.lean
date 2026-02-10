@@ -85,14 +85,11 @@ def getFont : ReactiveM Afferent.Font := do
 /-- Register a component and get an auto-generated name.
     This is the preferred way to register components in ReactiveM context. -/
 def registerComponent (namePrefix : String) (isInput : Bool := false)
-    (isInteractive : Bool := true) : ReactiveM String := do
+    (isInteractive : Bool := true) : ReactiveM Afferent.Arbor.ComponentId := do
   let events ← getEvents
   SpiderM.liftIO <| events.registry.register namePrefix isInput isInteractive
 
 /-! ## Optional Hover/DynWidget Metrics (bench-only instrumentation) -/
-
-private def isSwitchName (name : String) : Bool :=
-  name.startsWith "switch-"
 
 structure HoverMetrics where
   mapNanos : IO.Ref Nat
@@ -159,19 +156,15 @@ def enableHoverMetrics : IO HoverMetrics := do
 def disableHoverMetrics : IO Unit :=
   hoverMetricsRef.set none
 
-private def recordHoverMap (metrics : HoverMetrics) (name : String) (nanos : Nat) : IO Unit := do
+private def recordHoverMap (metrics : HoverMetrics) (_componentId : Afferent.Arbor.ComponentId)
+    (nanos : Nat) : IO Unit := do
   metrics.mapNanos.modify (· + nanos)
   metrics.mapCount.modify (· + 1)
-  if isSwitchName name then
-    metrics.mapSwitchNanos.modify (· + nanos)
-    metrics.mapSwitchCount.modify (· + 1)
 
-private def recordHoverHold (metrics : HoverMetrics) (name : String) (nanos : Nat) : IO Unit := do
+private def recordHoverHold (metrics : HoverMetrics) (_componentId : Afferent.Arbor.ComponentId)
+    (nanos : Nat) : IO Unit := do
   metrics.holdNanos.modify (· + nanos)
   metrics.holdCount.modify (· + 1)
-  if isSwitchName name then
-    metrics.holdSwitchNanos.modify (· + nanos)
-    metrics.holdSwitchCount.modify (· + 1)
 
 structure DynWidgetMetrics where
   rebuildNanos : IO.Ref Nat
@@ -321,32 +314,32 @@ def getEventsW : WidgetM ReactiveEvents := StateT.lift getEvents
 
 /-- Register a component in WidgetM context. -/
 def registerComponentW (namePrefix : String) (isInput : Bool := false)
-    (isInteractive : Bool := true) : WidgetM String :=
+    (isInteractive : Bool := true) : WidgetM Afferent.Arbor.ComponentId :=
   StateT.lift (registerComponent namePrefix isInput isInteractive)
 
 /-! ## Hit Testing Helpers -/
 
-/-- Find a widget ID by name in the widget tree.
+/-- Find a widget ID by component id in the widget tree.
     Uses a depth limit to ensure termination. -/
 def findWidgetIdByName (widget : Afferent.Arbor.Widget)
-    (target : String) (maxDepth : Nat := 100) : Option Afferent.Arbor.WidgetId :=
+    (target : Afferent.Arbor.ComponentId) (maxDepth : Nat := 100) : Option Afferent.Arbor.WidgetId :=
   go widget target maxDepth
 where
-  go (widget : Afferent.Arbor.Widget) (target : String) (fuel : Nat)
+  go (widget : Afferent.Arbor.Widget) (target : Afferent.Arbor.ComponentId) (fuel : Nat)
       : Option Afferent.Arbor.WidgetId :=
     match fuel with
     | 0 => none  -- Depth limit reached
     | fuel' + 1 =>
-      let widgetName := Afferent.Arbor.Widget.name? widget
-      match widgetName with
-      | some name =>
-          if name == target then
+      let widgetComponentId := Afferent.Arbor.Widget.componentId? widget
+      match widgetComponentId with
+      | some componentId =>
+          if componentId == target then
             some (Afferent.Arbor.Widget.id widget)
           else
             findInChildren widget target fuel'
       | none =>
           findInChildren widget target fuel'
-  findInChildren (widget : Afferent.Arbor.Widget) (target : String) (fuel : Nat)
+  findInChildren (widget : Afferent.Arbor.Widget) (target : Afferent.Arbor.ComponentId) (fuel : Nat)
       : Option Afferent.Arbor.WidgetId :=
     let children := Afferent.Arbor.Widget.children widget
     let rec loop (idx : Nat) : Option Afferent.Arbor.WidgetId :=
@@ -361,45 +354,48 @@ where
         | none => loop (idx + 1)
     loop 0
 
-/-- Build a name->id map for the widget tree (used to speed up hit checks). -/
-partial def buildNameMap (widget : Afferent.Arbor.Widget) : Std.HashMap String Afferent.Arbor.WidgetId :=
+/-- Build a component->widget map for the widget tree (used to speed up hit checks). -/
+partial def buildNameMap (widget : Afferent.Arbor.Widget)
+    : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId :=
   go widget {}
 where
-  go (w : Afferent.Arbor.Widget) (acc : Std.HashMap String Afferent.Arbor.WidgetId) :
-      Std.HashMap String Afferent.Arbor.WidgetId :=
-    let acc := match Afferent.Arbor.Widget.name? w with
-      | some name => acc.insert name (Afferent.Arbor.Widget.id w)
+  go (w : Afferent.Arbor.Widget)
+      (acc : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId) :
+      Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId :=
+    let acc := match Afferent.Arbor.Widget.componentId? w with
+      | some componentId => acc.insert componentId (Afferent.Arbor.Widget.id w)
       | none => acc
     w.children.foldl (fun m child => go child m) acc
 
-/-- Check if a named widget is in the hit path. -/
+/-- Check if a component widget is in the hit path. -/
 def hitPathHasNamedWidget (widget : Afferent.Arbor.Widget)
-    (hitPath : Array Afferent.Arbor.WidgetId) (name : String)
-    (nameMap : Std.HashMap String Afferent.Arbor.WidgetId) : Bool :=
-  match nameMap[name]? with
+    (hitPath : Array Afferent.Arbor.WidgetId) (componentId : Afferent.Arbor.ComponentId)
+    (componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId) : Bool :=
+  match componentMap[componentId]? with
   | some wid => hitPath.any (· == wid)
   | none =>
-      match findWidgetIdByName widget name with
+      match findWidgetIdByName widget componentId with
       | some wid => hitPath.any (· == wid)
       | none => false
 
-/-- Check if a widget name is in the hit path (for ClickData). -/
-def hitWidget (data : ClickData) (name : String) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath name data.nameMap
+/-- Check if a component is in the hit path (for ClickData). -/
+def hitWidget (data : ClickData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
+  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
 
-/-- Check if a widget name is in the hit path (for HoverData). -/
-def hitWidgetHover (data : HoverData) (name : String) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath name data.nameMap
+/-- Check if a component is in the hit path (for HoverData). -/
+def hitWidgetHover (data : HoverData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
+  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
 
-/-- Check if a widget name is in the hit path (for ScrollData). -/
-def hitWidgetScroll (data : ScrollData) (name : String) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath name data.nameMap
+/-- Check if a component is in the hit path (for ScrollData). -/
+def hitWidgetScroll (data : ScrollData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
+  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
 
 /-- Calculate slider value from click position given the slider's layout.
     `trackWidth` is the width of the slider track in pixels. -/
 def calculateSliderValue (clickX : Float) (layouts : Trellis.LayoutResult)
-    (widget : Afferent.Arbor.Widget) (sliderName : String) (trackWidth : Float) : Option Float :=
-  match findWidgetIdByName widget sliderName with
+    (widget : Afferent.Arbor.Widget) (sliderComponentId : Afferent.Arbor.ComponentId)
+    (trackWidth : Float) : Option Float :=
+  match findWidgetIdByName widget sliderComponentId with
   | some wid =>
       match layouts.get wid with
       | some layout =>
@@ -419,10 +415,10 @@ and set up subscriptions automatically.
 
 /-- Create a hover state Dynamic for a widget (like React's useState + useEffect for hover).
     Returns a Dynamic that is true when the mouse is over the widget. -/
-def useHover (name : String) : ReactiveM (Dynamic Spider Bool) := do
+def useHover (componentId : Afferent.Arbor.ComponentId) : ReactiveM (Dynamic Spider Bool) := do
   let events ← getEvents
   let metricsOpt ← SpiderM.liftIO hoverMetricsRef.get
-  let hoverChanges ← Event.selectM events.hoverFan name
+  let hoverChanges ← Event.selectM events.hoverFan componentId
 
   match metricsOpt with
   | none =>
@@ -438,18 +434,18 @@ def useHover (name : String) : ReactiveM (Dynamic Spider Bool) := do
           let t0 ← IO.monoNanosNow
           update value
           let t1 ← IO.monoNanosNow
-          recordHoverHold metrics name (t1 - t0)
+          recordHoverHold metrics componentId (t1 - t0)
       pure dyn
 
-/-- Build a hover event for named targets using hoverFan.
+/-- Build a hover event for component targets using hoverFan.
     Returns `some payload` on enter and `none` on leave, preferring enters when both occur. -/
-def hoverEventForTargets (targets : Array (String × α))
+def hoverEventForTargets (targets : Array (Afferent.Arbor.ComponentId × α))
     : ReactiveM (Reactive.Event Spider (Option α)) := do
   let events ← getEvents
   let mut enterEvents : Array (Reactive.Event Spider (Option α)) := #[]
   let mut leaveEvents : Array (Reactive.Event Spider (Option α)) := #[]
-  for (name, payload) in targets do
-    let hoverChanges ← Event.selectM events.hoverFan name
+  for (componentId, payload) in targets do
+    let hoverChanges ← Event.selectM events.hoverFan componentId
     let enter ← Event.mapMaybeM (fun hovered => if hovered then some (some payload) else none) hoverChanges
     let leave ← Event.mapMaybeM (fun hovered => if hovered then some (none : Option α) else none) hoverChanges
     enterEvents := enterEvents.push enter
@@ -462,15 +458,16 @@ def hoverEventForTargets (targets : Array (String × α))
   | events => Event.leftmostM events
 
 /-- Convenience: hover event that returns the hovered index (or none). -/
-def hoverIndexEvent (names : Array String) : ReactiveM (Reactive.Event Spider (Option Nat)) := do
-  let targets := names.mapIdx fun i name => (name, i)
+def hoverIndexEvent (componentIds : Array Afferent.Arbor.ComponentId)
+    : ReactiveM (Reactive.Event Spider (Option Nat)) := do
+  let targets := componentIds.mapIdx fun i componentId => (componentId, i)
   hoverEventForTargets targets
 
 /-- Create a click event for a widget that fires Unit (like React's onClick handler).
     Returns an Event that fires when the widget is clicked. -/
-def useClick (name : String) : ReactiveM (Event Spider Unit) := do
+def useClick (componentId : Afferent.Arbor.ComponentId) : ReactiveM (Event Spider Unit) := do
   let events ← getEvents
-  let clicks ← Event.filterM (fun data => hitWidget data name) events.clickEvent
+  let clicks ← Event.filterM (fun data => hitWidget data componentId) events.clickEvent
   Event.voidM clicks
 
 /-- Get animation frame events (fires each frame with delta time).
@@ -503,9 +500,9 @@ def useMouseDelta : ReactiveM (Event Spider MouseDeltaData) := do
   pure events.mouseDeltaEvent
 
 /-- Create click event with full data (for sliders that need position). -/
-def useClickData (name : String) : ReactiveM (Event Spider ClickData) := do
+def useClickData (componentId : Afferent.Arbor.ComponentId) : ReactiveM (Event Spider ClickData) := do
   let events ← getEvents
-  Event.filterM (fun data => hitWidget data name) events.clickEvent
+  Event.filterM (fun data => hitWidget data componentId) events.clickEvent
 
 /-- Subscribe to all click events (for focus management). -/
 def useAllClicks : ReactiveM (Event Spider ClickData) := do
@@ -524,9 +521,9 @@ def useAllHovers : ReactiveM (Event Spider HoverData) := do
 
 /-- Subscribe to scroll events for a named widget.
     Returns an Event that fires when scrolling occurs over the widget. -/
-def useScroll (name : String) : ReactiveM (Event Spider ScrollData) := do
+def useScroll (componentId : Afferent.Arbor.ComponentId) : ReactiveM (Event Spider ScrollData) := do
   let events ← getEvents
-  Event.filterM (fun data => hitWidgetScroll data name) events.scrollEvent
+  Event.filterM (fun data => hitWidgetScroll data componentId) events.scrollEvent
 
 /-- Subscribe to all scroll events (for custom handling). -/
 def useAllScrolls : ReactiveM (Event Spider ScrollData) := do
@@ -536,13 +533,13 @@ def useAllScrolls : ReactiveM (Event Spider ScrollData) := do
 /-- Set up automatic focus clearing when clicking non-input interactive widgets.
     Call this after all components have been created. -/
 def ComponentRegistry.setupFocusClearing (reg : ComponentRegistry) : ReactiveM Unit := do
-  let inputs ← SpiderM.liftIO reg.inputNames.get
-  let interactives ← SpiderM.liftIO reg.interactiveNames.get
+  let inputs ← SpiderM.liftIO reg.inputIds.get
+  let interactives ← SpiderM.liftIO reg.interactiveIds.get
 
   let isInputClick (data : ClickData) : Bool :=
-    inputs.any (fun name => hitWidget data name)
+    inputs.any (fun componentId => hitWidget data componentId)
   let isNonInputInteractiveClick (data : ClickData) : Bool :=
-    interactives.any (fun name => hitWidget data name)
+    interactives.any (fun componentId => hitWidget data componentId)
 
   let allClicks ← useAllClicks
   let nonInputClicks ← Event.filterM

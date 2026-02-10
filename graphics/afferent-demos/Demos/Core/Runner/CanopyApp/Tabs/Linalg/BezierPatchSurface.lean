@@ -28,7 +28,7 @@ def bezierPatchSurfaceTabContent (env : DemoEnv) : WidgetM Unit := do
         fun (s : Demos.Linalg.BezierPatchSurfaceState) =>
           { s with dragging := .camera, lastMouseX := data.click.x, lastMouseY := data.click.y }
     | 0 =>
-        match data.nameMap.get? patchName with
+        match data.componentMap.get? patchName with
         | some wid =>
             match data.layouts.get wid with
             | some layout =>
@@ -64,7 +64,7 @@ def bezierPatchSurfaceTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? patchName with
+    match data.componentMap.get? patchName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

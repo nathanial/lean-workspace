@@ -138,7 +138,7 @@ def unifiedDemo : IO Unit := do
 
             match rs.frameCache with
             | some cache =>
-                let nameMap := cache.hitIndex.nameMap
+                let componentMap := cache.hitIndex.componentMap
                 let mut hoverPathOpt : Option (Array Afferent.Arbor.WidgetId) := none
                 match click with
                 | some ce =>
@@ -148,7 +148,7 @@ def unifiedDemo : IO Unit := do
                       hitPath := hitPath
                       widget := cache.measuredWidget
                       layouts := cache.layouts
-                      nameMap := nameMap
+                      componentMap := componentMap
                     }
                     rs.inputs.fireClick clickData
                 | none => pure ()
@@ -163,7 +163,7 @@ def unifiedDemo : IO Unit := do
                     hitPath := hoverPath
                     widget := cache.measuredWidget
                     layouts := cache.layouts
-                    nameMap := nameMap
+                    componentMap := componentMap
                   }
                   rs.inputs.fireHover hoverData
                   rs := { rs with lastMouseX := mouseX, lastMouseY := mouseY }
@@ -223,7 +223,7 @@ def unifiedDemo : IO Unit := do
                     hitPath := scrollPath
                     widget := cache.measuredWidget
                     layouts := cache.layouts
-                    nameMap := nameMap
+                    componentMap := componentMap
                   }
                   rs.inputs.fireScroll scrollData
                   FFI.Window.clearScroll c.ctx.window
@@ -244,7 +244,7 @@ def unifiedDemo : IO Unit := do
                     hitPath := mouseUpPath
                     widget := cache.measuredWidget
                     layouts := cache.layouts
-                    nameMap := nameMap
+                    componentMap := componentMap
                   }
                   rs.inputs.fireMouseUp mouseUpData
                 rs := { rs with prevLeftDown := leftDown }
@@ -288,9 +288,9 @@ def unifiedDemo : IO Unit := do
               layouts := layouts
               hitIndex := hitIndex
             } }
-            let interactiveNames :=
-              hitIndex.nameMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
-            rs.events.registry.interactiveNames.set interactiveNames
+            let interactiveIds :=
+              hitIndex.componentMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
+            rs.events.registry.interactiveIds.set interactiveIds
             let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow

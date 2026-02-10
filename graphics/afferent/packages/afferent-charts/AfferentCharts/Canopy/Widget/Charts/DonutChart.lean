@@ -267,7 +267,7 @@ end DonutChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def donutChartVisual (name : String) (slices : Array DonutChart.Slice)
+def donutChartVisual (name : ComponentId) (slices : Array DonutChart.Slice)
     (theme : Theme) (dims : DonutChart.Dimensions := DonutChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -278,7 +278,7 @@ def donutChartVisual (name : String) (slices : Array DonutChart.Slice)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a donut chart with legend visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -286,7 +286,7 @@ def donutChartVisual (name : String) (slices : Array DonutChart.Slice)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def donutChartWithLegendVisual (name : String) (slices : Array DonutChart.Slice)
+def donutChartWithLegendVisual (name : ComponentId) (slices : Array DonutChart.Slice)
     (theme : Theme) (dims : DonutChart.Dimensions := DonutChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -297,7 +297,7 @@ def donutChartWithLegendVisual (name : String) (slices : Array DonutChart.Slice)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive DonutChart Components (FRP-based)
 

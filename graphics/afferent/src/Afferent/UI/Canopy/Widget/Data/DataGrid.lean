@@ -59,7 +59,7 @@ def updateCell (rows : Array (Array String)) (row col : Nat) (value : String) : 
 end DataGrid
 
 /-- Build a single data grid cell. -/
-def dataGridCellVisual (name : String) (content : String)
+def dataGridCellVisual (name : ComponentId) (content : String)
     (isHeader : Bool) (isSelected : Bool) (isHovered : Bool)
     (isEditing : Bool) (editor : TextInputState) (editorFocused : Bool)
     (colWidth : Option Float) (theme : Theme)
@@ -102,10 +102,10 @@ def dataGridCellVisual (name : String) (content : String)
     else
       text' content theme.font theme.text .left
 
-  pure (.flex wid (some name) props cellStyle #[child])
+  pure (Widget.flexC wid name props cellStyle #[child])
 
 /-- Build a data grid row (header or data). -/
-def dataGridRowVisual (rowName : String) (cellNameFn : Nat → String)
+def dataGridRowVisual (cellNameFn : Nat → ComponentId)
     (cells : Array String) (columns : Array DataGridColumn) (rowIdx : Nat)
     (selected : Option (Nat × Nat)) (hovered : Option (Nat × Nat))
     (editing : Option (Nat × Nat)) (editor : TextInputState) (editorFocused : Bool)
@@ -133,24 +133,24 @@ def dataGridRowVisual (rowName : String) (cellNameFn : Nat → String)
   }
   let wid ← freshId
   let props : FlexContainer := { direction := .row, gap := 0 }
-  pure (.flex wid (some rowName) props rowStyle cellWidgets)
+  pure (.flex wid none props rowStyle cellWidgets)
 
 /-- Build the complete data grid visual. -/
-def dataGridVisual (containerName : String)
-    (headerCellNameFn : Nat → String) (rowCellNameFn : Nat → Nat → String)
+def dataGridVisual (containerName : ComponentId)
+    (headerCellNameFn : Nat → ComponentId) (rowCellNameFn : Nat → Nat → ComponentId)
     (columns : Array DataGridColumn) (rows : Array (Array String))
     (selected : Option (Nat × Nat)) (hovered : Option (Nat × Nat))
     (editing : Option (Nat × Nat)) (editor : TextInputState) (editorFocused : Bool)
     (theme : Theme) (config : DataGridConfig := DataGrid.defaultConfig) : WidgetBuilder := do
   let headerCells := columns.map (·.header)
-  let headerRow ← dataGridRowVisual "datagrid-header" headerCellNameFn
+  let headerRow ← dataGridRowVisual headerCellNameFn
     headerCells columns 0 selected hovered editing editor editorFocused theme config true
 
   let mut rowWidgets : Array Widget := #[headerRow]
   for r in [:rows.size] do
     let rowCells := rows.getD r #[]
-    let cellNameFn (c : Nat) : String := rowCellNameFn r c
-    let rowWidget ← dataGridRowVisual s!"datagrid-row-{r}" cellNameFn
+    let cellNameFn (c : Nat) : ComponentId := rowCellNameFn r c
+    let rowWidget ← dataGridRowVisual cellNameFn
       rowCells columns r selected hovered editing editor editorFocused theme config false
     rowWidgets := rowWidgets.push rowWidget
 
@@ -164,7 +164,7 @@ def dataGridVisual (containerName : String)
     direction := .column
     gap := 0
   }
-  pure (.flex outerWid (some containerName) outerProps outerStyle rowWidgets)
+  pure (Widget.flexC outerWid containerName outerProps outerStyle rowWidgets)
 
 /-! ## Reactive DataGrid Components (FRP-based) -/
 
@@ -206,26 +206,26 @@ def dataGrid (columns : Array DataGridColumn) (rows : Array (Array String))
   let colCount := columns.size
 
   -- Register cell names for hit testing (header uses its own names)
-  let mut headerNames : Array String := #[]
+  let mut headerNames : Array ComponentId := #[]
   for _ in [:colCount] do
     let name ← registerComponentW "datagrid-header-cell"
     headerNames := headerNames.push name
-  let headerCellNameFn (c : Nat) : String := headerNames.getD c ""
+  let headerCellNameFn (c : Nat) : ComponentId := headerNames.getD c 0
 
-  let mut cellNames : Array String := #[]
+  let mut cellNames : Array ComponentId := #[]
   for _ in [:rowCount] do
     for _ in [:colCount] do
       let name ← registerComponentW "datagrid-cell"
       cellNames := cellNames.push name
-  let cellNameFn (r c : Nat) : String :=
-    cellNames.getD (r * colCount + c) ""
+  let cellNameFn (r c : Nat) : ComponentId :=
+    cellNames.getD (r * colCount + c) 0
 
   let allClicks ← useAllClicks
   let keyEvents ← useKeyboard
 
   let liftSpider {α : Type} : SpiderM α → WidgetM α := fun m => StateT.lift (liftM m)
   let clickEvents ← liftSpider (Event.mapM DataGridInputEvent.click allClicks)
-  let mut hoverTargets : Array (String × (Nat × Nat)) := #[]
+  let mut hoverTargets : Array (ComponentId × (Nat × Nat)) := #[]
   for r in [:rowCount] do
     for c in [:colCount] do
       hoverTargets := hoverTargets.push (cellNameFn r c, (r, c))

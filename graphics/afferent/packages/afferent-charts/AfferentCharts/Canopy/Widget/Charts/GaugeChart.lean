@@ -225,7 +225,7 @@ end GaugeChart
     - `colors`: Chart colors
     - `dims`: Chart dimensions
 -/
-def gaugeChartVisual (name : String) (data : GaugeChart.Data)
+def gaugeChartVisual (name : ComponentId) (data : GaugeChart.Data)
     (theme : Theme) (colors : GaugeChart.ChartColors := GaugeChart.defaultColors)
     (dims : GaugeChart.Dimensions := GaugeChart.defaultDimensions)
     : WidgetBuilder := do
@@ -243,7 +243,7 @@ def gaugeChartVisual (name : String) (data : GaugeChart.Data)
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive GaugeChart Components (FRP-based)
 

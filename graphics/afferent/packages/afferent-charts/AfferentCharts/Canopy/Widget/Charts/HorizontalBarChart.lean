@@ -247,7 +247,7 @@ end HorizontalBarChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def horizontalBarChartVisual (name : String) (data : Array Float)
+def horizontalBarChartVisual (name : ComponentId) (data : Array Float)
     (labels : Array String := #[])
     (variant : HorizontalBarChartVariant := .primary) (theme : Theme)
     (dims : HorizontalBarChart.Dimensions := HorizontalBarChart.defaultDimensions) : WidgetBuilder := do
@@ -259,7 +259,7 @@ def horizontalBarChartVisual (name : String) (data : Array Float)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-color horizontal bar chart visual (WidgetBuilder version).
     Each data point can have its own color.
@@ -268,7 +268,7 @@ def horizontalBarChartVisual (name : String) (data : Array Float)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def multiColorHorizontalBarChartVisual (name : String) (data : Array HorizontalBarChart.DataPoint)
+def multiColorHorizontalBarChartVisual (name : ComponentId) (data : Array HorizontalBarChart.DataPoint)
     (theme : Theme) (dims : HorizontalBarChart.Dimensions := HorizontalBarChart.defaultDimensions) : WidgetBuilder := do
   let wid ← freshId
   let chart ← custom (HorizontalBarChart.multiColorHorizontalBarChartSpec data theme dims) {
@@ -278,7 +278,7 @@ def multiColorHorizontalBarChartVisual (name : String) (data : Array HorizontalB
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive HorizontalBarChart Components (FRP-based)
 

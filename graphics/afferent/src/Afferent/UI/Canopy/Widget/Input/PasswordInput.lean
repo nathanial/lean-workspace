@@ -40,7 +40,7 @@ def computeCursorPixelX (font : Afferent.Font) (state : TextInputState)
 end PasswordInput
 
 /-- Visual for password input with optional masking. -/
-def passwordInputVisual (name toggleName : String) (theme : Theme)
+def passwordInputVisual (name toggleName : ComponentId) (theme : Theme)
     (state : TextInputState) (showPassword : Bool) (toggleHovered : Bool)
     (placeholder : String := "") : WidgetBuilder := do
   let colors := theme.input
@@ -81,7 +81,7 @@ def passwordInputVisual (name toggleName : String) (theme : Theme)
     justifyContent := .center
   }
   let toggleText ← text' toggleLabel theme.font theme.textMuted .center
-  let toggle : Widget := .flex toggleWid (some toggleName) toggleProps toggleStyle #[toggleText]
+  let toggle : Widget := Widget.flexC toggleWid toggleName toggleProps toggleStyle #[toggleText]
 
   let innerWid ← freshId
   let innerProps : FlexContainer := { direction := .row, gap := 8, alignItems := .center }
@@ -92,7 +92,7 @@ def passwordInputVisual (name toggleName : String) (theme : Theme)
     direction := .row
     alignItems := .center
   }
-  pure (.flex outerWid (some name) outerProps style #[inner])
+  pure (Widget.flexC outerWid name outerProps style #[inner])
 
 /-! ## Reactive PasswordInput Components (FRP-based) -/
 

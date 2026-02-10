@@ -26,7 +26,7 @@ def domainWarpingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 then
       id
     else
-      match data.nameMap.get? warpName with
+      match data.componentMap.get? warpName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>
@@ -65,7 +65,7 @@ def domainWarpingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? warpName with
+    match data.componentMap.get? warpName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

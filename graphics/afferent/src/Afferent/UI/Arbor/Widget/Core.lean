@@ -73,6 +73,9 @@ end ScrollbarRenderConfig
 /-- Widget identifier for layout-to-widget mapping. -/
 abbrev WidgetId := Nat
 
+/-- Numeric identifier for interactive components (hover/click/focus routing). -/
+abbrev ComponentId := Nat
+
 inductive RenderLayer where
   | normal
   | overlay
@@ -180,6 +183,7 @@ inductive Widget where
          (props : Trellis.FlexContainer)
          (style : BoxStyle)
          (children : Array Widget)
+         (componentId : Option ComponentId := none)
 
   /-- CSS Grid container -/
   | grid (id : WidgetId)
@@ -187,6 +191,7 @@ inductive Widget where
          (props : Trellis.GridContainer)
          (style : BoxStyle)
          (children : Array Widget)
+         (componentId : Option ComponentId := none)
 
   /-- Text with optional wrapping -/
   | text (id : WidgetId)
@@ -197,11 +202,13 @@ inductive Widget where
          (align : TextAlign)
          (maxWidth : Option Float)
          (textLayout : Option TextLayout)
+         (componentId : Option ComponentId := none)
 
   /-- A colored rectangle box -/
   | rect (id : WidgetId)
          (name : Option String := none)
          (style : BoxStyle)
+         (componentId : Option ComponentId := none)
 
   /-- Scroll container with clipping -/
   | scroll (id : WidgetId)
@@ -212,18 +219,21 @@ inductive Widget where
            (contentHeight : Float)
            (scrollbarConfig : ScrollbarRenderConfig)
            (child : Widget)
+           (componentId : Option ComponentId := none)
 
   /-- Fixed-size spacer -/
   | spacer (id : WidgetId)
            (name : Option String := none)
            (width : Float)
            (height : Float)
+           (componentId : Option ComponentId := none)
 
   /-- Custom widget with user-provided measurement and rendering. -/
   | custom (id : WidgetId)
            (name : Option String := none)
            (style : BoxStyle)
            (spec : CustomSpec)
+           (componentId : Option ComponentId := none)
 
 deriving Inhabited
 
@@ -251,19 +261,63 @@ def name? : Widget → Option String
 
 /-- Get the widget's children (empty for leaf widgets). -/
 def children : Widget → Array Widget
-  | .flex _ _ _ _ children => children
-  | .grid _ _ _ _ children => children
-  | .scroll _ _ _ _ _ _ _ child => #[child]
+  | .flex _ _ _ _ children _ => children
+  | .grid _ _ _ _ children _ => children
+  | .scroll _ _ _ _ _ _ _ child _ => #[child]
   | _ => #[]
 
 /-- Get the widget's style if it has one. -/
 def style? : Widget → Option BoxStyle
-  | .flex _ _ _ style _ => some style
-  | .grid _ _ _ style _ => some style
-  | .rect _ _ style => some style
+  | .flex _ _ _ style _ _ => some style
+  | .grid _ _ _ style _ _ => some style
+  | .rect _ _ style _ => some style
   | .scroll _ _ style .. => some style
-  | .custom _ _ style _ => some style
+  | .custom _ _ style _ _ => some style
   | _ => none
+
+/-- Get the widget's optional component id for interaction routing. -/
+def componentId? : Widget → Option ComponentId
+  | .flex _ _ _ _ _ componentId => componentId
+  | .grid _ _ _ _ _ componentId => componentId
+  | .text _ _ _ _ _ _ _ _ componentId => componentId
+  | .rect _ _ _ componentId => componentId
+  | .scroll _ _ _ _ _ _ _ _ componentId => componentId
+  | .spacer _ _ _ _ componentId => componentId
+  | .custom _ _ _ _ componentId => componentId
+
+/-- Build a flex widget tagged with an interaction component id. -/
+def flexC (id : WidgetId) (componentId : ComponentId)
+    (props : Trellis.FlexContainer) (style : BoxStyle) (children : Array Widget) : Widget :=
+  .flex id none props style children (some componentId)
+
+/-- Build a grid widget tagged with an interaction component id. -/
+def gridC (id : WidgetId) (componentId : ComponentId)
+    (props : Trellis.GridContainer) (style : BoxStyle) (children : Array Widget) : Widget :=
+  .grid id none props style children (some componentId)
+
+/-- Build a text widget tagged with an interaction component id. -/
+def textC (id : WidgetId) (componentId : ComponentId) (content : String)
+    (font : FontId) (color : Color) (align : TextAlign)
+    (maxWidth : Option Float := none) (textLayout : Option TextLayout := none) : Widget :=
+  .text id none content font color align maxWidth textLayout (some componentId)
+
+/-- Build a rect widget tagged with an interaction component id. -/
+def rectC (id : WidgetId) (componentId : ComponentId) (style : BoxStyle) : Widget :=
+  .rect id none style (some componentId)
+
+/-- Build a scroll widget tagged with an interaction component id. -/
+def scrollC (id : WidgetId) (componentId : ComponentId) (style : BoxStyle)
+    (scrollState : ScrollState) (contentWidth contentHeight : Float)
+    (scrollbarConfig : ScrollbarRenderConfig) (child : Widget) : Widget :=
+  .scroll id none style scrollState contentWidth contentHeight scrollbarConfig child (some componentId)
+
+/-- Build a spacer widget tagged with an interaction component id. -/
+def spacerC (id : WidgetId) (componentId : ComponentId) (width height : Float) : Widget :=
+  .spacer id none width height (some componentId)
+
+/-- Build a custom widget tagged with an interaction component id. -/
+def customC (id : WidgetId) (componentId : ComponentId) (style : BoxStyle) (spec : CustomSpec) : Widget :=
+  .custom id none style spec (some componentId)
 
 /-- Check if this widget is a container. -/
 def isContainer : Widget → Bool

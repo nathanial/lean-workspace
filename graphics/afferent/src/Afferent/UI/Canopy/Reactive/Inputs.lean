@@ -34,29 +34,29 @@ structure ComponentRegistry where
   private mk ::
   /-- Counter for generating unique IDs. -/
   idCounter : IO.Ref Nat
-  /-- Names of focusable input widgets. -/
-  inputNames : IO.Ref (Array String)
-  /-- Names of all interactive widgets. -/
-  interactiveNames : IO.Ref (Array String)
-  /-- Currently focused input (by auto-generated name). -/
-  focusedInput : Dynamic Spider (Option String)
+  /-- IDs of focusable input widgets. -/
+  inputIds : IO.Ref (Array Afferent.Arbor.ComponentId)
+  /-- IDs of all interactive widgets. -/
+  interactiveIds : IO.Ref (Array Afferent.Arbor.ComponentId)
+  /-- Currently focused input component. -/
+  focusedInput : Dynamic Spider (Option Afferent.Arbor.ComponentId)
   /-- Trigger to change focus. -/
-  fireFocus : Option String → IO Unit
+  fireFocus : Option Afferent.Arbor.ComponentId → IO Unit
   /-- Per-virtual-list remembered vertical scroll offsets by stable key. -/
   virtualListScrollOffsets : IO.Ref (Std.HashMap String Float)
 
 /-- Create a new component registry. -/
 def ComponentRegistry.create : SpiderM ComponentRegistry := do
   let idCounter ← SpiderM.liftIO <| IO.mkRef 0
-  let inputNames ← SpiderM.liftIO <| IO.mkRef #[]
-  let interactiveNames ← SpiderM.liftIO <| IO.mkRef #[]
-  let (focusEvent, fireFocus) ← newTriggerEvent (t := Spider) (a := Option String)
+  let inputIds ← SpiderM.liftIO <| IO.mkRef #[]
+  let interactiveIds ← SpiderM.liftIO <| IO.mkRef #[]
+  let (focusEvent, fireFocus) ← newTriggerEvent (t := Spider) (a := Option Afferent.Arbor.ComponentId)
   let focusedInput ← holdDyn none focusEvent
   let virtualListScrollOffsets ← SpiderM.liftIO <| IO.mkRef {}
   pure {
     idCounter
-    inputNames
-    interactiveNames
+    inputIds
+    interactiveIds
     focusedInput
     fireFocus
     virtualListScrollOffsets
@@ -66,29 +66,28 @@ def ComponentRegistry.create : SpiderM ComponentRegistry := do
     Clears the counter and name arrays to prevent unbounded growth. -/
 def ComponentRegistry.reset (reg : ComponentRegistry) : IO Unit := do
   reg.idCounter.set 0
-  reg.inputNames.set #[]
-  reg.interactiveNames.set #[]
+  reg.inputIds.set #[]
+  reg.interactiveIds.set #[]
 
 /-- Get diagnostic stats from the registry. -/
 def ComponentRegistry.getStats (reg : ComponentRegistry) : IO (Nat × Nat × Nat) := do
   let counter ← reg.idCounter.get
-  let inputCount ← reg.inputNames.get
-  let interactiveCount ← reg.interactiveNames.get
+  let inputCount ← reg.inputIds.get
+  let interactiveCount ← reg.interactiveIds.get
   pure (counter, inputCount.size, interactiveCount.size)
 
 /-- Register a component and get an auto-generated name.
     - `namePrefix`: Component type prefix (e.g., "button", "text-input")
     - `isInput`: Whether this is a focusable input widget
     - `isInteractive`: Whether this widget responds to clicks -/
-def ComponentRegistry.register (reg : ComponentRegistry) (namePrefix : String)
-    (isInput : Bool := false) (isInteractive : Bool := true) : IO String := do
-  let id ← reg.idCounter.modifyGet fun n => (n, n + 1)
-  let name := s!"{namePrefix}-{id}"
+def ComponentRegistry.register (reg : ComponentRegistry) (_namePrefix : String)
+    (isInput : Bool := false) (isInteractive : Bool := true) : IO Afferent.Arbor.ComponentId := do
+  let componentId ← reg.idCounter.modifyGet fun n => (n, n + 1)
   if isInput then
-    reg.inputNames.modify (·.push name)
+    reg.inputIds.modify (·.push componentId)
   if isInteractive then
-    reg.interactiveNames.modify (·.push name)
-  pure name
+    reg.interactiveIds.modify (·.push componentId)
+  pure componentId
 
 /-- Read remembered virtual list vertical scroll offset for a stable key. -/
 def ComponentRegistry.getVirtualListScrollOffset (reg : ComponentRegistry)
@@ -111,8 +110,8 @@ structure ReactiveEvents where
   hoverEvent : Event Spider HoverData
   /-- Mouse delta events (relative movement since last frame). -/
   mouseDeltaEvent : Event Spider MouseDeltaData
-  /-- Hover state changes by widget name (only changed keys fire). -/
-  hoverFan : Event.Fan Spider String Bool
+  /-- Hover state changes by component id (only changed keys fire). -/
+  hoverFan : Event.Fan Spider Afferent.Arbor.ComponentId Bool
   /-- Keyboard events. -/
   keyEvent : Event Spider KeyData
   /-- Animation frame events (fires each frame with dt).
@@ -132,31 +131,31 @@ structure ReactiveEvents where
   /-- Default font for text input widgets (optional for testing). -/
   font : Option Afferent.Font := none
 
-private def hoverChangedByName (data : HoverData) (name : String) : Bool :=
-  match data.nameMap.get? name with
+private def hoverChangedByComponent (data : HoverData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
+  match data.componentMap.get? componentId with
   | some wid => data.hitPath.any (· == wid)
   | none => false
 
 private def buildHoverChangeEvent (hoverEvent : Event Spider HoverData) (registry : ComponentRegistry)
-    : SpiderM (Event Spider (Std.HashMap String Bool)) := do
+    : SpiderM (Event Spider (Std.HashMap Afferent.Arbor.ComponentId Bool)) := do
   let nodeId ← SpiderM.freshNodeId
   let derived ← SpiderM.liftIO <|
     Reactive.Event.newNodeWithId (t := Spider) nodeId (hoverEvent.height.inc)
-  let stateRef ← SpiderM.liftIO <| IO.mkRef (∅ : Std.HashMap String Bool)
+  let stateRef ← SpiderM.liftIO <| IO.mkRef (∅ : Std.HashMap Afferent.Arbor.ComponentId Bool)
   let _ ← Reactive.Host.Event.subscribeM hoverEvent fun data => do
-    let names ← registry.interactiveNames.get
-    if names.isEmpty then
+    let componentIds ← registry.interactiveIds.get
+    if componentIds.isEmpty then
       pure ()
     else
       let prev ← stateRef.get
       let mut next := prev
-      let mut delta : Std.HashMap String Bool := {}
-      for name in names do
-        let hovered := hoverChangedByName data name
-        let prevVal := prev.getD name false
+      let mut delta : Std.HashMap Afferent.Arbor.ComponentId Bool := {}
+      for componentId in componentIds do
+        let hovered := hoverChangedByComponent data componentId
+        let prevVal := prev.getD componentId false
         if hovered != prevVal then
-          next := next.insert name hovered
-          delta := delta.insert name hovered
+          next := next.insert componentId hovered
+          delta := delta.insert componentId hovered
       if !delta.isEmpty then
         stateRef.set next
         Reactive.Event.fire derived delta

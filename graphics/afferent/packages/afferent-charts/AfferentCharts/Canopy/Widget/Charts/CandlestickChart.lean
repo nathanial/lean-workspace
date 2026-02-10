@@ -235,7 +235,7 @@ end CandlestickChart
     - `colors`: Candle colors for bullish/bearish
     - `dims`: Chart dimensions
 -/
-def candlestickChartVisual (name : String) (data : CandlestickChart.Data)
+def candlestickChartVisual (name : ComponentId) (data : CandlestickChart.Data)
     (theme : Theme) (colors : CandlestickChart.CandleColors := CandlestickChart.defaultColors)
     (dims : CandlestickChart.Dimensions := CandlestickChart.defaultDimensions)
     : WidgetBuilder := do
@@ -247,7 +247,7 @@ def candlestickChartVisual (name : String) (data : CandlestickChart.Data)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive CandlestickChart Components (FRP-based)
 

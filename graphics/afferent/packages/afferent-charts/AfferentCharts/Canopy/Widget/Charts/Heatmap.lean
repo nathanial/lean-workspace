@@ -240,7 +240,7 @@ end Heatmap
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def heatmapVisual (name : String) (data : Heatmap.Data) (scale : Heatmap.ColorScale)
+def heatmapVisual (name : ComponentId) (data : Heatmap.Data) (scale : Heatmap.ColorScale)
     (theme : Theme) (dims : Heatmap.Dimensions := Heatmap.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -251,7 +251,7 @@ def heatmapVisual (name : String) (data : Heatmap.Data) (scale : Heatmap.ColorSc
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive Heatmap Components (FRP-based)
 

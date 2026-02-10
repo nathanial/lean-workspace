@@ -96,7 +96,7 @@ end Dropdown
     - `theme`: Theme for styling
     - `state`: Widget interaction state (hover, focus, etc.)
 -/
-def dropdownTriggerVisual (name : String) (selectedText : String) (isOpen : Bool)
+def dropdownTriggerVisual (name : ComponentId) (selectedText : String) (isOpen : Bool)
     (theme : Theme) (state : WidgetState := {}) : WidgetBuilder := do
   let dims := Dropdown.defaultDimensions
   let bgColor := if state.hovered || isOpen then theme.input.backgroundHover else theme.input.background
@@ -125,7 +125,7 @@ def dropdownTriggerVisual (name : String) (selectedText : String) (isOpen : Bool
     minHeight := some dims.itemHeight
   }
 
-  pure (.flex wid (some name) props triggerStyle #[textWidget, arrowWidget])
+  pure (Widget.flexC wid name props triggerStyle #[textWidget, arrowWidget])
 
 /-- Build a visual dropdown menu item.
     - `name`: Widget name for hit testing (should be option-specific)
@@ -136,7 +136,7 @@ def dropdownTriggerVisual (name : String) (selectedText : String) (isOpen : Bool
     - `isLast`: Whether this is the last item (for rounded corners)
     - `theme`: Theme for styling
 -/
-def dropdownMenuItemVisual (name : String) (optionText : String)
+def dropdownMenuItemVisual (name : ComponentId) (optionText : String)
     (isSelected : Bool) (isHovered : Bool) (isFirst : Bool) (isLast : Bool)
     (theme : Theme) : WidgetBuilder := do
   let dims := Dropdown.defaultDimensions
@@ -172,11 +172,11 @@ def dropdownMenuItemVisual (name : String) (optionText : String)
       minWidth := some 20
       minHeight := some 20
     }
-    pure (.flex wid (some name) props itemStyle #[checkWidget, textWidget])
+    pure (Widget.flexC wid name props itemStyle #[checkWidget, textWidget])
   else
     -- Add spacer for alignment when no checkmark
     let spacerWidget ← spacer 20 0
-    pure (.flex wid (some name) props itemStyle #[spacerWidget, textWidget])
+    pure (Widget.flexC wid name props itemStyle #[spacerWidget, textWidget])
 
 /-- Build a complete visual dropdown widget.
     - `name`: Base widget name for the dropdown
@@ -189,8 +189,8 @@ def dropdownMenuItemVisual (name : String) (optionText : String)
     - `theme`: Theme for styling
     - `state`: Widget interaction state for trigger
 -/
-def dropdownVisual (name : String) (triggerName : String)
-    (optionNameFn : Nat → String) (options : Array String) (selectedIndex : Nat)
+def dropdownVisual (name : ComponentId) (triggerName : ComponentId)
+    (optionNameFn : Nat → ComponentId) (options : Array String) (selectedIndex : Nat)
     (isOpen : Bool) (hoveredOption : Option Nat) (theme : Theme)
     (state : WidgetState := {}) : WidgetBuilder := do
   let dims := Dropdown.defaultDimensions
@@ -240,7 +240,7 @@ def dropdownVisual (name : String) (triggerName : String)
       direction := .column
       gap := 0
     }
-    pure (.flex outerWid (some name) outerProps {} #[trigger, menu])
+    pure (Widget.flexC outerWid name outerProps {} #[trigger, menu])
   else
     -- Just the trigger when closed
     let outerWid ← freshId
@@ -248,7 +248,7 @@ def dropdownVisual (name : String) (triggerName : String)
       direction := .column
       gap := 0
     }
-    pure (.flex outerWid (some name) outerProps {} #[trigger])
+    pure (Widget.flexC outerWid name outerProps {} #[trigger])
 
 /-! ## Reactive Dropdown Components (FRP-based)
 
@@ -275,11 +275,11 @@ def dropdown (options : Array String) (initialSelection : Nat := 0)
   let containerName ← registerComponentW "dropdown" (isInteractive := false)
   let triggerName ← registerComponentW "dropdown-trigger"
 
-  let mut optionNames : Array String := #[]
+  let mut optionNames : Array ComponentId := #[]
   for _ in options do
     let name ← registerComponentW "dropdown-option"
     optionNames := optionNames.push name
-  let optionNameFn (i : Nat) : String := optionNames.getD i ""
+  let optionNameFn (i : Nat) : ComponentId := optionNames.getD i 0
 
   let events ← getEventsW
   let isTriggerHovered ← useHover triggerName

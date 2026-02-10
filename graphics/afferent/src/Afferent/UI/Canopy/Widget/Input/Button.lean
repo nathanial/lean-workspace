@@ -75,7 +75,7 @@ def content (label : String) (icon : Option String) (iconPosition : IconPosition
         rowCenter (gap := gap) (style := {}) children
 
 /-- Build the visual for a button with optional overlay layers. -/
-def buttonVisualLayered (name : String) (label : String) (icon : Option String)
+def buttonVisualLayered (name : ComponentId) (label : String) (icon : Option String)
     (iconPosition : IconPosition) (theme : Theme)
     (variant : ButtonVariant) (state : WidgetState)
     (paddingX paddingY : Float) (cornerRadius : Float)
@@ -110,10 +110,10 @@ def buttonVisualLayered (name : String) (label : String) (icon : Option String)
   let contentWidget ← content label icon iconPosition font fgColor
   let wid ← freshId
   let props := Trellis.FlexContainer.centered
-  pure (.flex wid (some name) props style (layerWidgets.push contentWidget))
+  pure (Widget.flexC wid name props style (layerWidgets.push contentWidget))
 
 /-- Build the visual for a button with optional icon and custom dimensions. -/
-def buttonVisualWith (name : String) (label : String) (icon : Option String)
+def buttonVisualWith (name : ComponentId) (label : String) (icon : Option String)
     (iconPosition : IconPosition) (theme : Theme)
     (variant : ButtonVariant) (state : WidgetState)
     (paddingX paddingY : Float) (cornerRadius : Float)
@@ -159,11 +159,11 @@ open Afferent.Canopy.Reactive
 /-! ## Button Hover/Press State -/
 
 /-- Track hover state for a widget name using the hover fan. -/
-private def buttonHoverState (name : String) : WidgetM (Reactive.Dynamic Spider Bool) := do
+private def buttonHoverState (name : ComponentId) : WidgetM (Reactive.Dynamic Spider Bool) := do
   useHover name
 
 /-- Track pressed state for a widget name (left mouse button). -/
-private def buttonPressState (name : String) : WidgetM (Reactive.Dynamic Spider Bool) := do
+private def buttonPressState (name : ComponentId) : WidgetM (Reactive.Dynamic Spider Bool) := do
   let clickData ← useClickData name
   let allMouseUp ← useAllMouseUp
 
@@ -194,7 +194,7 @@ deriving BEq, Inhabited
 private def rectFromLayout (rect : Trellis.LayoutRect) : Arbor.Rect :=
   Arbor.Rect.mk' rect.x rect.y rect.width rect.height
 
-private def hoverAnimState (name : String) : WidgetM (Reactive.Dynamic Spider HoverAnim) := do
+private def hoverAnimState (name : ComponentId) : WidgetM (Reactive.Dynamic Spider HoverAnim) := do
   let isHovered ← buttonHoverState name
   let elapsedTime ← useElapsedTime
   let hoverChanges := isHovered.updated
@@ -210,16 +210,16 @@ private def hoverProgress (anim : HoverAnim) (t : Float) (duration : Float) : Fl
     let pct := clamp (dt / duration) 0.0 1.0
     if anim.hovered then pct else 1.0 - pct
 
-private def layoutForName (data : ClickData) (name : String)
+private def layoutForName (data : ClickData) (name : ComponentId)
     : Option Trellis.ComputedLayout :=
-  match data.nameMap.get? name with
+  match data.componentMap.get? name with
   | some wid => data.layouts.get wid
   | none =>
       match findWidgetIdByName data.widget name with
       | some wid => data.layouts.get wid
       | none => none
 
-private def clickLocalPoint (data : ClickData) (name : String) : Option Arbor.Point := do
+private def clickLocalPoint (data : ClickData) (name : ComponentId) : Option Arbor.Point := do
   let layout ← layoutForName data name
   let rect := layout.contentRect
   pure (Arbor.Point.mk' (data.click.x - rect.x) (data.click.y - rect.y))
@@ -240,7 +240,7 @@ deriving BEq, Inhabited
 
 /-- Shared helper for hover-driven button rendering. -/
 private def buttonWithVisual (namePrefix : String)
-    (render : String → Theme → WidgetState → WidgetBuilder)
+    (render : ComponentId → Theme → WidgetState → WidgetBuilder)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
   let name ← registerComponentW namePrefix
@@ -256,7 +256,7 @@ private def buttonWithVisual (namePrefix : String)
   pure onClick
 
 /-- Build the visual for a button given its state (pure WidgetBuilder). -/
-def buttonVisual (name : String) (labelText : String) (theme : Theme)
+def buttonVisual (name : ComponentId) (labelText : String) (theme : Theme)
     (variant : ButtonVariant) (state : WidgetState) : WidgetBuilder := do
   Button.buttonVisualWith name labelText none .leading theme variant state
     theme.padding (theme.padding * 0.6) theme.cornerRadius
@@ -383,7 +383,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
     (activeVariant : ButtonVariant := .primary)
     (inactiveVariant : ButtonVariant := .outline) : WidgetM ToggleGroupResult := do
   let theme ← getThemeW
-  let mut buttonNames : Array String := #[]
+  let mut buttonNames : Array ComponentId := #[]
   for _ in labels do
     let name ← registerComponentW "toggle-group-btn"
     buttonNames := buttonNames.push name
@@ -394,7 +394,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
     if data.click.button != 0 then none
     else
       (List.range labels.size).findSome? fun i =>
-        let name := buttonNames.getD i ""
+        let name := buttonNames.getD i 0
         if hitWidget data name then some i else none
   let onSelect ← Event.mapMaybeM findClicked allClicks
   let selection ← Reactive.holdDyn initialSelection onSelect
@@ -402,7 +402,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
   let allHovers ← useAllHovers
   let hoverChanges ← Event.mapM (fun data =>
     (List.range labels.size).findSome? fun i =>
-      let name := buttonNames.getD i ""
+      let name := buttonNames.getD i 0
       if hitWidgetHover data name then some i else none) allHovers
   let hoveredIdx ← Reactive.holdDyn none hoverChanges
   let pressDown ← Event.mapM (fun idx => some idx) onSelect
@@ -440,7 +440,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
             pure dividerBuilder
 
         let label := labelsRef.getD i ""
-        let name := buttonNamesRef.getD i ""
+        let name := buttonNamesRef.getD i 0
         let isActive := i == sel
         let isHovered := hov == some i
         let isPressed := pressedOpt == some i
@@ -471,7 +471,7 @@ structure SplitButtonResult where
   onPrimary : Reactive.Event Spider Unit
   onMenu : Reactive.Event Spider Unit
 
-private def splitButtonVisual (primaryName menuName : String) (label : String)
+private def splitButtonVisual (primaryName menuName : ComponentId) (label : String)
     (theme : Theme) (variant : ButtonVariant)
     (primaryState menuState : WidgetState) : WidgetBuilder := do
   let colors := Button.variantColors theme variant

@@ -29,16 +29,19 @@ def testFont : FontId := { id := 0, name := "test", size := 14.0 }
 /-- Test theme for widget tests. -/
 def testTheme : Theme := { Theme.dark with font := testFont, smallFont := testFont }
 
+def testScrollId : ComponentId := 7400
+
 /-! ## Widget Building Tests -/
 
 test "namedScroll creates scroll widget" := do
   let child := text' "Hello" testFont
-  let scrollBuilder := namedScroll "test-scroll" {} 300 600 {} {} child
+  let scrollBuilder := namedScroll testScrollId {} 300 600 {} {} child
   let (widget, _) ← scrollBuilder.run {}
 
   match widget with
-  | .scroll _ name _ _ contentW contentH _ _ =>
-    ensure (name == some "test-scroll") s!"Expected name 'test-scroll', got {name}"
+  | .scroll _ _ _ _ contentW contentH _ _ componentId =>
+    ensure (componentId == some testScrollId)
+      s!"Expected component id {testScrollId}, got {componentId}"
     shouldBeNear contentW 300.0
     shouldBeNear contentH 600.0
   | _ => ensure false "Expected scroll widget"
@@ -71,7 +74,7 @@ test "nested column in scroll has correct total widget count" := do
     text' "Item 10" testFont
   ]
   let columnBuilder := column (gap := 4) (style := {}) children
-  let scrollBuilder := namedScroll "test-scroll" {} 300 600 {} {} columnBuilder
+  let scrollBuilder := namedScroll testScrollId {} 300 600 {} {} columnBuilder
   let (widget, _) ← scrollBuilder.run {}
   let count := widget.widgetCount
   -- 1 scroll + 1 flex + 10 text = 12
@@ -340,7 +343,7 @@ test "scroll widget child is laid out at full content height" := do
   let childBuilder := column (gap := 0) (style := {}) #[
     coloredBox Tincture.Color.red 280 contentH
   ]
-  let scrollBuilder := namedScroll "test-scroll"
+  let scrollBuilder := namedScroll testScrollId
     { minWidth := some viewportW, minHeight := some viewportH }
     viewportW contentH {} {} childBuilder
 
@@ -384,9 +387,10 @@ test "hit testing honors scroll offsets for offscreen items" := do
 
   let measureResult : MeasureResult := (measureWidget (M := Id) scrollWidget viewportW viewportH)
   let layouts := Trellis.layout measureResult.node viewportW viewportH
+  let hitIndex := buildHitTestIndex measureResult.widget layouts
 
   -- Click near the top of the viewport; with offset, this should hit item 6.
-  let path := hitTestPath measureResult.widget layouts 10 10
+  let path := hitTestPathIndexed hitIndex 10 10
   let item6Id := 10 + 6
   ensure (path.any (· == item6Id))
     s!"Expected hit path to include item 6 (id {item6Id}), got {path}"
@@ -676,10 +680,10 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
     let initialOffset ← scrollResult.scrollState.sample
     ensure (initialOffset.offsetY == 0.0) s!"Initial offset should be 0, got {initialOffset.offsetY}"
 
-    -- Create a scroll widget with the name that scrollContainer registered ("scroll-container-0")
-    -- The widget ID is 42 (arbitrary), and we put 42 in the hitPath
+    -- scrollContainer registers its own scroll component first, so its ComponentId is 0.
+    let scrollComponentId : ComponentId := 0
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some "scroll-container-0") {}
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId scrollComponentId {}
         {} 300 600 {} testWidget
 
     -- Fire a scroll event:
@@ -692,6 +696,8 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
       hitPath := #[scrollWidgetId]
       widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 300 200
+      componentMap := ({}
+        : Std.HashMap ComponentId WidgetId).insert scrollComponentId scrollWidgetId
     }
     inputs.fireScroll scrollData
 
@@ -725,7 +731,7 @@ test "FRP: scrollContainer measures actual content height" := do
     let builder ← state.children[0]!
     let (widget, _) ← builder.run {}
     match widget with
-    | .scroll _ _ _ _ _ contentH _ _ =>
+    | .scroll _ _ _ _ _ contentH _ _ _ =>
       pure contentH
     | _ =>
       ensure false "Expected root widget to be scroll"
@@ -758,7 +764,7 @@ test "FRP: scrollContainer measurement avoids runaway percent-height content" :=
     let builder ← state.children[0]!
     let (widget, _) ← builder.run {}
     match widget with
-    | .scroll _ _ _ _ _ contentH _ _ =>
+    | .scroll _ _ _ _ _ contentH _ _ _ =>
       pure contentH
     | _ =>
       ensure false "Expected root widget to be scroll"
@@ -963,15 +969,15 @@ test "FRP: useHover updates via hover fan registry" := do
     let hoveredDyn ← (useHover name).run events
 
     let wid : WidgetId := 0
-    let nameMap : Std.HashMap String WidgetId :=
-      Std.HashMap.insert ({} : Std.HashMap String WidgetId) name wid
+    let componentMap : Std.HashMap ComponentId WidgetId :=
+      Std.HashMap.insert ({} : Std.HashMap ComponentId WidgetId) name wid
     let hoverData : HoverData := {
       x := 50
       y := 50
       hitPath := #[wid]
       widget := testWidget
       layouts := mkScrollLayout wid 0 0 100 100
-      nameMap := nameMap
+      componentMap := componentMap
     }
 
     let before ← hoveredDyn.sample

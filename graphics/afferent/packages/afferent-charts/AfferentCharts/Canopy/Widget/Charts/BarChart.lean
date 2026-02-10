@@ -222,7 +222,7 @@ end BarChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions (margins only - actual size from layout)
 -/
-def barChartVisual (name : String) (data : Array Float)
+def barChartVisual (name : ComponentId) (data : Array Float)
     (labels : Array String := #[])
     (variant : BarChartVariant := .primary) (theme : Theme)
     (dims : BarChart.Dimensions := BarChart.defaultDimensions) : WidgetBuilder := do
@@ -240,7 +240,7 @@ def barChartVisual (name : String) (data : Array Float)
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-color bar chart visual (WidgetBuilder version).
     Each data point can have its own color.
@@ -249,7 +249,7 @@ def barChartVisual (name : String) (data : Array Float)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions (margins only - actual size from layout)
 -/
-def multiColorBarChartVisual (name : String) (data : Array BarChart.DataPoint)
+def multiColorBarChartVisual (name : ComponentId) (data : Array BarChart.DataPoint)
     (theme : Theme) (dims : BarChart.Dimensions := BarChart.defaultDimensions) : WidgetBuilder := do
   let wid ← freshId
   let chart ← custom (BarChart.multiColorBarChartSpec data theme dims) {
@@ -265,7 +265,7 @@ def multiColorBarChartVisual (name : String) (data : Array BarChart.DataPoint)
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive BarChart Components (FRP-based)
 

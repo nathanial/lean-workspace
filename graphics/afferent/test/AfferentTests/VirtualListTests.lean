@@ -21,6 +21,12 @@ open Trellis
 
 testSuite "VirtualList Tests"
 
+partial def findFirstScrollId (w : Widget) : Option WidgetId :=
+  match w with
+  | .scroll id .. => some id
+  | _ =>
+      w.children.findSome? findFirstScrollId
+
 test "virtualList preserves scroll offset across dynWidget rebuild when keyed" := do
   let (beforeRebuild, afterRebuild) ← runSpider do
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty
@@ -50,9 +56,9 @@ test "virtualList preserves scroll offset across dynWidget rebuild when keyed" :
     let initialLayouts := Trellis.layout initialMeasured.node 320 220
 
     let listWidgetId :=
-      match findWidgetIdByName initialMeasured.widget "virtual-list-scroll-regression" with
+      match findFirstScrollId initialMeasured.widget with
       | some wid => wid
-      | none => panic! "virtual list widget should be named and discoverable"
+      | none => panic! "virtual list should render a scroll widget"
 
     inputs.fireScroll {
       scroll := { x := 40, y := 40, deltaX := 0, deltaY := -4.0, modifiers := {} }

@@ -25,7 +25,7 @@ def worleyCellularNoiseTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 then
       id
     else
-      match data.nameMap.get? worleyName with
+      match data.componentMap.get? worleyName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>
@@ -76,7 +76,7 @@ def worleyCellularNoiseTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? worleyName with
+    match data.componentMap.get? worleyName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

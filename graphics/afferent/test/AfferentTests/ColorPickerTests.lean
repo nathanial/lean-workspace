@@ -27,6 +27,11 @@ def testFont : FontId := { id := 0, name := "test", size := 14.0 }
 /-- Test theme for widget tests. -/
 def testTheme : Theme := { Theme.dark with font := testFont, smallFont := testFont }
 
+def pickerId : ComponentId := 7000
+def svId : ComponentId := 7001
+def hueId : ComponentId := 7002
+def alphaId : ComponentId := 7003
+
 /-! ## Configuration Tests -/
 
 test "ColorPickerConfig default values" := do
@@ -194,10 +199,10 @@ test "HSV gray has zero saturation" := do
 test "colorPickerVisual creates row container" := do
   let config := ColorPickerConfig.default
   let state : ColorPickerState := {}
-  let builder := colorPickerVisual "picker" "sv" "hue" "alpha" config state testTheme
+  let builder := colorPickerVisual pickerId svId hueId alphaId config state testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .flex _ _ props _ children =>
+  | .flex _ _ props _ children _ =>
     ensure (props.direction == .row) "Top level should be row"
     ensure (children.size == 2) s!"Expected 2 children (sv square + right column), got {children.size}"
   | _ => ensure false "Expected flex widget"
@@ -205,10 +210,10 @@ test "colorPickerVisual creates row container" := do
 test "colorPickerVisual noAlpha creates row with 2 children" := do
   let config := ColorPickerConfig.noAlpha
   let state : ColorPickerState := {}
-  let builder := colorPickerVisual "picker" "sv" "hue" "alpha" config state testTheme
+  let builder := colorPickerVisual pickerId svId hueId alphaId config state testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .flex _ _ props _ children =>
+  | .flex _ _ props _ children _ =>
     ensure (props.direction == .row) "Top level should be row"
     ensure (children.size == 2) s!"Expected 2 children, got {children.size}"
   | _ => ensure false "Expected flex widget"

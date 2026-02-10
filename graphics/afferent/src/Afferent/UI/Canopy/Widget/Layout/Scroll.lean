@@ -147,7 +147,7 @@ def isInVerticalScrollbar (config : ScrollContainerConfig)
 
 /-- Find this scroll container's computed layout by registered name. -/
 def findWidgetLayoutByName (widget : Widget) (layouts : Trellis.LayoutResult)
-    (name : String) : Option Trellis.ComputedLayout := do
+    (name : ComponentId) : Option Trellis.ComputedLayout := do
   let widgetId ← findWidgetIdByName widget name
   layouts.get widgetId
 
@@ -171,7 +171,7 @@ def scrollOffsetFromTrackPosition (relativeY trackHeight viewportH contentH : Fl
       clampedPos * maxScrollY
 
 /-- Build the visual representation of a scroll container. -/
-def scrollContainerVisual (name : String) (config : ScrollContainerConfig) (theme : Theme)
+def scrollContainerVisual (name : ComponentId) (config : ScrollContainerConfig) (theme : Theme)
     (scrollState : ScrollState) (contentWidth contentHeight : Float)
     (child : WidgetBuilder) : WidgetBuilder := do
   let style : BoxStyle := {

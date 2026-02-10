@@ -106,7 +106,7 @@ end ProgressBar
     - `label`: Optional label text
     - `showPercentage`: Whether to show percentage text
 -/
-def progressBarVisual (name : String) (value : Float)
+def progressBarVisual (name : ComponentId) (value : Float)
     (variant : ProgressVariant := .primary) (theme : Theme)
     (label : Option String := none) (showPercentage : Bool := false)
     (dims : ProgressBar.Dimensions := ProgressBar.defaultDimensions) : WidgetBuilder := do
@@ -129,20 +129,20 @@ def progressBarVisual (name : String) (value : Float)
       let rowId ← freshId
       let rowProps : Trellis.FlexContainer := { Trellis.FlexContainer.row 8 with alignItems := .center }
       pure (.flex rowId none rowProps {} #[track, pctWidget])
-    pure (.flex wid (some name) props {} #[labelWidget, trackRow])
+    pure (Widget.flexC wid name props {} #[labelWidget, trackRow])
   | some text, false =>
     let labelWidget ← text' text theme.font theme.text .left
     let track ← progressTrack
-    pure (.flex wid (some name) props {} #[labelWidget, track])
+    pure (Widget.flexC wid name props {} #[labelWidget, track])
   | none, true =>
     let track ← progressTrack
     let pct := (value * 100).toUInt32
     let pctWidget ← text' s!"{pct}%" theme.smallFont theme.textMuted .left
     let rowProps : Trellis.FlexContainer := { Trellis.FlexContainer.row 8 with alignItems := .center }
-    pure (.flex wid (some name) rowProps {} #[track, pctWidget])
+    pure (Widget.flexC wid name rowProps {} #[track, pctWidget])
   | none, false =>
     let track ← progressTrack
-    pure (.flex wid (some name) props {} #[track])
+    pure (Widget.flexC wid name props {} #[track])
 
 /-- Build an indeterminate progress bar (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -151,7 +151,7 @@ def progressBarVisual (name : String) (value : Float)
     - `theme`: Theme for styling
     - `label`: Optional label text
 -/
-def progressBarIndeterminateVisual (name : String) (animationProgress : Float)
+def progressBarIndeterminateVisual (name : ComponentId) (animationProgress : Float)
     (variant : ProgressVariant := .primary) (theme : Theme)
     (label : Option String := none)
     (dims : ProgressBar.Dimensions := ProgressBar.defaultDimensions) : WidgetBuilder := do
@@ -168,10 +168,10 @@ def progressBarIndeterminateVisual (name : String) (animationProgress : Float)
   | some text =>
     let labelWidget ← text' text theme.font theme.text .left
     let track ← progressTrack
-    pure (.flex wid (some name) props {} #[labelWidget, track])
+    pure (Widget.flexC wid name props {} #[labelWidget, track])
   | none =>
     let track ← progressTrack
-    pure (.flex wid (some name) props {} #[track])
+    pure (Widget.flexC wid name props {} #[track])
 
 /-! ## Reactive ProgressBar Components (FRP-based)
 

@@ -175,7 +175,7 @@ end TreeView
     - `theme`: Theme for styling
     - `config`: Tree view configuration
 -/
-def treeNodeItemVisual (itemName : String) (toggleName : String) (item : FlatTreeItem)
+def treeNodeItemVisual (itemName : ComponentId) (toggleName : ComponentId) (item : FlatTreeItem)
     (isHovered : Bool) (isSelected : Bool) (isExpanded : Bool)
     (theme : Theme) (config : TreeViewConfig := TreeView.defaultConfig) : WidgetBuilder := do
   let bgColor :=
@@ -211,7 +211,7 @@ def treeNodeItemVisual (itemName : String) (toggleName : String) (item : FlatTre
         alignItems := .center
         justifyContent := .center
       }
-      pure (.flex iconWid (some toggleName) iconProps iconStyle #[iconText])
+      pure (Widget.flexC iconWid toggleName iconProps iconStyle #[iconText])
     else
       spacer config.iconWidth 1
 
@@ -224,10 +224,10 @@ def treeNodeItemVisual (itemName : String) (toggleName : String) (item : FlatTre
     FlexContainer.row 4 with
     alignItems := .center
   }
-  pure (.flex wid (some itemName) props itemStyle #[indentSpacer, iconWidget, labelWidget])
+  pure (Widget.flexC wid itemName props itemStyle #[indentSpacer, iconWidget, labelWidget])
 
 /-- Build the complete tree view items visual (column of items). -/
-def treeViewItemsVisual (itemNameFn : TreePath → String) (toggleNameFn : TreePath → String)
+def treeViewItemsVisual (itemNameFn : TreePath → ComponentId) (toggleNameFn : TreePath → ComponentId)
     (items : Array FlatTreeItem) (expanded : Std.HashSet TreePath)
     (selectedNode : Option TreePath) (hoveredNode : Option TreePath)
     (theme : Theme) (config : TreeViewConfig := TreeView.defaultConfig) : WidgetBuilder := do
@@ -247,8 +247,8 @@ def treeViewItemsVisual (itemNameFn : TreePath → String) (toggleNameFn : TreeP
 
 /-- Register names for all tree nodes recursively. Returns a map from path to name. -/
 partial def registerTreeNodeNames (nodes : Array TreeNode) (parentPath : TreePath := #[])
-    : WidgetM (Std.HashMap TreePath String) := do
-  let mut names : Std.HashMap TreePath String := {}
+    : WidgetM (Std.HashMap TreePath ComponentId) := do
+  let mut names : Std.HashMap TreePath ComponentId := {}
   for i in [:nodes.size] do
     let path := parentPath.push i
     let name ← registerComponentW "tree-item"
@@ -263,8 +263,8 @@ partial def registerTreeNodeNames (nodes : Array TreeNode) (parentPath : TreePat
 
 /-- Register names for toggle icons on all branch nodes. -/
 partial def registerToggleNames (nodes : Array TreeNode) (parentPath : TreePath := #[])
-    : WidgetM (Std.HashMap TreePath String) := do
-  let mut names : Std.HashMap TreePath String := {}
+    : WidgetM (Std.HashMap TreePath ComponentId) := do
+  let mut names : Std.HashMap TreePath ComponentId := {}
   for i in [:nodes.size] do
     let path := parentPath.push i
     match nodes.getD i (.leaf "" false) with
@@ -288,8 +288,8 @@ def treeView (nodes : Array TreeNode)
   -- Register names for all nodes and toggles
   let itemNames ← registerTreeNodeNames nodes
   let toggleNames ← registerToggleNames nodes
-  let itemNameFn (path : TreePath) : String := itemNames.getD path ""
-  let toggleNameFn (path : TreePath) : String := toggleNames.getD path ""
+  let itemNameFn (path : TreePath) : ComponentId := itemNames.getD path 0
+  let toggleNameFn (path : TreePath) : ComponentId := toggleNames.getD path 0
 
   -- All paths for hit testing
   let allPaths := TreeView.collectAllPaths nodes
@@ -380,8 +380,8 @@ def treeViewWithExpanded (nodes : Array TreeNode) (initialExpanded : Array TreeP
   -- Register names for all nodes and toggles
   let itemNames ← registerTreeNodeNames nodes
   let toggleNames ← registerToggleNames nodes
-  let itemNameFn (path : TreePath) : String := itemNames.getD path ""
-  let toggleNameFn (path : TreePath) : String := toggleNames.getD path ""
+  let itemNameFn (path : TreePath) : ComponentId := itemNames.getD path 0
+  let toggleNameFn (path : TreePath) : ComponentId := toggleNames.getD path 0
 
   -- All paths for hit testing
   let allPaths := TreeView.collectAllPaths nodes

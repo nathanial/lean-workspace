@@ -112,7 +112,7 @@ private def applyViewportHeightHint (config : VirtualListConfig) (viewportH : Fl
 end VirtualList
 
 /-- Wrap a list item with a consistent row height and name for hit testing. -/
-def virtualListItemRow (name : String) (config : VirtualListConfig)
+def virtualListItemRow (name : ComponentId) (config : VirtualListConfig)
     (child : WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let props : FlexContainer := { FlexContainer.row 0 with alignItems := .center }
@@ -122,9 +122,9 @@ def virtualListItemRow (name : String) (config : VirtualListConfig)
     flexItem := some { FlexItem.default with shrink := 0 }
   }
   let c ← child
-  pure (.flex wid (some name) props style #[c])
+  pure (Widget.flexC wid name props style #[c])
 
-private def viewportFromLayout? (name : String) (widget : Widget)
+private def viewportFromLayout? (name : ComponentId) (widget : Widget)
     (layouts : Trellis.LayoutResult) : Option (Float × Float) := do
   let widgetId ← findWidgetIdByName widget name
   let layout ← layouts.get widgetId
@@ -149,21 +149,15 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
     : WidgetM VirtualListResult := do
   let theme ← getThemeW
   let events ← getEventsW
-  let name ←
-    match config.instanceKey with
-    | some key => pure s!"virtual-list-{key}"
-    | none => registerComponentW "virtual-list"
-  let stateKey := config.instanceKey.getD name
+  let name ← registerComponentW "virtual-list"
+  let stateKey := config.instanceKey.getD s!"virtual-list-{name}"
 
   -- Register item names for hit testing.
-  let mut itemNames : Array String := #[]
+  let mut itemNames : Array ComponentId := #[]
   for i in [:itemCount] do
-    let itemName ←
-      match config.instanceKey with
-      | some key => pure s!"virtual-list-item-{key}-{i}"
-      | none => registerComponentW s!"virtual-list-item-{i}"
+    let itemName ← registerComponentW s!"virtual-list-item-{i}"
     itemNames := itemNames.push itemName
-  let itemNameFn (i : Nat) : String := itemNames.getD i ""
+  let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 
   let scrollConfig := VirtualList.toScrollConfig itemCount config
   let contentH := VirtualList.contentHeight itemCount config

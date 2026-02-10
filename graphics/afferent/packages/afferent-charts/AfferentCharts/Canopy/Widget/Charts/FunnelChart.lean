@@ -180,7 +180,7 @@ end FunnelChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def funnelChartVisual (name : String) (data : FunnelChart.Data)
+def funnelChartVisual (name : ComponentId) (data : FunnelChart.Data)
     (theme : Theme) (dims : FunnelChart.Dimensions := FunnelChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -197,7 +197,7 @@ def funnelChartVisual (name : String) (data : FunnelChart.Data)
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive FunnelChart Components (FRP-based)
 

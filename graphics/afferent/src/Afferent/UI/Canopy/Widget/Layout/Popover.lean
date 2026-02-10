@@ -105,7 +105,7 @@ end Popover
     - `config`: Popover configuration
     - `content`: Content widget builder to display
 -/
-def popoverPanelVisual (name : String) (theme : Theme) (config : PopoverConfig)
+def popoverPanelVisual (name : ComponentId) (theme : Theme) (config : PopoverConfig)
     (content : WidgetBuilder) : WidgetBuilder := do
   let posStyle := Popover.positionStyle config.position config.gap
   let panelStyle : BoxStyle := {
@@ -124,7 +124,7 @@ def popoverPanelVisual (name : String) (theme : Theme) (config : PopoverConfig)
     gap := 0
   }
 
-  pure (.flex wid (some name) props panelStyle #[contentWidget])
+  pure (Widget.flexC wid name props panelStyle #[contentWidget])
 
 /-- Build a complete popover visual with positioning.
     - `containerName`: Name for the outer container
@@ -136,7 +136,7 @@ def popoverPanelVisual (name : String) (theme : Theme) (config : PopoverConfig)
     - `anchorWidget`: The anchor widget builder that triggers the popover
     - `popoverContent`: Content builder to display in the popover
 -/
-def popoverVisual (containerName : String) (panelName : String) (_anchorName : String)
+def popoverVisual (containerName : ComponentId) (panelName : ComponentId) (_anchorName : ComponentId)
     (theme : Theme) (config : PopoverConfig) (isOpen : Bool)
     (anchorWidget : WidgetBuilder) (popoverContent : WidgetBuilder) : WidgetBuilder := do
   let anchor ← anchorWidget
@@ -144,7 +144,7 @@ def popoverVisual (containerName : String) (panelName : String) (_anchorName : S
     -- Just return anchor when closed
     let wid ← freshId
     let props : Trellis.FlexContainer := { direction := .column, gap := 0 }
-    pure (.flex wid (some containerName) props {} #[anchor])
+    pure (Widget.flexC wid containerName props {} #[anchor])
   else
     -- Build popover panel with absolute positioning
     let panel ← popoverPanelVisual panelName theme config popoverContent
@@ -152,7 +152,7 @@ def popoverVisual (containerName : String) (panelName : String) (_anchorName : S
     -- Outer container - the anchor sets the reference point for absolute positioning
     let wid ← freshId
     let props : Trellis.FlexContainer := { direction := .column, gap := 0 }
-    pure (.flex wid (some containerName) props {} #[anchor, panel])
+    pure (Widget.flexC wid containerName props {} #[anchor, panel])
 
 /-- Create a reactive popover component using WidgetM.
     The popover wraps an anchor widget and displays content when triggered.

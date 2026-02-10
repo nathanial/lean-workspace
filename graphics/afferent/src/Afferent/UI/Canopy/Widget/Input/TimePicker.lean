@@ -139,7 +139,7 @@ def displaySeconds (t : TimeValue) : String :=
 end TimePicker
 
 /-- Build a spinner button (up or down arrow). -/
-def timeSpinnerButtonVisual (name : String) (isUp hovered : Bool)
+def timeSpinnerButtonVisual (name : ComponentId) (isUp hovered : Bool)
     (theme : Theme) (config : TimePickerConfig := {}) : WidgetBuilder := do
   let bgColor := if hovered then theme.secondary.backgroundHover else theme.secondary.background
   let textColor := theme.text
@@ -161,7 +161,7 @@ def timeSpinnerButtonVisual (name : String) (isUp hovered : Bool)
     justifyContent := .center
   }
   let text ← text' labelText theme.font textColor .center
-  pure (.flex wid (some name) props style #[text])
+  pure (Widget.flexC wid name props style #[text])
 
 /-- Build the value display box for a spinner. -/
 def timeSpinnerValueVisual (value : String) (theme : Theme)
@@ -184,7 +184,7 @@ def timeSpinnerValueVisual (value : String) (theme : Theme)
   pure (.flex wid none props style #[text])
 
 /-- Build a single time spinner (up button, value, down button). -/
-def timeSpinnerVisual (upName downName : String) (value : String)
+def timeSpinnerVisual (upName downName : ComponentId) (value : String)
     (upHovered downHovered : Bool) (theme : Theme)
     (config : TimePickerConfig := {}) : WidgetBuilder := do
   let upButton ← timeSpinnerButtonVisual upName true upHovered theme config
@@ -217,7 +217,7 @@ def timeColonVisual (theme : Theme) (config : TimePickerConfig := {}) : WidgetBu
   pure (.flex wid none props style #[text])
 
 /-- Build the AM/PM toggle button. -/
-def ampmButtonVisual (name : String) (isAM hovered : Bool)
+def ampmButtonVisual (name : ComponentId) (isAM hovered : Bool)
     (theme : Theme) (config : TimePickerConfig := {}) : WidgetBuilder := do
   let bgColor := if hovered then theme.secondary.backgroundHover else theme.secondary.background
   let labelText := if isAM then "AM" else "PM"
@@ -238,12 +238,12 @@ def ampmButtonVisual (name : String) (isAM hovered : Bool)
     justifyContent := .center
   }
   let text ← text' labelText theme.font theme.text .center
-  pure (.flex wid (some name) props style #[text])
+  pure (Widget.flexC wid name props style #[text])
 
 /-- Build the complete time picker visual. -/
-def timePickerVisual (containerName : String)
+def timePickerVisual (containerName : ComponentId)
     (hoursUpName hoursDownName minutesUpName minutesDownName
-     secondsUpName secondsDownName ampmName : String)
+     secondsUpName secondsDownName ampmName : ComponentId)
     (time : TimeValue)
     (hoursUpHover hoursDownHover minutesUpHover minutesDownHover
      secondsUpHover secondsDownHover ampmHover : Bool)
@@ -274,7 +274,7 @@ def timePickerVisual (containerName : String)
     gap := config.gap
     alignItems := .center
   }
-  pure (.flex outerWid (some containerName) outerProps outerStyle widgets)
+  pure (Widget.flexC outerWid containerName outerProps outerStyle widgets)
 
 /-! ## Reactive TimePicker Components (FRP-based) -/
 

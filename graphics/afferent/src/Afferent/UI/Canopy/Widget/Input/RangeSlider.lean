@@ -102,7 +102,7 @@ def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
 end RangeSlider
 
 /-- Build a visual range slider widget. -/
-def rangeSliderVisual (name : String) (theme : Theme)
+def rangeSliderVisual (name : ComponentId) (theme : Theme)
     (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
     (dims : RangeSlider.Dimensions := {}) : WidgetBuilder := do
   let sliderTrack : WidgetBuilder := do
@@ -114,7 +114,7 @@ def rangeSliderVisual (name : String) (theme : Theme)
   let wid ← freshId
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.row 0 with alignItems := .center }
   let track ← sliderTrack
-  pure (.flex wid (some name) props {} #[track])
+  pure (Widget.flexC wid name props {} #[track])
 
 /-! ## Reactive RangeSlider Components (FRP-based) -/
 

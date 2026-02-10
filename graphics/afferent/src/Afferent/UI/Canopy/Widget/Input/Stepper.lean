@@ -34,6 +34,9 @@ end StepperConfig
 
 namespace Stepper
 
+private def decPrefix : String := "stepper-dec"
+private def incPrefix : String := "stepper-inc"
+
 def clamp (value : Int) (config : StepperConfig) : Int :=
   if value < config.min then config.min
   else if value > config.max then config.max
@@ -46,7 +49,7 @@ def valueWidth (config : StepperConfig) : Float :=
 end Stepper
 
 /-- Build a stepper button. -/
-def stepperButtonVisual (name : String) (labelText : String)
+def stepperButtonVisual (name : ComponentId) (labelText : String)
     (enabled hovered : Bool) (theme : Theme) (config : StepperConfig := {}) : WidgetBuilder := do
   let bgColor :=
     if !enabled then theme.input.backgroundDisabled
@@ -70,7 +73,7 @@ def stepperButtonVisual (name : String) (labelText : String)
     justifyContent := .center
   }
   let text ← text' labelText theme.font textColor .center
-  pure (.flex wid (some name) props style #[text])
+  pure (Widget.flexC wid name props style #[text])
 
 /-- Build the value display for a stepper. -/
 def stepperValueVisual (value : Int) (theme : Theme)
@@ -92,7 +95,7 @@ def stepperValueVisual (value : Int) (theme : Theme)
   pure (.flex wid none props style #[text])
 
 /-- Build the visual stepper widget. -/
-def stepperVisual (name decName incName : String) (value : Int)
+def stepperVisual (decName incName : ComponentId) (value : Int)
     (decHovered incHovered : Bool) (theme : Theme) (config : StepperConfig := {}) : WidgetBuilder := do
   let decEnabled := value > config.min
   let incEnabled := value < config.max
@@ -106,7 +109,7 @@ def stepperVisual (name decName incName : String) (value : Int)
   }
   let outerWid ← freshId
   let outerProps : FlexContainer := { direction := .row, gap := 0, alignItems := .center }
-  pure (.flex outerWid (some name) outerProps outerStyle #[decButton, valueBox, incButton])
+  pure (.flex outerWid none outerProps outerStyle #[decButton, valueBox, incButton])
 
 /-! ## Reactive Stepper Components (FRP-based) -/
 
@@ -122,9 +125,8 @@ structure StepperResult where
 def stepper (initialValue : Int := 0) (config : StepperConfig := {})
     : WidgetM StepperResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "stepper"
-  let decName ← registerComponentW "stepper-dec"
-  let incName ← registerComponentW "stepper-inc"
+  let decName ← registerComponentW Stepper.decPrefix
+  let incName ← registerComponentW Stepper.incPrefix
 
   let decHovered ← useHover decName
   let incHovered ← useHover incName
@@ -150,7 +152,7 @@ def stepper (initialValue : Int := 0) (config : StepperConfig := {})
   let hoverState ← Dynamic.zipWithM (fun d i => (d, i)) decHovered incHovered
   let renderState ← Dynamic.zipWithM (fun v h => (v, h)) valueDyn hoverState
   let _ ← dynWidget renderState fun (value, (decH, incH)) => do
-    emit do pure (stepperVisual name decName incName value decH incH theme config)
+    emit do pure (stepperVisual decName incName value decH incH theme config)
 
   pure { onChange, value := valueDyn }
 

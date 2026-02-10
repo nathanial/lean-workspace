@@ -237,7 +237,7 @@ end ScatterPlot
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def scatterPlotVisual (name : String) (points : Array ScatterPlot.DataPoint)
+def scatterPlotVisual (name : ComponentId) (points : Array ScatterPlot.DataPoint)
     (theme : Theme) (dims : ScatterPlot.Dimensions := ScatterPlot.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -248,7 +248,7 @@ def scatterPlotVisual (name : String) (points : Array ScatterPlot.DataPoint)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-series scatter plot visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -256,7 +256,7 @@ def scatterPlotVisual (name : String) (points : Array ScatterPlot.DataPoint)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def multiSeriesScatterPlotVisual (name : String) (series : Array ScatterPlot.Series)
+def multiSeriesScatterPlotVisual (name : ComponentId) (series : Array ScatterPlot.Series)
     (theme : Theme) (dims : ScatterPlot.Dimensions := ScatterPlot.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -267,7 +267,7 @@ def multiSeriesScatterPlotVisual (name : String) (series : Array ScatterPlot.Ser
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive ScatterPlot Components (FRP-based)
 

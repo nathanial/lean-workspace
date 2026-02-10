@@ -155,7 +155,7 @@ end TextInput
     - `state`: Current text input state
     - `placeholder`: Placeholder text when empty
 -/
-def textInputVisual (name : String) (theme : Theme)
+def textInputVisual (name : ComponentId) (theme : Theme)
     (state : TextInputState) (placeholder : String := "") : WidgetBuilder := do
   let colors := theme.input
   let bgColor := if state.disabled then colors.backgroundDisabled else colors.background
@@ -186,7 +186,7 @@ def textInputVisual (name : String) (theme : Theme)
   }
   let child ← custom (TextInput.inputSpec state.value placeholder showPlaceholder
           state.cursorPixelX state.focused theme) {}
-  pure (.flex wid (some name) props style #[child])
+  pure (Widget.flexC wid name props style #[child])
 
 /-! ## Reactive TextInput Components (FRP-based)
 

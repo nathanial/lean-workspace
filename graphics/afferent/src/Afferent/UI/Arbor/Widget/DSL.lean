@@ -89,10 +89,10 @@ def custom (spec : CustomSpec) (style : BoxStyle := {}) : WidgetBuilder := do
   let stampedSpec := { spec with generation := s.cacheGeneration }
   pure (.custom wid none style stampedSpec)
 
-/-- Create a named custom widget with a rendering spec. -/
-def namedCustom (name : String) (spec : CustomSpec) (style : BoxStyle := {}) : WidgetBuilder := do
+/-- Create a custom widget tagged with a component id. -/
+def namedCustom (name : ComponentId) (spec : CustomSpec) (style : BoxStyle := {}) : WidgetBuilder := do
   let wid ← freshId
-  pure (.custom wid (some name) style spec)
+  pure (Widget.customC wid name style spec)
 
 /-- Create a spacer with fixed dimensions. -/
 def spacer (width height : Float) : WidgetBuilder := do
@@ -114,12 +114,12 @@ def row (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuil
   let cs ← children.mapM fun b => b
   pure (.flex wid none props style cs)
 
-/-- Create a named horizontal flex row. -/
-def namedRow (name : String) (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
+/-- Create a horizontal flex row tagged with a component id. -/
+def namedRow (name : ComponentId) (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let props := Trellis.FlexContainer.row gap
   let cs ← children.mapM fun b => b
-  pure (.flex wid (some name) props style cs)
+  pure (Widget.flexC wid name props style cs)
 
 /-- Create a vertical flex column. -/
 def column (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
@@ -128,12 +128,12 @@ def column (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetB
   let cs ← children.mapM fun b => b
   pure (.flex wid none props style cs)
 
-/-- Create a named vertical flex column. -/
-def namedColumn (name : String) (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
+/-- Create a vertical flex column tagged with a component id. -/
+def namedColumn (name : ComponentId) (gap : Float := 0) (style : BoxStyle := {}) (children : Array WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let props := Trellis.FlexContainer.column gap
   let cs ← children.mapM fun b => b
-  pure (.flex wid (some name) props style cs)
+  pure (Widget.flexC wid name props style cs)
 
 /-- Create a vertical static-flow column.
     Children do not grow or shrink unless they explicitly set `style.flexItem`. -/
@@ -162,12 +162,12 @@ def center (style : BoxStyle := {}) (child : WidgetBuilder) : WidgetBuilder := d
   let c ← child
   pure (.flex wid none props style #[c])
 
-/-- Create a named centered container (centers single child). -/
-def namedCenter (name : String) (style : BoxStyle := {}) (child : WidgetBuilder) : WidgetBuilder := do
+/-- Create a centered container tagged with a component id. -/
+def namedCenter (name : ComponentId) (style : BoxStyle := {}) (child : WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let props := Trellis.FlexContainer.centered
   let c ← child
-  pure (.flex wid (some name) props style #[c])
+  pure (Widget.flexC wid name props style #[c])
 
 /-- Create a container with space-between alignment. -/
 def spaceBetween (direction : Trellis.FlexDirection := .row) (style : BoxStyle := {})
@@ -231,13 +231,13 @@ def grid (columns : Nat) (gap : Float := 0) (style : BoxStyle := {})
   let cs ← children.mapM fun b => b
   pure (.grid wid none props style cs)
 
-/-- Create a named grid with n equal columns. -/
-def namedGrid (name : String) (columns : Nat) (gap : Float := 0) (style : BoxStyle := {})
+/-- Create a grid with n equal columns tagged with a component id. -/
+def namedGrid (name : ComponentId) (columns : Nat) (gap : Float := 0) (style : BoxStyle := {})
     (children : Array WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let props := Trellis.GridContainer.columns columns gap
   let cs ← children.mapM fun b => b
-  pure (.grid wid (some name) props style cs)
+  pure (Widget.gridC wid name props style cs)
 
 /-- Create a grid with custom properties. -/
 def gridCustom (props : Trellis.GridContainer) (style : BoxStyle := {})
@@ -256,13 +256,13 @@ def scroll (style : BoxStyle := {}) (contentWidth contentHeight : Float)
   let c ← child
   pure (.scroll wid none style scrollState contentWidth contentHeight scrollbarConfig c)
 
-/-- Create a named scroll container. -/
-def namedScroll (name : String) (style : BoxStyle := {}) (contentWidth contentHeight : Float)
+/-- Create a scroll container tagged with a component id. -/
+def namedScroll (name : ComponentId) (style : BoxStyle := {}) (contentWidth contentHeight : Float)
     (scrollState : ScrollState := {}) (scrollbarConfig : ScrollbarRenderConfig := {})
     (child : WidgetBuilder) : WidgetBuilder := do
   let wid ← freshId
   let c ← child
-  pure (.scroll wid (some name) style scrollState contentWidth contentHeight scrollbarConfig c)
+  pure (Widget.scrollC wid name style scrollState contentWidth contentHeight scrollbarConfig c)
 
 /-- Create a vertical scroll container (scrolls only vertically). -/
 def vscroll (style : BoxStyle := {}) (contentHeight : Float)

@@ -47,8 +47,9 @@ def variantColors (theme : Theme) : ChipVariant → (Color × Color × Color)
 end Chip
 
 /-- Build the visual for a chip. -/
-def chipVisual (name : String) (label : String) (theme : Theme)
+def chipVisual (name : ComponentId) (label : String) (theme : Theme)
     (variant : ChipVariant) (removable : Bool)
+    (removeName : Option ComponentId := none)
     (removeHovered : Bool := false) : WidgetBuilder := do
   let dims := Chip.defaultDimensions
   let (bgColor, textColor, borderColor) := Chip.variantColors theme variant
@@ -71,11 +72,16 @@ def chipVisual (name : String) (label : String) (theme : Theme)
       maxWidth := some dims.removeButtonSize
       maxHeight := some dims.removeButtonSize
     }
-    namedRow name (gap := dims.gap) (style := style) #[
-      text' label font textColor .left,
-      namedCenter (name ++ "-remove") (style := removeStyle) do
-        text' "×" font textColor .center
-    ]
+    match removeName with
+    | some removeId =>
+      namedRow name (gap := dims.gap) (style := style) #[
+        text' label font textColor .left,
+        namedCenter removeId (style := removeStyle) do
+          text' "×" font textColor .center
+      ]
+    | none =>
+      namedCenter name (style := style) do
+        text' label font textColor .left
   else
     namedCenter name (style := style) do
       text' label font textColor .left
@@ -93,16 +99,16 @@ def chip (label : String)
   let name ← registerComponentW "chip"
 
   if removable then
-    let removeName := name ++ "-remove"
+    let removeName ← registerComponentW "chip-remove"
     let isRemoveHovered ← useHover removeName
     let onRemove ← useClick removeName
 
     let _ ← dynWidget isRemoveHovered fun hovered => do
-      emit do pure (chipVisual name label theme variant true hovered)
+      emit do pure (chipVisual name label theme variant true (some removeName) hovered)
 
     pure { onRemove := some onRemove }
   else
-    emit do pure (chipVisual name label theme variant false false)
+    emit do pure (chipVisual name label theme variant false none false)
     pure { onRemove := none }
 
 /-- Create a simple non-removable chip. -/

@@ -24,6 +24,12 @@ def testFont : FontId := { id := 0, name := "test", size := 14.0 }
 /-- Test theme for widget tests. -/
 def testTheme : Theme := { Theme.dark with font := testFont, smallFont := testFont }
 
+def itemIdForPath (path : TreePath) : ComponentId :=
+  path.foldl (init := 7300) fun acc idx => acc * 131 + idx + 1
+
+def toggleIdForPath (path : TreePath) : ComponentId :=
+  path.foldl (init := 8300) fun acc idx => acc * 137 + idx + 1
+
 /-! ## TreeNode Construction Tests -/
 
 test "TreeNode.leaf construction" := do
@@ -253,16 +259,20 @@ test "isEnabledAtPath disabled node" := do
 
 test "treeNodeItemVisual creates widget with correct name" := do
   let item : FlatTreeItem := { path := #[0], depth := 0, node := TreeNode.leaf "Test" }
-  let builder := treeNodeItemVisual "item-0" "toggle-0" item false false false testTheme
+  let itemId := itemIdForPath item.path
+  let toggleId := toggleIdForPath item.path
+  let builder := treeNodeItemVisual itemId toggleId item false false false testTheme
   let (widget, _) ← builder.run {}
-  let widgetName := Widget.name? widget
-  ensure (widgetName == some "item-0") s!"Expected name 'item-0', got {widgetName}"
+  ensure (Widget.componentId? widget == some itemId)
+    s!"Expected component id {itemId}, got {Widget.componentId? widget}"
 
 test "treeNodeItemVisual branch has toggle name" := do
   let item : FlatTreeItem := { path := #[0], depth := 0, node := TreeNode.branch "Test" #[] }
-  let builder := treeNodeItemVisual "item-0" "toggle-0" item false false false testTheme
+  let itemId := itemIdForPath item.path
+  let toggleId := toggleIdForPath item.path
+  let builder := treeNodeItemVisual itemId toggleId item false false false testTheme
   let (widget, _) ← builder.run {}
-  let found := findWidgetIdByName widget "toggle-0"
+  let found := findWidgetIdByName widget toggleId
   ensure found.isSome "Toggle widget should be findable"
 
 test "treeViewItemsVisual creates column with items" := do
@@ -270,8 +280,8 @@ test "treeViewItemsVisual creates column with items" := do
     { path := #[0], depth := 0, node := TreeNode.leaf "A" },
     { path := #[1], depth := 0, node := TreeNode.leaf "B" }
   ]
-  let itemNameFn (p : TreePath) := s!"item-{p}"
-  let toggleNameFn (p : TreePath) := s!"toggle-{p}"
+  let itemNameFn (p : TreePath) : ComponentId := itemIdForPath p
+  let toggleNameFn (p : TreePath) : ComponentId := toggleIdForPath p
   let builder := treeViewItemsVisual itemNameFn toggleNameFn items {} none none testTheme
   let (widget, _) ← builder.run {}
   match widget with

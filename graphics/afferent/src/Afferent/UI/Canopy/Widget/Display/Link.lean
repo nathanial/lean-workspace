@@ -15,7 +15,7 @@ open Afferent.Canopy.Reactive
 
 /-- Build the visual for a link given its state.
     Uses text with a colored underline box below. -/
-def linkVisual (name : String) (linkText : String) (theme : Theme)
+def linkVisual (name : ComponentId) (linkText : String) (theme : Theme)
     (color : Color) (hovered : Bool) : WidgetBuilder := do
   let displayColor := if hovered then color.lighten 0.2 else color
 

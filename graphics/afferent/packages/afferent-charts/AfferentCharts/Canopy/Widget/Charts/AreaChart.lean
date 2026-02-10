@@ -261,7 +261,7 @@ end AreaChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def areaChartVisual (name : String) (data : Array Float)
+def areaChartVisual (name : ComponentId) (data : Array Float)
     (labels : Array String := #[])
     (variant : AreaChartVariant := .primary) (theme : Theme)
     (dims : AreaChart.Dimensions := AreaChart.defaultDimensions) : WidgetBuilder := do
@@ -273,7 +273,7 @@ def areaChartVisual (name : String) (data : Array Float)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-series area chart visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -282,7 +282,7 @@ def areaChartVisual (name : String) (data : Array Float)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def multiSeriesAreaChartVisual (name : String) (series : Array AreaChart.Series)
+def multiSeriesAreaChartVisual (name : ComponentId) (series : Array AreaChart.Series)
     (labels : Array String := #[]) (theme : Theme)
     (dims : AreaChart.Dimensions := AreaChart.defaultDimensions) : WidgetBuilder := do
   let wid ← freshId
@@ -293,7 +293,7 @@ def multiSeriesAreaChartVisual (name : String) (series : Array AreaChart.Series)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive AreaChart Components (FRP-based)
 

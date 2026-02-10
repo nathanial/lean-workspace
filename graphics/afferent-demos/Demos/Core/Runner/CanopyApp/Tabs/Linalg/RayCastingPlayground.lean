@@ -35,7 +35,7 @@ def rayCastingPlaygroundTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 && data.click.button != 1 then
       id
     else
-      match data.nameMap.get? rayName with
+      match data.componentMap.get? rayName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>
@@ -69,7 +69,7 @@ def rayCastingPlaygroundTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? rayName with
+    match data.componentMap.get? rayName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

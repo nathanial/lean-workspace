@@ -65,7 +65,7 @@ def updateSelection (mode : SelectionMode) (clickedRow : Nat) (current : Array N
 end Table
 
 /-- Build a single table cell. -/
-def tableCellVisual (name : String) (content : String) (isHeader : Bool)
+def tableCellVisual (name : ComponentId) (content : String) (isHeader : Bool)
     (colWidth : Option Float) (theme : Theme)
     (config : TableConfig := Table.defaultConfig) : WidgetBuilder := do
   let textColor := theme.text
@@ -83,10 +83,10 @@ def tableCellVisual (name : String) (content : String) (isHeader : Bool)
     alignItems := .center
   }
   let textWidget ← text' content theme.font textColor .left
-  pure (.flex wid (some name) props cellStyle #[textWidget])
+  pure (Widget.flexC wid name props cellStyle #[textWidget])
 
 /-- Build a table row (header or data). -/
-def tableRowVisual (rowName : String) (cellNameFn : Nat → String)
+def tableRowVisual (rowName : ComponentId) (cellNameFn : Nat → ComponentId)
     (cells : Array String) (columns : Array TableColumn) (isHeader : Bool)
     (isHovered : Bool) (isSelected : Bool) (isAlternate : Bool)
     (theme : Theme) (config : TableConfig := Table.defaultConfig) : WidgetBuilder := do
@@ -117,10 +117,10 @@ def tableRowVisual (rowName : String) (cellNameFn : Nat → String)
 
   let wid ← freshId
   let props : FlexContainer := { direction := .row, gap := 0 }
-  pure (.flex wid (some rowName) props rowStyle cellWidgets)
+  pure (Widget.flexC wid rowName props rowStyle cellWidgets)
 
 /-- Build the header row. -/
-def tableHeaderVisual (rowName : String) (cellNameFn : Nat → String)
+def tableHeaderVisual (rowName : ComponentId) (cellNameFn : Nat → ComponentId)
     (columns : Array TableColumn) (theme : Theme)
     (config : TableConfig := Table.defaultConfig) : WidgetBuilder := do
   let headerStyle : BoxStyle := {
@@ -140,12 +140,12 @@ def tableHeaderVisual (rowName : String) (cellNameFn : Nat → String)
 
   let wid ← freshId
   let props : FlexContainer := { direction := .row, gap := 0 }
-  pure (.flex wid (some rowName) props headerStyle cellWidgets)
+  pure (Widget.flexC wid rowName props headerStyle cellWidgets)
 
 /-- Build the complete table visual. -/
-def tableVisual (containerName : String) (headerRowName : String)
-    (headerCellNameFn : Nat → String) (rowNameFn : Nat → String)
-    (cellNameFn : Nat → Nat → String) (columns : Array TableColumn)
+def tableVisual (containerName : ComponentId) (headerRowName : ComponentId)
+    (headerCellNameFn : Nat → ComponentId) (rowNameFn : Nat → ComponentId)
+    (cellNameFn : Nat → Nat → ComponentId) (columns : Array TableColumn)
     (rows : Array (Array String)) (selectedRows : Array Nat)
     (hoveredRow : Option Nat) (theme : Theme)
     (config : TableConfig := Table.defaultConfig) : WidgetBuilder := do
@@ -172,7 +172,7 @@ def tableVisual (containerName : String) (headerRowName : String)
 
   let wid ← freshId
   let props : FlexContainer := { direction := .column, gap := 0 }
-  pure (.flex wid (some containerName) props tableStyle rowWidgets)
+  pure (Widget.flexC wid containerName props tableStyle rowWidgets)
 
 /-- Create a reactive table widget.
     - `columns`: Column definitions (headers and optional widths)
@@ -188,29 +188,29 @@ def table (columns : Array TableColumn) (rows : Array (Array String))
   let headerRowName ← registerComponentW "table-header" (isInteractive := false)
 
   -- Register header cell names
-  let mut headerCellNames : Array String := #[]
+  let mut headerCellNames : Array ComponentId := #[]
   for i in [:columns.size] do
     let name ← registerComponentW s!"table-header-cell-{i}" (isInteractive := false)
     headerCellNames := headerCellNames.push name
-  let headerCellNameFn (i : Nat) : String := headerCellNames.getD i ""
+  let headerCellNameFn (i : Nat) : ComponentId := headerCellNames.getD i 0
 
   -- Register row names
-  let mut rowNames : Array String := #[]
+  let mut rowNames : Array ComponentId := #[]
   for i in [:rows.size] do
     let name ← registerComponentW s!"table-row-{i}"
     rowNames := rowNames.push name
-  let rowNameFn (i : Nat) : String := rowNames.getD i ""
+  let rowNameFn (i : Nat) : ComponentId := rowNames.getD i 0
 
   -- Register cell names (row × col)
-  let mut cellNames : Array (Array String) := #[]
+  let mut cellNames : Array (Array ComponentId) := #[]
   for i in [:rows.size] do
-    let mut rowCellNames : Array String := #[]
+    let mut rowCellNames : Array ComponentId := #[]
     for j in [:columns.size] do
       let name ← registerComponentW s!"table-cell-{i}-{j}" (isInteractive := false)
       rowCellNames := rowCellNames.push name
     cellNames := cellNames.push rowCellNames
-  let cellNameFn (rowIdx colIdx : Nat) : String :=
-    (cellNames.getD rowIdx #[]).getD colIdx ""
+  let cellNameFn (rowIdx colIdx : Nat) : ComponentId :=
+    (cellNames.getD rowIdx #[]).getD colIdx 0
 
   -- Hooks
   let allClicks ← useAllClicks

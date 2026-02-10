@@ -68,7 +68,7 @@ end Modal
     - `theme`: Theme for styling
     - `dims`: Dimension configuration
 -/
-def modalBackdropVisual (name : String) (_theme : Theme)
+def modalBackdropVisual (name : ComponentId) (_theme : Theme)
     (dims : Modal.Dimensions := {}) : WidgetBuilder := do
   let wid ← freshId
   let style : BoxStyle := {
@@ -79,7 +79,7 @@ def modalBackdropVisual (name : String) (_theme : Theme)
     top := some 0
     left := some 0
   }
-  pure (.rect wid (some name) style)
+  pure (Widget.rectC wid name style)
 
 /-- Build a modal header with title and close button.
     - `closeName`: Widget name for close button (for click detection)
@@ -88,7 +88,7 @@ def modalBackdropVisual (name : String) (_theme : Theme)
     - `closeHovered`: Whether close button is hovered
     - `dims`: Dimension configuration
 -/
-def modalHeaderVisual (closeName : String) (title : String)
+def modalHeaderVisual (closeName : ComponentId) (title : String)
     (theme : Theme) (closeHovered : Bool) (dims : Modal.Dimensions := {}) : WidgetBuilder := do
   let headerStyle : BoxStyle := {
     borderColor := some theme.panel.border
@@ -126,7 +126,7 @@ def modalHeaderVisual (closeName : String) (title : String)
     minWidth := some dims.closeButtonSize
     minHeight := some dims.closeButtonSize
   }
-  let closeButton : Widget := .flex closeButtonWid (some closeName) closeButtonProps closeButtonStyle #[closeIcon]
+  let closeButton : Widget := Widget.flexC closeButtonWid closeName closeButtonProps closeButtonStyle #[closeIcon]
 
   pure (.flex wid none props headerStyle #[titleWidget, closeButton])
 
@@ -139,7 +139,7 @@ def modalHeaderVisual (closeName : String) (title : String)
     - `dims`: Dimension configuration
     - `content`: Content widget builder
 -/
-def modalDialogVisual (name : String) (closeName : String) (title : String)
+def modalDialogVisual (name : ComponentId) (closeName : ComponentId) (title : String)
     (theme : Theme) (closeHovered : Bool) (dims : Modal.Dimensions := {})
     (content : WidgetBuilder) : WidgetBuilder := do
   -- Header
@@ -182,7 +182,7 @@ def modalDialogVisual (name : String) (closeName : String) (title : String)
     gap := 0
   }
 
-  pure (.flex dialogWid (some name) dialogProps dialogStyle #[header, divider, contentPanel])
+  pure (Widget.flexC dialogWid name dialogProps dialogStyle #[header, divider, contentPanel])
 
 /-- Build a complete modal with backdrop + centered dialog.
     - `name`: Base widget name for the modal
@@ -195,7 +195,7 @@ def modalDialogVisual (name : String) (closeName : String) (title : String)
     - `dims`: Dimension configuration
     - `content`: Content widget builder
 -/
-def modalVisual (name : String) (backdropName : String) (closeName : String)
+def modalVisual (name : ComponentId) (backdropName : ComponentId) (closeName : ComponentId)
     (title : String) (isOpen : Bool) (theme : Theme)
     (closeHovered : Bool := false) (dims : Modal.Dimensions := {})
     (content : WidgetBuilder) : WidgetBuilder := do

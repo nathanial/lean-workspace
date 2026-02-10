@@ -197,7 +197,7 @@ end StackedBarChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def stackedBarChartVisual (name : String) (data : StackedBarChart.Data)
+def stackedBarChartVisual (name : ComponentId) (data : StackedBarChart.Data)
     (theme : Theme) (dims : StackedBarChart.Dimensions := StackedBarChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -208,7 +208,7 @@ def stackedBarChartVisual (name : String) (data : StackedBarChart.Data)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive StackedBarChart Components (FRP-based)
 

@@ -423,7 +423,7 @@ end BubbleChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def bubbleChartVisual (name : String) (points : Array BubbleChart.DataPoint)
+def bubbleChartVisual (name : ComponentId) (points : Array BubbleChart.DataPoint)
     (theme : Theme) (dims : BubbleChart.Dimensions := BubbleChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -434,7 +434,7 @@ def bubbleChartVisual (name : String) (points : Array BubbleChart.DataPoint)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a multi-series bubble chart visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -442,7 +442,7 @@ def bubbleChartVisual (name : String) (points : Array BubbleChart.DataPoint)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def multiSeriesBubbleChartVisual (name : String) (series : Array BubbleChart.Series)
+def multiSeriesBubbleChartVisual (name : ComponentId) (series : Array BubbleChart.Series)
     (theme : Theme) (dims : BubbleChart.Dimensions := BubbleChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -453,7 +453,7 @@ def multiSeriesBubbleChartVisual (name : String) (series : Array BubbleChart.Ser
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a bubble chart with legend visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -461,7 +461,7 @@ def multiSeriesBubbleChartVisual (name : String) (series : Array BubbleChart.Ser
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def bubbleChartWithLegendVisual (name : String) (series : Array BubbleChart.Series)
+def bubbleChartWithLegendVisual (name : ComponentId) (series : Array BubbleChart.Series)
     (theme : Theme) (dims : BubbleChart.Dimensions := BubbleChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -472,7 +472,7 @@ def bubbleChartWithLegendVisual (name : String) (series : Array BubbleChart.Seri
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive BubbleChart Components (FRP-based)
 

@@ -376,7 +376,7 @@ end BoxPlot
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def boxPlotVisual (name : String) (summaries : Array BoxPlot.Summary)
+def boxPlotVisual (name : ComponentId) (summaries : Array BoxPlot.Summary)
     (theme : Theme) (dims : BoxPlot.Dimensions := BoxPlot.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -387,7 +387,7 @@ def boxPlotVisual (name : String) (summaries : Array BoxPlot.Summary)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a horizontal box plot visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -395,7 +395,7 @@ def boxPlotVisual (name : String) (summaries : Array BoxPlot.Summary)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def horizontalBoxPlotVisual (name : String) (summaries : Array BoxPlot.Summary)
+def horizontalBoxPlotVisual (name : ComponentId) (summaries : Array BoxPlot.Summary)
     (theme : Theme) (dims : BoxPlot.Dimensions := BoxPlot.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -406,7 +406,7 @@ def horizontalBoxPlotVisual (name : String) (summaries : Array BoxPlot.Summary)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive BoxPlot Components (FRP-based)
 

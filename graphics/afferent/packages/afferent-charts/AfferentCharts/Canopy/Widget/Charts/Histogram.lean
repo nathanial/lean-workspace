@@ -328,7 +328,7 @@ end Histogram
     - `dims`: Chart dimensions
     - `binConfig`: Configuration for binning (number of bins, edges, normalization)
 -/
-def histogramVisual (name : String) (data : Array Float)
+def histogramVisual (name : ComponentId) (data : Array Float)
     (variant : HistogramVariant := .primary) (theme : Theme)
     (dims : Histogram.Dimensions := Histogram.defaultDimensions)
     (binConfig : Histogram.BinConfig := Histogram.defaultBinConfig) : WidgetBuilder := do
@@ -341,7 +341,7 @@ def histogramVisual (name : String) (data : Array Float)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a histogram visual from pre-computed bins (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -351,7 +351,7 @@ def histogramVisual (name : String) (data : Array Float)
     - `dims`: Chart dimensions
     - `showDensity`: Whether to show density instead of counts
 -/
-def histogramFromBinsVisual (name : String) (bins : Array Histogram.Bin)
+def histogramFromBinsVisual (name : ComponentId) (bins : Array Histogram.Bin)
     (variant : HistogramVariant := .primary) (theme : Theme)
     (dims : Histogram.Dimensions := Histogram.defaultDimensions)
     (showDensity : Bool := false) : WidgetBuilder := do
@@ -363,7 +363,7 @@ def histogramFromBinsVisual (name : String) (bins : Array Histogram.Bin)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a histogram visual from categorical counts (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -373,7 +373,7 @@ def histogramFromBinsVisual (name : String) (bins : Array Histogram.Bin)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def histogramFromCountsVisual (name : String) (labels : Array String) (counts : Array Nat)
+def histogramFromCountsVisual (name : ComponentId) (labels : Array String) (counts : Array Nat)
     (variant : HistogramVariant := .primary) (theme : Theme)
     (dims : Histogram.Dimensions := Histogram.defaultDimensions) : WidgetBuilder := do
   let wid ← freshId
@@ -384,7 +384,7 @@ def histogramFromCountsVisual (name : String) (labels : Array String) (counts : 
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive Histogram Components (FRP-based)
 

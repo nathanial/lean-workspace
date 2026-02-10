@@ -28,7 +28,7 @@ def arcLengthParameterizationTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 then
       id
     else
-      match data.nameMap.get? arcName with
+      match data.componentMap.get? arcName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>
@@ -63,7 +63,7 @@ def arcLengthParameterizationTabContent (env : DemoEnv) : WidgetM Unit := do
 
   let hoverEvents ← useAllHovers
   let hoverUpdates ← Event.mapM (fun data =>
-    match data.nameMap.get? arcName with
+    match data.componentMap.get? arcName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>

@@ -45,12 +45,13 @@ test "content places label before icon for trailing position" := do
   | _ => ensure false "Expected flex content row"
 
 test "buttonVisualWith respects explicit dimensions and outline border" := do
+  let saveButtonId : ComponentId := 1401
   let builder := Button.buttonVisualWith
-    "save-btn" "Save" none .leading testTheme .outline {}
+    saveButtonId "Save" none .leading testTheme .outline {}
     10 6 4
     (width := some 180) (height := some 40)
   let (widget, _) ← builder.run {}
-  ensure (widget.name? == some "save-btn") "Root widget should preserve assigned name"
+  ensure (widget.componentId? == some saveButtonId) "Root widget should preserve assigned component id"
   match widget.style? with
   | some style =>
       ensure (style.borderWidth == 1.0) s!"Expected outline border width 1.0, got {style.borderWidth}"

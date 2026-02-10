@@ -403,7 +403,7 @@ end TextArea
     - `width`: Widget width in pixels
     - `height`: Widget height in pixels (viewport height)
 -/
-def textAreaVisual (name : String) (theme : Theme)
+def textAreaVisual (name : ComponentId) (theme : Theme)
     (state : TextAreaState) (placeholder : String := "")
     (width : Float := 300) (height : Float := 150) : WidgetBuilder := do
   let colors := theme.input
@@ -438,7 +438,7 @@ def textAreaVisual (name : String) (theme : Theme)
     width := .length contentWidth
   }
 
-  pure (.flex wid (some name) props style #[child])
+  pure (Widget.flexC wid name props style #[child])
 
 /-! ## Reactive TextArea Components (FRP-based)
 

@@ -19,8 +19,8 @@ structure ClickData where
   widget : Afferent.Arbor.Widget
   /-- Computed layouts for all widgets (for position-based calculations). -/
   layouts : Trellis.LayoutResult
-  /-- Optional name->id map for fast lookups (defaults to empty). -/
-  nameMap : Std.HashMap String Afferent.Arbor.WidgetId := {}
+  /-- Optional component->widget map for fast lookups (defaults to empty). -/
+  componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId := {}
 
 /-- Hover event with position and layout context. -/
 structure HoverData where
@@ -34,8 +34,8 @@ structure HoverData where
   widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
-  /-- Optional name->id map for fast lookups (defaults to empty). -/
-  nameMap : Std.HashMap String Afferent.Arbor.WidgetId := {}
+  /-- Optional component->widget map for fast lookups (defaults to empty). -/
+  componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId := {}
 
 /-- Mouse delta event (relative movement since last frame). -/
 structure MouseDeltaData where
@@ -47,8 +47,8 @@ deriving Repr, Inhabited
 structure KeyData where
   /-- The keyboard event. -/
   event : Afferent.Arbor.KeyEvent
-  /-- Currently focused widget name (for routing). -/
-  focusedWidget : Option String
+  /-- Currently focused component id (for routing). -/
+  focusedWidget : Option Afferent.Arbor.ComponentId
 
 /-- Scroll event with layout context for reactive handlers. -/
 structure ScrollData where
@@ -60,8 +60,8 @@ structure ScrollData where
   widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
-  /-- Optional name->id map for fast lookups (defaults to empty). -/
-  nameMap : Std.HashMap String Afferent.Arbor.WidgetId := {}
+  /-- Optional component->widget map for fast lookups (defaults to empty). -/
+  componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId := {}
 
 /-- Mouse button event with layout context. -/
 structure MouseButtonData where
@@ -77,7 +77,7 @@ structure MouseButtonData where
   widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
-  /-- Optional name->id map for fast lookups (defaults to empty). -/
-  nameMap : Std.HashMap String Afferent.Arbor.WidgetId := {}
+  /-- Optional component->widget map for fast lookups (defaults to empty). -/
+  componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId := {}
 
 end Afferent.Canopy.Reactive

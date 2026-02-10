@@ -78,7 +78,7 @@ def octreeViewer3DTabContent (env : DemoEnv) : WidgetM Unit := do
     if data.click.button != 0 then
       id
     else
-      match data.nameMap.get? demoName with
+      match data.componentMap.get? demoName with
       | some wid =>
           match data.layouts.get wid with
           | some layout =>

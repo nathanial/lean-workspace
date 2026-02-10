@@ -59,7 +59,7 @@ def updateSelection (mode : ListBoxSelectionMode) (clickedItem : Nat) (current :
 end ListBox
 
 /-- Build a single list box item visual. -/
-def listBoxItemVisual (name : String) (text : String) (isHovered : Bool)
+def listBoxItemVisual (name : ComponentId) (text : String) (isHovered : Bool)
     (isSelected : Bool) (theme : Theme)
     (config : ListBoxConfig := ListBox.defaultConfig) : WidgetBuilder := do
   let bgColor :=
@@ -80,10 +80,10 @@ def listBoxItemVisual (name : String) (text : String) (isHovered : Bool)
     alignItems := .center
   }
   let textWidget ← text' text theme.font theme.text .left
-  pure (.flex wid (some name) props itemStyle #[textWidget])
+  pure (Widget.flexC wid name props itemStyle #[textWidget])
 
 /-- Build the complete list box visual (items column). -/
-def listBoxItemsVisual (itemNameFn : Nat → String) (items : Array String)
+def listBoxItemsVisual (itemNameFn : Nat → ComponentId) (items : Array String)
     (selectedItems : Array Nat) (hoveredItem : Option Nat)
     (theme : Theme) (config : ListBoxConfig := ListBox.defaultConfig) : WidgetBuilder := do
   let mut itemWidgets : Array Widget := #[]
@@ -108,11 +108,11 @@ def listBox (items : Array String)
     : WidgetM ListBoxResult := do
   let theme ← getThemeW
   -- Register item names for hit testing
-  let mut itemNames : Array String := #[]
+  let mut itemNames : Array ComponentId := #[]
   for i in [:items.size] do
     let name ← registerComponentW s!"listbox-item-{i}"
     itemNames := itemNames.push name
-  let itemNameFn (i : Nat) : String := itemNames.getD i ""
+  let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 
   -- Hooks
   let allClicks ← useAllClicks
@@ -173,11 +173,11 @@ def listBoxWithSelection (items : Array String) (initialSelection : Array Nat)
     : WidgetM ListBoxResult := do
   let theme ← getThemeW
   -- Register item names for hit testing
-  let mut itemNames : Array String := #[]
+  let mut itemNames : Array ComponentId := #[]
   for i in [:items.size] do
     let name ← registerComponentW s!"listbox-item-{i}"
     itemNames := itemNames.push name
-  let itemNameFn (i : Nat) : String := itemNames.getD i ""
+  let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 
   -- Hooks
   let allClicks ← useAllClicks

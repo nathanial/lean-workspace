@@ -60,7 +60,7 @@ def clampRatio (ratio : Float) (available : Float) (config : SplitPaneConfig) : 
 
 /-- Get the content rect for a named widget. -/
 def getWidgetRect (widget : Widget) (layouts : Trellis.LayoutResult)
-    (name : String) : Option Trellis.LayoutRect :=
+    (name : ComponentId) : Option Trellis.LayoutRect :=
   match findWidgetIdByName widget name with
   | some wid =>
     match layouts.get wid with
@@ -91,7 +91,7 @@ def ratioFromPosition (orientation : SplitPaneOrientation) (config : SplitPaneCo
 end SplitPane
 
 /-- Build a visual split pane widget. -/
-def splitPaneVisual (containerName handleName : String)
+def splitPaneVisual (containerName handleName : ComponentId)
     (config : SplitPaneConfig) (theme : Theme)
     (ratio : Float) (handleHovered : Bool) (isDragging : Bool)
     (first second : WidgetBuilder) : WidgetBuilder := do
@@ -163,14 +163,14 @@ def splitPaneVisual (containerName handleName : String)
   let pane2 ← mkPane pane2Style second
 
   let handleWid ← freshId
-  let handle : Widget := .rect handleWid (some handleName) handleStyle
+  let handle : Widget := Widget.rectC handleWid handleName handleStyle
 
   let outerProps : FlexContainer := match config.orientation with
     | .horizontal => { direction := .row, gap := 0, alignItems := .stretch }
     | .vertical => { direction := .column, gap := 0, alignItems := .stretch }
 
   let outerWid ← freshId
-  pure (.flex outerWid (some containerName) outerProps outerStyle #[pane1, handle, pane2])
+  pure (Widget.flexC outerWid containerName outerProps outerStyle #[pane1, handle, pane2])
 
 /-! ## Reactive SplitPane Components (FRP-based) -/
 

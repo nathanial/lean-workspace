@@ -12,8 +12,6 @@ open Linalg
 
 namespace Demos
 
-def spinningCubesWidgetName : String := "overview-spinning-cubes"
-
 /-- State for the spinning cubes overview cell. -/
 structure SpinningCubesState where
   camera : Render.FPSCamera
@@ -115,7 +113,7 @@ def updateSpinningCubesState (env : DemoEnv) (state : SpinningCubesState) : IO S
 
 /-- SpinningCubes widget for Overview grid with FPS camera support. -/
 def spinningCubesOverviewWidget (t : Float) (windowW windowH : Float) (camera : FPSCamera) : WidgetBuilder := do
-  namedCustom spinningCubesWidgetName (spec := {
+  custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
     draw := some (fun layout => do

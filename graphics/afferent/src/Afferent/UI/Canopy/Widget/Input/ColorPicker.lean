@@ -104,7 +104,7 @@ def alphaFromPosition (rect : Trellis.LayoutRect) (y : Float) : Float :=
 
 /-- Check if a point is within a widget's bounds. -/
 def isInWidget (widget : Widget) (layouts : Trellis.LayoutResult)
-    (widgetName : String) (x y : Float) : Bool :=
+    (widgetName : ComponentId) (x y : Float) : Bool :=
   match findWidgetIdByName widget widgetName with
   | some wid =>
     match layouts.get wid with
@@ -117,7 +117,7 @@ def isInWidget (widget : Widget) (layouts : Trellis.LayoutResult)
 
 /-- Get rect for a named widget. -/
 def getWidgetRect (widget : Widget) (layouts : Trellis.LayoutResult)
-    (widgetName : String) : Option Trellis.LayoutRect :=
+    (widgetName : ComponentId) : Option Trellis.LayoutRect :=
   match findWidgetIdByName widget widgetName with
   | some wid =>
     match layouts.get wid with
@@ -283,7 +283,7 @@ def colorPreviewSpec (color : Color) (width height cornerRadius : Float) : Custo
 end ColorPicker
 
 /-- Build the visual representation of the color picker. -/
-def colorPickerVisual (pickerName svName hueName alphaName : String)
+def colorPickerVisual (pickerName svName hueName alphaName : ComponentId)
     (config : ColorPickerConfig) (state : ColorPickerState)
     (_theme : Theme) : WidgetBuilder := do
   let hsv := state.hsv

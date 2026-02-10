@@ -243,7 +243,7 @@ def mathPlotSpec (series : Array Series) (theme : Theme)
 end MathPlot
 
 /-- Build a math plot visual (WidgetBuilder version). -/
-def mathPlotVisual (name : String) (series : Array MathPlot.Series) (theme : Theme)
+def mathPlotVisual (name : ComponentId) (series : Array MathPlot.Series) (theme : Theme)
     (dims : MathPlot.Dimensions := MathPlot.defaultDimensions)
     (config : MathPlot.Config := {}) : WidgetBuilder := do
   let wid ← freshId
@@ -260,7 +260,7 @@ def mathPlotVisual (name : String) (series : Array MathPlot.Series) (theme : The
     flexItem := some (Trellis.FlexItem.growing 1)
   }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive MathPlot Components (FRP-based) -/
 

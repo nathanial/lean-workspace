@@ -207,7 +207,7 @@ end PieChart
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def pieChartVisual (name : String) (slices : Array PieChart.Slice)
+def pieChartVisual (name : ComponentId) (slices : Array PieChart.Slice)
     (theme : Theme) (dims : PieChart.Dimensions := PieChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -218,7 +218,7 @@ def pieChartVisual (name : String) (slices : Array PieChart.Slice)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-- Build a pie chart with legend visual (WidgetBuilder version).
     - `name`: Widget name for identification
@@ -226,7 +226,7 @@ def pieChartVisual (name : String) (slices : Array PieChart.Slice)
     - `theme`: Theme for styling
     - `dims`: Chart dimensions
 -/
-def pieChartWithLegendVisual (name : String) (slices : Array PieChart.Slice)
+def pieChartWithLegendVisual (name : ComponentId) (slices : Array PieChart.Slice)
     (theme : Theme) (dims : PieChart.Dimensions := PieChart.defaultDimensions)
     : WidgetBuilder := do
   let wid ← freshId
@@ -237,7 +237,7 @@ def pieChartWithLegendVisual (name : String) (slices : Array PieChart.Slice)
   }
   let style : BoxStyle := { width := .percent 1.0, height := .percent 1.0, minWidth := some dims.width, minHeight := some dims.height, flexItem := some (Trellis.FlexItem.growing 1) }
   let props : Trellis.FlexContainer := { Trellis.FlexContainer.column 0 with alignItems := .stretch }
-  pure (.flex wid (some name) props style #[chart])
+  pure (Widget.flexC wid name props style #[chart])
 
 /-! ## Reactive PieChart Components (FRP-based)
 

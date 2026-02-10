@@ -77,7 +77,7 @@ end Switch
     - `isOn`: Whether the switch is currently on
     - `state`: Widget interaction state (hover, focus, etc.)
 -/
-def switchVisual (name : String) (labelText : Option String) (theme : Theme)
+def switchVisual (name : ComponentId) (labelText : Option String) (theme : Theme)
     (isOn : Bool) (state : WidgetState := {}) : WidgetBuilder := do
   let dims := Switch.defaultDimensions
   -- Track background color: primary when on, gray when off
@@ -101,12 +101,12 @@ def switchVisual (name : String) (labelText : Option String) (theme : Theme)
   match labelText with
   | some text =>
     let label ← text' text theme.font theme.text .left
-    pure (.flex wid (some name) props {} #[track, label])
+    pure (Widget.flexC wid name props {} #[track, label])
   | none =>
-    pure (.flex wid (some name) props {} #[track])
+    pure (Widget.flexC wid name props {} #[track])
 
 /-- Build a visual switch without label (WidgetBuilder version). -/
-def switchOnlyVisual (name : String) (theme : Theme)
+def switchOnlyVisual (name : ComponentId) (theme : Theme)
     (isOn : Bool) (state : WidgetState := {}) : WidgetBuilder :=
   switchVisual name none theme isOn state
 
@@ -117,7 +117,7 @@ def switchOnlyVisual (name : String) (theme : Theme)
     - `progress`: Animation progress 0.0 (off) to 1.0 (on)
     - `state`: Widget interaction state (hover, focus, etc.)
 -/
-def animatedSwitchVisual (name : String) (labelText : Option String) (theme : Theme)
+def animatedSwitchVisual (name : ComponentId) (labelText : Option String) (theme : Theme)
     (progress : Float) (state : WidgetState := {}) : WidgetBuilder := do
   let dims := Switch.defaultDimensions
   -- Interpolate track background color based on progress
@@ -143,9 +143,9 @@ def animatedSwitchVisual (name : String) (labelText : Option String) (theme : Th
   match labelText with
   | some text =>
     let label ← text' text theme.font theme.text .left
-    pure (.flex wid (some name) props {} #[track, label])
+    pure (Widget.flexC wid name props {} #[track, label])
   | none =>
-    pure (.flex wid (some name) props {} #[track])
+    pure (Widget.flexC wid name props {} #[track])
 
 /-! ## Reactive Switch Components (FRP-based)
 
