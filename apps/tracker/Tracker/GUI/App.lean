@@ -79,8 +79,7 @@ def createApp : ReactiveM GuiApp := do
       let keyDispatch ← Event.mapM fireAction keyActions
       performEvent_ keyDispatch
 
-      let _ ← dynWidget modelDyn fun model =>
-        View.renderModelSections model fireAction
+      View.renderModelSections modelDyn fireAction
 
       let toastMgr ← toastManager
       let infoAction ← Event.mapM (fun msg => toastMgr.showInfo msg) toastInfoEvent

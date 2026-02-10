@@ -322,4 +322,48 @@ test "GUI reducer loadSucceeded normalizes selection and editor drafts" := do
   loadedModel.editStatus ≡ .open_
   afterLoadEffects.size ≡ 1
 
+test "GUI reducer selectIssue updates selection and syncs editor drafts" := do
+  let issue1 : Issue := {
+    id := 10
+    title := "First GUI issue"
+    status := .open_
+    priority := .high
+    created := "2026-01-01T00:00:00"
+    updated := "2026-01-01T00:00:00"
+    labels := #["bug", "gui"]
+    assignee := some "nathanial"
+    project := some "tracker"
+    blocks := #[]
+    blockedBy := #[]
+    description := "First issue description"
+    progress := #[]
+  }
+  let issue2 : Issue := {
+    id := 20
+    title := "Second GUI issue"
+    status := .inProgress
+    priority := .medium
+    created := "2026-01-02T00:00:00"
+    updated := "2026-01-03T00:00:00"
+    labels := #["backend"]
+    assignee := none
+    project := none
+    blocks := #[]
+    blockedBy := #[]
+    description := "Second issue description"
+    progress := #[]
+  }
+  let root : System.FilePath := "/tmp/tracker_gui_select_scroll_test"
+  let (loadedModel, _) := Tracker.GUI.update Tracker.GUI.Model.initial (.loadSucceeded root #[issue1, issue2])
+
+  let (selectedModel, selectedEffects) :=
+    Tracker.GUI.update loadedModel (.selectIssue issue2.id)
+  selectedModel.selectedIssueId ≡ some issue2.id
+  selectedModel.editTitle ≡ issue2.title
+  selectedEffects.size ≡ 0
+
+  let (keyboardModel, _) := Tracker.GUI.update selectedModel (.selectIssue issue1.id)
+  keyboardModel.selectedIssueId ≡ some issue1.id
+  keyboardModel.editTitle ≡ issue1.title
+
 def main : IO UInt32 := runAllSuites

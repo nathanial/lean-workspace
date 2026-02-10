@@ -25,8 +25,12 @@ structure VirtualListConfig where
   fillHeight : Bool := false
   /-- Fill available width instead of using fixed pixel width. -/
   fillWidth : Bool := false
+  /-- Stable key used to preserve internal list state across subtree rebuilds. -/
+  instanceKey : Option String := none
   /-- Fixed height for each row in pixels. -/
   itemHeight : Float := 28.0
+  /-- Initial vertical scroll offset in pixels. -/
+  initialScrollOffsetY : Float := 0.0
   /-- Number of extra rows to render above and below the viewport. -/
   overscan : Nat := 2
   /-- Scroll sensitivity multiplier (pixels per scroll unit). -/
@@ -127,6 +131,12 @@ private def viewportFromLayout? (name : String) (widget : Widget)
   let rect := layout.contentRect
   some (rect.width, rect.height)
 
+private def rememberedOffset? (events : ReactiveEvents) (key : String) : IO (Option Float) :=
+  events.registry.getVirtualListScrollOffset key
+
+private def rememberOffset (events : ReactiveEvents) (key : String) (offsetY : Float) : IO Unit :=
+  events.registry.setVirtualListScrollOffset key offsetY
+
 /-- Create a virtual list that only renders visible items.
     `itemBuilder` should render content sized to `config.itemHeight` for correct scrolling.
 
@@ -138,18 +148,31 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
     (config : VirtualListConfig := VirtualList.defaultConfig)
     : WidgetM VirtualListResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "virtual-list"
+  let events ← getEventsW
+  let name ←
+    match config.instanceKey with
+    | some key => pure s!"virtual-list-{key}"
+    | none => registerComponentW "virtual-list"
+  let stateKey := config.instanceKey.getD name
 
   -- Register item names for hit testing.
   let mut itemNames : Array String := #[]
   for i in [:itemCount] do
-    let itemName ← registerComponentW s!"virtual-list-item-{i}"
+    let itemName ←
+      match config.instanceKey with
+      | some key => pure s!"virtual-list-item-{key}-{i}"
+      | none => registerComponentW s!"virtual-list-item-{i}"
     itemNames := itemNames.push itemName
   let itemNameFn (i : Nat) : String := itemNames.getD i ""
 
   let scrollConfig := VirtualList.toScrollConfig itemCount config
   let contentH := VirtualList.contentHeight itemCount config
   let contentW := config.width
+  let rememberedY ← SpiderM.liftIO <| rememberedOffset? events stateKey
+  let initialOffsetY := max 0 (rememberedY.getD config.initialScrollOffsetY)
+  let initialScroll : ScrollState :=
+    ({ offsetX := 0, offsetY := initialOffsetY } : ScrollState)
+      |>.clamp scrollConfig.width scrollConfig.height contentW contentH
 
   -- Hooks for scroll handling.
   let scrollEvents ← useScroll name
@@ -247,7 +270,7 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
         pure { state with drag := {} }
     )
     ({
-      scroll := {}
+      scroll := initialScroll
       drag := {}
       viewportW := scrollConfig.width
       viewportH := scrollConfig.height
@@ -255,6 +278,11 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
     allInputEvents
 
   let scrollState ← Dynamic.mapM (fun (s : VirtualListState) => s.scroll) combinedState
+  let persistScroll ← Event.mapM (fun (scroll : ScrollState) =>
+    rememberOffset events stateKey scroll.offsetY
+  ) scrollState.updated
+  performEvent_ persistScroll
+
   let visibleRange ← Dynamic.mapM (fun (s : VirtualListState) =>
     let viewportH := if s.viewportH > 0 then s.viewportH else config.height
     let hinted := VirtualList.applyViewportHeightHint config viewportH

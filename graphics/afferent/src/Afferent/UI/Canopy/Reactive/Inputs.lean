@@ -42,6 +42,8 @@ structure ComponentRegistry where
   focusedInput : Dynamic Spider (Option String)
   /-- Trigger to change focus. -/
   fireFocus : Option String → IO Unit
+  /-- Per-virtual-list remembered vertical scroll offsets by stable key. -/
+  virtualListScrollOffsets : IO.Ref (Std.HashMap String Float)
 
 /-- Create a new component registry. -/
 def ComponentRegistry.create : SpiderM ComponentRegistry := do
@@ -50,7 +52,15 @@ def ComponentRegistry.create : SpiderM ComponentRegistry := do
   let interactiveNames ← SpiderM.liftIO <| IO.mkRef #[]
   let (focusEvent, fireFocus) ← newTriggerEvent (t := Spider) (a := Option String)
   let focusedInput ← holdDyn none focusEvent
-  pure { idCounter, inputNames, interactiveNames, focusedInput, fireFocus }
+  let virtualListScrollOffsets ← SpiderM.liftIO <| IO.mkRef {}
+  pure {
+    idCounter
+    inputNames
+    interactiveNames
+    focusedInput
+    fireFocus
+    virtualListScrollOffsets
+  }
 
 /-- Reset the registry for a new frame.
     Clears the counter and name arrays to prevent unbounded growth. -/
@@ -79,6 +89,17 @@ def ComponentRegistry.register (reg : ComponentRegistry) (namePrefix : String)
   if isInteractive then
     reg.interactiveNames.modify (·.push name)
   pure name
+
+/-- Read remembered virtual list vertical scroll offset for a stable key. -/
+def ComponentRegistry.getVirtualListScrollOffset (reg : ComponentRegistry)
+    (key : String) : IO (Option Float) := do
+  let offsets ← reg.virtualListScrollOffsets.get
+  pure (offsets.get? key)
+
+/-- Remember virtual list vertical scroll offset for a stable key. -/
+def ComponentRegistry.setVirtualListScrollOffset (reg : ComponentRegistry)
+    (key : String) (offsetY : Float) : IO Unit := do
+  reg.virtualListScrollOffsets.modify (fun offsets => offsets.insert key (max 0 offsetY))
 
 /-- Global reactive event streams that widgets subscribe to. -/
 structure ReactiveEvents where

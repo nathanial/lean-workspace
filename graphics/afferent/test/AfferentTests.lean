@@ -17,6 +17,7 @@ import AfferentTests.DropdownTests
 import AfferentTests.TableTests
 import AfferentTests.ListBoxTests
 import AfferentTests.TreeViewTests
+import AfferentTests.VirtualListTests
 import AfferentTests.ColorPickerTests
 import AfferentTests.WidgetCoverageTests
 import AfferentTests.ReactiveLayoutTests
