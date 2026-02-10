@@ -30,8 +30,8 @@ def run (createApp : ReactiveM Tracker.GUI.GuiApp) : IO Unit := do
   let physHeight := (baseHeight * screenScale).toUInt32
 
   let mut canvas ← Canvas.create physWidth physHeight "Tracker"
-  let uiFont ← Afferent.Font.load "/System/Library/Fonts/Monaco.ttf" (18 * screenScale).toUInt32
-  let uiSmallFont ← Afferent.Font.load "/System/Library/Fonts/Monaco.ttf" (14 * screenScale).toUInt32
+  let uiFont ← Afferent.Font.load "/System/Library/Fonts/Monaco.ttf" (15 * screenScale).toUInt32
+  let uiSmallFont ← Afferent.Font.load "/System/Library/Fonts/Monaco.ttf" (11 * screenScale).toUInt32
 
   let (fontRegistry, uiFontId) := FontRegistry.empty.register uiFont "tracker-ui"
   let (fontRegistry, uiSmallFontId) := fontRegistry.register uiSmallFont "tracker-ui-small"
