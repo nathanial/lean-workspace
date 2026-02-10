@@ -72,6 +72,57 @@ def buildGrid (rows cols : Nat) : LayoutNode := Id.run do
     children := children.push (LayoutNode.leaf' (i + 1) 20 20)
   return LayoutNode.gridBox 0 (GridContainer.columns cols 5) children
 
+/-- Build a row-dense grid with periodic 2-column spanning items. -/
+def buildDenseSpanningGrid (cols itemCount : Nat) : LayoutNode := Id.run do
+  let mut children : Array LayoutNode := #[]
+  for i in [:itemCount] do
+    let id := i + 1
+    let child :=
+      if i % 7 == 0 then
+        LayoutNode.leaf' id 20 20 {} (.gridChild (GridItem.span 1 2))
+      else
+        LayoutNode.leaf' id 20 20
+    children := children.push child
+  let props := { (GridContainer.columns cols 2) with autoFlow := .rowDense }
+  return LayoutNode.gridBox 0 props children
+
+/-- Build a column-flow grid with explicit row/column counts and many auto-placed items. -/
+def buildColumnFlowGrid (rowCount colCount itemCount : Nat) : LayoutNode := Id.run do
+  let mut children : Array LayoutNode := #[]
+  for i in [:itemCount] do
+    children := children.push (LayoutNode.leaf' (i + 1) 20 20)
+  let props : GridContainer := {
+    templateRows := GridTemplate.repeated rowCount
+    templateColumns := GridTemplate.repeated colCount
+    rowGap := 2
+    columnGap := 2
+    autoFlow := .column
+  }
+  return LayoutNode.gridBox 0 props children
+
+/-- Build a grid where each item has explicit row and auto column placement. -/
+def buildFixedRowAutoColumnGrid (rowCount itemsPerRow : Nat) : LayoutNode := Id.run do
+  let mut children : Array LayoutNode := #[]
+  let mut nodeId := 1
+  for r in [:rowCount] do
+    let rowLine : Int := Int.ofNat (r + 1)
+    let placement : GridPlacement := {
+      row := GridSpan.lines rowLine (rowLine + 1)
+      column := GridSpan.auto
+    }
+    let itemProps : GridItem := { GridItem.default with placement := placement }
+    for _ in [:itemsPerRow] do
+      children := children.push (LayoutNode.leaf' nodeId 20 20 {} (.gridChild itemProps))
+      nodeId := nodeId + 1
+  let props : GridContainer := {
+    templateRows := GridTemplate.repeated rowCount
+    templateColumns := GridTemplate.repeated itemsPerRow
+    rowGap := 2
+    columnGap := 2
+    autoFlow := .row
+  }
+  return LayoutNode.gridBox 0 props children
+
 /-- Build a grid containing flex containers, each with multiple items. -/
 def buildGridOfFlexContainers (gridCols flexContainerCount itemsPerContainer : Nat) : LayoutNode := Id.run do
   let mut containers : Array LayoutNode := #[]
@@ -269,6 +320,30 @@ test "perf: 1000x1000 grid (1000000 cells)" := do
   let elapsed ← start.elapsed
   shouldBe result.layouts.size 1000001
   IO.println s!"  [1000x1000 grid (1M cells): {elapsed}]"
+
+test "perf: row-dense grid with periodic spans (20000 items)" := do
+  let node := buildDenseSpanningGrid 300 20000
+  let start ← Chronos.MonotonicTime.now
+  let result ← strictEval (layout node 15000 300000)
+  let elapsed ← start.elapsed
+  shouldBe result.layouts.size 20001
+  IO.println s!"  [row-dense periodic spans (20K items): {elapsed}]"
+
+test "perf: column-flow grid (20000 items, 128x200)" := do
+  let node := buildColumnFlowGrid 128 200 20000
+  let start ← Chronos.MonotonicTime.now
+  let result ← strictEval (layout node 12000 500000)
+  let elapsed ← start.elapsed
+  shouldBe result.layouts.size 20001
+  IO.println s!"  [column-flow 20K items / 128x200: {elapsed}]"
+
+test "perf: fixed-row auto-column placement (200x100)" := do
+  let node := buildFixedRowAutoColumnGrid 200 100
+  let start ← Chronos.MonotonicTime.now
+  let result ← strictEval (layout node 12000 500000)
+  let elapsed ← start.elapsed
+  shouldBe result.layouts.size 20001
+  IO.println s!"  [fixed-row auto-column 200x100: {elapsed}]"
 
 /-! ## Mixed Layout Tests (100x scale) -/
 

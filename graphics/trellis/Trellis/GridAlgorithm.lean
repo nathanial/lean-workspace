@@ -62,41 +62,129 @@ deriving Repr, Inhabited
 
 /-- Occupancy grid for auto-placement. -/
 structure OccupancyGrid where
-  /-- 2D array of occupied cells (row-major). -/
-  cells : Array (Array Bool)
+  /-- 2D bitset of occupied cells (row-major words). -/
+  cells : Array (Array UInt64)
   rows : Nat
   cols : Nat
+  rowWords : Nat
 deriving Repr, Inhabited
 
 namespace OccupancyGrid
 
+/-- Number of UInt64 words required to represent a row with `cols` cells. -/
+@[inline] def wordsForCols (cols : Nat) : Nat :=
+  (cols + 63) / 64
+
+/-- Bit mask for a bit index in [0, 63]. -/
+@[inline] def bitMask (bit : Nat) : UInt64 :=
+  (1 : UInt64) <<< bit.toUInt64
+
+/-- Bit mask covering [startBit, endBit) within a single UInt64 word. -/
+def maskRange (startBit endBit : Nat) : UInt64 := Id.run do
+  let stop := min endBit 64
+  let mut mask : UInt64 := 0
+  for b in [startBit:stop] do
+    mask := mask ||| bitMask b
+  mask
+
 /-- Create an empty occupancy grid. -/
 def create (rows cols : Nat) : OccupancyGrid :=
-  { cells := (List.replicate rows (List.replicate cols false).toArray).toArray, rows, cols }
+  let rowWords := wordsForCols cols
+  let emptyRow : Array UInt64 := (List.replicate rowWords (0 : UInt64)).toArray
+  { cells := (List.replicate rows emptyRow).toArray, rows, cols, rowWords }
 
 /-- Check if a cell is occupied. -/
 def isOccupied (grid : OccupancyGrid) (row col : Nat) : Bool :=
-  if h : row < grid.cells.size then
-    let rowArr := grid.cells[row]
-    if col < rowArr.size then rowArr[col]! else false
+  if row < grid.cells.size then
+    let rowWords := grid.cells[row]!
+    let wordIdx := col / 64
+    if wordIdx < rowWords.size then
+      let word := rowWords[wordIdx]!
+      let mask := bitMask (col % 64)
+      (word &&& mask) != 0
+    else
+      false
   else false
 
 /-- Check if a range of cells is available. -/
-def isAreaAvailable (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Nat) : Bool :=
-  (List.range (rowEnd - rowStart)).all fun dr =>
-    (List.range (colEnd - colStart)).all fun dc =>
-      !grid.isOccupied (rowStart + dr) (colStart + dc)
+def isAreaAvailable (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Nat) : Bool := Id.run do
+  if rowStart >= rowEnd || colStart >= colEnd then
+    return true
+  let startWord := colStart / 64
+  let lastCol := colEnd - 1
+  let endWord := lastCol / 64
+  let startBit := colStart % 64
+  let endBit := (lastCol % 64) + 1
+  for r in [rowStart:rowEnd] do
+    if r < grid.cells.size then
+      let rowWords := grid.cells[r]!
+      if startWord < rowWords.size then
+        if startWord == endWord then
+          let mask := maskRange startBit endBit
+          if (rowWords[startWord]! &&& mask) != 0 then
+            return false
+        else
+          let startMask := maskRange startBit 64
+          if (rowWords[startWord]! &&& startMask) != 0 then
+            return false
+          let middleStop := min endWord rowWords.size
+          for w in [startWord + 1:middleStop] do
+            if rowWords[w]! != 0 then
+              return false
+          if endWord < rowWords.size then
+            let endMask := maskRange 0 endBit
+            if (rowWords[endWord]! &&& endMask) != 0 then
+              return false
+    else
+      -- Out-of-bounds cells behave as unoccupied in the current model.
+      pure ()
+  true
+
+/-- Specialized 1x1 availability check. -/
+def isCellAvailable (grid : OccupancyGrid) (row col : Nat) : Bool :=
+  !grid.isOccupied row col
 
 /-- Mark a range of cells as occupied. -/
 def markOccupied (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Nat) : OccupancyGrid := Id.run do
+  if rowStart >= rowEnd || colStart >= colEnd then
+    return grid
   let mut cells := grid.cells
-  for r in [rowStart:rowEnd] do
-    if h : r < cells.size then
-      let mut row := cells[r]
-      for c in [colStart:colEnd] do
-        if c < row.size then
-          row := row.set! c true
-      cells := cells.set! r row
+  let startWord := colStart / 64
+  let lastCol := colEnd - 1
+  let endWord := lastCol / 64
+  let startBit := colStart % 64
+  let endBit := (lastCol % 64) + 1
+  let allBits : UInt64 := (0 : UInt64) - 1
+  let rowStop := min rowEnd cells.size
+  for r in [rowStart:rowStop] do
+    let mut rowWords := cells[r]!
+    if startWord < rowWords.size then
+      if startWord == endWord then
+        let mask := maskRange startBit endBit
+        rowWords := rowWords.set! startWord (rowWords[startWord]! ||| mask)
+      else
+        let startMask := maskRange startBit 64
+        rowWords := rowWords.set! startWord (rowWords[startWord]! ||| startMask)
+        let middleStop := min endWord rowWords.size
+        for w in [startWord + 1:middleStop] do
+          rowWords := rowWords.set! w allBits
+        if endWord < rowWords.size then
+          let endMask := maskRange 0 endBit
+          rowWords := rowWords.set! endWord (rowWords[endWord]! ||| endMask)
+    cells := cells.set! r rowWords
+  { grid with cells }
+
+/-- Mark a single cell as occupied. -/
+def markCellOccupied (grid : OccupancyGrid) (row col : Nat) : OccupancyGrid := Id.run do
+  let mut cells := grid.cells
+  if row < cells.size then
+    let rowWords := cells[row]!
+    let wordIdx := col / 64
+    if wordIdx < rowWords.size then
+      let mask := bitMask (col % 64)
+      let newWord := rowWords[wordIdx]! ||| mask
+      let newRow := rowWords.set! wordIdx newWord
+      cells := cells.set! row newRow
   { grid with cells }
 
 /-- Extend grid to accommodate more rows. -/
@@ -104,17 +192,22 @@ def extendRows (grid : OccupancyGrid) (newRows : Nat) : OccupancyGrid :=
   if newRows <= grid.rows then grid
   else
     let additionalRows := newRows - grid.rows
-    let newCells := grid.cells ++ (List.replicate additionalRows (List.replicate grid.cols false).toArray).toArray
+    let emptyRow : Array UInt64 := (List.replicate grid.rowWords (0 : UInt64)).toArray
+    let newCells := grid.cells ++ (List.replicate additionalRows emptyRow).toArray
     { grid with cells := newCells, rows := newRows }
 
 /-- Extend grid to accommodate more columns. -/
 def extendCols (grid : OccupancyGrid) (newCols : Nat) : OccupancyGrid :=
   if newCols <= grid.cols then grid
   else
-    let additionalCols := newCols - grid.cols
-    let newCells := grid.cells.map fun row =>
-      row ++ (List.replicate additionalCols false).toArray
-    { grid with cells := newCells, cols := newCols }
+    let newRowWords := wordsForCols newCols
+    if newRowWords <= grid.rowWords then
+      { grid with cols := newCols }
+    else
+      let additionalWords := newRowWords - grid.rowWords
+      let newCells := grid.cells.map fun row =>
+        row ++ (List.replicate additionalWords (0 : UInt64)).toArray
+      { grid with cells := newCells, cols := newCols, rowWords := newRowWords }
 
 end OccupancyGrid
 
@@ -726,6 +819,7 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
     : GridItemState × OccupancyGrid × PlacementCursor := Id.run do
   let rowSpan := item.rowEnd - item.rowStart
   let colSpan := item.colEnd - item.colStart
+  let singleCell := rowSpan == 1 && colSpan == 1
 
   -- Determine search parameters based on flow
   let isDense := match flow with
@@ -760,7 +854,11 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
             occ := occ.extendCols (c + colSpan)
           if r + rowSpan > occ.rows then
             occ := occ.extendRows (r + rowSpan)
-          if occ.isAreaAvailable r (r + rowSpan) c (c + colSpan) then
+          let fits := if singleCell then
+            occ.isCellAvailable r c
+          else
+            occ.isAreaAvailable r (r + rowSpan) c (c + colSpan)
+          if fits then
             foundRow := r
             foundCol := c
             found := true
@@ -782,7 +880,11 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
         if c + colSpan <= cols then
           if r + rowSpan > occ.rows then
             occ := occ.extendRows (r + rowSpan)
-          if occ.isAreaAvailable r (r + rowSpan) c (c + colSpan) then
+          let fits := if singleCell then
+            occ.isCellAvailable r c
+          else
+            occ.isAreaAvailable r (r + rowSpan) c (c + colSpan)
+          if fits then
             foundRow := r
             foundCol := c
             found := true
@@ -799,7 +901,10 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
     occ := occ.extendRows (foundRow + rowSpan)
   if foundCol + colSpan > occ.cols then
     occ := occ.extendCols (foundCol + colSpan)
-  occ := occ.markOccupied foundRow (foundRow + rowSpan) foundCol (foundCol + colSpan)
+  occ := if singleCell then
+    occ.markCellOccupied foundRow foundCol
+  else
+    occ.markOccupied foundRow (foundRow + rowSpan) foundCol (foundCol + colSpan)
 
   let newItem := { item with
     rowStart := foundRow
@@ -818,6 +923,7 @@ def autoPlaceItemFixedRow (item : GridItemState) (occupancy : OccupancyGrid)
   let rowStart := item.rowStart
   let rowSpan := item.rowEnd - item.rowStart
   let colSpan := item.colEnd - item.colStart
+  let singleCell := rowSpan == 1 && colSpan == 1
   let isDense := match flow with
     | .rowDense | .columnDense => true
     | _ => false
@@ -832,11 +938,18 @@ def autoPlaceItemFixedRow (item : GridItemState) (occupancy : OccupancyGrid)
     if c + colSpan <= cols then
       if c + colSpan > occ.cols then
         occ := occ.extendCols (c + colSpan)
-      if occ.isAreaAvailable rowStart (rowStart + rowSpan) c (c + colSpan) then
+      let fits := if singleCell then
+        occ.isCellAvailable rowStart c
+      else
+        occ.isAreaAvailable rowStart (rowStart + rowSpan) c (c + colSpan)
+      if fits then
         foundCol := c
         found := true
   let resolvedCol := if found then foundCol else 0
-  occ := occ.markOccupied rowStart (rowStart + rowSpan) resolvedCol (resolvedCol + colSpan)
+  occ := if singleCell then
+    occ.markCellOccupied rowStart resolvedCol
+  else
+    occ.markOccupied rowStart (rowStart + rowSpan) resolvedCol (resolvedCol + colSpan)
   let newItem := { item with colStart := resolvedCol, colEnd := resolvedCol + colSpan }
   let newCursor : PlacementCursor := { row := rowStart, col := resolvedCol + colSpan }
   (newItem, occ, newCursor)
@@ -848,6 +961,7 @@ def autoPlaceItemFixedCol (item : GridItemState) (occupancy : OccupancyGrid)
   let colStart := item.colStart
   let rowSpan := item.rowEnd - item.rowStart
   let colSpan := item.colEnd - item.colStart
+  let singleCell := rowSpan == 1 && colSpan == 1
   let isDense := match flow with
     | .rowDense | .columnDense => true
     | _ => false
@@ -867,11 +981,18 @@ def autoPlaceItemFixedCol (item : GridItemState) (occupancy : OccupancyGrid)
       continue
     if r + rowSpan > occ.rows then
       occ := occ.extendRows (r + rowSpan)
-    if occ.isAreaAvailable r (r + rowSpan) colStart (colStart + colSpan) then
+    let fits := if singleCell then
+      occ.isCellAvailable r colStart
+    else
+      occ.isAreaAvailable r (r + rowSpan) colStart (colStart + colSpan)
+    if fits then
       foundRow := r
       found := true
   let resolvedRow := if found then foundRow else 0
-  occ := occ.markOccupied resolvedRow (resolvedRow + rowSpan) colStart (colStart + colSpan)
+  occ := if singleCell then
+    occ.markCellOccupied resolvedRow colStart
+  else
+    occ.markOccupied resolvedRow (resolvedRow + rowSpan) colStart (colStart + colSpan)
   let newItem := { item with rowStart := resolvedRow, rowEnd := resolvedRow + rowSpan }
   let newCursor : PlacementCursor := { row := resolvedRow + rowSpan, col := colStart }
   (newItem, occ, newCursor)
