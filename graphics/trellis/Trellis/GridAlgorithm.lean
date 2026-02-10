@@ -206,6 +206,50 @@ def findFirstAvailableColInRow (grid : OccupancyGrid) (row colStart colLimit col
       return some c
   none
 
+/-- Combine occupancy bits for a word across a row span. -/
+def occupancyWordForRows (grid : OccupancyGrid) (rowStart rowSpan wordIdx : Nat) : UInt64 := Id.run do
+  let mut occupied : UInt64 := 0
+  let rowStop := min (rowStart + rowSpan) grid.cells.size
+  for r in [rowStart:rowStop] do
+    let rowWords := grid.cells[r]!
+    if wordIdx < rowWords.size then
+      occupied := occupied ||| rowWords[wordIdx]!
+  occupied
+
+/-- Find the first available column for a row span and contiguous column span.
+    Used to accelerate dense row auto-placement with multi-row spans. -/
+def findFirstAvailableColForRowSpan (grid : OccupancyGrid)
+    (rowStart rowSpan colStart colLimit colSpan : Nat) : Option Nat := Id.run do
+  if rowSpan == 0 || colSpan == 0 || colStart >= colLimit then
+    return none
+  if colSpan > colLimit - colStart then
+    return none
+
+  let maxStart := colLimit - colSpan
+  let allBits : UInt64 := (0 : UInt64) - 1
+  let mut c := colStart
+  while c <= maxStart do
+    let wordIdx := c / 64
+    let bit := c % 64
+    let occupiedWord := occupancyWordForRows grid rowStart rowSpan wordIdx
+    if colSpan == 1 then
+      let freeBits := ~~~occupiedWord
+      match firstSetBitFrom freeBits bit with
+      | some freeBit =>
+        let candidate := wordIdx * 64 + freeBit
+        if candidate <= maxStart then
+          return some candidate
+        return none
+      | none =>
+        c := (wordIdx + 1) * 64
+    else if bit == 0 && occupiedWord == allBits then
+      c := c + 64
+    else if grid.isAreaAvailable rowStart (rowStart + rowSpan) c (c + colSpan) then
+      return some c
+    else
+      c := c + 1
+  none
+
 /-- Mark a range of cells as occupied. -/
 def markOccupied (grid : OccupancyGrid) (rowStart rowEnd colStart colEnd : Nat) : OccupancyGrid := Id.run do
   if rowStart >= rowEnd || colStart >= colEnd then
@@ -934,12 +978,12 @@ def autoPlaceItem (item : GridItemState) (occupancy : OccupancyGrid)
   else
     -- Row-major: outer loop rows, inner loop columns (default behavior)
     let maxRow := occ.rows + 10
-    if isDense && rowSpan == 1 then
+    if isDense then
       for r in [0:maxRow] do
         if found then break
-        if r + 1 > occ.rows then
-          occ := occ.extendRows (r + 1)
-        match occ.findFirstAvailableColInRow r 0 cols colSpan with
+        if r + rowSpan > occ.rows then
+          occ := occ.extendRows (r + rowSpan)
+        match occ.findFirstAvailableColForRowSpan r rowSpan 0 cols colSpan with
         | some c =>
           foundRow := r
           foundCol := c

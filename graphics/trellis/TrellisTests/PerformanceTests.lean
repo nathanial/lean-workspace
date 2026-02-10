@@ -86,6 +86,22 @@ def buildDenseSpanningGrid (cols itemCount : Nat) : LayoutNode := Id.run do
   let props := { (GridContainer.columns cols 2) with autoFlow := .rowDense }
   return LayoutNode.gridBox 0 props children
 
+/-- Build a row-dense grid with periodic multi-row and multi-column spans. -/
+def buildDenseMultiRowSpanningGrid (cols itemCount : Nat) : LayoutNode := Id.run do
+  let mut children : Array LayoutNode := #[]
+  for i in [:itemCount] do
+    let id := i + 1
+    let child :=
+      if i % 13 == 0 then
+        LayoutNode.leaf' id 20 20 {} (.gridChild (GridItem.span 2 1))
+      else if i % 7 == 0 then
+        LayoutNode.leaf' id 20 20 {} (.gridChild (GridItem.span 1 2))
+      else
+        LayoutNode.leaf' id 20 20
+    children := children.push child
+  let props := { (GridContainer.columns cols 2) with autoFlow := .rowDense }
+  return LayoutNode.gridBox 0 props children
+
 /-- Build a column-flow grid with explicit row/column counts and many auto-placed items. -/
 def buildColumnFlowGrid (rowCount colCount itemCount : Nat) : LayoutNode := Id.run do
   let mut children : Array LayoutNode := #[]
@@ -328,6 +344,14 @@ test "perf: row-dense grid with periodic spans (20000 items)" := do
   let elapsed ← start.elapsed
   shouldBe result.layouts.size 20001
   IO.println s!"  [row-dense periodic spans (20K items): {elapsed}]"
+
+test "perf: row-dense grid with multi-row spans (20000 items)" := do
+  let node := buildDenseMultiRowSpanningGrid 300 20000
+  let start ← Chronos.MonotonicTime.now
+  let result ← strictEval (layout node 15000 300000)
+  let elapsed ← start.elapsed
+  shouldBe result.layouts.size 20001
+  IO.println s!"  [row-dense multi-row spans (20K items): {elapsed}]"
 
 test "perf: column-flow grid (20000 items, 128x200)" := do
   let node := buildColumnFlowGrid 128 200 20000
