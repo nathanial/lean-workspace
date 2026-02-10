@@ -79,7 +79,13 @@ private def issueRowVisual (theme : Theme) (text : String) (selected : Bool)
 
 private structure ListPaneModel where
   loading : Bool
-  statusFilter : StatusFilter
+  showActive : Bool
+  showOpen : Bool
+  showInProgress : Bool
+  showClosed : Bool
+  excludedProjects : Array String
+  includeNoProject : Bool
+  availableProjects : Array String
   blockedOnly : Bool
   filteredCount : Nat
   totalCount : Nat
@@ -90,7 +96,13 @@ private structure ListPaneModel where
 private def toListPaneModel (model : Tracker.GUI.Model) : ListPaneModel :=
   {
     loading := model.loading
-    statusFilter := model.statusFilter
+    showActive := model.showActive
+    showOpen := model.showOpen
+    showInProgress := model.showInProgress
+    showClosed := model.showClosed
+    excludedProjects := model.excludedProjects
+    includeNoProject := model.includeNoProject
+    availableProjects := model.availableProjects
     blockedOnly := model.blockedOnly
     filteredCount := model.filteredCount
     totalCount := model.totalCount
@@ -98,31 +110,64 @@ private def toListPaneModel (model : Tracker.GUI.Model) : ListPaneModel :=
     selectedIssueId := model.selectedIssueId
   }
 
+private def projectIncluded (model : ListPaneModel) (project : String) : Bool :=
+  !model.excludedProjects.contains project
+
+private def renderToggleCheckbox (loading : Bool) (namePrefix : String) (label : String)
+    (checked : Bool) (fireAction : FireAction) (action : Tracker.GUI.Action) : WidgetM Unit := do
+  if loading then
+    let theme ← getThemeW
+    let checkboxName ← registerComponentW namePrefix (isInteractive := false)
+    emit (pure (checkboxVisual checkboxName label theme checked {}))
+  else
+    let checkboxResult ← checkbox label checked
+    let toggleAction ← Event.mapM (fun _ => fireAction action) checkboxResult.onToggle
+    performEvent_ toggleAction
+
 private def renderControls (model : ListPaneModel) (fireAction : FireAction) : WidgetM Unit := do
-  row' (gap := 8) (style := { width := .percent 1.0 }) do
-    let statusFilterBtn ← button s!"Status: {model.statusFilter.label}" .secondary
-    wireClickIf (!model.loading) statusFilterBtn fireAction .statusFilterNext
+  column' (gap := 8) (style := { width := .percent 1.0 }) do
+    row' (gap := 8) (style := { width := .percent 1.0 }) do
+      let refreshBtn ← button "Refresh" .ghost
+      wireClickIf (!model.loading) refreshBtn fireAction .refresh
 
-    if model.loading then
-      let theme ← getThemeW
-      let blockedSwitchName ←
-        registerComponentW "tracker-blocked-switch" (isInteractive := false)
-      emit (pure (switchVisual blockedSwitchName (some "Blocked only") theme model.blockedOnly))
-    else
-      let blockedSwitch ← switch (some "Blocked only") model.blockedOnly
-      let blockedSwitchAction ←
-        Event.mapM (fun _ => fireAction .toggleBlockedOnly) blockedSwitch.onToggle
-      performEvent_ blockedSwitchAction
+      if model.loading then
+        let theme ← getThemeW
+        let blockedSwitchName ←
+          registerComponentW "tracker-blocked-switch" (isInteractive := false)
+        emit (pure (switchVisual blockedSwitchName (some "Blocked only") theme model.blockedOnly))
+      else
+        let blockedSwitch ← switch (some "Blocked only") model.blockedOnly
+        let blockedSwitchAction ←
+          Event.mapM (fun _ => fireAction .toggleBlockedOnly) blockedSwitch.onToggle
+        performEvent_ blockedSwitchAction
 
-    let refreshBtn ← button "Refresh" .ghost
-    wireClickIf (!model.loading) refreshBtn fireAction .refresh
+      spacer' 16 0
+      caption' s!"Visible: {model.filteredCount} / Total: {model.totalCount}"
+      if model.loading then
+        caption' "Working..."
+      else
+        spacer' 0 0
 
-    spacer' 16 0
-    caption' s!"Visible: {model.filteredCount} / Total: {model.totalCount}"
-    if model.loading then
-      caption' "Working..."
-    else
-      spacer' 0 0
+    row' (gap := 8) (style := { width := .percent 1.0 }) do
+      renderToggleCheckbox model.loading "tracker-show-active" "Show Active"
+        model.showActive fireAction .toggleShowActive
+      renderToggleCheckbox model.loading "tracker-show-open" "Show Open"
+        model.showOpen fireAction .toggleShowOpen
+      renderToggleCheckbox model.loading "tracker-show-in-progress" "Show In Progress"
+        model.showInProgress fireAction .toggleShowInProgress
+      renderToggleCheckbox model.loading "tracker-show-closed" "Show Closed"
+        model.showClosed fireAction .toggleShowClosed
+
+    column' (gap := 4) (style := { width := .percent 1.0 }) do
+      caption' "Projects"
+      renderToggleCheckbox model.loading "tracker-show-no-project" "Show No Project"
+        model.includeNoProject fireAction .toggleNoProjectIncluded
+      if model.availableProjects.isEmpty then
+        caption' "No project tags found."
+      else
+        for project in model.availableProjects do
+          renderToggleCheckbox model.loading s!"tracker-show-project-{project}" s!"Show {project}"
+            (projectIncluded model project) fireAction (.toggleProjectIncluded project)
 
 private def renderIssueListPane (model : ListPaneModel) (fireAction : FireAction) : WidgetM Unit := do
   let listStyle : Afferent.Arbor.BoxStyle := {

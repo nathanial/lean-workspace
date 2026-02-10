@@ -15,32 +15,6 @@ def FocusPane.label : FocusPane → String
   | .detail => "Detail"
   | .actions => "Actions"
 
-inductive StatusFilter where
-  | active
-  | open_
-  | inProgress
-  | closed
-  | all
-  deriving Repr, BEq, Inhabited
-
-namespace StatusFilter
-
-def label : StatusFilter → String
-  | .active => "active"
-  | .open_ => "open"
-  | .inProgress => "in-progress"
-  | .closed => "closed"
-  | .all => "all"
-
-def next : StatusFilter → StatusFilter
-  | .active => .open_
-  | .open_ => .inProgress
-  | .inProgress => .closed
-  | .closed => .all
-  | .all => .active
-
-end StatusFilter
-
 def nextPriority : Priority → Priority
   | .low => .medium
   | .medium => .high
@@ -77,7 +51,12 @@ structure Model where
   root : Option System.FilePath := none
   issues : Array Issue := #[]
   selectedIssueId : Option Nat := none
-  statusFilter : StatusFilter := .active
+  showActive : Bool := true
+  showOpen : Bool := false
+  showInProgress : Bool := false
+  showClosed : Bool := false
+  excludedProjects : Array String := #[]
+  includeNoProject : Bool := true
   blockedOnly : Bool := false
   query : String := ""
   loading : Bool := false
@@ -103,13 +82,28 @@ structure Model where
 
 def Model.initial : Model := { status := "Starting GUI..." }
 
-private def matchesStatus (filter : StatusFilter) (issue : Issue) : Bool :=
-  match filter with
-  | .active => issue.status.isOpen
-  | .open_ => issue.status == .open_
-  | .inProgress => issue.status == .inProgress
-  | .closed => issue.status == .closed
-  | .all => true
+def Model.availableProjects (model : Model) : Array String :=
+  let raw := model.issues.filterMap (·.project)
+  dedupStrings (raw.qsort (· < ·))
+
+def Model.projectIncluded (model : Model) (project : String) : Bool :=
+  !model.excludedProjects.contains project
+
+def Model.normalizeProjectFilters (model : Model) : Model :=
+  let available := model.availableProjects
+  let normalizedExcluded := model.excludedProjects.filter (fun p => available.contains p)
+  { model with excludedProjects := normalizedExcluded }
+
+private def matchesStatus (model : Model) (issue : Issue) : Bool :=
+  match issue.status with
+  | .open_ => model.showActive || model.showOpen
+  | .inProgress => model.showActive || model.showInProgress
+  | .closed => model.showClosed
+
+private def matchesProject (model : Model) (issue : Issue) : Bool :=
+  match issue.project with
+  | some project => model.projectIncluded project
+  | none => model.includeNoProject
 
 private def applyQuery (issues : Array Issue) (query : String) : Array Issue :=
   if Util.trim query |>.isEmpty then issues
@@ -118,9 +112,10 @@ private def applyQuery (issues : Array Issue) (query : String) : Array Issue :=
 /-- In-memory filtered issue set used by list/detail views. -/
 def Model.filteredIssues (model : Model) : Array Issue :=
   let base := model.issues.filter fun issue =>
-    let statusOk := matchesStatus model.statusFilter issue
+    let statusOk := matchesStatus model issue
+    let projectOk := matchesProject model issue
     let blockedOk := !model.blockedOnly || Storage.isEffectivelyBlocked issue model.issues
-    statusOk && blockedOk
+    statusOk && projectOk && blockedOk
   applyQuery base model.query
 
 /-- Ensure selection points at a currently-visible issue, if any. -/

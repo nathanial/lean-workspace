@@ -19,7 +19,12 @@ inductive Action where
   | selectNext
   | selectIssue (id : Nat)
   | queryChanged (query : String)
-  | statusFilterNext
+  | toggleShowActive
+  | toggleShowOpen
+  | toggleShowInProgress
+  | toggleShowClosed
+  | toggleProjectIncluded (project : String)
+  | toggleNoProjectIncluded
   | toggleBlockedOnly
   | createTitleChanged (title : String)
   | createDescriptionChanged (description : String)

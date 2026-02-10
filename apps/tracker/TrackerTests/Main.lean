@@ -366,4 +366,62 @@ test "GUI reducer selectIssue updates selection and syncs editor drafts" := do
   keyboardModel.selectedIssueId ≡ some issue1.id
   keyboardModel.editTitle ≡ issue1.title
 
+test "GUI reducer status checkboxes control filtered issue statuses" := do
+  let issueOpen := { (mkIssue 1 "Open issue") with
+    status := .open_
+    project := some "tracker"
+  }
+  let issueInProgress := { (mkIssue 2 "In-progress issue") with
+    status := .inProgress
+    project := some "network"
+  }
+  let issueClosed := { (mkIssue 3 "Closed issue") with
+    status := .closed
+    project := some "tracker"
+  }
+  let root : System.FilePath := "/tmp/tracker_gui_status_checkbox_test"
+  let (loadedModel, _) :=
+    Tracker.GUI.update Tracker.GUI.Model.initial (.loadSucceeded root #[issueOpen, issueInProgress, issueClosed])
+
+  loadedModel.filteredIssues.map (·.id) ≡ #[1, 2]
+
+  let (withClosed, _) := Tracker.GUI.update loadedModel .toggleShowClosed
+  withClosed.filteredIssues.map (·.id) ≡ #[1, 2, 3]
+
+  let (activeOff, _) := Tracker.GUI.update withClosed .toggleShowActive
+  activeOff.filteredIssues.map (·.id) ≡ #[3]
+
+  let (openOn, _) := Tracker.GUI.update activeOff .toggleShowOpen
+  openOn.filteredIssues.map (·.id) ≡ #[1, 3]
+
+  let (inProgressOn, _) := Tracker.GUI.update openOn .toggleShowInProgress
+  inProgressOn.filteredIssues.map (·.id) ≡ #[1, 2, 3]
+
+test "GUI reducer project checkboxes include and exclude per-project issues" := do
+  let issueTracker := { (mkIssue 11 "Tracker issue") with
+    project := some "tracker"
+  }
+  let issueNetwork := { (mkIssue 12 "Network issue") with
+    project := some "network"
+  }
+  let issueNoProject := mkIssue 13 "General issue"
+  let root : System.FilePath := "/tmp/tracker_gui_project_checkbox_test"
+  let (loadedModel, _) :=
+    Tracker.GUI.update Tracker.GUI.Model.initial
+      (.loadSucceeded root #[issueTracker, issueNetwork, issueNoProject])
+
+  loadedModel.filteredIssues.map (·.id) ≡ #[11, 12, 13]
+
+  let (trackerHidden, _) := Tracker.GUI.update loadedModel (.toggleProjectIncluded "tracker")
+  trackerHidden.filteredIssues.map (·.id) ≡ #[12, 13]
+
+  let (noProjectHidden, _) := Tracker.GUI.update trackerHidden .toggleNoProjectIncluded
+  noProjectHidden.filteredIssues.map (·.id) ≡ #[12]
+
+  let (trackerShown, _) := Tracker.GUI.update noProjectHidden (.toggleProjectIncluded "tracker")
+  trackerShown.filteredIssues.map (·.id) ≡ #[11, 12]
+
+  let (networkHidden, _) := Tracker.GUI.update trackerShown (.toggleProjectIncluded "network")
+  networkHidden.filteredIssues.map (·.id) ≡ #[11]
+
 def main : IO UInt32 := runAllSuites

@@ -28,7 +28,7 @@ def actionFromKey (key : Afferent.Arbor.Key) : Option Action :=
   | .char 'l' => some .focusNext
   | .char 'k' => some .selectPrev
   | .char 'j' => some .selectNext
-  | .char 'f' => some .statusFilterNext
+  | .char 'f' => some .toggleShowActive
   | .char 'b' => some .toggleBlockedOnly
   | .char 'r' => some .refresh
   | .char 'u' => some .saveEdits
@@ -40,6 +40,9 @@ private def setStatus (model : Model) (message : String) : Model :=
 
 private def withNormalizedSelection (model : Model) : Model :=
   model.normalizeSelection
+
+private def withNormalizedFiltersAndSelection (model : Model) : Model :=
+  (model.normalizeProjectFilters).normalizeSelection
 
 private def withSyncedEditor (model : Model) : Model :=
   model.syncEditorFromSelection
@@ -123,7 +126,7 @@ private def applyNonKeyAction (model : Model) (action : Action) : Model × Array
       error := none
       status := s!"Loaded {issues.size} issues"
     }
-    let synced := withSyncedEditor <| withNormalizedSelection next
+    let synced := withSyncedEditor <| withNormalizedFiltersAndSelection next
     (synced, #[.toast .info s!"Loaded {issues.size} issues"])
 
   | .loadFailed message =>
@@ -144,7 +147,7 @@ private def applyNonKeyAction (model : Model) (action : Action) : Model × Array
       error := none
       status := message
     }
-    let normalized := withSyncedEditor <| withNormalizedSelection next
+    let normalized := withSyncedEditor <| withNormalizedFiltersAndSelection next
     (clearPostMutationDrafts normalized, #[.toast .success message])
 
   | .mutationFailed message =>
@@ -173,10 +176,55 @@ private def applyNonKeyAction (model : Model) (action : Action) : Model × Array
     let next := withSyncedEditor <| withNormalizedSelection { model with query := query }
     (setStatus next s!"Search: {query}", #[])
 
-  | .statusFilterNext =>
+  | .toggleShowActive =>
     let next := withSyncedEditor <| withNormalizedSelection
-      { model with statusFilter := model.statusFilter.next }
-    (setStatus next s!"Status filter: {next.statusFilter.label}", #[])
+      { model with showActive := !model.showActive }
+    let message := if next.showActive then "Show Active on" else "Show Active off"
+    (setStatus next message, #[])
+
+  | .toggleShowOpen =>
+    let next := withSyncedEditor <| withNormalizedSelection
+      { model with showOpen := !model.showOpen }
+    let message := if next.showOpen then "Show Open on" else "Show Open off"
+    (setStatus next message, #[])
+
+  | .toggleShowInProgress =>
+    let next := withSyncedEditor <| withNormalizedSelection
+      { model with showInProgress := !model.showInProgress }
+    let message := if next.showInProgress then "Show In-Progress on" else "Show In-Progress off"
+    (setStatus next message, #[])
+
+  | .toggleShowClosed =>
+    let next := withSyncedEditor <| withNormalizedSelection
+      { model with showClosed := !model.showClosed }
+    let message := if next.showClosed then "Show Closed on" else "Show Closed off"
+    (setStatus next message, #[])
+
+  | .toggleProjectIncluded project =>
+    let excluded :=
+      if model.excludedProjects.contains project then
+        model.excludedProjects.filter (· != project)
+      else
+        model.excludedProjects.push project
+    let next := withSyncedEditor <| withNormalizedFiltersAndSelection
+      { model with excludedProjects := excluded }
+    let includedNow := next.projectIncluded project
+    let message :=
+      if includedNow then
+        s!"Project included: {project}"
+      else
+        s!"Project hidden: {project}"
+    (setStatus next message, #[])
+
+  | .toggleNoProjectIncluded =>
+    let next := withSyncedEditor <| withNormalizedSelection
+      { model with includeNoProject := !model.includeNoProject }
+    let message :=
+      if next.includeNoProject then
+        "No-project issues included"
+      else
+        "No-project issues hidden"
+    (setStatus next message, #[])
 
   | .toggleBlockedOnly =>
     let next := withSyncedEditor <| withNormalizedSelection
