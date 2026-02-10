@@ -103,10 +103,16 @@ private def renderControls (model : ListPaneModel) (fireAction : FireAction) : W
     let statusFilterBtn ← button s!"Status: {model.statusFilter.label}" .secondary
     wireClickIf (!model.loading) statusFilterBtn fireAction .statusFilterNext
 
-    let blockedBtn ←
-      button (if model.blockedOnly then "Blocked: on" else "Blocked: off")
-        (if model.blockedOnly then .primary else .ghost)
-    wireClickIf (!model.loading) blockedBtn fireAction .toggleBlockedOnly
+    if model.loading then
+      let theme ← getThemeW
+      let blockedSwitchName ←
+        registerComponentW "tracker-blocked-switch" (isInteractive := false)
+      emit (pure (switchVisual blockedSwitchName (some "Blocked only") theme model.blockedOnly))
+    else
+      let blockedSwitch ← switch (some "Blocked only") model.blockedOnly
+      let blockedSwitchAction ←
+        Event.mapM (fun _ => fireAction .toggleBlockedOnly) blockedSwitch.onToggle
+      performEvent_ blockedSwitchAction
 
     let refreshBtn ← button "Refresh" .ghost
     wireClickIf (!model.loading) refreshBtn fireAction .refresh
