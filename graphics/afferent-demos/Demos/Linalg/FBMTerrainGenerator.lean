@@ -1,6 +1,6 @@
 /-
   FBM Terrain Generator - 3D heightfield from FBM noise.
-  Includes redistribution curve, terracing, and rendering toggles.
+  Side-panel controls are provided by Canopy widgets in the tab module.
 -/
 import Afferent
 import Afferent.UI.Widget
@@ -31,12 +31,6 @@ inductive TerrainSlider where
   | terrace
   deriving BEq, Inhabited
 
-inductive TerrainDrag where
-  | none
-  | camera
-  | slider (which : TerrainSlider)
-  deriving BEq, Inhabited
-
 structure FBMTerrainState where
   config : Noise.FractalConfig := {}
   scale : Float := 1.6
@@ -48,7 +42,7 @@ structure FBMTerrainState where
   showTexture : Bool := true
   cameraYaw : Float := 0.6
   cameraPitch : Float := 0.55
-  dragging : TerrainDrag := .none
+  cameraDragging : Bool := false
   lastMouseX : Float := 0.0
   lastMouseY : Float := 0.0
   deriving Inhabited
@@ -64,36 +58,9 @@ def fbmTerrainMathViewConfig (state : FBMTerrainState) (screenScale : Float) : M
   axisLineWidth := 2.0 * screenScale
 }
 
-structure FBMTerrainSliderLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
-structure FBMTerrainToggleLayout where
-  x : Float
-  y : Float
-  size : Float
-
-private def panelWidth (screenScale : Float) : Float :=
-  270.0 * screenScale
-
-private def panelX (w screenScale : Float) : Float :=
-  w - panelWidth screenScale
-
-def fbmTerrainSliderLayout (w _h screenScale : Float) (idx : Nat) : FBMTerrainSliderLayout :=
-  let startX := panelX w screenScale + 20.0 * screenScale
-  let startY := 140.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 8.0 * screenScale
-  let spacing := 34.0 * screenScale
-  { x := startX, y := startY + idx.toFloat * spacing, width := width, height := height }
-
-def fbmTerrainToggleLayout (w _h screenScale : Float) (idx : Nat) : FBMTerrainToggleLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 88.0 * screenScale + idx.toFloat * 26.0 * screenScale
-  let size := 16.0 * screenScale
-  { x := x, y := y, size := size }
+def terrainSliderOrder : Array TerrainSlider := #[
+  .scale, .height, .octaves, .lacunarity, .persistence, .power, .terrace
+]
 
 private def clamp01 (t : Float) : Float :=
   Float.clamp t 0.0 1.0
@@ -144,7 +111,7 @@ private def octavesFromSlider (t : Float) : Nat :=
 private def octavesToSlider (n : Nat) : Float :=
   clamp01 ((n.toFloat - 1.0) / 7.0)
 
-private def sliderLabel (which : TerrainSlider) : String :=
+def fbmTerrainSliderLabel (which : TerrainSlider) : String :=
   match which with
   | .scale => "Noise Scale"
   | .height => "Height"
@@ -154,7 +121,7 @@ private def sliderLabel (which : TerrainSlider) : String :=
   | .power => "Redistribute"
   | .terrace => "Terrace"
 
-private def sliderValueLabel (state : FBMTerrainState) (which : TerrainSlider) : String :=
+def fbmTerrainSliderValueLabel (state : FBMTerrainState) (which : TerrainSlider) : String :=
   match which with
   | .scale => formatFloat state.scale
   | .height => formatFloat state.heightScale
@@ -176,7 +143,7 @@ def fbmTerrainApplySlider (state : FBMTerrainState) (which : TerrainSlider) (t :
   | .power => { state with power := powerFromSlider t }
   | .terrace => { state with terraceLevels := terraceFromSlider t }
 
-private def fbmTerrainSliderT (state : FBMTerrainState) (which : TerrainSlider) : Float :=
+def fbmTerrainSliderT (state : FBMTerrainState) (which : TerrainSlider) : Float :=
   match which with
   | .scale => scaleToSlider state.scale
   | .height => heightToSlider state.heightScale
@@ -185,38 +152,6 @@ private def fbmTerrainSliderT (state : FBMTerrainState) (which : TerrainSlider) 
   | .persistence => persistenceToSlider state.config.persistence
   | .power => powerToSlider state.power
   | .terrace => terraceToSlider state.terraceLevels
-
-private def renderSlider (label value : String) (t : Float) (layout : FBMTerrainSliderLayout)
-    (fontSmall : Font) (active : Bool := false) : CanvasM Unit := do
-  let t := clamp01 t
-  let knobX := layout.x + t * layout.width
-  let knobY := layout.y + layout.height / 2.0
-  let knobRadius := layout.height * 0.75
-  let trackHeight := layout.height * 0.5
-
-  setFillColor (if active then Color.gray 0.7 else Color.gray 0.5)
-  fillPath (Afferent.Path.rectangleXYWH layout.x
-    (layout.y + layout.height / 2.0 - trackHeight / 2.0)
-    layout.width trackHeight)
-
-  setFillColor (if active then Color.yellow else Color.gray 0.85)
-  fillPath (Afferent.Path.circle (Point.mk knobX knobY) knobRadius)
-
-  setFillColor (Color.gray 0.75)
-  fillTextXY s!"{label}: {value}" layout.x (layout.y - 6.0) fontSmall
-
-private def renderToggle (label : String) (value : Bool) (layout : FBMTerrainToggleLayout)
-    (fontSmall : Font) : CanvasM Unit := do
-  let box := Afferent.Path.rectangleXYWH layout.x layout.y layout.size layout.size
-  setStrokeColor (Color.gray 0.6)
-  setLineWidth 1.5
-  strokePath box
-  if value then
-    setFillColor (Color.rgba 0.3 0.9 0.6 1.0)
-    fillPath (Afferent.Path.rectangleXYWH (layout.x + 3) (layout.y + 3)
-      (layout.size - 6) (layout.size - 6))
-  setFillColor (Color.gray 0.8)
-  fillTextXY label (layout.x + layout.size + 8.0) (layout.y + layout.size - 3.0) fontSmall
 
 private def terrainColor (n01 : Float) : Color :=
   let t := Float.clamp n01 0.0 1.0
@@ -244,14 +179,11 @@ private def fillTriangle (p1 p2 p3 : Float × Float) (color : Color) : CanvasM U
     |>.closePath
   fillPath path
 
-/-- Render FBM terrain. -/
+/-- Render only the FBM terrain visualization area (no side-panel controls). -/
 def renderFBMTerrain (state : FBMTerrainState)
-    (view : MathView3D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
-  let h := view.height
-  let panelW := panelWidth screenScale
-  let plotW := w - panelW
-  let plotH := h
+    (view : MathView3D.View) (screenScale : Float) : CanvasM Unit := do
+  let plotW := view.width
+  let plotH := view.height
   let plotConfig := fbmTerrainMathViewConfig state screenScale
   let plotView := MathView3D.viewForSize plotConfig plotW plotH
   let worldSize := 6.0
@@ -342,45 +274,12 @@ def renderFBMTerrain (state : FBMTerrainState)
   setLineWidth 1.0
   strokePath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
 
-  let pX := panelX w screenScale
-  setFillColor (Color.rgba 0.08 0.08 0.1 0.95)
-  fillPath (Afferent.Path.rectangleXYWH pX 0 panelW h)
-
-  setFillColor VecColor.label
-  fillTextXY "FBM TERRAIN" (pX + 20 * screenScale) (36 * screenScale) fontMedium
-  setFillColor (Color.gray 0.6)
-  fillTextXY "fbm3D + redistribute + terrace" (pX + 20 * screenScale) (58 * screenScale) fontSmall
-
-  let toggleA := fbmTerrainToggleLayout w h screenScale 0
-  let toggleB := fbmTerrainToggleLayout w h screenScale 1
-  let toggleC := fbmTerrainToggleLayout w h screenScale 2
-  renderToggle "Wireframe" state.showWireframe toggleA fontSmall
-  renderToggle "Texture" state.showTexture toggleB fontSmall
-  renderToggle "Normals" state.showNormals toggleC fontSmall
-
-  let sliders : Array TerrainSlider := #[
-    .scale, .height, .octaves, .lacunarity, .persistence, .power, .terrace
-  ]
-  for i in [:sliders.size] do
-    let which := sliders.getD i .scale
-    let layout := fbmTerrainSliderLayout w h screenScale i
-    let active := match state.dragging with
-      | .slider s => s == which
-      | _ => false
-    let t := fbmTerrainSliderT state which
-    renderSlider (sliderLabel which) (sliderValueLabel state which) t layout fontSmall active
-
-  setFillColor (Color.gray 0.6)
-  fillTextXY "Right-drag: rotate" (pX + 20 * screenScale)
-    (h - 50 * screenScale) fontSmall
-  fillTextXY "R: reset" (pX + 20 * screenScale) (h - 30 * screenScale) fontSmall
-
-/-- Create the FBM terrain widget. -/
+/-- Create the FBM terrain visualization widget. -/
 def fbmTerrainWidget (env : DemoEnv) (state : FBMTerrainState)
     : Afferent.Arbor.WidgetBuilder := do
   let config := fbmTerrainMathViewConfig state env.screenScale
   MathView3D.mathView3D config env.fontSmall (fun view => do
-    renderFBMTerrain state view env.screenScale env.fontMedium env.fontSmall
+    renderFBMTerrain state view env.screenScale
   )
 
 end Demos.Linalg
