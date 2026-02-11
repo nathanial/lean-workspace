@@ -115,6 +115,12 @@ structure NodeEditorConfig where
   connectionWidth : Float := 2.2
   invalidConnectionColor : Color := (Color.fromRgb8 246 113 113).withAlpha 0.95
   invalidConnectionWidth : Float := 2.8
+  wirePreviewColor : Color := (Color.fromRgb8 199 233 212).withAlpha 0.92
+  wirePreviewWidth : Float := 2.4
+  hoverConnectionWidthBoost : Float := 0.8
+  selectedConnectionWidthBoost : Float := 1.6
+  portHitRadius : Float := 12
+  edgeHitRadius : Float := 10
   socketRadius : Float := 3
 
 deriving Repr, Inhabited
@@ -178,6 +184,17 @@ structure NodeEditorResult where
 
 namespace NodeEditor
 
+inductive PortSide where
+  | input
+  | output
+deriving Repr, BEq, Inhabited
+
+structure PortRef where
+  nodeIdx : Nat
+  portIdx : Nat
+  side : PortSide
+deriving Repr, BEq, Inhabited
+
 structure NodeDrag where
   nodeIdx : Nat
   pointerStart : Point
@@ -189,16 +206,27 @@ structure PanDrag where
   cameraStart : Point
 deriving Repr, BEq, Inhabited
 
+structure WireDrag where
+  fromNode : Nat
+  fromOutput : Nat
+  pointer : Point
+  removedConnection : Option NodeConnection := none
+deriving Repr, BEq, Inhabited
+
 inductive DragMode where
   | none
   | node (drag : NodeDrag)
   | pan (drag : PanDrag)
+  | wire (drag : WireDrag)
 deriving Repr, BEq, Inhabited
 
 structure State where
   model : NodeEditorModel
   selectedNode : Option Nat := none
+  selectedConnection : Option Nat := none
   hoveredNode : Option Nat := none
+  hoveredConnection : Option Nat := none
+  hoveredPort : Option PortRef := none
   camera : Point := Point.zero
   dragMode : DragMode := .none
 deriving Repr, BEq, Inhabited
@@ -207,7 +235,15 @@ inductive InputEvent where
   | click (data : ClickData)
   | hover (data : HoverData)
   | hoverNode (node : Option Nat)
-  | mouseUp
+  | key (data : KeyData)
+  | mouseUp (data : MouseButtonData)
+
+structure PortRenderFlags where
+  isHovered : Bool := false
+  isWireSource : Bool := false
+  isWireCompatibleTarget : Bool := false
+  isWireIncompatibleHover : Bool := false
+deriving Repr, BEq, Inhabited
 
 private def floatMod (x m : Float) : Float :=
   if m <= 0 then 0
@@ -234,14 +270,6 @@ private def outputPortPos (node : NodeEditorNode) (portIdx : Nat)
   let y := origin.y + node.position.y + camera.y + config.headerHeight + config.bodyPaddingY +
     (portIdx.toFloat + 0.5) * config.rowHeight
   Point.mk' x y
-
-private def connectionPath (p0 p3 : Point) : Afferent.Path :=
-  let dx := max 44.0 (Float.abs (p3.x - p0.x) * 0.5)
-  let cp1 := Point.mk' (p0.x + dx) p0.y
-  let cp2 := Point.mk' (p3.x - dx) p3.y
-  Afferent.Path.empty
-    |>.moveTo p0
-    |>.bezierCurveTo cp1 cp2 p3
 
 private def updateNodePosition (model : NodeEditorModel) (idx : Nat) (newPos : Point) : NodeEditorModel :=
   if idx < model.nodes.size then
@@ -275,9 +303,237 @@ private def connectionDefaultColor (config : NodeEditorConfig) (src : NodeEditor
   | some output => portColor output
   | none => config.connectionColor
 
+private def sqr (x : Float) : Float := x * x
+
+private def distanceSq (a b : Point) : Float :=
+  sqr (a.x - b.x) + sqr (a.y - b.y)
+
+private def componentContentOrigin? (componentId : ComponentId)
+    (componentMap : Std.HashMap ComponentId WidgetId)
+    (layouts : Trellis.LayoutResult) : Option Point := do
+  let wid ← componentMap.get? componentId
+  let layout ← layouts.get wid
+  let rect := layout.contentRect
+  some (Point.mk' rect.x rect.y)
+
+private def canvasOriginFromClick? (canvasName : ComponentId) (data : ClickData) : Option Point :=
+  componentContentOrigin? canvasName data.componentMap data.layouts
+
+private def canvasOriginFromHover? (canvasName : ComponentId) (data : HoverData) : Option Point :=
+  componentContentOrigin? canvasName data.componentMap data.layouts
+
+private def canvasOriginFromMouseUp? (canvasName : ComponentId) (data : MouseButtonData) : Option Point :=
+  componentContentOrigin? canvasName data.componentMap data.layouts
+
+private def portRefPos? (model : NodeEditorModel) (camera origin : Point) (config : NodeEditorConfig)
+    (portRef : PortRef) : Option Point :=
+  match model.nodes[portRef.nodeIdx]? with
+  | none => none
+  | some node =>
+    match portRef.side with
+    | .input =>
+      let row := clampPortRowIdx node portRef.portIdx
+      some (inputPortPos node row origin camera config)
+    | .output =>
+      let row := clampPortRowIdx node portRef.portIdx
+      some (outputPortPos node row origin camera config)
+
+private def findNearestPort (model : NodeEditorModel) (camera origin pointer : Point)
+    (config : NodeEditorConfig) (maxDistance : Float) (accept : PortRef → Bool) : Option PortRef :=
+  Id.run do
+    let mut best : Option (PortRef × Float) := none
+    for nodeIdx in [:model.nodes.size] do
+      let node := model.nodes[nodeIdx]!
+      for portIdx in [:node.inputs.size] do
+        let portRef : PortRef := { nodeIdx, portIdx, side := .input }
+        if accept portRef then
+          let pos := inputPortPos node portIdx origin camera config
+          let d2 := distanceSq pos pointer
+          match best with
+          | some (_, bestD2) =>
+            if d2 < bestD2 then
+              best := some (portRef, d2)
+          | none =>
+            best := some (portRef, d2)
+      for portIdx in [:node.outputs.size] do
+        let portRef : PortRef := { nodeIdx, portIdx, side := .output }
+        if accept portRef then
+          let pos := outputPortPos node portIdx origin camera config
+          let d2 := distanceSq pos pointer
+          match best with
+          | some (_, bestD2) =>
+            if d2 < bestD2 then
+              best := some (portRef, d2)
+          | none =>
+            best := some (portRef, d2)
+    match best with
+    | some (portRef, d2) =>
+      if d2 <= sqr maxDistance then some portRef else none
+    | none => none
+
+private def bezierControls (p0 p3 : Point) : Point × Point :=
+  let dx := max 44.0 (Float.abs (p3.x - p0.x) * 0.5)
+  let cp1 := Point.mk' (p0.x + dx) p0.y
+  let cp2 := Point.mk' (p3.x - dx) p3.y
+  (cp1, cp2)
+
+private def bezierPoint (p0 cp1 cp2 p3 : Point) (t : Float) : Point :=
+  let u := 1.0 - t
+  let tt := t * t
+  let uu := u * u
+  let uuu := uu * u
+  let ttt := tt * t
+  let x := uuu * p0.x + 3.0 * uu * t * cp1.x + 3.0 * u * tt * cp2.x + ttt * p3.x
+  let y := uuu * p0.y + 3.0 * uu * t * cp1.y + 3.0 * u * tt * cp2.y + ttt * p3.y
+  Point.mk' x y
+
+private def pointToSegmentDistanceSq (p a b : Point) : Float :=
+  let abx := b.x - a.x
+  let aby := b.y - a.y
+  let apx := p.x - a.x
+  let apy := p.y - a.y
+  let denom := abx * abx + aby * aby
+  if denom <= 1e-6 then
+    distanceSq p a
+  else
+    let t := max 0.0 (min 1.0 ((apx * abx + apy * aby) / denom))
+    let proj := Point.mk' (a.x + t * abx) (a.y + t * aby)
+    distanceSq p proj
+
+private def bezierDistanceSq (pointer p0 p3 : Point) : Float :=
+  Id.run do
+    let (cp1, cp2) := bezierControls p0 p3
+    let samples := 18
+    let mut minD2 := 1e30
+    let mut prev := p0
+    for i in [1:samples+1] do
+      let t := i.toFloat / samples.toFloat
+      let cur := bezierPoint p0 cp1 cp2 p3 t
+      let d2 := pointToSegmentDistanceSq pointer prev cur
+      if d2 < minD2 then
+        minD2 := d2
+      prev := cur
+    minD2
+
+private def connectionEndpoints? (model : NodeEditorModel) (camera origin : Point)
+    (config : NodeEditorConfig) (conn : NodeConnection) : Option (Point × Point) := do
+  let src ← model.nodes[conn.fromNode]?
+  let dst ← model.nodes[conn.toNode]?
+  let fromPos := outputPortPos src (clampPortRowIdx src conn.fromOutput) origin camera config
+  let toPos := inputPortPos dst (clampPortRowIdx dst conn.toInput) origin camera config
+  some (fromPos, toPos)
+
+private def findNearestConnectionIdx (model : NodeEditorModel) (camera origin pointer : Point)
+    (config : NodeEditorConfig) (maxDistance : Float) : Option Nat :=
+  Id.run do
+    let mut best : Option (Nat × Float) := none
+    for connIdx in [:model.connections.size] do
+      let conn := model.connections[connIdx]!
+      match connectionEndpoints? model camera origin config conn with
+      | none => ()
+      | some (p0, p3) =>
+        let d2 := bezierDistanceSq pointer p0 p3
+        match best with
+        | some (_, bestD2) =>
+          if d2 < bestD2 then
+            best := some (connIdx, d2)
+        | none =>
+          best := some (connIdx, d2)
+    match best with
+    | some (connIdx, d2) =>
+      if d2 <= sqr maxDistance then some connIdx else none
+    | none => none
+
+private def removeConnectionAt (model : NodeEditorModel) (idx : Nat) : NodeEditorModel × Option NodeConnection :=
+  if idx < model.connections.size then
+    let removed := model.connections[idx]!
+    let updated := { model with connections := model.connections.eraseIdxIfInBounds idx }
+    (updated, some removed)
+  else
+    (model, none)
+
+private def restoreRemovedConnection (model : NodeEditorModel) (removed : Option NodeConnection) : NodeEditorModel :=
+  match removed with
+  | none => model
+  | some conn => { model with connections := model.connections.push conn }
+
+private def sameConnectionEndpoints (a b : NodeConnection) : Bool :=
+  a.fromNode == b.fromNode &&
+    a.fromOutput == b.fromOutput &&
+    a.toNode == b.toNode &&
+    a.toInput == b.toInput
+
+private def modelHasEquivalentConnection (model : NodeEditorModel) (conn : NodeConnection) : Bool :=
+  model.connections.any (fun existing => sameConnectionEndpoints existing conn)
+
+private def findIncomingConnectionIdx (model : NodeEditorModel) (target : PortRef) : Option Nat :=
+  model.connections.findIdx? fun conn =>
+    conn.toNode == target.nodeIdx && conn.toInput == target.portIdx
+
+private def findOutgoingConnectionIdx (model : NodeEditorModel) (source : PortRef) : Option Nat :=
+  model.connections.findIdx? fun conn =>
+    conn.fromNode == source.nodeIdx && conn.fromOutput == source.portIdx
+
+private def validInputPortForWire? (model : NodeEditorModel) (drag : WireDrag)
+    (candidate : PortRef) : Option PortRef := do
+  if candidate.side != .input then
+    none
+  else
+    let sourceConn : NodeConnection := {
+      fromNode := drag.fromNode
+      fromOutput := drag.fromOutput
+      toNode := candidate.nodeIdx
+      toInput := candidate.portIdx
+      color := none
+    }
+    if NodeEditorModel.canConnect model sourceConn then some candidate else none
+
+private def portIsWireSource (dragMode : DragMode) (portRef : PortRef) : Bool :=
+  match dragMode with
+  | .wire drag =>
+    portRef.side == PortSide.output &&
+      portRef.nodeIdx == drag.fromNode &&
+      portRef.portIdx == drag.fromOutput
+  | _ => false
+
+private def portIsWireCompatibleTarget (model : NodeEditorModel) (dragMode : DragMode)
+    (portRef : PortRef) : Bool :=
+  match dragMode with
+  | .wire drag =>
+    match validInputPortForWire? model drag portRef with
+    | some _ => true
+    | none => false
+  | _ => false
+
+private def renderFlagsForPortRef (state : State) (portRef? : Option PortRef) : PortRenderFlags :=
+  match portRef? with
+  | none => {}
+  | some portRef =>
+    let isHovered := state.hoveredPort == some portRef
+    let isWireSource := portIsWireSource state.dragMode portRef
+    let isWireCompatibleTarget := portIsWireCompatibleTarget state.model state.dragMode portRef
+    let isWireIncompatibleHover :=
+      isHovered &&
+        match state.dragMode with
+        | .wire _ =>
+          portRef.side == PortSide.input && !isWireCompatibleTarget
+        | _ =>
+          false
+    {
+      isHovered
+      isWireSource
+      isWireCompatibleTarget
+      isWireIncompatibleHover
+    }
+
+private def connectionPath (p0 p3 : Point) : Afferent.Path :=
+  let (cp1, cp2) := bezierControls p0 p3
+  Afferent.Path.empty
+    |>.moveTo p0
+    |>.bezierCurveTo cp1 cp2 p3
+
 /-- Background canvas spec (grid + bezier links). -/
-def canvasSpec (model : NodeEditorModel) (camera : Point)
-    (config : NodeEditorConfig) : CustomSpec := {
+def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
   measure := fun availableW availableH =>
     let width := if config.fillWidth && availableW > 0 then availableW else config.width
     let height := if config.fillHeight && availableH > 0 then availableH else config.height
@@ -287,6 +543,8 @@ def canvasSpec (model : NodeEditorModel) (camera : Point)
     let majorEvery := max 1 config.majorGridEvery
     let gridStep := max 8.0 config.gridSize
     let origin := Point.mk' rect.x rect.y
+    let model := state.model
+    let camera := state.camera
     RenderM.build do
       RenderM.withClip (Rect.mk' rect.x rect.y rect.width rect.height) do
         RenderM.fillRect (Rect.mk' rect.x rect.y rect.width rect.height) config.backgroundColor 0
@@ -315,7 +573,8 @@ def canvasSpec (model : NodeEditorModel) (camera : Point)
             let lineWidth := if isMajor then 1.2 else 1.0
             RenderM.fillRect (Rect.mk' rect.x y rect.width lineWidth) lineColor 0
 
-        for conn in model.connections do
+        for connIdx in [:model.connections.size] do
+          let conn := model.connections[connIdx]!
           match model.nodes[conn.fromNode]?, model.nodes[conn.toNode]? with
           | some src, some dst =>
             let fromRow := clampPortRowIdx src conn.fromOutput
@@ -326,44 +585,98 @@ def canvasSpec (model : NodeEditorModel) (camera : Point)
             let validation := NodeEditorModel.validateConnection model conn
             let defaultColor := connectionDefaultColor config src conn.fromOutput
             let validColor := conn.color.getD defaultColor
-            let lineColor :=
+            let baseColor :=
               if validation.isValid then validColor else config.invalidConnectionColor
-            let lineWidth :=
+            let isHovered := state.hoveredConnection == some connIdx
+            let isSelected := state.selectedConnection == some connIdx
+            let lineColor :=
+              if isSelected then
+                Color.lerp baseColor Color.white 0.28
+              else if isHovered then
+                Color.lerp baseColor Color.white 0.16
+              else
+                baseColor
+            let baseLineWidth :=
               if validation.isValid then config.connectionWidth else config.invalidConnectionWidth
+            let lineWidth :=
+              baseLineWidth +
+                (if isHovered then config.hoverConnectionWidthBoost else 0) +
+                (if isSelected then config.selectedConnectionWidthBoost else 0)
+            let socketRadius :=
+              config.socketRadius + (if isHovered || isSelected then 1.1 else 0)
             RenderM.strokePath path lineColor lineWidth
-            RenderM.fillCircle fromPos config.socketRadius (lineColor.withAlpha 0.95)
-            RenderM.fillCircle toPos config.socketRadius (lineColor.withAlpha 0.95)
+            RenderM.fillCircle fromPos socketRadius (lineColor.withAlpha 0.95)
+            RenderM.fillCircle toPos socketRadius (lineColor.withAlpha 0.95)
           | _, _ =>
             pure ()
+
+        match state.dragMode with
+        | .wire drag =>
+          match model.nodes[drag.fromNode]? with
+          | none => pure ()
+          | some src =>
+            let fromPos := outputPortPos src (clampPortRowIdx src drag.fromOutput) origin camera config
+            let snappedTarget : Option Point :=
+              match state.hoveredPort with
+              | some hoveredPort =>
+                match validInputPortForWire? model drag hoveredPort with
+                | some portRef => portRefPos? model camera origin config portRef
+                | none => none
+              | none => none
+            let toPos := snappedTarget.getD drag.pointer
+            let previewPath := connectionPath fromPos toPos
+            let sourceColor := connectionDefaultColor config src drag.fromOutput
+            let previewColor := Color.lerp sourceColor config.wirePreviewColor 0.2
+            let previewWidth :=
+              config.wirePreviewWidth + (if snappedTarget.isSome then 0.4 else 0)
+            RenderM.strokePath previewPath previewColor previewWidth
+            RenderM.fillCircle fromPos (config.socketRadius + 1.2) (previewColor.withAlpha 0.95)
+            RenderM.fillCircle toPos (config.socketRadius + 0.9) (previewColor.withAlpha 0.92)
+        | _ =>
+          pure ()
   -- Connection geometry depends on drag/pan state and must redraw every frame.
   skipCache := true
 }
 
-private def portDot (color : Color) (radius : Float) : WidgetBuilder := do
+private def portDot (baseColor : Color) (radius : Float) (flags : PortRenderFlags) : WidgetBuilder := do
+  let isHot :=
+    flags.isHovered || flags.isWireSource || flags.isWireCompatibleTarget || flags.isWireIncompatibleHover
   let diameter := radius * 2
+  let dotColor :=
+    if flags.isWireIncompatibleHover then
+      Color.fromRgb8 246 113 113
+    else if flags.isWireCompatibleTarget then
+      Color.lerp baseColor Color.white 0.34
+    else if flags.isWireSource || flags.isHovered then
+      Color.lerp baseColor Color.white 0.22
+    else
+      baseColor
   let wid ← freshId
   let style : BoxStyle := {
-    backgroundColor := some color
+    backgroundColor := some dotColor
     minWidth := some diameter
     maxWidth := some diameter
     minHeight := some diameter
     maxHeight := some diameter
-    cornerRadius := radius
+    cornerRadius := diameter / 2
+    borderColor := some ((Color.lerp dotColor Color.white 0.45).withAlpha (if isHot then 0.9 else 0.0))
+    borderWidth := if isHot then 1 else 0
   }
   pure (.rect wid none style)
 
 private def nodeRowVisual (inputPort : Option NodePort) (outputPort : Option NodePort)
+    (inputFlags outputFlags : PortRenderFlags)
     (theme : Theme) (config : NodeEditorConfig) : WidgetBuilder := do
   let dotSize := config.portRadius * 2
 
   let inDot ←
     match inputPort with
-    | some p => portDot (portColor p) config.portRadius
+    | some p => portDot (portColor p) config.portRadius inputFlags
     | none => spacer dotSize 1
 
   let outDot ←
     match outputPort with
-    | some p => portDot (portColor p) config.portRadius
+    | some p => portDot (portColor p) config.portRadius outputFlags
     | none => spacer dotSize 1
 
   let inLabel ←
@@ -385,7 +698,7 @@ private def nodeRowVisual (inputPort : Option NodePort) (outputPort : Option Nod
     } #[pure leftGroup, pure rightGroup]
 
 private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
-    (isSelected isHovered : Bool) (camera : Point)
+    (nodeIdx : Nat) (state : State) (isSelected isHovered : Bool) (camera : Point)
     (theme : Theme) (config : NodeEditorConfig)
     (bodyWidgets : Array WidgetBuilder) (bodyMinHeight : Float := 0) : WidgetBuilder := do
   let bgColor := Color.fromRgb8 42 45 52
@@ -424,7 +737,13 @@ private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
   let rowCount := portRows node
   let mut rows : Array Widget := #[headerRow]
   for i in [:rowCount] do
-    let row ← nodeRowVisual (node.inputs[i]?) (node.outputs[i]?) theme config
+    let inputRef : Option PortRef :=
+      if i < node.inputs.size then some { nodeIdx, portIdx := i, side := .input } else none
+    let outputRef : Option PortRef :=
+      if i < node.outputs.size then some { nodeIdx, portIdx := i, side := .output } else none
+    let inputFlags := renderFlagsForPortRef state inputRef
+    let outputFlags := renderFlagsForPortRef state outputRef
+    let row ← nodeRowVisual (node.inputs[i]?) (node.outputs[i]?) inputFlags outputFlags theme config
     rows := rows.push row
 
   if !bodyWidgets.isEmpty then
@@ -453,7 +772,7 @@ def nodeEditorVisual (rootName canvasName : ComponentId)
     (nodeNameFn : Nat → ComponentId)
     (state : State) (theme : Theme) (config : NodeEditorConfig)
     (nodeBodyWidgets : Array (Array WidgetBuilder)) (nodeBodyMinHeights : Array Float) : WidgetBuilder := do
-  let canvas ← namedCustom canvasName (canvasSpec state.model state.camera config) {
+  let canvas ← namedCustom canvasName (canvasSpec state config) {
     width := if config.fillWidth then .percent 1.0 else .auto
     height := if config.fillHeight then .percent 1.0 else .auto
     minWidth := some config.width
@@ -471,7 +790,7 @@ def nodeEditorVisual (rootName canvasName : ComponentId)
     let isHovered := state.hoveredNode == some i
     let bodyWidgets := nodeBodyWidgets.getD i #[]
     let bodyMinHeight := nodeBodyMinHeights.getD i 0
-    let widget ← nodeVisual (nodeNameFn i) node isSelected isHovered state.camera
+    let widget ← nodeVisual (nodeNameFn i) node i state isSelected isHovered state.camera
       theme config bodyWidgets bodyMinHeight
     nodeWidgets := nodeWidgets.push widget
 
@@ -496,10 +815,137 @@ def nodeEditorVisual (rootName canvasName : ComponentId)
   }
   pure (Widget.flexC wid rootName props containerStyle (#[canvas] ++ nodeWidgets))
 
+private def hoveredPortAtPointer (state : State) (origin? : Option Point)
+    (pointer : Point) (config : NodeEditorConfig) : Option PortRef :=
+  match origin? with
+  | none => none
+  | some origin =>
+    let accept : PortRef → Bool :=
+      match state.dragMode with
+      | .wire _ => fun portRef => portRef.side == PortSide.input
+      | _ => fun _ => true
+    findNearestPort state.model state.camera origin pointer config config.portHitRadius accept
+
+private def hoveredConnectionAtPointer (state : State) (origin? : Option Point)
+    (pointer : Point) (config : NodeEditorConfig) : Option Nat :=
+  match origin? with
+  | none => none
+  | some origin =>
+    match state.dragMode with
+    | .wire _ => none
+    | _ =>
+      findNearestConnectionIdx state.model state.camera origin pointer config config.edgeHitRadius
+
+private def startWireDragFromOutput (state : State) (pointer : Point)
+    (outputRef : PortRef) : State :=
+  let selectedConnectionMatch :=
+    match state.selectedConnection with
+    | some connIdx =>
+      match state.model.connections[connIdx]? with
+      | some conn =>
+        if conn.fromNode == outputRef.nodeIdx && conn.fromOutput == outputRef.portIdx then
+          some connIdx
+        else
+          none
+      | none =>
+        none
+    | none =>
+      none
+  let (nextModel, removedConnection) :=
+    match selectedConnectionMatch with
+    | some connIdx =>
+      removeConnectionAt state.model connIdx
+    | none =>
+      (state.model, none)
+  {
+    state with
+      model := nextModel
+      selectedNode := some outputRef.nodeIdx
+      selectedConnection := none
+      hoveredConnection := none
+      hoveredPort := some outputRef
+      dragMode := .wire {
+        fromNode := outputRef.nodeIdx
+        fromOutput := outputRef.portIdx
+        pointer := pointer
+        removedConnection := removedConnection
+      }
+  }
+
+private def startWireDragFromInput (state : State) (pointer : Point)
+    (inputRef : PortRef) : Option State := do
+  let connIdx ← findIncomingConnectionIdx state.model inputRef
+  let conn ← state.model.connections[connIdx]?
+  let (nextModel, removedConnection) := removeConnectionAt state.model connIdx
+  some {
+    state with
+      model := nextModel
+      selectedNode := some inputRef.nodeIdx
+      selectedConnection := none
+      hoveredConnection := none
+      hoveredPort := some inputRef
+      dragMode := .wire {
+        fromNode := conn.fromNode
+        fromOutput := conn.fromOutput
+        pointer := pointer
+        removedConnection := removedConnection
+      }
+  }
+
+private def finalizeWireDrag (state : State) (pointer : Point) (origin? : Option Point)
+    (config : NodeEditorConfig) : State :=
+  match state.dragMode with
+  | .wire drag =>
+    let targetInput? :=
+      match origin? with
+      | none => none
+      | some origin =>
+        let nearest := findNearestPort state.model state.camera origin pointer config config.portHitRadius
+          (fun portRef => portRef.side == PortSide.input)
+        match nearest with
+        | none => none
+        | some candidate => validInputPortForWire? state.model drag candidate
+    let candidateConn : Option NodeConnection :=
+      targetInput?.map fun (target : PortRef) => {
+        fromNode := drag.fromNode
+        fromOutput := drag.fromOutput
+        toNode := target.nodeIdx
+        toInput := target.portIdx
+        color := drag.removedConnection.bind (fun removed => removed.color)
+      }
+    let (nextModel, nextSelectedConnection) :=
+      match candidateConn with
+      | some conn =>
+        if NodeEditorModel.canConnect state.model conn then
+          if modelHasEquivalentConnection state.model conn then
+            let selected := state.model.connections.findIdx? (fun existing => sameConnectionEndpoints existing conn)
+            (state.model, selected)
+          else
+            let appended := { state.model with connections := state.model.connections.push conn }
+            (appended, some (appended.connections.size - 1))
+        else
+          (restoreRemovedConnection state.model drag.removedConnection, none)
+      | none =>
+        (restoreRemovedConnection state.model drag.removedConnection, none)
+    {
+      state with
+        model := nextModel
+        selectedConnection := nextSelectedConnection
+        hoveredConnection := none
+        dragMode := .none
+    }
+  | _ =>
+    { state with dragMode := .none }
+
 end NodeEditor
 
 /-- Create a ComfyUI-style reactive node editor.
     Interactions:
+    - Left click + drag from output port: create wire to compatible input port
+    - Left click + drag from connected input port: reconnect existing wire endpoint
+    - Left click on wire: select wire
+    - Right/middle click on wire: delete wire
+    - Delete/backspace on selected wire: delete wire
     - Left click + drag on node: move node
     - Left click on canvas: clear selection
     - Right/middle click + drag on canvas: pan camera
@@ -531,6 +977,7 @@ def nodeEditor (initialModel : NodeEditorModel)
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers
   let allMouseUp ← useAllMouseUp
+  let allKeys ← useKeyboard
 
   let hoverTargets := nodeNames.mapIdx fun i name => (name, i)
   let hoverNodeChanges ← StateT.lift (hoverEventForTargets hoverTargets)
@@ -541,13 +988,18 @@ def nodeEditor (initialModel : NodeEditorModel)
   let clickEvents ← liftSpider (Event.mapM NodeEditor.InputEvent.click allClicks)
   let hoverEvents ← liftSpider (Event.mapM NodeEditor.InputEvent.hover allHovers)
   let hoverNodeEvents ← liftSpider (Event.mapM NodeEditor.InputEvent.hoverNode hoverNodeChanges)
-  let mouseUpEvents ← liftSpider (Event.mapM (fun _ => NodeEditor.InputEvent.mouseUp) allMouseUp)
-  let allInputEvents ← liftSpider (Event.leftmostM [clickEvents, hoverEvents, hoverNodeEvents, mouseUpEvents])
+  let keyEvents ← liftSpider (Event.mapM NodeEditor.InputEvent.key allKeys)
+  let mouseUpEvents ← liftSpider (Event.mapM NodeEditor.InputEvent.mouseUp allMouseUp)
+  let allInputEvents ←
+    liftSpider (Event.leftmostM [clickEvents, hoverEvents, hoverNodeEvents, keyEvents, mouseUpEvents])
 
   let initialState : NodeEditor.State := {
     model := initialModel
     selectedNode := none
+    selectedConnection := none
     hoveredNode := none
+    hoveredConnection := none
+    hoveredPort := none
     camera := config.initialCamera
     dragMode := .none
   }
@@ -558,63 +1010,154 @@ def nodeEditor (initialModel : NodeEditorModel)
       | .hoverNode hovered =>
         pure { state with hoveredNode := hovered }
 
-      | .mouseUp =>
-        pure { state with dragMode := .none }
+      | .mouseUp data =>
+        let pointer := Point.mk' data.x data.y
+        let origin? := NodeEditor.canvasOriginFromMouseUp? canvasName data
+        let released := NodeEditor.finalizeWireDrag state pointer origin? config
+        let hoveredPort := NodeEditor.hoveredPortAtPointer released origin? pointer config
+        let hoveredConnection := NodeEditor.hoveredConnectionAtPointer released origin? pointer config
+        pure { released with hoveredPort, hoveredConnection }
+
+      | .key data =>
+        if data.focusedWidget.isSome then
+          pure state
+        else
+          match data.event.key, state.selectedConnection with
+          | .delete, some connIdx
+          | .backspace, some connIdx =>
+            let (updatedModel, _) := NodeEditor.removeConnectionAt state.model connIdx
+            pure { state with model := updatedModel, selectedConnection := none, hoveredConnection := none }
+          | _, _ =>
+            pure state
 
       | .hover data =>
         let pointer : Point := Point.mk' data.x data.y
-        match state.dragMode with
-        | .none =>
-          pure state
-        | .node drag =>
-          let dx := pointer.x - drag.pointerStart.x
-          let dy := pointer.y - drag.pointerStart.y
-          let newPos := Point.mk' (drag.nodeStart.x + dx) (drag.nodeStart.y + dy)
-          let updated := NodeEditor.updateNodePosition state.model drag.nodeIdx newPos
-          pure { state with model := updated }
-        | .pan drag =>
-          let dx := pointer.x - drag.pointerStart.x
-          let dy := pointer.y - drag.pointerStart.y
-          let nextCamera := Point.mk' (drag.cameraStart.x + dx) (drag.cameraStart.y + dy)
-          pure { state with camera := nextCamera }
+        let origin? := NodeEditor.canvasOriginFromHover? canvasName data
+        let progressed :=
+          match state.dragMode with
+          | .none =>
+            state
+          | .node drag =>
+            let dx := pointer.x - drag.pointerStart.x
+            let dy := pointer.y - drag.pointerStart.y
+            let newPos := Point.mk' (drag.nodeStart.x + dx) (drag.nodeStart.y + dy)
+            let updated := NodeEditor.updateNodePosition state.model drag.nodeIdx newPos
+            { state with model := updated }
+          | .pan drag =>
+            let dx := pointer.x - drag.pointerStart.x
+            let dy := pointer.y - drag.pointerStart.y
+            let nextCamera := Point.mk' (drag.cameraStart.x + dx) (drag.cameraStart.y + dy)
+            { state with camera := nextCamera }
+          | .wire drag =>
+            { state with dragMode := .wire { drag with pointer := pointer } }
+        let hoveredPort := NodeEditor.hoveredPortAtPointer progressed origin? pointer config
+        let hoveredConnection := NodeEditor.hoveredConnectionAtPointer progressed origin? pointer config
+        pure { progressed with hoveredPort, hoveredConnection }
 
       | .click data =>
-        let clickedNode := NodeEditor.findClickedNode nodeNameFn nodeNames.size data
-        match clickedNode with
-        | some idx =>
-          let rootComponent := nodeNameFn idx
-          let topComponent := NodeEditor.topHitComponentId? data
-          let shouldStartNodeDrag :=
-            data.click.button == 0 &&
-            match topComponent with
-            | none => true
-            | some componentId => componentId == rootComponent
-          if data.click.button == 0 then
-            SpiderM.liftIO (fireSelect idx)
-          let dragMode :=
-            if shouldStartNodeDrag then
-              let node := state.model.nodes.getD idx default
-              .node {
-                nodeIdx := idx
-                pointerStart := Point.mk' data.click.x data.click.y
-                nodeStart := node.position
-              }
-            else
-              state.dragMode
-          pure { state with selectedNode := some idx, dragMode }
-        | none =>
-          if hitWidget data canvasName then
-            if data.click.button == 1 || data.click.button == 2 then
-              let pointer := Point.mk' data.click.x data.click.y
+        let pointer := Point.mk' data.click.x data.click.y
+        let origin? := NodeEditor.canvasOriginFromClick? canvasName data
+        let clickedPort? :=
+          match origin? with
+          | none => none
+          | some origin =>
+            NodeEditor.findNearestPort state.model state.camera origin pointer config config.portHitRadius
+              (fun _ => true)
+        let clickedConnection? :=
+          match origin? with
+          | none => none
+          | some origin =>
+            NodeEditor.findNearestConnectionIdx state.model state.camera origin pointer config config.edgeHitRadius
+
+        match data.click.button with
+        | 0 =>
+          match clickedPort? with
+          | some portRef =>
+            match portRef.side with
+            | .output =>
+              SpiderM.liftIO (fireSelect portRef.nodeIdx)
+              pure (NodeEditor.startWireDragFromOutput state pointer portRef)
+            | .input =>
+              match NodeEditor.startWireDragFromInput state pointer portRef with
+              | some reconnectState =>
+                SpiderM.liftIO (fireSelect portRef.nodeIdx)
+                pure reconnectState
+              | none =>
+                let clickedNode := NodeEditor.findClickedNode nodeNameFn nodeNames.size data
+                match clickedNode with
+                | some idx =>
+                  let rootComponent := nodeNameFn idx
+                  let topComponent := NodeEditor.topHitComponentId? data
+                  let shouldStartNodeDrag :=
+                    match topComponent with
+                    | none => true
+                    | some componentId => componentId == rootComponent
+                  SpiderM.liftIO (fireSelect idx)
+                  let dragMode :=
+                    if shouldStartNodeDrag then
+                      let node := state.model.nodes.getD idx default
+                      .node {
+                        nodeIdx := idx
+                        pointerStart := Point.mk' data.click.x data.click.y
+                        nodeStart := node.position
+                      }
+                    else
+                      .none
+                  pure { state with selectedNode := some idx, selectedConnection := none, dragMode }
+                | none =>
+                  match clickedConnection? with
+                  | some connIdx =>
+                    pure { state with selectedNode := none, selectedConnection := some connIdx, dragMode := .none }
+                  | none =>
+                    if hitWidget data canvasName then
+                      pure { state with selectedNode := none, selectedConnection := none, dragMode := .none }
+                    else
+                      pure state
+          | none =>
+            match clickedConnection? with
+            | some connIdx =>
+              pure { state with selectedNode := none, selectedConnection := some connIdx, dragMode := .none }
+            | none =>
+              let clickedNode := NodeEditor.findClickedNode nodeNameFn nodeNames.size data
+              match clickedNode with
+              | some idx =>
+                let rootComponent := nodeNameFn idx
+                let topComponent := NodeEditor.topHitComponentId? data
+                let shouldStartNodeDrag :=
+                  match topComponent with
+                  | none => true
+                  | some componentId => componentId == rootComponent
+                SpiderM.liftIO (fireSelect idx)
+                let dragMode :=
+                  if shouldStartNodeDrag then
+                    let node := state.model.nodes.getD idx default
+                    .node {
+                      nodeIdx := idx
+                      pointerStart := Point.mk' data.click.x data.click.y
+                      nodeStart := node.position
+                    }
+                  else
+                    .none
+                pure { state with selectedNode := some idx, selectedConnection := none, dragMode }
+              | none =>
+                if hitWidget data canvasName then
+                  pure { state with selectedNode := none, selectedConnection := none, dragMode := .none }
+                else
+                  pure state
+        | 1 | 2 =>
+          match clickedConnection? with
+          | some connIdx =>
+            let (updatedModel, _) := NodeEditor.removeConnectionAt state.model connIdx
+            pure { state with model := updatedModel, selectedConnection := none, hoveredConnection := none }
+          | none =>
+            if hitWidget data canvasName then
               let dragMode : NodeEditor.DragMode :=
                 .pan { pointerStart := pointer, cameraStart := state.camera }
-              pure { state with dragMode }
-            else if data.click.button == 0 then
-              pure { state with selectedNode := none, dragMode := .none }
+              pure { state with dragMode, selectedConnection := none }
             else
               pure state
-          else
-            pure state
+        | _ =>
+          pure state
     )
     initialState
     allInputEvents

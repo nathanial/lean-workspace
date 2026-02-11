@@ -150,7 +150,7 @@ def nodeEditorTabContent (_env : DemoEnv) : WidgetM Unit := do
   }
 
   column' (gap := 8) (style := rootStyle) do
-    caption' "ComfyUI-style node graph demo. Left-drag nodes. Right or middle-drag empty canvas to pan."
+    caption' "ComfyUI-style node graph demo. Drag from output dots to input dots to wire. Left-drag nodes, right/middle-drag empty canvas to pan, delete/backspace removes selected edge."
 
     let editor ← nodeEditor comfyGraph
       {
