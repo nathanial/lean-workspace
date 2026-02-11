@@ -17,129 +17,88 @@ open Afferent.Canopy.Reactive
 open Trellis
 
 namespace Demos
+
 def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
-  let sliderEpsilon : Float := 0.0005
-  let noiseName ← registerComponentW
-  let clickEvents ← useClickData noiseName
-  let clickUpdates ← Event.mapM (fun data =>
-    if data.click.button != 0 then
-      id
-    else
-      match data.componentMap.get? noiseName with
-      | some wid =>
-          match data.layouts.get wid with
-          | some layout =>
-              let rect := layout.contentRect
-              let localX := data.click.x - rect.x
-              let localY := data.click.y - rect.y
-              let drop := Demos.Linalg.noiseExplorerDropdownLayout rect.width rect.height env.screenScale
-              let inDrop := localX >= drop.x && localX <= drop.x + drop.width
-                && localY >= drop.y && localY <= drop.y + drop.height
-              fun (state : Demos.Linalg.NoiseExplorerState) =>
-                if inDrop then
-                  { state with dropdownOpen := !state.dropdownOpen }
-                else if state.dropdownOpen then
-                  let selected := (Array.range Demos.Linalg.noiseExplorerOptions.size).findSome? fun i =>
-                    let optLayout := Demos.Linalg.noiseExplorerDropdownOptionLayout drop i
-                    if localX >= optLayout.x && localX <= optLayout.x + optLayout.width
-                        && localY >= optLayout.y && localY <= optLayout.y + optLayout.height then
-                      some (Demos.Linalg.noiseExplorerOptions.getD i .perlin)
-                    else none
-                  match selected with
-                  | some opt => { state with noiseType := opt, dropdownOpen := false }
-                  | none => { state with dropdownOpen := false }
-                else
-                  let toggle := Demos.Linalg.noiseExplorerFbmToggleLayout rect.width rect.height env.screenScale
-                  let inToggle := localX >= toggle.x && localX <= toggle.x + toggle.size
-                    && localY >= toggle.y && localY <= toggle.y + toggle.size
-                  if inToggle then
-                    { state with useFbm := !state.useFbm }
-                  else
-                    let sliders : Array Demos.Linalg.NoiseExplorerSlider :=
-                      #[.scale, .offsetX, .offsetY, .octaves, .lacunarity, .persistence, .jitter]
-                    let hit := (Array.range sliders.size).findSome? fun i =>
-                      let layout := Demos.Linalg.noiseExplorerSliderLayout rect.width rect.height env.screenScale i
-                      let within := localX >= layout.x && localX <= layout.x + layout.width
-                        && localY >= layout.y - 10.0 && localY <= layout.y + layout.height + 10.0
-                      if within then some (sliders.getD i .scale) else none
-                    match hit with
-                    | some which =>
-                        let idx := sliders.findIdx? (fun s => s == which) |>.getD 0
-                        let layout := Demos.Linalg.noiseExplorerSliderLayout rect.width rect.height env.screenScale idx
-                        let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                        let currentT := Demos.Linalg.noiseExplorerSliderT state which
-                        let newState :=
-                          if Float.abs (t - currentT) < sliderEpsilon then
-                            state
-                          else
-                            Demos.Linalg.noiseExplorerApplySlider state which t
-                        { newState with dragging := .slider which }
-                    | none => state
-          | none => id
-      | none => id
-    ) clickEvents
+  let initial := Demos.Linalg.noiseExplorer2DInitialState
+  let (stateUpdates, fireStateUpdate) ← Reactive.newTriggerEvent
+    (t := Spider) (a := Demos.Linalg.NoiseExplorerState → Demos.Linalg.NoiseExplorerState)
 
-  let hoverEvents ← useAllHovers
-  let hoverUpdates ← Event.mapMaybeM (fun data =>
-    match data.componentMap.get? noiseName with
-    | some wid =>
-        match data.layouts.get wid with
-        | some layout =>
-            let rect := layout.contentRect
-            let localX := data.x - rect.x
-            some (fun (state : Demos.Linalg.NoiseExplorerState) =>
-              match state.dragging with
-              | .slider which =>
-                  let sliders : Array Demos.Linalg.NoiseExplorerSlider :=
-                    #[.scale, .offsetX, .offsetY, .octaves, .lacunarity, .persistence, .jitter]
-                  let idx := sliders.findIdx? (fun s => s == which) |>.getD 0
-                  let layout := Demos.Linalg.noiseExplorerSliderLayout rect.width rect.height env.screenScale idx
-                  let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                  let currentT := Demos.Linalg.noiseExplorerSliderT state which
-                  if Float.abs (t - currentT) < sliderEpsilon then
-                    state
-                  else
-                    Demos.Linalg.noiseExplorerApplySlider state which t
-              | .none => state
-            )
-        | none => none
-    | none => none
-    ) hoverEvents
+  let state ← foldDyn (fun f s => f s) initial stateUpdates
 
-  let mouseUpEvents ← useAllMouseUp
-  let mouseUpUpdates ← Event.mapMaybeM (fun data =>
-    if data.button != 0 then
-      none
-    else
-      some (fun (s : Demos.Linalg.NoiseExplorerState) =>
-        match s.dragging with
-        | .none => s
-        | _ => { s with dragging := .none }
-      )
-    ) mouseUpEvents
+  let panelWidth : Float := 300.0 * env.screenScale
+  let rootStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let plotStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let panelStyle : BoxStyle := {
+    flexItem := some (FlexItem.fixed panelWidth)
+    width := .length panelWidth
+    minWidth := some panelWidth
+    height := .percent 1.0
+    padding := EdgeInsets.uniform (16.0 * env.screenScale)
+    backgroundColor := some (Color.rgba 0.08 0.08 0.1 0.95)
+    borderColor := some (Color.gray 0.22)
+    borderWidth := 1
+  }
 
-  let keyEvents ← useKeyboard
-  let keyUpdates ← Event.mapM (fun data =>
-    fun (s : Demos.Linalg.NoiseExplorerState) =>
-      if data.event.isPress then
-        match data.event.key with
-        | .char 'r' => Demos.Linalg.noiseExplorer2DInitialState
-        | _ => s
-      else s
-    ) keyEvents
+  row' (gap := 0) (style := rootStyle) do
+    column' (gap := 0) (style := plotStyle) do
+      let _ ← dynWidget state fun s => do
+        emit (pure (Demos.Linalg.noiseExplorer2DWidget env s))
+      pure ()
 
-  let allUpdates ← Event.mergeAllListM [clickUpdates, hoverUpdates, mouseUpUpdates, keyUpdates]
-  let state ← foldDyn (fun f s => f s) Demos.Linalg.noiseExplorer2DInitialState allUpdates
+    column' (gap := 8.0 * env.screenScale) (style := panelStyle) do
+      heading2' "Noise Explorer 2D"
+      caption' "Perlin / Simplex / Value / Worley"
+      spacer' 0 (6.0 * env.screenScale)
 
-  let _ ← dynWidget state fun s => do
-    let containerStyle : BoxStyle := {
-      flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
-      height := .percent 1.0
-    }
-    emit (pure (namedColumn noiseName 0 containerStyle #[
-      Demos.Linalg.noiseExplorer2DWidget env s
-    ]))
+      caption' "Noise Type"
+      let dropdownResult ← dropdown Demos.Linalg.noiseExplorerOptionLabels
+        (Demos.Linalg.noiseExplorerOptionIndex initial.noiseType)
+      let noiseTypeActions ← Event.mapM (fun idx =>
+        let noiseType := Demos.Linalg.noiseExplorerOptionAt idx
+        fireStateUpdate (fun s =>
+          if s.noiseType == noiseType then s else { s with noiseType := noiseType }
+        )
+      ) dropdownResult.onSelect
+      performEvent_ noiseTypeActions
+
+      spacer' 0 (6.0 * env.screenScale)
+
+      let switchResult ← switch (some "Use FBM") initial.useFbm
+      let fbmActions ← Event.mapM (fun on =>
+        fireStateUpdate (fun s =>
+          if s.useFbm == on then s else { s with useFbm := on }
+        )
+      ) switchResult.onToggle
+      performEvent_ fbmActions
+
+      spacer' 0 (8.0 * env.screenScale)
+
+      let wireSlider (which : Demos.Linalg.NoiseExplorerSlider) : WidgetM Unit := do
+        let _ ← dynWidget state fun s =>
+          caption' s!"{Demos.Linalg.noiseExplorerSliderLabel which}: {Demos.Linalg.noiseExplorerSliderValueLabel s which}"
+        let sliderResult ← slider none (Demos.Linalg.noiseExplorerSliderT initial which)
+        let sliderActions ← Event.mapM (fun t =>
+          fireStateUpdate (fun s => Demos.Linalg.noiseExplorerApplySlider s which t)
+        ) sliderResult.onChange
+        performEvent_ sliderActions
+
+      wireSlider .scale
+      wireSlider .offsetX
+      wireSlider .offsetY
+      wireSlider .octaves
+      wireSlider .lacunarity
+      wireSlider .persistence
+      wireSlider .jitter
+      pure ()
+
   pure ()
 
 end Demos

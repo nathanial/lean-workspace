@@ -1,6 +1,6 @@
 /-
   Noise Explorer 2D - Visualize Perlin, Simplex, Value, and Worley noise.
-  Includes FBM controls, scale, and offset sliders.
+  Side-panel controls are provided by Canopy widgets in the tab module.
 -/
 import Afferent
 import Afferent.UI.Widget
@@ -42,11 +42,6 @@ inductive NoiseExplorerSlider where
   | jitter
   deriving BEq, Inhabited
 
-inductive NoiseExplorerDrag where
-  | none
-  | slider (which : NoiseExplorerSlider)
-  deriving BEq, Inhabited
-
 structure NoiseExplorerState where
   noiseType : NoiseType := .perlin
   useFbm : Bool := true
@@ -54,8 +49,6 @@ structure NoiseExplorerState where
   offset : Vec2 := Vec2.zero
   config : Noise.FractalConfig := {}
   jitter : Float := 1.0
-  dropdownOpen : Bool := false
-  dragging : NoiseExplorerDrag := .none
   deriving Inhabited
 
 def noiseExplorer2DInitialState : NoiseExplorerState := {}
@@ -104,56 +97,16 @@ def noiseExplorerMathViewConfig (screenScale : Float) : MathView2D.Config := {
   showLabels := false
 }
 
-structure NoiseExplorerSliderLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
-structure NoiseExplorerToggleLayout where
-  x : Float
-  y : Float
-  size : Float
-
-structure NoiseExplorerDropdownLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
 def noiseExplorerOptions : Array NoiseType := #[.perlin, .simplex, .value, .worley]
 
-private def panelWidth (screenScale : Float) : Float :=
-  270.0 * screenScale
+def noiseExplorerOptionAt (idx : Nat) : NoiseType :=
+  noiseExplorerOptions.getD idx .perlin
 
-private def panelX (w screenScale : Float) : Float :=
-  w - panelWidth screenScale
+def noiseExplorerOptionIndex (noiseType : NoiseType) : Nat :=
+  noiseExplorerOptions.findIdx? (fun opt => opt == noiseType) |>.getD 0
 
-def noiseExplorerDropdownLayout (w _h screenScale : Float) : NoiseExplorerDropdownLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 90.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 28.0 * screenScale
-  { x := x, y := y, width := width, height := height }
-
-def noiseExplorerDropdownOptionLayout (base : NoiseExplorerDropdownLayout) (idx : Nat)
-    : NoiseExplorerDropdownLayout :=
-  { x := base.x, y := base.y + base.height + idx.toFloat * base.height,
-    width := base.width, height := base.height }
-
-def noiseExplorerFbmToggleLayout (w _h screenScale : Float) : NoiseExplorerToggleLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 130.0 * screenScale
-  let size := 16.0 * screenScale
-  { x := x, y := y, size := size }
-
-def noiseExplorerSliderLayout (w _h screenScale : Float) (idx : Nat) : NoiseExplorerSliderLayout :=
-  let startX := panelX w screenScale + 20.0 * screenScale
-  let startY := 170.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 8.0 * screenScale
-  let spacing := 34.0 * screenScale
-  { x := startX, y := startY + idx.toFloat * spacing, width := width, height := height }
+def noiseExplorerOptionLabels : Array String :=
+  noiseExplorerOptions.map (fun opt => opt.label)
 
 private def clamp01 (t : Float) : Float :=
   Float.clamp t 0.0 1.0
@@ -199,7 +152,7 @@ private def jitterToSlider (v : Float) : Float :=
 private def floorToNat (x : Float) : Nat :=
   (Float.floor x).toUInt64.toNat
 
-private def sliderLabel (which : NoiseExplorerSlider) : String :=
+def noiseExplorerSliderLabel (which : NoiseExplorerSlider) : String :=
   match which with
   | .scale => "Scale"
   | .offsetX => "Offset X"
@@ -209,7 +162,7 @@ private def sliderLabel (which : NoiseExplorerSlider) : String :=
   | .persistence => "Persistence"
   | .jitter => "Jitter"
 
-private def sliderValueLabel (state : NoiseExplorerState) (which : NoiseExplorerSlider) : String :=
+def noiseExplorerSliderValueLabel (state : NoiseExplorerState) (which : NoiseExplorerSlider) : String :=
   match which with
   | .scale => formatFloat state.scale
   | .offsetX => formatFloat state.offset.x
@@ -244,52 +197,6 @@ def noiseExplorerSliderT (state : NoiseExplorerState) (which : NoiseExplorerSlid
   | .lacunarity => lacunarityToSlider state.config.lacunarity
   | .persistence => persistenceToSlider state.config.persistence
   | .jitter => jitterToSlider state.jitter
-
-private def renderSlider (label value : String) (t : Float) (layout : NoiseExplorerSliderLayout)
-    (fontSmall : Font) (active : Bool := false) : CanvasM Unit := do
-  let t := clamp01 t
-  let knobX := layout.x + t * layout.width
-  let knobY := layout.y + layout.height / 2.0
-  let knobRadius := layout.height * 0.75
-  let trackHeight := layout.height * 0.5
-
-  setFillColor (if active then Color.gray 0.7 else Color.gray 0.5)
-  fillPath (Afferent.Path.rectangleXYWH layout.x
-    (layout.y + layout.height / 2.0 - trackHeight / 2.0)
-    layout.width trackHeight)
-
-  setFillColor (if active then Color.yellow else Color.gray 0.85)
-  fillPath (Afferent.Path.circle (Point.mk knobX knobY) knobRadius)
-
-  setFillColor (Color.gray 0.75)
-  fillTextXY s!"{label}: {value}" layout.x (layout.y - 6.0) fontSmall
-
-private def renderToggle (label : String) (value : Bool) (layout : NoiseExplorerToggleLayout)
-    (fontSmall : Font) : CanvasM Unit := do
-  let box := Afferent.Path.rectangleXYWH layout.x layout.y layout.size layout.size
-  setStrokeColor (Color.gray 0.6)
-  setLineWidth 1.5
-  strokePath box
-  if value then
-    setFillColor (Color.rgba 0.3 0.9 0.6 1.0)
-    fillPath (Afferent.Path.rectangleXYWH (layout.x + 3) (layout.y + 3)
-      (layout.size - 6) (layout.size - 6))
-  setFillColor (Color.gray 0.8)
-  fillTextXY label (layout.x + layout.size + 8.0) (layout.y + layout.size - 3.0) fontSmall
-
-private def renderDropdown (label : String) (layout : NoiseExplorerDropdownLayout) (isOpen : Bool)
-    (fontSmall : Font) : CanvasM Unit := do
-  setFillColor (Color.gray 0.15)
-  fillPath (Afferent.Path.rectangleXYWH layout.x layout.y layout.width layout.height)
-  setStrokeColor (Color.gray 0.4)
-  setLineWidth 1.0
-  strokePath (Afferent.Path.rectangleXYWH layout.x layout.y layout.width layout.height)
-  setFillColor (Color.gray 0.85)
-  fillTextXY label (layout.x + 8.0) (layout.y + layout.height - 8.0) fontSmall
-  let arrowX := layout.x + layout.width - 16.0
-  let arrowY := layout.y + layout.height / 2.0
-  let arrow := if isOpen then "^" else "v"
-  fillTextXY arrow arrowX (arrowY + 5.0) fontSmall
 
 private def noiseSample01 (state : NoiseExplorerState) (x y : Float) : Float :=
   match state.noiseType with
@@ -399,31 +306,21 @@ private def getNoiseRectBatchDataCached (state : NoiseExplorerState) (res : Nat)
       noiseExplorerRectBatchCacheRef.set { key := some key, data := data, count := count }
       pure (data, count)
 
-/-- Render noise explorer. -/
+/-- Render only the noise visualization area (no side-panel controls). -/
 def renderNoiseExplorer2D (state : NoiseExplorerState)
-    (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
-  let h := view.height
-  let panelW := panelWidth screenScale
-  let plotW := w - panelW
-  let plotH := h
+    (view : MathView2D.View) (screenScale : Float) : CanvasM Unit := do
+  let plotW := view.width
+  let plotH := view.height
 
-  -- Background
   setFillColor (Color.gray 0.08)
   fillPath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
 
-  let dragging := match state.dragging with
-    | .slider _ => true
-    | .none => false
-  let cellSize := (if dragging then 10.0 else 6.0) * screenScale
+  let cellSize := 6.0 * screenScale
   let resX := floorToNat (plotW / cellSize)
   let resY := floorToNat (plotH / cellSize)
-  let minRes := if dragging then 24 else 32
-  let maxRes := if dragging then 64 else 96
-  let res := Nat.max minRes (Nat.min maxRes (Nat.min resX resY))
-  let cellW := plotW / res.toFloat
-  let cellH := plotH / res.toFloat
+  let res := Nat.max 32 (Nat.min 96 (Nat.min resX resY))
   let samples ← getNoiseSamplesCached state res
+
   let canvas ← getCanvas
   let t := canvas.state.transform
   let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
@@ -436,6 +333,8 @@ def renderNoiseExplorer2D (state : NoiseExplorerState)
       let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
       renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
   else
+    let cellW := plotW / res.toFloat
+    let cellH := plotH / res.toFloat
     for yi in [:res] do
       for xi in [:res] do
         let idx := yi * res + xi
@@ -448,54 +347,12 @@ def renderNoiseExplorer2D (state : NoiseExplorerState)
   setLineWidth 1.0
   strokePath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
 
-  -- Panel background
-  let pX := panelX w screenScale
-  setFillColor (Color.rgba 0.08 0.08 0.1 0.95)
-  fillPath (Afferent.Path.rectangleXYWH pX 0 panelW h)
-
-  -- Title
-  setFillColor VecColor.label
-  fillTextXY "NOISE EXPLORER 2D" (pX + 20 * screenScale) (40 * screenScale) fontMedium
-  setFillColor (Color.gray 0.6)
-  fillTextXY "Perlin / Simplex / Value / Worley" (pX + 20 * screenScale) (62 * screenScale) fontSmall
-
-  let drop := noiseExplorerDropdownLayout w h screenScale
-  renderDropdown s!"Noise: {state.noiseType.label}" drop state.dropdownOpen fontSmall
-  if state.dropdownOpen then
-    for i in [:noiseExplorerOptions.size] do
-      let opt := noiseExplorerOptions.getD i .perlin
-      let optLayout := noiseExplorerDropdownOptionLayout drop i
-      setFillColor (if opt == state.noiseType then Color.rgba 0.2 0.5 0.8 0.6 else Color.gray 0.18)
-      fillPath (Afferent.Path.rectangleXYWH optLayout.x optLayout.y optLayout.width optLayout.height)
-      setFillColor (if opt == state.noiseType then Color.white else Color.gray 0.75)
-      fillTextXY opt.label (optLayout.x + 8.0) (optLayout.y + optLayout.height - 8.0) fontSmall
-
-  let toggle := noiseExplorerFbmToggleLayout w h screenScale
-  renderToggle "Use FBM" state.useFbm toggle fontSmall
-
-  let sliders : Array NoiseExplorerSlider := #[
-    .scale, .offsetX, .offsetY, .octaves, .lacunarity, .persistence, .jitter
-  ]
-  for i in [:sliders.size] do
-    let which := sliders.getD i .scale
-    let layout := noiseExplorerSliderLayout w h screenScale i
-    let t := noiseExplorerSliderT state which
-    let active := match state.dragging with
-      | .slider s => s == which
-      | _ => false
-    renderSlider (sliderLabel which) (sliderValueLabel state which) t layout fontSmall active
-
-  setFillColor (Color.gray 0.6)
-  fillTextXY "Drag sliders to adjust" (pX + 20 * screenScale)
-    (h - 50 * screenScale) fontSmall
-  fillTextXY "R: reset" (pX + 20 * screenScale) (h - 30 * screenScale) fontSmall
-
-/-- Create the noise explorer widget. -/
+/-- Create the noise explorer visualization widget. -/
 def noiseExplorer2DWidget (env : DemoEnv) (state : NoiseExplorerState)
     : Afferent.Arbor.WidgetBuilder := do
   let config := noiseExplorerMathViewConfig env.screenScale
   MathView2D.mathView2D config env.fontSmall (fun view => do
-    renderNoiseExplorer2D state view env.screenScale env.fontMedium env.fontSmall
+    renderNoiseExplorer2D state view env.screenScale
   )
 
 end Demos.Linalg
