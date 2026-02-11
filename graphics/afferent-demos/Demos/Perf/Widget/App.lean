@@ -1,6 +1,6 @@
 /-
   WidgetPerf - Diagnostic page to isolate widget performance.
-  Select a widget type from the list to see 1000 instances in a grid.
+  Select a widget type from the list to see 2000 instances in a grid.
 -/
 import Reactive
 import Afferent
@@ -19,6 +19,10 @@ open Afferent.Canopy.Reactive
 open Trellis
 
 namespace Demos.WidgetPerf
+
+private def widgetInstanceCount : Nat := 2000
+private def widgetGridColumns : Nat := 20
+private def widgetGridRows : Nat := widgetInstanceCount / widgetGridColumns
 
 /-- Widget types we can test. -/
 inductive WidgetType
@@ -481,11 +485,11 @@ def renderWidgetGrid (wtype : WidgetType) : WidgetM Unit := do
       width := .percent 1.0
     }
     column' (gap := 6) (style := gridStyle) do
-      heading3' s!"Grid of {wtype.name} (1000 instances)"
-      for row in [0:25] do
+      heading3' s!"Grid of {wtype.name} ({widgetInstanceCount} instances)"
+      for row in [0:widgetGridRows] do
         row' (gap := 6) (style := rowStyle) do
-          for col in [0:40] do
-            let index := row * 40 + col
+          for col in [0:widgetGridColumns] do
+            let index := row * widgetGridColumns + col
             renderWidget wtype index
 
 /-- Application state. -/
@@ -493,7 +497,7 @@ structure AppState where
   render : ComponentRender
 
 /-- Create the widget performance test application. -/
-def createApp (_env : DemoEnv) : ReactiveM AppState := do
+def createApp (env : DemoEnv) : ReactiveM AppState := do
   -- Pre-create a Dynamic for the selected widget type
   let (selectionEvent, fireSelection) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
   let selectedType ← Reactive.holdDyn 0 selectionEvent
@@ -509,7 +513,7 @@ def createApp (_env : DemoEnv) : ReactiveM AppState := do
 
     column' (gap := 16) (style := rootStyle) do
       heading1' "Widget Performance Test"
-      caption' "Select a widget type to render 1000 instances"
+      caption' s!"Select a widget type to render {widgetInstanceCount} instances"
 
       -- Main content row (fills remaining space)
       let contentRowStyle : BoxStyle := {
@@ -521,13 +525,14 @@ def createApp (_env : DemoEnv) : ReactiveM AppState := do
           (style := contentRowStyle) do
         -- Left panel: widget selector (fixed width, fills height)
         let leftPanelStyle : BoxStyle := {
-          minWidth := some 180
+          minWidth := some 220
+          flexItem := some (FlexItem.fixed 220)
           height := .percent 1.0
         }
         column' (gap := 8) (style := leftPanelStyle) do
           caption' "Widget type:"
 
-          let result ← listBox widgetTypeNames {}
+          let result ← listBox widgetTypeNames { fillHeight := true }
 
           -- Wire selection to the external Dynamic
           let selAction ← Event.mapM (fun idx => fireSelection idx) result.onSelect
@@ -545,9 +550,20 @@ def createApp (_env : DemoEnv) : ReactiveM AppState := do
           height := .percent 1.0
         }
         column' (gap := 0) (style := rightPanelStyle) do
-          let _ ← dynWidget selectedType (fun selIdx => do
-            let wtype := allWidgetTypes.getD selIdx .label
-            renderWidgetGrid wtype)
+          let gridScrollConfig : ScrollContainerConfig := {
+            width := env.windowWidthF
+            height := env.windowHeightF
+            verticalScroll := true
+            horizontalScroll := false
+            fillWidth := true
+            fillHeight := true
+            scrollbarVisibility := .always
+          }
+          let (_, _) ← scrollContainer gridScrollConfig do
+            let _ ← dynWidget selectedType (fun selIdx => do
+              let wtype := allWidgetTypes.getD selIdx .label
+              renderWidgetGrid wtype)
+            pure ()
           pure ()
 
   pure { render }
