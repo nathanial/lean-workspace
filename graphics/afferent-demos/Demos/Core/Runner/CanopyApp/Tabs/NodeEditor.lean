@@ -29,8 +29,9 @@ private def formatFloat (v : Float) (places : Nat := 1) : String :=
   else
     s
 
-private def port (label : String) (color : Color := Color.fromRgb8 94 223 130) : NodePort :=
-  { label, color }
+private def port (label : String) (typeId : NodePortTypeId := NodePortTypeId.any)
+    (color : Option Color := none) : NodePort :=
+  { label, typeId, color }
 
 private def comfyGraph : NodeEditorModel := {
   nodes := #[
@@ -41,9 +42,9 @@ private def comfyGraph : NodeEditorModel := {
       width := 286
       accent := Color.fromRgb8 94 223 130
       outputs := #[
-        port "MODEL",
-        port "CLIP" (Color.fromRgb8 142 199 255),
-        port "VAE" (Color.fromRgb8 245 197 94)
+        port "MODEL" NodePortTypeId.model,
+        port "CLIP" NodePortTypeId.clip,
+        port "VAE" NodePortTypeId.vae
       ]
     },
     {
@@ -52,8 +53,8 @@ private def comfyGraph : NodeEditorModel := {
       position := Point.mk' 372 26
       width := 368
       accent := Color.fromRgb8 142 199 255
-      inputs := #[port "clip" (Color.fromRgb8 142 199 255)]
-      outputs := #[port "CONDITIONING"]
+      inputs := #[port "clip" NodePortTypeId.clip]
+      outputs := #[port "CONDITIONING" NodePortTypeId.conditioning]
     },
     {
       title := "CLIPTextEncode"
@@ -61,8 +62,8 @@ private def comfyGraph : NodeEditorModel := {
       position := Point.mk' 372 246
       width := 368
       accent := Color.fromRgb8 142 199 255
-      inputs := #[port "clip" (Color.fromRgb8 142 199 255)]
-      outputs := #[port "CONDITIONING"]
+      inputs := #[port "clip" NodePortTypeId.clip]
+      outputs := #[port "CONDITIONING" NodePortTypeId.conditioning]
     },
     {
       title := "KSampler"
@@ -71,12 +72,12 @@ private def comfyGraph : NodeEditorModel := {
       width := 314
       accent := Color.fromRgb8 175 191 255
       inputs := #[
-        port "model" (Color.fromRgb8 94 223 130),
-        port "positive",
-        port "negative",
-        port "latent_image" (Color.fromRgb8 245 197 94)
+        port "model" NodePortTypeId.model,
+        port "positive" NodePortTypeId.conditioning,
+        port "negative" NodePortTypeId.conditioning,
+        port "latent_image" NodePortTypeId.latent
       ]
-      outputs := #[port "LATENT" (Color.fromRgb8 245 197 94)]
+      outputs := #[port "LATENT" NodePortTypeId.latent]
     },
     {
       title := "VAEDecode"
@@ -84,8 +85,8 @@ private def comfyGraph : NodeEditorModel := {
       position := Point.mk' 1182 202
       width := 220
       accent := Color.fromRgb8 245 197 94
-      inputs := #[port "samples" (Color.fromRgb8 245 197 94), port "vae" (Color.fromRgb8 245 197 94)]
-      outputs := #[port "IMAGE" (Color.fromRgb8 100 236 167)]
+      inputs := #[port "samples" NodePortTypeId.latent, port "vae" NodePortTypeId.vae]
+      outputs := #[port "IMAGE" NodePortTypeId.image]
     },
     {
       title := "SaveImage"
@@ -93,7 +94,7 @@ private def comfyGraph : NodeEditorModel := {
       position := Point.mk' 1478 182
       width := 214
       accent := Color.fromRgb8 100 236 167
-      inputs := #[port "images" (Color.fromRgb8 100 236 167)]
+      inputs := #[port "images" NodePortTypeId.image]
     },
     {
       title := "LoadImage"
@@ -102,8 +103,8 @@ private def comfyGraph : NodeEditorModel := {
       width := 330
       accent := Color.fromRgb8 120 211 250
       outputs := #[
-        port "IMAGE" (Color.fromRgb8 100 236 167),
-        port "MASK" (Color.fromRgb8 110 167 255)
+        port "IMAGE" NodePortTypeId.image,
+        port "MASK" NodePortTypeId.mask
       ]
     },
     {
@@ -113,11 +114,11 @@ private def comfyGraph : NodeEditorModel := {
       width := 256
       accent := Color.fromRgb8 245 197 94
       inputs := #[
-        port "pixels" (Color.fromRgb8 100 236 167),
-        port "vae" (Color.fromRgb8 245 197 94),
-        port "mask" (Color.fromRgb8 110 167 255)
+        port "pixels" NodePortTypeId.image,
+        port "vae" NodePortTypeId.vae,
+        port "mask" NodePortTypeId.mask
       ]
-      outputs := #[port "LATENT" (Color.fromRgb8 245 197 94)]
+      outputs := #[port "LATENT" NodePortTypeId.latent]
     }
   ]
   connections := #[

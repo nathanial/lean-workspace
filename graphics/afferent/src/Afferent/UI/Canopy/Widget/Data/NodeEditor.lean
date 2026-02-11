@@ -14,10 +14,43 @@ open Reactive Reactive.Host
 open Afferent.Canopy.Reactive
 open Trellis
 
+/-- Logical type identifier for node ports. -/
+abbrev NodePortTypeId := String
+
+namespace NodePortTypeId
+
+def any : NodePortTypeId := "any"
+def model : NodePortTypeId := "model"
+def clip : NodePortTypeId := "clip"
+def vae : NodePortTypeId := "vae"
+def conditioning : NodePortTypeId := "conditioning"
+def latent : NodePortTypeId := "latent"
+def image : NodePortTypeId := "image"
+def mask : NodePortTypeId := "mask"
+
+/-- Default accent color for a port type. -/
+def defaultColor (typeId : NodePortTypeId) : Color :=
+  match typeId with
+  | "model" => Color.fromRgb8 94 223 130
+  | "clip" => Color.fromRgb8 142 199 255
+  | "vae" => Color.fromRgb8 245 197 94
+  | "conditioning" => Color.fromRgb8 94 223 130
+  | "latent" => Color.fromRgb8 245 197 94
+  | "image" => Color.fromRgb8 100 236 167
+  | "mask" => Color.fromRgb8 110 167 255
+  | _ => Color.fromRgb8 94 223 130
+
+/-- Output type can connect to input type if either side is wildcard or both types match. -/
+def isCompatible (outputType inputType : NodePortTypeId) : Bool :=
+  outputType == any || inputType == any || outputType == inputType
+
+end NodePortTypeId
+
 /-- A single port on a node (input or output). -/
 structure NodePort where
   label : String
-  color : Color := Color.fromRgb8 86 212 120
+  typeId : NodePortTypeId := NodePortTypeId.any
+  color : Option Color := none
 deriving Repr, BEq, Inhabited
 
 /-- A node card rendered in the editor canvas. -/
@@ -44,6 +77,12 @@ deriving Repr, BEq, Inhabited
 structure NodeEditorModel where
   nodes : Array NodeEditorNode := #[]
   connections : Array NodeConnection := #[]
+deriving Repr, BEq, Inhabited
+
+/-- Result from validating a single connection against a graph model. -/
+structure NodeConnectionValidation where
+  isValid : Bool
+  reason : Option String := none
 deriving Repr, BEq, Inhabited
 
 /-- Visual and interaction configuration for NodeEditor. -/
@@ -74,6 +113,8 @@ structure NodeEditorConfig where
 
   connectionColor : Color := (Color.fromRgb8 189 213 198).withAlpha 0.8
   connectionWidth : Float := 2.2
+  invalidConnectionColor : Color := (Color.fromRgb8 246 113 113).withAlpha 0.95
+  invalidConnectionWidth : Float := 2.8
   socketRadius : Float := 3
 
 deriving Repr, Inhabited
@@ -83,6 +124,39 @@ namespace NodeEditorConfig
 def default : NodeEditorConfig := {}
 
 end NodeEditorConfig
+
+namespace NodeEditorModel
+
+def validateConnection (model : NodeEditorModel) (conn : NodeConnection) : NodeConnectionValidation :=
+  match model.nodes[conn.fromNode]?, model.nodes[conn.toNode]? with
+  | none, _ => { isValid := false, reason := some s!"missing source node {conn.fromNode}" }
+  | _, none => { isValid := false, reason := some s!"missing destination node {conn.toNode}" }
+  | some src, some dst =>
+    match src.outputs[conn.fromOutput]?, dst.inputs[conn.toInput]? with
+    | none, _ => { isValid := false, reason := some s!"missing source output {conn.fromOutput}" }
+    | _, none => { isValid := false, reason := some s!"missing destination input {conn.toInput}" }
+    | some outPort, some inPort =>
+      if NodePortTypeId.isCompatible outPort.typeId inPort.typeId then
+        { isValid := true, reason := none }
+      else
+        {
+          isValid := false
+          reason := some s!"incompatible port types ({outPort.typeId} -> {inPort.typeId})"
+        }
+
+def validateConnections (model : NodeEditorModel) : Array NodeConnectionValidation :=
+  model.connections.map (validateConnection model)
+
+def canConnect (model : NodeEditorModel) (conn : NodeConnection) : Bool :=
+  (validateConnection model conn).isValid
+
+def addConnectionIfValid (model : NodeEditorModel) (conn : NodeConnection) : NodeEditorModel :=
+  if canConnect model conn then
+    { model with connections := model.connections.push conn }
+  else
+    model
+
+end NodeEditorModel
 
 /-- Optional interactive body content to mount inside a specific node. -/
 structure NodeEditorBody where
@@ -182,17 +256,24 @@ private def findClickedNode (nodeNameFn : Nat → ComponentId) (nodeCount : Nat)
   (List.range nodeCount).findSome? fun i =>
     if hitWidget data (nodeNameFn i) then some i else none
 
-private def hitIsDirectOnComponent (data : ClickData) (componentId : ComponentId) : Bool :=
-  match data.componentMap.get? componentId, data.hitPath.back? with
-  | some wid, some topMost => wid == topMost
-  | _, _ => false
-
 private def topHitComponentId? (data : ClickData) : Option ComponentId :=
   match data.hitPath.back? with
   | none => none
   | some topMost =>
       data.componentMap.toList.findSome? fun (componentId, widgetId) =>
         if widgetId == topMost then some componentId else none
+
+private def portColor (port : NodePort) : Color :=
+  port.color.getD (NodePortTypeId.defaultColor port.typeId)
+
+private def clampPortRowIdx (node : NodeEditorNode) (idx : Nat) : Nat :=
+  min idx (portRows node - 1)
+
+private def connectionDefaultColor (config : NodeEditorConfig) (src : NodeEditorNode)
+    (fromOutput : Nat) : Color :=
+  match src.outputs[fromOutput]? with
+  | some output => portColor output
+  | none => config.connectionColor
 
 /-- Background canvas spec (grid + bezier links). -/
 def canvasSpec (model : NodeEditorModel) (camera : Point)
@@ -237,11 +318,19 @@ def canvasSpec (model : NodeEditorModel) (camera : Point)
         for conn in model.connections do
           match model.nodes[conn.fromNode]?, model.nodes[conn.toNode]? with
           | some src, some dst =>
-            let fromPos := outputPortPos src conn.fromOutput origin camera config
-            let toPos := inputPortPos dst conn.toInput origin camera config
+            let fromRow := clampPortRowIdx src conn.fromOutput
+            let toRow := clampPortRowIdx dst conn.toInput
+            let fromPos := outputPortPos src fromRow origin camera config
+            let toPos := inputPortPos dst toRow origin camera config
             let path := connectionPath fromPos toPos
-            let lineColor := conn.color.getD config.connectionColor
-            RenderM.strokePath path lineColor config.connectionWidth
+            let validation := NodeEditorModel.validateConnection model conn
+            let defaultColor := connectionDefaultColor config src conn.fromOutput
+            let validColor := conn.color.getD defaultColor
+            let lineColor :=
+              if validation.isValid then validColor else config.invalidConnectionColor
+            let lineWidth :=
+              if validation.isValid then config.connectionWidth else config.invalidConnectionWidth
+            RenderM.strokePath path lineColor lineWidth
             RenderM.fillCircle fromPos config.socketRadius (lineColor.withAlpha 0.95)
             RenderM.fillCircle toPos config.socketRadius (lineColor.withAlpha 0.95)
           | _, _ =>
@@ -269,12 +358,12 @@ private def nodeRowVisual (inputPort : Option NodePort) (outputPort : Option Nod
 
   let inDot ←
     match inputPort with
-    | some p => portDot p.color config.portRadius
+    | some p => portDot (portColor p) config.portRadius
     | none => spacer dotSize 1
 
   let outDot ←
     match outputPort with
-    | some p => portDot p.color config.portRadius
+    | some p => portDot (portColor p) config.portRadius
     | none => spacer dotSize 1
 
   let inLabel ←
