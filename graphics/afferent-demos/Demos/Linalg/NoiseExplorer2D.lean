@@ -60,6 +60,42 @@ structure NoiseExplorerState where
 
 def noiseExplorer2DInitialState : NoiseExplorerState := {}
 
+private structure NoiseExplorerCacheKey where
+  noiseType : NoiseType
+  useFbm : Bool
+  scale : Float
+  offsetX : Float
+  offsetY : Float
+  octaves : Nat
+  lacunarity : Float
+  persistence : Float
+  jitter : Float
+  res : Nat
+  deriving BEq, Inhabited
+
+private structure NoiseExplorerCache where
+  key : Option NoiseExplorerCacheKey := none
+  samples : Array Float := #[]
+  deriving Inhabited
+
+initialize noiseExplorerCacheRef : IO.Ref NoiseExplorerCache ← IO.mkRef {}
+
+private structure NoiseExplorerRectBatchKey where
+  sampleKey : NoiseExplorerCacheKey
+  plotW : Float
+  plotH : Float
+  originX : Float
+  originY : Float
+  deriving BEq, Inhabited
+
+private structure NoiseExplorerRectBatchCache where
+  key : Option NoiseExplorerRectBatchKey := none
+  data : Array Float := #[]
+  count : Nat := 0
+  deriving Inhabited
+
+initialize noiseExplorerRectBatchCacheRef : IO.Ref NoiseExplorerRectBatchCache ← IO.mkRef {}
+
 def noiseExplorerMathViewConfig (screenScale : Float) : MathView2D.Config := {
   style := { flexItem := some (Trellis.FlexItem.growing 1) }
   scale := 80.0 * screenScale
@@ -160,6 +196,9 @@ private def jitterFromSlider (t : Float) : Float :=
 private def jitterToSlider (v : Float) : Float :=
   clamp01 v
 
+private def floorToNat (x : Float) : Nat :=
+  (Float.floor x).toUInt64.toNat
+
 private def sliderLabel (which : NoiseExplorerSlider) : String :=
   match which with
   | .scale => "Scale"
@@ -196,7 +235,7 @@ def noiseExplorerApplySlider (state : NoiseExplorerState) (which : NoiseExplorer
       { state with config := { state.config with persistence := persistenceFromSlider t } }
   | .jitter => { state with jitter := jitterFromSlider t }
 
-private def noiseExplorerSliderT (state : NoiseExplorerState) (which : NoiseExplorerSlider) : Float :=
+def noiseExplorerSliderT (state : NoiseExplorerState) (which : NoiseExplorerSlider) : Float :=
   match which with
   | .scale => scaleToSlider state.scale
   | .offsetX => offsetToSlider state.offset.x
@@ -273,6 +312,93 @@ private def noiseSample01 (state : NoiseExplorerState) (x y : Float) : Float :=
         let n01 := Float.clamp r.f1 0.0 1.5
         1.0 - n01 / 1.5
 
+private def noiseExplorerCacheKey (state : NoiseExplorerState) (res : Nat) : NoiseExplorerCacheKey := {
+  noiseType := state.noiseType
+  useFbm := state.useFbm
+  scale := state.scale
+  offsetX := state.offset.x
+  offsetY := state.offset.y
+  octaves := state.config.octaves
+  lacunarity := state.config.lacunarity
+  persistence := state.config.persistence
+  jitter := state.jitter
+  res := res
+}
+
+private def buildNoiseSamples (state : NoiseExplorerState) (res : Nat) : Array Float := Id.run do
+  let mut samples : Array Float := Array.mkEmpty (res * res)
+  let invRes := if res == 0 then 0.0 else 1.0 / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let u := xi.toFloat * invRes - 0.5
+      let v := yi.toFloat * invRes - 0.5
+      let sx := u * state.scale + state.offset.x
+      let sy := v * state.scale + state.offset.y
+      samples := samples.push (noiseSample01 state sx sy)
+  samples
+
+private def getNoiseSamplesCached (state : NoiseExplorerState) (res : Nat) : IO (Array Float) := do
+  let key := noiseExplorerCacheKey state res
+  let cache ← noiseExplorerCacheRef.get
+  match cache.key with
+  | some existing =>
+      if existing == key then
+        pure cache.samples
+      else
+        let samples := buildNoiseSamples state res
+        noiseExplorerCacheRef.set { key := some key, samples := samples }
+        pure samples
+  | none =>
+      let samples := buildNoiseSamples state res
+      noiseExplorerCacheRef.set { key := some key, samples := samples }
+      pure samples
+
+private def noiseExplorerRectBatchKey (state : NoiseExplorerState) (res : Nat)
+    (plotW plotH originX originY : Float) : NoiseExplorerRectBatchKey := {
+  sampleKey := noiseExplorerCacheKey state res
+  plotW := plotW
+  plotH := plotH
+  originX := originX
+  originY := originY
+}
+
+private def buildNoiseRectBatchData (samples : Array Float) (res : Nat)
+    (plotW plotH originX originY : Float) : Array Float := Id.run do
+  let mut data : Array Float := Array.mkEmpty (res * res * 9)
+  if res == 0 then
+    return data
+  let cellW := plotW / res.toFloat
+  let cellH := plotH / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      let x := originX + xi.toFloat * cellW
+      let y := originY + yi.toFloat * cellH
+      data := data
+        |>.push x |>.push y |>.push (cellW + 0.5) |>.push (cellH + 0.5)
+        |>.push n01 |>.push n01 |>.push n01 |>.push 1.0 |>.push 0.0
+  data
+
+private def getNoiseRectBatchDataCached (state : NoiseExplorerState) (res : Nat)
+    (samples : Array Float) (plotW plotH originX originY : Float) : IO (Array Float × Nat) := do
+  let key := noiseExplorerRectBatchKey state res plotW plotH originX originY
+  let cache ← noiseExplorerRectBatchCacheRef.get
+  match cache.key with
+  | some existing =>
+      if existing == key then
+        pure (cache.data, cache.count)
+      else
+        let data := buildNoiseRectBatchData samples res plotW plotH originX originY
+        let count := res * res
+        noiseExplorerRectBatchCacheRef.set { key := some key, data := data, count := count }
+        pure (data, count)
+  | none =>
+      let data := buildNoiseRectBatchData samples res plotW plotH originX originY
+      let count := res * res
+      noiseExplorerRectBatchCacheRef.set { key := some key, data := data, count := count }
+      pure (data, count)
+
 /-- Render noise explorer. -/
 def renderNoiseExplorer2D (state : NoiseExplorerState)
     (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
@@ -286,23 +412,37 @@ def renderNoiseExplorer2D (state : NoiseExplorerState)
   setFillColor (Color.gray 0.08)
   fillPath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
 
-  let cellSize := 6.0 * screenScale
-  let resX := Float.floor (plotW / cellSize)
-  let resY := Float.floor (plotH / cellSize)
-  let res := Nat.max 32 (Nat.min resX.toUInt64.toNat resY.toUInt64.toNat)
+  let dragging := match state.dragging with
+    | .slider _ => true
+    | .none => false
+  let cellSize := (if dragging then 10.0 else 6.0) * screenScale
+  let resX := floorToNat (plotW / cellSize)
+  let resY := floorToNat (plotH / cellSize)
+  let minRes := if dragging then 24 else 32
+  let maxRes := if dragging then 64 else 96
+  let res := Nat.max minRes (Nat.min maxRes (Nat.min resX resY))
   let cellW := plotW / res.toFloat
   let cellH := plotH / res.toFloat
+  let samples ← getNoiseSamplesCached state res
+  let canvas ← getCanvas
+  let t := canvas.state.transform
+  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
+  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
 
-  for yi in [:res] do
-    for xi in [:res] do
-      let u := xi.toFloat / res.toFloat - 0.5
-      let v := yi.toFloat / res.toFloat - 0.5
-      let sx := u * state.scale + state.offset.x
-      let sy := v * state.scale + state.offset.y
-      let n01 := noiseSample01 state sx sy
-      setFillColor (Color.gray n01)
-      fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
-        (cellW + 0.5) (cellH + 0.5))
+  if axisAlignedTranslateOnly then
+    let (batchData, batchCount) ← getNoiseRectBatchDataCached state res samples plotW plotH t.tx t.ty
+    if batchCount > 0 then
+      let renderer := canvas.ctx.renderer
+      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
+      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
+  else
+    for yi in [:res] do
+      for xi in [:res] do
+        let idx := yi * res + xi
+        let n01 := samples.getD idx 0.0
+        setFillColor (Color.gray n01)
+        fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
+          (cellW + 0.5) (cellH + 0.5))
 
   setStrokeColor (Color.gray 0.3)
   setLineWidth 1.0

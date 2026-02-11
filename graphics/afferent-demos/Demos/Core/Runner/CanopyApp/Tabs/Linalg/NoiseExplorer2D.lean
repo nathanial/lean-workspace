@@ -18,6 +18,7 @@ open Trellis
 
 namespace Demos
 def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
+  let sliderEpsilon : Float := 0.0005
   let noiseName ← registerComponentW
   let clickEvents ← useClickData noiseName
   let clickUpdates ← Event.mapM (fun data =>
@@ -66,7 +67,12 @@ def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
                         let idx := sliders.findIdx? (fun s => s == which) |>.getD 0
                         let layout := Demos.Linalg.noiseExplorerSliderLayout rect.width rect.height env.screenScale idx
                         let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                        let newState := Demos.Linalg.noiseExplorerApplySlider state which t
+                        let currentT := Demos.Linalg.noiseExplorerSliderT state which
+                        let newState :=
+                          if Float.abs (t - currentT) < sliderEpsilon then
+                            state
+                          else
+                            Demos.Linalg.noiseExplorerApplySlider state which t
                         { newState with dragging := .slider which }
                     | none => state
           | none => id
@@ -74,14 +80,14 @@ def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
     ) clickEvents
 
   let hoverEvents ← useAllHovers
-  let hoverUpdates ← Event.mapM (fun data =>
+  let hoverUpdates ← Event.mapMaybeM (fun data =>
     match data.componentMap.get? noiseName with
     | some wid =>
         match data.layouts.get wid with
         | some layout =>
             let rect := layout.contentRect
             let localX := data.x - rect.x
-            fun (state : Demos.Linalg.NoiseExplorerState) =>
+            some (fun (state : Demos.Linalg.NoiseExplorerState) =>
               match state.dragging with
               | .slider which =>
                   let sliders : Array Demos.Linalg.NoiseExplorerSlider :=
@@ -89,15 +95,27 @@ def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
                   let idx := sliders.findIdx? (fun s => s == which) |>.getD 0
                   let layout := Demos.Linalg.noiseExplorerSliderLayout rect.width rect.height env.screenScale idx
                   let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                  Demos.Linalg.noiseExplorerApplySlider state which t
+                  let currentT := Demos.Linalg.noiseExplorerSliderT state which
+                  if Float.abs (t - currentT) < sliderEpsilon then
+                    state
+                  else
+                    Demos.Linalg.noiseExplorerApplySlider state which t
               | .none => state
-        | none => id
-    | none => id
+            )
+        | none => none
+    | none => none
     ) hoverEvents
 
   let mouseUpEvents ← useAllMouseUp
-  let mouseUpUpdates ← Event.mapM (fun _ =>
-    fun (s : Demos.Linalg.NoiseExplorerState) => { s with dragging := .none }
+  let mouseUpUpdates ← Event.mapMaybeM (fun data =>
+    if data.button != 0 then
+      none
+    else
+      some (fun (s : Demos.Linalg.NoiseExplorerState) =>
+        match s.dragging with
+        | .none => s
+        | _ => { s with dragging := .none }
+      )
     ) mouseUpEvents
 
   let keyEvents ← useKeyboard
