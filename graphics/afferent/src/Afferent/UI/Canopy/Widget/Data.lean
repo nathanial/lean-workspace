@@ -7,3 +7,4 @@ import Afferent.UI.Canopy.Widget.Data.DataGrid
 import Afferent.UI.Canopy.Widget.Data.ListBox
 import Afferent.UI.Canopy.Widget.Data.VirtualList
 import Afferent.UI.Canopy.Widget.Data.TreeView
+import Afferent.UI.Canopy.Widget.Data.NodeEditor
