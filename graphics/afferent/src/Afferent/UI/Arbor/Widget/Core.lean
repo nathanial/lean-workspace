@@ -150,6 +150,8 @@ structure CustomSpec where
   measure : Float → Float → (Float × Float)
   /-- Collect render commands given computed layout. -/
   collect : Trellis.ComputedLayout → RenderCommands
+  /-- Collect render commands directly into a sink (optional fast path). -/
+  collectInto? : Option (Trellis.ComputedLayout → RenderCommandSink → IO Unit) := none
   /-- Optional CanvasM draw hook for backend-specific rendering. -/
   draw : Option (Trellis.ComputedLayout → Afferent.CanvasM Unit) := none
   /-- Optional custom hit test (true if point is inside widget). -/
@@ -166,6 +168,7 @@ namespace CustomSpec
 def default : CustomSpec :=
   { measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
+    collectInto? := none
     draw := none
     hitTest := none }
 

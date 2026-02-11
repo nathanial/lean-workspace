@@ -46,6 +46,16 @@ def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
       RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let thumbX := if isOn then
+      rect.x + dims.trackWidth - dims.thumbSize - dims.thumbPadding
+    else
+      rect.x + dims.thumbPadding
+    let thumbY := rect.y + (dims.trackHeight - dims.thumbSize) / 2
+    let thumbRect := Arbor.Rect.mk' thumbX thumbY dims.thumbSize dims.thumbSize
+    let thumbColor := if hovered then Color.gray 0.95 else Color.white
+    sink.emitFillRect thumbRect thumbColor (dims.thumbSize / 2))
   draw := none
 }
 
@@ -65,6 +75,15 @@ def animatedTrackSpec (progress : Float) (hovered : Bool) (dims : Dimensions := 
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
       RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let leftX := rect.x + dims.thumbPadding
+    let rightX := rect.x + dims.trackWidth - dims.thumbSize - dims.thumbPadding
+    let thumbX := leftX + (rightX - leftX) * progress
+    let thumbY := rect.y + (dims.trackHeight - dims.thumbSize) / 2
+    let thumbRect := Arbor.Rect.mk' thumbX thumbY dims.thumbSize dims.thumbSize
+    let thumbColor := if hovered then Color.gray 0.95 else Color.white
+    sink.emitFillRect thumbRect thumbColor (dims.thumbSize / 2))
   draw := none
 }
 

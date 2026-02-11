@@ -390,6 +390,32 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
           RenderM.fillRect cursorRect theme.focusRing 0
 
       RenderM.popClip
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let lineHeight := renderState.lineHeight
+    let lines := renderState.wrappedLines
+    let ascender := theme.font.ascender
+    let clipRect := Arbor.Rect.mk' rect.x rect.y rect.width viewportHeight
+    sink.emitPushClip clipRect
+    if showPlaceholder then
+      let textY := rect.y + ascender
+      sink.emitFillText placeholder rect.x textY theme.font theme.textMuted
+    else
+      for i in [:lines.size] do
+        match lines[i]? with
+        | some line =>
+          let lineY := rect.y + i.toFloat * lineHeight - scrollOffsetY
+          if lineY + lineHeight >= rect.y && lineY < rect.y + viewportHeight then
+            let textY := lineY + ascender
+            sink.emitFillText line.text rect.x textY theme.font theme.text
+        | none => pure ()
+    if focused then
+      let cursorScreenX := rect.x + renderState.cursorPixelX
+      let cursorScreenY := rect.y + renderState.cursorPixelY - scrollOffsetY
+      if cursorScreenY + lineHeight >= rect.y && cursorScreenY < rect.y + viewportHeight then
+        let cursorRect := Arbor.Rect.mk' cursorScreenX cursorScreenY 2 lineHeight
+        sink.emitFillRect cursorRect theme.focusRing 0
+    sink.emitPopClip)
   draw := none
 }
 

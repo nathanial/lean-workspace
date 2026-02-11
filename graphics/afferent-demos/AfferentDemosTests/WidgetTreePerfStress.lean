@@ -250,6 +250,10 @@ private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
     (fontRegistry : FontRegistry) (componentRegistry : ComponentRegistry)
     (config : StressConfig) : IO StressResult := do
   let renderCache ← IO.mkRef RenderCache.empty
+  let dropSink : Afferent.Arbor.RenderCommandSink := {
+    emit := fun _ => pure ()
+    emitAll := fun _ => pure ()
+  }
   let totalFrames := config.warmupFrames + config.sampleFrames
   let mut widgetCount : Nat := 0
   let mut layoutNodeCount : Nat := 0
@@ -281,8 +285,8 @@ private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
     let tHitIndex1 ← IO.monoNanosNow
 
     let tCollect0 ← IO.monoNanosNow
-    let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
-      measureResult.widget layouts
+    let _ ← Afferent.Arbor.collectCommandsCachedIntoWithSinkAndStats renderCache
+      measureResult.widget layouts dropSink
     let tCollect1 ← IO.monoNanosNow
 
     if widgetCount == 0 then

@@ -78,46 +78,39 @@ private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
       layouts
     }
 
-private def collectCommands (measuredWidget : Afferent.Arbor.Widget)
-    (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand) := do
+private def renderMeasuredViaSinkWithStats (reg : FontRegistry)
+    (measuredWidget : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult)
+    (offsetX offsetY : Float := 0.0) : CanvasM ArborRenderStats := do
   let canvas ← CanvasM.getCanvas
-  Afferent.Arbor.collectCommandsCached canvas.drawRuntime.renderCache measuredWidget layouts
+  let sink ← BatchCommandSink.new reg canvas
+  if offsetX != 0.0 || offsetY != 0.0 then
+    sink.emit .save
+    sink.emit (.pushTranslate offsetX offsetY)
 
-private def collectCommandsWithStats (measuredWidget : Afferent.Arbor.Widget)
-    (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand × Nat × Nat × Float) := do
-  let canvas ← CanvasM.getCanvas
   let t0 ← IO.monoNanosNow
-  let (commands, hits, misses) ←
-    Afferent.Arbor.collectCommandsCachedWithStats canvas.drawRuntime.renderCache measuredWidget layouts
+  let (hits, misses) ←
+    Afferent.Arbor.collectCommandsCachedIntoWithSinkAndStats
+      canvas.drawRuntime.renderCache measuredWidget layouts sink.toRenderSink
+  if offsetX != 0.0 || offsetY != 0.0 then
+    sink.emit .popTransform
+    sink.emit .restore
+  let (batchStats, canvas', executeNs) ← sink.finish
   let t1 ← IO.monoNanosNow
-  pure (commands, hits, misses, (t1 - t0).toFloat / 1000000.0)
+  CanvasM.setCanvas canvas'
 
-private def executeWithOffset (reg : FontRegistry)
-    (commands : Array Afferent.Arbor.RenderCommand)
-    (offsetX offsetY : Float) : CanvasM Unit := do
-  if offsetX == 0.0 && offsetY == 0.0 then
-    executeCommandsBatched reg commands
-  else
-    CanvasM.save
-    CanvasM.translate offsetX offsetY
-    executeCommandsBatched reg commands
-    CanvasM.restore
+  let totalMs := (t1 - t0).toFloat / 1000000.0
+  let timeExecuteMs := executeNs.toFloat / 1000000.0
+  let rawCollectMs := totalMs - timeExecuteMs
+  let timeCollectMs := if rawCollectMs > 0.0 then rawCollectMs else 0.0
 
-private def executeWithOffsetAndStats (reg : FontRegistry)
-    (commands : Array Afferent.Arbor.RenderCommand)
-    (offsetX offsetY : Float) : CanvasM (BatchStats × Float) := do
-  let t0 ← IO.monoNanosNow
-  let batchStats ←
-    if offsetX == 0.0 && offsetY == 0.0 then
-      executeCommandsBatchedWithStats reg commands
-    else
-      CanvasM.save
-      CanvasM.translate offsetX offsetY
-      let stats ← executeCommandsBatchedWithStats reg commands
-      CanvasM.restore
-      pure stats
-  let t1 ← IO.monoNanosNow
-  pure (batchStats, (t1 - t0).toFloat / 1000000.0)
+  pure {
+    batch := batchStats
+    cacheHits := hits
+    cacheMisses := misses
+    timeCollectMs
+    timeExecuteMs
+    timeCustomMs := 0.0
+  }
 
 private def renderCustomWithOffset (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult)
@@ -138,15 +131,15 @@ private def renderCustomWithOffset (measuredWidget : Afferent.Arbor.Widget)
     (for example: event dispatch and rendering in the same frame). -/
 def renderMeasuredArborWidget (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM Unit := do
-  let commands ← collectCommands measuredWidget layouts
-  executeWithOffset reg commands offsetX offsetY
+  let _ ← renderMeasuredViaSinkWithStats reg measuredWidget layouts offsetX offsetY
+  pure ()
 
 /-- Render an already measured Arbor widget tree and run custom CanvasM draw hooks.
     Use this when the caller already computed measurement/layout and needs parity
     with `renderArborWidgetWithCustom` without recomputing layout. -/
 def renderMeasuredArborWidgetWithCustom (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM Unit := do
-  renderMeasuredArborWidget reg measuredWidget layouts offsetX offsetY
+  let _ ← renderMeasuredViaSinkWithStats reg measuredWidget layouts offsetX offsetY
   if offsetX == 0.0 && offsetY == 0.0 then
     renderCustomWidgets measuredWidget layouts
   else
@@ -154,6 +147,15 @@ def renderMeasuredArborWidgetWithCustom (reg : FontRegistry) (measuredWidget : A
     CanvasM.translate offsetX offsetY
     renderCustomWidgets measuredWidget layouts
     CanvasM.restore
+
+/-- Render an already measured Arbor widget tree, run custom CanvasM draw hooks,
+    and return render statistics without re-running measure/layout. -/
+def renderMeasuredArborWidgetWithCustomAndStats (reg : FontRegistry)
+    (measuredWidget : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult)
+    (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM ArborRenderStats := do
+  let renderStats ← renderMeasuredViaSinkWithStats reg measuredWidget layouts offsetX offsetY
+  let timeCustomMs ← renderCustomWithOffset measuredWidget layouts offsetX offsetY
+  pure { renderStats with timeCustomMs := timeCustomMs }
 
 private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) (opts : RenderOptions) : CanvasM Unit := do
@@ -182,20 +184,8 @@ def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
 def renderArborWidgetWithCustomAndStats (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM ArborRenderStats := do
   let prepared ← prepareRender reg widget availWidth availHeight false
-  let (commands, hits, misses, timeCollectMs) ←
-    collectCommandsWithStats prepared.measuredWidget prepared.layouts
-  let (batchStats, timeExecuteMs) ←
-    executeWithOffsetAndStats reg commands prepared.offsetX prepared.offsetY
-  let timeCustomMs ←
-    renderCustomWithOffset prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
-  pure {
-    batch := batchStats
-    cacheHits := hits
-    cacheMisses := misses
-    timeCollectMs
-    timeExecuteMs
-    timeCustomMs
-  }
+  renderMeasuredArborWidgetWithCustomAndStats reg
+    prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
 
 /-- Render an Arbor widget tree and run any custom CanvasM draw hooks. -/
 def renderArborWidgetWithCustom (reg : FontRegistry) (widget : Afferent.Arbor.Widget)

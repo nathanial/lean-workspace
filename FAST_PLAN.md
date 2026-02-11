@@ -152,3 +152,51 @@ For each phase:
 - Stepper collect: `40.8 ms` -> target **<= 28 ms**.
 - Dynamic subtree swap update: `30.4 ms` -> target **<= 24 ms**.
 - No rendering correctness regressions, and all test suites continue passing.
+
+## Phase 1 Checkpoint (Implemented)
+Collected from:
+- `just test-project graphics/afferent-demos`
+- Latest stable sample in this branch (2026-02-11)
+
+| Scenario | Baseline Collect (ms) | Phase 1 Collect (ms) | Delta | Baseline Total (ms) | Phase 1 Total (ms) | Delta |
+|---|---:|---:|---:|---:|---:|---:|
+| switch | 13.2 | 14.0 | +0.8 | 15.8 | 16.8 | +1.0 |
+| dropdown | 21.9 | 22.4 | +0.5 | 28.2 | 28.9 | +0.7 |
+| stepper | 40.8 | 40.7 | -0.1 | 49.1 | 48.8 | -0.3 |
+| static deep tree | 10.8 | 8.9 | -1.9 | 13.3 | 11.5 | -1.8 |
+| dynamic subtree swap | 3.9 | 3.4 | -0.5 | 35.2 | 34.0 | -1.2 |
+| fanout dynWidget | 1.6 | 1.7 | +0.1 | 8.5 | 7.9 | -0.6 |
+
+Gate result:
+- Stepper collect reduction target for Phase 1 was **>= 15%**.
+- Current result is approximately flat (`40.8 -> 40.7 ms`), so the gate is **not met**.
+- Proceed to Phase 2/3 work for larger wins, and optionally revisit Phase 1 merge strategy if we want stronger collect-path gains.
+
+## Phase 2 Checkpoint (Implemented)
+Collected from:
+- `just test-project graphics/afferent-demos`
+- Latest stable sample in this branch (2026-02-11)
+
+Changes implemented:
+- Added preindexed dispatch API to avoid rebuilding hit index per event:
+  - `dispatchEventWithIndex` in `graphics/afferent/src/Afferent/UI/Arbor/App/UI.lean`
+  - Runner now builds hit index once per frame and reuses it for all events:
+    `graphics/afferent/src/Afferent/Runner/Loop.lean`
+- Replaced per-item full `path : Array WidgetId` storage with compact parent-linked `HitPathNode`
+  representation, reconstructing only the winning path:
+  - `graphics/afferent/src/Afferent/UI/Arbor/Event/HitTest.lean`
+
+| Scenario | Baseline Collect (ms) | Phase 2 Collect (ms) | Delta | Baseline Total (ms) | Phase 2 Total (ms) | Delta |
+|---|---:|---:|---:|---:|---:|---:|
+| switch | 13.2 | 13.7 | +0.5 | 15.8 | 16.4 | +0.6 |
+| dropdown | 21.9 | 22.0 | +0.1 | 28.2 | 28.4 | +0.2 |
+| stepper | 40.8 | 40.8 | +0.0 | 49.1 | 49.3 | +0.2 |
+| static deep tree | 10.8 | 9.5 | -1.3 | 13.3 | 11.8 | -1.5 |
+| dynamic subtree swap | 3.9 | 3.5 | -0.4 | 35.2 | 34.7 | -0.5 |
+| fanout dynWidget | 1.6 | 1.7 | +0.1 | 8.5 | 8.4 | -0.1 |
+
+Gate result:
+- Phase 2 hover-overhead target was **>= 20% reduction** on stepper hover overhead.
+- Observed hover overhead is roughly unchanged/noisy in this suite; gate is **not met**.
+- Important: this benchmark suite is primarily the reactive Canopy path and does not strongly
+  stress the non-reactive `dispatchEvent` path where the per-event hit-index rebuild fix applies.

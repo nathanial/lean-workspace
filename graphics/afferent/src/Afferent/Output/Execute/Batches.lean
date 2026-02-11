@@ -280,10 +280,19 @@ def executeTextBatch (font : Font) (entries : Array TextBatchEntry) : CanvasM Un
   let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
   -- Pack into parallel arrays for FFI
   let texts := entries.map (·.text)
-  let positions := entries.foldl (init := #[]) fun acc e => acc.push e.x |>.push e.y
-  let colors := entries.foldl (init := #[]) fun acc e =>
-    acc.push e.r |>.push e.g |>.push e.b |>.push e.a
-  let transforms := entries.foldl (init := #[]) fun acc e => acc ++ e.transform
+  let mut totalTransformFloats := 0
+  for e in entries do
+    totalTransformFloats := totalTransformFloats + e.transform.size
+  let (positions, colors, transforms) := Id.run do
+    let mut positions : Array Float := Array.mkEmpty (entries.size * 2)
+    let mut colors : Array Float := Array.mkEmpty (entries.size * 4)
+    let mut transforms : Array Float := Array.mkEmpty totalTransformFloats
+    for e in entries do
+      positions := positions.push e.x |>.push e.y
+      colors := colors.push e.r |>.push e.g |>.push e.b |>.push e.a
+      for value in e.transform do
+        transforms := transforms.push value
+    (positions, colors, transforms)
   FFI.Text.renderBatch canvas.ctx.renderer font.handle texts positions colors transforms
     canvasWidth canvasHeight
 

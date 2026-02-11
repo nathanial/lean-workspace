@@ -120,8 +120,9 @@ private def contextFor (id : WidgetId) (path : Array WidgetId)
 
 /-- Dispatch a single event through the widget tree.
     Uses pointer capture when active; otherwise hit tests and bubbles. -/
-def dispatchEvent {Msg : Type} (event : Event) (root : Widget) (layouts : Trellis.LayoutResult)
+def dispatchEventWithIndex {Msg : Type} (event : Event) (root : Widget) (layouts : Trellis.LayoutResult)
     (handlers : HandlerRegistry Msg) (capture : CaptureState := {})
+    (hitIndex? : Option HitTestIndex := none)
     : CaptureState × Array Msg := Id.run do
   let mut msgs : Array Msg := #[]
   let mut captureState := capture
@@ -145,7 +146,7 @@ def dispatchEvent {Msg : Type} (event : Event) (root : Widget) (layouts : Trelli
     match globalPos with
     | none => pure ()
     | some p =>
-      let hitIndex := buildHitTestIndex root layouts
+      let hitIndex := hitIndex?.getD (buildHitTestIndex root layouts)
       let path := hitTestPathIndexed hitIndex p.x p.y
       if path.isEmpty then
         pure ()
@@ -171,6 +172,13 @@ def dispatchEvent {Msg : Type} (event : Event) (root : Widget) (layouts : Trelli
               | none => pure ()
 
   return (captureState, msgs)
+
+/-- Dispatch a single event through the widget tree.
+    Uses pointer capture when active; otherwise hit tests and bubbles. -/
+def dispatchEvent {Msg : Type} (event : Event) (root : Widget) (layouts : Trellis.LayoutResult)
+    (handlers : HandlerRegistry Msg) (capture : CaptureState := {})
+    : CaptureState × Array Msg :=
+  dispatchEventWithIndex event root layouts handlers capture none
 
 /-! ## UI Builder -/
 

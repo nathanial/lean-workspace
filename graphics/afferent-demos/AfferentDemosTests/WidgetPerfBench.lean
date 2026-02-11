@@ -235,6 +235,10 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     (registry : FontRegistry) (componentRegistry : ComponentRegistry)
     (config : BenchConfig) : IO BenchResult := do
   let renderCache ← IO.mkRef RenderCache.empty
+  let dropSink : Afferent.Arbor.RenderCommandSink := {
+    emit := fun _ => pure ()
+    emitAll := fun _ => pure ()
+  }
   let totalFrames := config.warmupFrames + config.sampleFrames
   let mut cache : Option BenchFrameCache := none
   let mut hoverPoints : Array (Float × Float) := #[]
@@ -297,8 +301,8 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     let tHitIndex1 ← IO.monoNanosNow
 
     let tCollect0 ← IO.monoNanosNow
-    let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
-      measureResult.widget layouts
+    let _ ← Afferent.Arbor.collectCommandsCachedIntoWithSinkAndStats renderCache
+      measureResult.widget layouts dropSink
     let tCollect1 ← IO.monoNanosNow
 
     cache := some { widget := measureResult.widget, layouts := layouts, hitIndex := hitIndex }

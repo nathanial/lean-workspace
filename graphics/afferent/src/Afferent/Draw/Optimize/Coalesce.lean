@@ -3,6 +3,7 @@
 -/
 import Afferent.Core.Transform
 import Afferent.UI.Arbor
+import Std.Data.HashMap
 
 namespace Afferent.Widget
 
@@ -478,38 +479,39 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
 def mergeInstancedPolygons (cmds : Array RenderCommand) : Array RenderCommand := Id.run do
   if cmds.isEmpty then return #[]
 
-  -- First pass: collect all fillPolygonInstanced by pathHash
-  -- Use an Array of (pathHash, vertices, indices, instances, centerX, centerY) tuples
-  let mut polygonGroups : Array (UInt64 × Array Float × Array UInt32 × Array MeshInstance × Float × Float) := #[]
+  -- Group by pathHash in a single pass, storing instance chunks to avoid quadratic copies.
+  let mut polygonGroups :
+      Std.HashMap UInt64 (Array Float × Array UInt32 × Array (Array MeshInstance) × Nat × Float × Float) := {}
+  let mut groupOrder : Array UInt64 := #[]
   let mut otherCmds : Array RenderCommand := #[]
 
   for cmd in cmds do
     match cmd with
     | .fillPolygonInstanced pathHash vertices indices instances centerX centerY =>
-      -- Find existing group with same pathHash
-      let mut found := false
-      let mut newGroups : Array (UInt64 × Array Float × Array UInt32 × Array MeshInstance × Float × Float) := #[]
-      for group in polygonGroups do
-        let (hash, verts, inds, insts, cx, cy) := group
-        if hash == pathHash then
-          -- Merge instances into existing group
-          newGroups := newGroups.push (hash, verts, inds, insts ++ instances, cx, cy)
-          found := true
-        else
-          newGroups := newGroups.push group
-      if found then
-        polygonGroups := newGroups
-      else
-        -- Add new group
-        polygonGroups := polygonGroups.push (pathHash, vertices, indices, instances, centerX, centerY)
+      match polygonGroups[pathHash]? with
+      | some (verts, inds, chunks, totalInstances, cx, cy) =>
+        polygonGroups := polygonGroups.insert pathHash
+          (verts, inds, chunks.push instances, totalInstances + instances.size, cx, cy)
+      | none =>
+        polygonGroups := polygonGroups.insert pathHash
+          (vertices, indices, #[instances], instances.size, centerX, centerY)
+        groupOrder := groupOrder.push pathHash
     | _ =>
       otherCmds := otherCmds.push cmd
 
   -- Build output: other commands first (they have lower sort priorities), then merged polygons
-  let mut result := otherCmds
-  for group in polygonGroups do
-    let (pathHash, vertices, indices, instances, centerX, centerY) := group
-    result := result.push (.fillPolygonInstanced pathHash vertices indices instances centerX centerY)
+  let mut result : Array RenderCommand := Array.mkEmpty (otherCmds.size + groupOrder.size)
+  for cmd in otherCmds do
+    result := result.push cmd
+  for pathHash in groupOrder do
+    match polygonGroups[pathHash]? with
+    | some (vertices, indices, chunks, totalInstances, centerX, centerY) =>
+      let mut mergedInstances : Array MeshInstance := Array.mkEmpty totalInstances
+      for chunk in chunks do
+        for inst in chunk do
+          mergedInstances := mergedInstances.push inst
+      result := result.push (.fillPolygonInstanced pathHash vertices indices mergedInstances centerX centerY)
+    | none => pure ()
 
   result
 
@@ -519,37 +521,36 @@ def mergeInstancedPolygons (cmds : Array RenderCommand) : Array RenderCommand :=
 def mergeInstancedArcs (cmds : Array RenderCommand) : Array RenderCommand := Id.run do
   if cmds.isEmpty then return #[]
 
-  -- Group arcs by segment count (instances, segments)
-  let mut arcGroups : Array (Array ArcInstance × Nat) := #[]
+  -- Group arcs by segment count in a single pass, storing chunks to avoid quadratic copies.
+  let mut arcGroups : Std.HashMap Nat (Array (Array ArcInstance) × Nat) := {}
+  let mut groupOrder : Array Nat := #[]
   let mut otherCmds : Array RenderCommand := #[]
 
   for cmd in cmds do
     match cmd with
     | .strokeArcInstanced instances segments =>
-      -- Find existing group with same segment count
-      let mut found := false
-      let mut newGroups : Array (Array ArcInstance × Nat) := #[]
-      for group in arcGroups do
-        let (insts, segs) := group
-        if segs == segments then
-          -- Merge instances into existing group
-          newGroups := newGroups.push (insts ++ instances, segs)
-          found := true
-        else
-          newGroups := newGroups.push group
-      if found then
-        arcGroups := newGroups
-      else
-        -- Add new group
-        arcGroups := arcGroups.push (instances, segments)
+      match arcGroups[segments]? with
+      | some (chunks, totalInstances) =>
+        arcGroups := arcGroups.insert segments (chunks.push instances, totalInstances + instances.size)
+      | none =>
+        arcGroups := arcGroups.insert segments (#[instances], instances.size)
+        groupOrder := groupOrder.push segments
     | _ =>
       otherCmds := otherCmds.push cmd
 
   -- Build output: other commands first, then merged arcs
-  let mut result := otherCmds
-  for group in arcGroups do
-    let (instances, segments) := group
-    result := result.push (.strokeArcInstanced instances segments)
+  let mut result : Array RenderCommand := Array.mkEmpty (otherCmds.size + groupOrder.size)
+  for cmd in otherCmds do
+    result := result.push cmd
+  for segments in groupOrder do
+    match arcGroups[segments]? with
+    | some (chunks, totalInstances) =>
+      let mut mergedInstances : Array ArcInstance := Array.mkEmpty totalInstances
+      for chunk in chunks do
+        for inst in chunk do
+          mergedInstances := mergedInstances.push inst
+      result := result.push (.strokeArcInstanced mergedInstances segments)
+    | none => pure ()
 
   result
 

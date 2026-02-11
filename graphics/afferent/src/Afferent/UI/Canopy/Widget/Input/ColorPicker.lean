@@ -166,6 +166,33 @@ def svSquareSpec (hue saturation value : Float) (size : Float)
         (indicatorRadius * 2) (indicatorRadius * 2)
       RenderM.strokeRect indicatorRect Color.black 2.0 indicatorRadius
       RenderM.strokeRect indicatorRect Color.white 1.0 indicatorRadius
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let pureHueColor := HSV.toColor { h := hue, s := 1.0, v := 1.0 } 1.0
+    let leftPt := Afferent.Point.mk' rect.x (rect.y + rect.height / 2)
+    let rightPt := Afferent.Point.mk' (rect.x + rect.width) (rect.y + rect.height / 2)
+    let satStops : Array Afferent.GradientStop := #[
+      { position := 0.0, color := Color.white },
+      { position := 1.0, color := pureHueColor }
+    ]
+    let satStyle := Afferent.FillStyle.linearGradient leftPt rightPt satStops
+    let svRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
+    let topPt := Afferent.Point.mk' (rect.x + rect.width / 2) rect.y
+    let bottomPt := Afferent.Point.mk' (rect.x + rect.width / 2) (rect.y + rect.height)
+    let valStops : Array Afferent.GradientStop := #[
+      { position := 0.0, color := { Color.black with a := 0.0 } },
+      { position := 1.0, color := Color.black }
+    ]
+    let valStyle := Afferent.FillStyle.linearGradient topPt bottomPt valStops
+    sink.emit (.fillRectStyle svRect satStyle 0)
+    sink.emit (.fillRectStyle svRect valStyle 0)
+    let indicatorX := rect.x + saturation * rect.width
+    let indicatorY := rect.y + (1.0 - value) * rect.height
+    let indicatorRect := Arbor.Rect.mk'
+      (indicatorX - indicatorRadius) (indicatorY - indicatorRadius)
+      (indicatorRadius * 2) (indicatorRadius * 2)
+    sink.emitStrokeRect indicatorRect Color.black 2.0 indicatorRadius
+    sink.emitStrokeRect indicatorRect Color.white 1.0 indicatorRadius)
 }
 
 /-- CustomSpec for vertical hue bar.
@@ -206,6 +233,32 @@ def hueBarSpec (selectedHue : Float) (width height : Float)
       let indicatorRect := Arbor.Rect.mk' rect.x indicatorY rect.width indicatorHeight
       RenderM.fillRect indicatorRect Color.white cornerRadius
       RenderM.strokeRect indicatorRect (Color.gray 0.3) 1.0 cornerRadius
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let topPt := Afferent.Point.mk' (rect.x + rect.width / 2) rect.y
+    let bottomPt := Afferent.Point.mk' (rect.x + rect.width / 2) (rect.y + rect.height)
+    let red     := HSV.toColor (HSV.mk 0.0   1.0 1.0) 1.0
+    let yellow  := HSV.toColor (HSV.mk 0.167 1.0 1.0) 1.0
+    let green   := HSV.toColor (HSV.mk 0.333 1.0 1.0) 1.0
+    let cyan    := HSV.toColor (HSV.mk 0.5   1.0 1.0) 1.0
+    let blue    := HSV.toColor (HSV.mk 0.667 1.0 1.0) 1.0
+    let magenta := HSV.toColor (HSV.mk 0.833 1.0 1.0) 1.0
+    let hueStops : Array Afferent.GradientStop := #[
+      { position := 0.0,   color := red },
+      { position := 0.167, color := yellow },
+      { position := 0.333, color := green },
+      { position := 0.5,   color := cyan },
+      { position := 0.667, color := blue },
+      { position := 0.833, color := magenta },
+      { position := 1.0,   color := red }
+    ]
+    let hueStyle := Afferent.FillStyle.linearGradient topPt bottomPt hueStops
+    let hueRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
+    sink.emit (.fillRectStyle hueRect hueStyle cornerRadius)
+    let indicatorY := rect.y + selectedHue * rect.height - indicatorHeight / 2
+    let indicatorRect := Arbor.Rect.mk' rect.x indicatorY rect.width indicatorHeight
+    sink.emitFillRect indicatorRect Color.white cornerRadius
+    sink.emitStrokeRect indicatorRect (Color.gray 0.3) 1.0 cornerRadius)
 }
 
 /-- CustomSpec for vertical alpha bar with checkerboard.
@@ -250,6 +303,35 @@ def alphaBarSpec (selectedAlpha : Float) (currentHSV : HSV)
       let indicatorRect := Arbor.Rect.mk' rect.x indicatorY rect.width indicatorHeight
       RenderM.fillRect indicatorRect Color.white cornerRadius
       RenderM.strokeRect indicatorRect (Color.gray 0.3) 1.0 cornerRadius
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let checkSize : Float := 6.0
+    let rows := (rect.height / checkSize).ceil.toUInt32.toNat
+    let cols := (rect.width / checkSize).ceil.toUInt32.toNat
+    for row in [:rows] do
+      for col in [:cols] do
+        let isLight := (row + col) % 2 == 0
+        let color := if isLight then Color.gray 0.8 else Color.gray 0.5
+        let checkRect := Arbor.Rect.mk'
+          (rect.x + col.toFloat * checkSize)
+          (rect.y + row.toFloat * checkSize)
+          (minFloat checkSize (rect.width - col.toFloat * checkSize))
+          (minFloat checkSize (rect.height - row.toFloat * checkSize))
+        sink.emitFillRect checkRect color 0
+    let baseColor := HSV.toColor currentHSV 1.0
+    let topPt := Afferent.Point.mk' (rect.x + rect.width / 2) rect.y
+    let bottomPt := Afferent.Point.mk' (rect.x + rect.width / 2) (rect.y + rect.height)
+    let alphaStops : Array Afferent.GradientStop := #[
+      { position := 0.0, color := baseColor },
+      { position := 1.0, color := { baseColor with a := 0.0 } }
+    ]
+    let alphaStyle := Afferent.FillStyle.linearGradient topPt bottomPt alphaStops
+    let alphaRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
+    sink.emit (.fillRectStyle alphaRect alphaStyle 0)
+    let indicatorY := rect.y + (1.0 - selectedAlpha) * rect.height - indicatorHeight / 2
+    let indicatorRect := Arbor.Rect.mk' rect.x indicatorY rect.width indicatorHeight
+    sink.emitFillRect indicatorRect Color.white cornerRadius
+    sink.emitStrokeRect indicatorRect (Color.gray 0.3) 1.0 cornerRadius)
 }
 
 /-- CustomSpec for color preview rectangle. -/
@@ -278,6 +360,24 @@ def colorPreviewSpec (color : Color) (width height cornerRadius : Float) : Custo
       let previewRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
       RenderM.fillRect previewRect color cornerRadius
       RenderM.strokeRect previewRect (Color.gray 0.3) 1.0 cornerRadius
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let checkSize : Float := 6.0
+    let rows := (rect.height / checkSize).ceil.toUInt32.toNat
+    let cols := (rect.width / checkSize).ceil.toUInt32.toNat
+    for row in [:rows] do
+      for col in [:cols] do
+        let isLight := (row + col) % 2 == 0
+        let checkColor := if isLight then Color.gray 0.8 else Color.gray 0.5
+        let checkRect := Arbor.Rect.mk'
+          (rect.x + col.toFloat * checkSize)
+          (rect.y + row.toFloat * checkSize)
+          (minFloat checkSize (rect.width - col.toFloat * checkSize))
+          (minFloat checkSize (rect.height - row.toFloat * checkSize))
+        sink.emitFillRect checkRect checkColor 0
+    let previewRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
+    sink.emitFillRect previewRect color cornerRadius
+    sink.emitStrokeRect previewRect (Color.gray 0.3) 1.0 cornerRadius)
 }
 
 end ColorPicker

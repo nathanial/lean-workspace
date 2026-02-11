@@ -58,6 +58,14 @@ def closeButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := def
     let color := if isHovered then theme.primary.foreground else theme.textMuted
     RenderM.build do
       RenderM.strokePath path color 2.0
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let centerX := rect.x + rect.width / 2
+    let centerY := rect.y + rect.height / 2
+    let iconSize := dims.closeButtonSize * 0.35
+    let path := closeButtonPath centerX centerY iconSize
+    let color := if isHovered then theme.primary.foreground else theme.textMuted
+    sink.emit (.strokePath path color 2.0))
   draw := none
 }
 

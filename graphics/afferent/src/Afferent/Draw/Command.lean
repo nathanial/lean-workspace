@@ -159,6 +159,82 @@ inductive RenderCommand where
   | restore
 deriving Repr
 
+/-- Streaming sink for render commands.
+    Optional specialized callbacks let sinks bypass generic command construction. -/
+structure RenderCommandSink where
+  emit : RenderCommand → IO Unit
+  emitAll : Array RenderCommand → IO Unit
+  emitFillRect? : Option (Rect → Color → Float → IO Unit) := none
+  emitStrokeRect? : Option (Rect → Color → Float → Float → IO Unit) := none
+  emitFillText? : Option (String → Float → Float → FontId → Color → IO Unit) := none
+  emitPushClip? : Option (Rect → IO Unit) := none
+  emitPopClip? : Option (IO Unit) := none
+  emitSave? : Option (IO Unit) := none
+  emitRestore? : Option (IO Unit) := none
+  emitPushTranslate? : Option (Float → Float → IO Unit) := none
+  emitPopTransform? : Option (IO Unit) := none
+
+namespace RenderCommandSink
+
+def ofEmit (emitCommand : RenderCommand → IO Unit) : RenderCommandSink :=
+  { emit := emitCommand
+    emitAll := fun cmds => do
+      for cmd in cmds do
+        emitCommand cmd }
+
+instance : Inhabited RenderCommandSink where
+  default := ofEmit (fun _ => pure ())
+
+def emitFillRect (sink : RenderCommandSink) (rect : Rect) (color : Color)
+    (cornerRadius : Float := 0.0) : IO Unit :=
+  match sink.emitFillRect? with
+  | some f => f rect color cornerRadius
+  | none => sink.emit (.fillRect rect color cornerRadius)
+
+def emitStrokeRect (sink : RenderCommandSink) (rect : Rect) (color : Color)
+    (lineWidth : Float) (cornerRadius : Float := 0.0) : IO Unit :=
+  match sink.emitStrokeRect? with
+  | some f => f rect color lineWidth cornerRadius
+  | none => sink.emit (.strokeRect rect color lineWidth cornerRadius)
+
+def emitFillText (sink : RenderCommandSink) (text : String) (x y : Float)
+    (font : FontId) (color : Color) : IO Unit :=
+  match sink.emitFillText? with
+  | some f => f text x y font color
+  | none => sink.emit (.fillText text x y font color)
+
+def emitPushClip (sink : RenderCommandSink) (rect : Rect) : IO Unit :=
+  match sink.emitPushClip? with
+  | some f => f rect
+  | none => sink.emit (.pushClip rect)
+
+def emitPopClip (sink : RenderCommandSink) : IO Unit :=
+  match sink.emitPopClip? with
+  | some f => f
+  | none => sink.emit .popClip
+
+def emitSave (sink : RenderCommandSink) : IO Unit :=
+  match sink.emitSave? with
+  | some f => f
+  | none => sink.emit .save
+
+def emitRestore (sink : RenderCommandSink) : IO Unit :=
+  match sink.emitRestore? with
+  | some f => f
+  | none => sink.emit .restore
+
+def emitPushTranslate (sink : RenderCommandSink) (dx dy : Float) : IO Unit :=
+  match sink.emitPushTranslate? with
+  | some f => f dx dy
+  | none => sink.emit (.pushTranslate dx dy)
+
+def emitPopTransform (sink : RenderCommandSink) : IO Unit :=
+  match sink.emitPopTransform? with
+  | some f => f
+  | none => sink.emit .popTransform
+
+end RenderCommandSink
+
 namespace RenderCommand
 
 /-- Create a filled rectangle command. -/

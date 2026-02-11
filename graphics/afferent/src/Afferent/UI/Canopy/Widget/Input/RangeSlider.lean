@@ -96,6 +96,35 @@ def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
       if target == .high then
         RenderM.strokeRect (Arbor.Rect.mk' (highX - 2) (thumbY - 2)
           (dims.thumbSize + 4) (dims.thumbSize + 4)) theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let (l, h) := clampRange low high
+    let trackY := rect.y + (rect.height - dims.trackHeight) / 2
+    let trackRect := Arbor.Rect.mk' rect.x trackY dims.trackWidth dims.trackHeight
+    sink.emitFillRect trackRect (Color.gray 0.3) (dims.trackHeight / 2)
+    let rangeStart := rect.x + dims.trackWidth * l
+    let rangeWidth := dims.trackWidth * (h - l)
+    if rangeWidth > 0 then
+      let rangeRect := Arbor.Rect.mk' rangeStart trackY rangeWidth dims.trackHeight
+      sink.emitFillRect rangeRect theme.primary.background (dims.trackHeight / 2)
+    let thumbY := rect.y + (rect.height - dims.thumbSize) / 2
+    let lowX := rect.x + (dims.trackWidth - dims.thumbSize) * l
+    let highX := rect.x + (dims.trackWidth - dims.thumbSize) * h
+    let baseThumb := if hovered then Color.gray 0.95 else Color.white
+    let lowColor := if target == .low then theme.primary.background else baseThumb
+    let highColor := if target == .high then theme.primary.background else baseThumb
+    let lowRect := Arbor.Rect.mk' lowX thumbY dims.thumbSize dims.thumbSize
+    let highRect := Arbor.Rect.mk' highX thumbY dims.thumbSize dims.thumbSize
+    sink.emitFillRect lowRect lowColor (dims.thumbSize / 2)
+    sink.emitFillRect highRect highColor (dims.thumbSize / 2)
+    if target == .low then
+      sink.emitStrokeRect
+        (Arbor.Rect.mk' (lowX - 2) (thumbY - 2) (dims.thumbSize + 4) (dims.thumbSize + 4))
+        theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
+    if target == .high then
+      sink.emitStrokeRect
+        (Arbor.Rect.mk' (highX - 2) (thumbY - 2) (dims.thumbSize + 4) (dims.thumbSize + 4))
+        theme.focusRing 2.0 ((dims.thumbSize + 4) / 2))
   draw := none
 }
 

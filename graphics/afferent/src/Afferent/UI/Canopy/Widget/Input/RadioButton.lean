@@ -27,6 +27,14 @@ def circleSpec (selected : Bool) (_hovered : Bool) (theme : Theme) (size : Float
         let offsetY := (size - innerSize) / 2
         let innerRect := Arbor.Rect.mk' (rect.x + offsetX) (rect.y + offsetY) innerSize innerSize
         RenderM.fillRect innerRect theme.primary.foreground (innerSize / 2)
+  collectInto? := some (fun layout sink => do
+    if selected then
+      let rect := layout.contentRect
+      let innerSize := size * 0.5
+      let offsetX := (size - innerSize) / 2
+      let offsetY := (size - innerSize) / 2
+      let innerRect := Arbor.Rect.mk' (rect.x + offsetX) (rect.y + offsetY) innerSize innerSize
+      sink.emitFillRect innerRect theme.primary.foreground (innerSize / 2))
   draw := none
 }
 

@@ -94,8 +94,14 @@ def run (canvas : Canvas) (fontReg : FontRegistry) (initial : Model) (app : UIAp
         let (events, leftDown) ←
           buildPointerEvents c.ctx.window layoutInfo.offsetX layoutInfo.offsetY prevLeftDown app.sendHover
         prevLeftDown := leftDown
+        let hitIndex? :=
+          if events.isEmpty then
+            none
+          else
+            some (buildHitTestIndex layoutInfo.widget layoutInfo.layouts)
         for ev in events do
-          let (cap', msgs) := dispatchEvent ev layoutInfo.widget layoutInfo.layouts ui.handlers capture
+          let (cap', msgs) := dispatchEventWithIndex ev layoutInfo.widget layoutInfo.layouts
+            ui.handlers capture hitIndex?
           capture := cap'
           model := msgs.foldl (fun s m => app.update m s) model
 

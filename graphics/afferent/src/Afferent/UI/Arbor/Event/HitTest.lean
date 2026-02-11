@@ -60,7 +60,8 @@ def orderChildrenForHit (children : Array Widget) : Array Widget := Id.run do
 structure HitTestIndexItem where
   widget : Widget
   layout : Trellis.ComputedLayout
-  path : Array WidgetId
+  /-- Index into `HitTestIndex.pathNodes` for this widget's full ancestry path. -/
+  pathNode : Nat
   transform : HitTransform
   screenBounds : Linalg.AABB2D
   isAbsolute : Bool
@@ -68,9 +69,16 @@ structure HitTestIndexItem where
   zOrder : Nat
 deriving Inhabited
 
+/-- Compact linked representation of widget ancestry path. -/
+structure HitPathNode where
+  widgetId : WidgetId
+  parent : Option Nat := none
+deriving Inhabited
+
 /-- Spatial hit test index built from a widget tree + layouts. -/
 structure HitTestIndex where
   items : Array HitTestIndexItem
+  pathNodes : Array HitPathNode
   grid : Linalg.Spatial.Grid2D
   componentMap : Std.HashMap ComponentId WidgetId
 deriving Inhabited
@@ -109,6 +117,7 @@ private def isPointInsideWidget (w : Widget) (layout : Trellis.ComputedLayout) (
 
 private structure HitTestBuildState where
   items : Array HitTestIndexItem := #[]
+  pathNodes : Array HitPathNode := #[]
   zOrder : Nat := 0
   componentMap : Std.HashMap ComponentId WidgetId := {}
 deriving Inhabited
@@ -116,12 +125,18 @@ deriving Inhabited
 /-- Build a spatial index for hit testing.
     This is a broad-phase accelerator; exact checks still use widget hit logic. -/
 partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) : HitTestIndex :=
-  let rec go (w : Widget) (path : Array WidgetId) (transform : HitTransform)
+  let rec go (w : Widget) (parentPathNode : Option Nat) (transform : HitTransform)
       (parentClip : Option Linalg.AABB2D) (clippedNonAbs : Bool) (inOverlay : Bool)
       : StateM HitTestBuildState Unit := do
     match layouts.get w.id with
     | none => pure ()
     | some layout =>
+      let pathNode ← do
+        let state ← get
+        let idx := state.pathNodes.size
+        let pathEntry : HitPathNode := { widgetId := w.id, parent := parentPathNode }
+        set { state with pathNodes := state.pathNodes.push pathEntry }
+        pure idx
       let isAbs := isOverlayWidgetForHit w
       let overlayLayer := inOverlay || isAbs
       let hitRect := localHitRect layout
@@ -142,7 +157,7 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
         let item := {
           widget := w
           layout := layout
-          path := path.push w.id
+          pathNode := pathNode
           transform := transform
           screenBounds := bounds
           isAbsolute := isAbs
@@ -163,9 +178,9 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
         let childTransform :=
           if isOverlayWidgetForHit child then transform
           else childTransformFor w layout layouts transform
-        go child (path.push w.id) childTransform childClip nextClipped overlayLayer
+        go child (some pathNode) childTransform childClip nextClipped overlayLayer
 
-  let (_, state) := (go root #[] HitTransform.zero none false false).run {}
+  let (_, state) := (go root none HitTransform.zero none false false).run {}
 
   -- Ensure overlay widgets sort above non-overlay widgets.
   let maxNonOverlay := state.items.foldl (init := 0) fun acc item =>
@@ -176,28 +191,54 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
 
   let bounds := items'.map (fun item => item.screenBounds)
   let grid := Linalg.Spatial.Grid2D.buildAuto bounds
-  { items := items', grid := grid, componentMap := state.componentMap }
+  { items := items', pathNodes := state.pathNodes, grid := grid, componentMap := state.componentMap }
+
+private def reconstructPath (index : HitTestIndex) (pathNode : Nat) : Array WidgetId := Id.run do
+  let mut revPath : Array WidgetId := #[]
+  let mut cursor : Option Nat := some pathNode
+  while cursor.isSome do
+    match cursor with
+    | some nodeIdx =>
+      match index.pathNodes[nodeIdx]? with
+      | some node =>
+        revPath := revPath.push node.widgetId
+        cursor := node.parent
+      | none =>
+        cursor := none
+    | none => pure ()
+  let mut path : Array WidgetId := Array.mkEmpty revPath.size
+  let mut i := revPath.size
+  while i > 0 do
+    i := i - 1
+    path := path.push revPath[i]!
+  path
 
 /-- Hit test using a pre-built spatial index (fast broad-phase). -/
 def hitTestPathIndexed (index : HitTestIndex) (x y : Float) : Array WidgetId := Id.run do
   let p := Linalg.Vec2.mk x y
   let query := Linalg.AABB2D.fromPoint p
   let candidates := Linalg.Spatial.Grid2D.queryRect index.grid query
-  let mut best : Option HitTestIndexItem := none
+  let mut bestIdx : Option Nat := none
   for idx in candidates do
     match index.items[idx]? with
     | some item =>
         if item.screenBounds.containsPoint p then
           let (adjX, adjY) := item.transform.transformPoint x y
           if isPointInsideWidget item.widget item.layout adjX adjY then
-            match best with
-            | none => best := some item
-            | some current =>
-                if item.zOrder > current.zOrder then
-                  best := some item
+            match bestIdx with
+            | none => bestIdx := some idx
+            | some currentIdx =>
+                if let some current := index.items[currentIdx]? then
+                  if item.zOrder > current.zOrder then
+                    bestIdx := some idx
+                else
+                  bestIdx := some idx
     | none => pure ()
-  match best with
-  | some item => item.path
+  match bestIdx with
+  | some idx =>
+    match index.items[idx]? with
+    | some item => reconstructPath index item.pathNode
+    | none => #[]
   | none => #[]
 
 /-- Hit test ID using a pre-built spatial index. -/

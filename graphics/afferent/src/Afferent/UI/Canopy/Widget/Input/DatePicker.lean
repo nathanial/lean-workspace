@@ -130,6 +130,21 @@ def arrowSpec (dir : ArrowDirection) (theme : Theme) (size : Float) : CustomSpec
       |>.lineTo p3
     RenderM.build do
       RenderM.strokePath path theme.text 2.0
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let half := size * 0.22
+    let midX := rect.x + rect.width / 2
+    let midY := rect.y + rect.height / 2
+    let (p1, p2, p3) := match dir with
+      | .left =>
+          (⟨midX + half, midY - half⟩, ⟨midX - half, midY⟩, ⟨midX + half, midY + half⟩)
+      | .right =>
+          (⟨midX - half, midY - half⟩, ⟨midX + half, midY⟩, ⟨midX - half, midY + half⟩)
+    let path := Afferent.Path.empty
+      |>.moveTo p1
+      |>.lineTo p2
+      |>.lineTo p3
+    sink.emit (.strokePath path theme.text 2.0))
   draw := none
 }
 

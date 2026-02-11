@@ -293,17 +293,13 @@ def unifiedDemo : IO Unit := do
             rs.events.registry.interactiveIds.set interactiveIds
             let indexEnd ← IO.monoNanosNow
 
-            let collectStart ← IO.monoNanosNow
-            let (commands, cacheHits, cacheMisses) ←
-              Afferent.Arbor.collectCommandsCachedWithStats c.drawRuntime.renderCache measuredWidget layouts
-            let collectEnd ← IO.monoNanosNow
-            let executeStart ← IO.monoNanosNow
-            let (batchStats, c') ← CanvasM.run c do
-              let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
-              Afferent.Widget.renderCustomWidgets measuredWidget layouts
-              pure batchStats
-            let executeEnd ← IO.monoNanosNow
+            let (renderStats, c') ← CanvasM.run c do
+              Afferent.Widget.renderMeasuredArborWidgetWithCustomAndStats
+                rs.assets.fontPack.registry measuredWidget layouts
             c := c'
+            let batchStats := renderStats.batch
+            let cacheHits := renderStats.cacheHits
+            let cacheMisses := renderStats.cacheMisses
             let endFrameStart ← IO.monoNanosNow
             c ← c.endFrame
             let frameEndNs ← IO.monoNanosNow
@@ -315,8 +311,8 @@ def unifiedDemo : IO Unit := do
             let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
             let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
-            let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
-            let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
+            let collectMs := renderStats.timeCollectMs
+            let executeMs := renderStats.timeExecuteMs + renderStats.timeCustomMs
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
             let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
@@ -326,6 +322,7 @@ def unifiedDemo : IO Unit := do
             let widgetCount := (Afferent.Arbor.Widget.allIds measuredWidget).size
             let layoutCount := layouts.layouts.size
             let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
+            let commandCount := batchStats.totalCommands
             statsRef.set {
               frameMs := frameMs
               fps := fps
@@ -341,8 +338,8 @@ def unifiedDemo : IO Unit := do
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
-              commandCount := commands.size
-              coalescedCommandCount := batchStats.totalCommands
+              commandCount := commandCount
+              coalescedCommandCount := commandCount
               drawCalls := drawCalls
               batchedCalls := batchStats.batchedCalls
               individualCalls := batchStats.individualCalls

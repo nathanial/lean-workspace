@@ -61,6 +61,13 @@ def searchIconSpec (theme : Theme) (dims : Dimensions := defaultDimensions) : Cu
     let path := searchIconPath centerX centerY radius
     RenderM.build do
       RenderM.strokePath path theme.textMuted 1.5
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let centerX := rect.x + dims.iconSize / 2
+    let centerY := rect.y + rect.height / 2
+    let radius := dims.iconSize * 0.35
+    let path := searchIconPath centerX centerY radius
+    sink.emit (.strokePath path theme.textMuted 1.5))
   draw := none
 }
 
@@ -76,6 +83,14 @@ def clearButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := def
     let color := if isHovered then theme.text else theme.textMuted
     RenderM.build do
       RenderM.strokePath path color 1.5
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let centerX := rect.x + rect.width / 2
+    let centerY := rect.y + rect.height / 2
+    let iconSize := dims.clearButtonSize * 0.25
+    let path := clearButtonPath centerX centerY iconSize
+    let color := if isHovered then theme.text else theme.textMuted
+    sink.emit (.strokePath path color 1.5))
   draw := none
 }
 
@@ -101,6 +116,20 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
         let cursorY := rect.y + verticalOffset
         let cursorH := lineHeight
         RenderM.fillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let text := if showPlaceholder then placeholder else displayText
+    let textColor := if showPlaceholder then theme.textMuted else theme.text
+    let lineHeight := theme.font.lineHeight
+    let ascender := theme.font.ascender
+    let verticalOffset := (rect.height - lineHeight) / 2
+    let textY := rect.y + verticalOffset + ascender
+    sink.emitFillText text rect.x textY theme.font textColor
+    if focused then
+      let cursorX := rect.x + cursorPixelX
+      let cursorY := rect.y + verticalOffset
+      let cursorH := lineHeight
+      sink.emitFillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0)
   draw := none
 }
 

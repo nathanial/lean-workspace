@@ -106,9 +106,17 @@ namespace LayoutResult
 
 def empty : LayoutResult := ⟨#[], {}⟩
 
-/-- Find layout by node ID. O(1) HashMap lookup. -/
+/-- Find layout by node ID.
+    Fast-paths dense IDs via array indexing, falling back to HashMap lookup. -/
 def get (r : LayoutResult) (nodeId : Nat) : Option ComputedLayout :=
-  r.layoutMap.get? nodeId
+  match r.layouts[nodeId]? with
+  | some cl =>
+      if cl.nodeId == nodeId then
+        some cl
+      else
+        r.layoutMap.get? nodeId
+  | none =>
+      r.layoutMap.get? nodeId
 
 /-- Get layout, panicking if not found. -/
 def get! (r : LayoutResult) (nodeId : Nat) : ComputedLayout :=

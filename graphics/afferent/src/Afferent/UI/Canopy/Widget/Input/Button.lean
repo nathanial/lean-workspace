@@ -607,6 +607,18 @@ private def rippleOverlaySpec (progress : Float) (center : Arbor.Point)
         let absCenter := Arbor.Point.mk' (rect.x + center.x) (rect.y + center.y)
         RenderM.withClip rect do
           RenderM.strokeCircle absCenter radius rippleColor 2.0
+  collectInto? := some (fun layout sink => do
+    if !(progress <= 0.0 || progress >= 1.0) then
+      let layoutRect := layout.contentRect
+      let rect := rectFromLayout layoutRect
+      let maxRadius := Float.sqrt (layoutRect.width * layoutRect.width + layoutRect.height * layoutRect.height)
+      let radius := maxRadius * progress
+      let alpha := (1.0 - progress) * 0.35
+      let rippleColor := color.withAlpha (color.a * alpha)
+      let absCenter := Arbor.Point.mk' (rect.x + center.x) (rect.y + center.y)
+      sink.emitPushClip rect
+      sink.emit (.strokeCircle absCenter radius rippleColor 2.0)
+      sink.emitPopClip)
   draw := none
   skipCache := true
 }
@@ -621,6 +633,11 @@ private def pulseOverlaySpec (intensity : Float) (color : Color) : CustomSpec :=
         let rect := rectFromLayout layout.contentRect
         let overlayColor := color.withAlpha (color.a * intensity)
         RenderM.fillRect rect overlayColor 0
+  collectInto? := some (fun layout sink => do
+    if intensity > 0.0 then
+      let rect := rectFromLayout layout.contentRect
+      let overlayColor := color.withAlpha (color.a * intensity)
+      sink.emitFillRect rect overlayColor 0)
   draw := none
   skipCache := true
 }
@@ -635,6 +652,11 @@ private def glowOverlaySpec (progress : Float) (color : Color) (cornerRadius : F
         let rect := rectFromLayout layout.contentRect
         let glowColor := color.withAlpha (color.a * progress * 0.6)
         RenderM.strokeRect rect glowColor 4.0 cornerRadius
+  collectInto? := some (fun layout sink => do
+    if progress > 0.0 then
+      let rect := rectFromLayout layout.contentRect
+      let glowColor := color.withAlpha (color.a * progress * 0.6)
+      sink.emitStrokeRect rect glowColor 4.0 cornerRadius)
   draw := none
   skipCache := true
 }
@@ -666,6 +688,27 @@ private def borderTraceSpec (progress : Float) (color : Color) (lineWidth : Floa
             bottomLen lineWidth color 0
         if leftLen > 0.0 then
           RenderM.fillRect' rect.x (rect.y + h - leftLen) lineWidth leftLen color 0
+  collectInto? := some (fun layout sink => do
+    if progress > 0.0 then
+      let layoutRect := layout.contentRect
+      let rect := rectFromLayout layoutRect
+      let w := layoutRect.width
+      let h := layoutRect.height
+      let perimeter := (w + h) * 2.0
+      let distance := clamp (perimeter * progress) 0.0 perimeter
+      let topLen := clamp distance 0.0 w
+      let rightLen := clamp (distance - w) 0.0 h
+      let bottomLen := clamp (distance - w - h) 0.0 w
+      let leftLen := clamp (distance - w - h - w) 0.0 h
+      if topLen > 0.0 then
+        sink.emitFillRect (Arbor.Rect.mk' rect.x rect.y topLen lineWidth) color 0
+      if rightLen > 0.0 then
+        sink.emitFillRect (Arbor.Rect.mk' (rect.x + w - lineWidth) rect.y lineWidth rightLen) color 0
+      if bottomLen > 0.0 then
+        sink.emitFillRect
+          (Arbor.Rect.mk' (rect.x + w - bottomLen) (rect.y + h - lineWidth) bottomLen lineWidth) color 0
+      if leftLen > 0.0 then
+        sink.emitFillRect (Arbor.Rect.mk' rect.x (rect.y + h - leftLen) lineWidth leftLen) color 0)
   draw := none
   skipCache := true
 }
@@ -682,6 +725,16 @@ private def shimmerOverlaySpec (phase : Float) (color : Color) : CustomSpec := {
       let shimmerColor := color.withAlpha (color.a * 0.25)
       RenderM.withClip rect do
         RenderM.fillRect' (rect.x + offset) rect.y bandWidth rect.height shimmerColor 0
+  collectInto? := some (fun layout sink => do
+    let layoutRect := layout.contentRect
+    let rect := rectFromLayout layoutRect
+    let bandWidth := layoutRect.width * 0.35
+    let travel := layoutRect.width + bandWidth * 2.0
+    let offset := phase * travel - bandWidth
+    let shimmerColor := color.withAlpha (color.a * 0.25)
+    sink.emitPushClip rect
+    sink.emitFillRect (Arbor.Rect.mk' (rect.x + offset) rect.y bandWidth rect.height) shimmerColor 0
+    sink.emitPopClip)
   draw := none
   skipCache := true
 }
@@ -698,6 +751,14 @@ private def slideRevealSpec (progress : Float) (color : Color) : CustomSpec := {
         let revealWidth := layoutRect.width * progress
         RenderM.withClip rect do
           RenderM.fillRect' rect.x rect.y revealWidth rect.height color 0
+  collectInto? := some (fun layout sink => do
+    if progress > 0.0 then
+      let layoutRect := layout.contentRect
+      let rect := rectFromLayout layoutRect
+      let revealWidth := layoutRect.width * progress
+      sink.emitPushClip rect
+      sink.emitFillRect (Arbor.Rect.mk' rect.x rect.y revealWidth rect.height) color 0
+      sink.emitPopClip)
   draw := none
   skipCache := true
 }
@@ -712,6 +773,11 @@ private def heartbeatOverlaySpec (intensity : Float) (color : Color) : CustomSpe
         let rect := rectFromLayout layout.contentRect
         let overlayColor := color.withAlpha (color.a * intensity)
         RenderM.fillRect rect overlayColor 0
+  collectInto? := some (fun layout sink => do
+    if intensity > 0.0 then
+      let rect := rectFromLayout layout.contentRect
+      let overlayColor := color.withAlpha (color.a * intensity)
+      sink.emitFillRect rect overlayColor 0)
   draw := none
   skipCache := true
 }

@@ -42,6 +42,11 @@ def boxSpec (checked : Bool) (_hovered : Bool) (theme : Theme) (size : Float) : 
       if checked then
         let path := checkmarkPath rect.x rect.y size
         RenderM.strokePath path theme.primary.foreground 2.5
+  collectInto? := some (fun layout sink => do
+    if checked then
+      let rect := layout.contentRect
+      let path := checkmarkPath rect.x rect.y size
+      sink.emit (.strokePath path theme.primary.foreground 2.5))
   draw := none
 }
 

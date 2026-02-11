@@ -59,6 +59,17 @@ def arrowSpec (isOpen : Bool) (theme : Theme) (dims : Dimensions := defaultDimen
     ]
     RenderM.build do
       RenderM.strokeLineBatch data 2 2.0
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let centerX := rect.x + rect.width / 2
+    let centerY := rect.y + rect.height / 2
+    let (p1, p2, p3) := chevronPoints centerX centerY isOpen
+    let c := theme.textMuted
+    let data : Array Float := #[
+      p1.x, p1.y, p2.x, p2.y, c.r, c.g, c.b, c.a, 0.0,
+      p2.x, p2.y, p3.x, p3.y, c.r, c.g, c.b, c.a, 0.0
+    ]
+    sink.emit (.strokeLineBatch data 2 2.0))
   draw := none
 }
 
@@ -84,6 +95,17 @@ def checkmarkSpec (theme : Theme) : CustomSpec := {
     ]
     RenderM.build do
       RenderM.strokeLineBatch data 2 2.0
+  collectInto? := some (fun layout sink => do
+    let rect := layout.contentRect
+    let centerX := rect.x + rect.width / 2
+    let centerY := rect.y + rect.height / 2
+    let (p1, p2, p3) := checkmarkPoints centerX centerY
+    let c := theme.primary.foreground
+    let data : Array Float := #[
+      p1.x, p1.y, p2.x, p2.y, c.r, c.g, c.b, c.a, 0.0,
+      p2.x, p2.y, p3.x, p3.y, c.r, c.g, c.b, c.a, 0.0
+    ]
+    sink.emit (.strokeLineBatch data 2 2.0))
   draw := none
 }
 
