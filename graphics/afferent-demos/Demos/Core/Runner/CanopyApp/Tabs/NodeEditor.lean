@@ -151,15 +151,34 @@ def nodeEditorTabContent (_env : DemoEnv) : WidgetM Unit := do
   column' (gap := 8) (style := rootStyle) do
     caption' "ComfyUI-style node graph demo. Left-drag nodes. Right or middle-drag empty canvas to pan."
 
-    let editor ← nodeEditor comfyGraph {
-      width := 1720
-      height := 900
-      fillWidth := true
-      fillHeight := true
-      initialCamera := Point.mk' 18 8
-      gridSize := 24
-      majorGridEvery := 5
-    }
+    let editor ← nodeEditor comfyGraph
+      {
+        width := 1720
+        height := 900
+        fillWidth := true
+        fillHeight := true
+        initialCamera := Point.mk' 18 8
+        gridSize := 24
+        majorGridEvery := 5
+      }
+      #[
+        {
+          nodeIdx := 3
+          minHeight := 96
+          content := do
+            let seedInput ← textInput "seed" "1040111309094545"
+            let _ ← dynWidget seedInput.text fun txt => do
+              caption' s!"seed: {txt}"
+            pure ()
+        },
+        {
+          nodeIdx := 6
+          minHeight := 72
+          content := do
+            let _ ← searchInput "filename" "yosemite_inpaint_example.png"
+            pure ()
+        }
+      ]
 
     let _ ← dynWidget editor.selectedNode fun selected => do
       let selectedText :=

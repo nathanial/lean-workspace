@@ -84,6 +84,13 @@ def default : NodeEditorConfig := {}
 
 end NodeEditorConfig
 
+/-- Optional interactive body content to mount inside a specific node. -/
+structure NodeEditorBody where
+  nodeIdx : Nat
+  /-- Optional minimum height reserved for this body area. -/
+  minHeight : Float := 0
+  content : WidgetM Unit
+
 /-- Result from `nodeEditor`. -/
 structure NodeEditorResult where
   /-- Fires when a node is selected via left click. -/
@@ -174,6 +181,18 @@ private def findClickedNode (nodeNameFn : Nat → ComponentId) (nodeCount : Nat)
     (data : ClickData) : Option Nat :=
   (List.range nodeCount).findSome? fun i =>
     if hitWidget data (nodeNameFn i) then some i else none
+
+private def hitIsDirectOnComponent (data : ClickData) (componentId : ComponentId) : Bool :=
+  match data.componentMap.get? componentId, data.hitPath.back? with
+  | some wid, some topMost => wid == topMost
+  | _, _ => false
+
+private def topHitComponentId? (data : ClickData) : Option ComponentId :=
+  match data.hitPath.back? with
+  | none => none
+  | some topMost =>
+      data.componentMap.toList.findSome? fun (componentId, widgetId) =>
+        if widgetId == topMost then some componentId else none
 
 /-- Background canvas spec (grid + bezier links). -/
 def canvasSpec (model : NodeEditorModel) (camera : Point)
@@ -278,7 +297,8 @@ private def nodeRowVisual (inputPort : Option NodePort) (outputPort : Option Nod
 
 private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
     (isSelected isHovered : Bool) (camera : Point)
-    (theme : Theme) (config : NodeEditorConfig) : WidgetBuilder := do
+    (theme : Theme) (config : NodeEditorConfig)
+    (bodyWidgets : Array WidgetBuilder) (bodyMinHeight : Float := 0) : WidgetBuilder := do
   let bgColor := Color.fromRgb8 42 45 52
   let borderColor :=
     if isSelected then theme.primary.borderFocused
@@ -292,8 +312,7 @@ private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
     cornerRadius := config.nodeCornerRadius
     minWidth := some node.width
     maxWidth := some node.width
-    minHeight := some (nodeHeight node config)
-    maxHeight := some (nodeHeight node config)
+    minHeight := some (nodeHeight node config + bodyMinHeight)
     position := .absolute
     left := some (node.position.x + camera.x)
     top := some (node.position.y + camera.y)
@@ -319,6 +338,20 @@ private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
     let row ← nodeRowVisual (node.inputs[i]?) (node.outputs[i]?) theme config
     rows := rows.push row
 
+  if !bodyWidgets.isEmpty then
+    let bodyChildren ← bodyWidgets.mapM fun child => child
+    let bodyWid ← freshId
+    let bodyProps : FlexContainer := {
+      direction := .column
+      gap := 6
+    }
+    let bodyStyle : BoxStyle := {
+      padding := EdgeInsets.symmetric config.nodePaddingX 8
+      minHeight := some (max 0 bodyMinHeight)
+      width := .percent 1.0
+    }
+    rows := rows.push (.flex bodyWid none bodyProps bodyStyle bodyChildren)
+
   let wid ← freshId
   let props : FlexContainer := {
     direction := .column
@@ -329,7 +362,8 @@ private def nodeVisual (name : ComponentId) (node : NodeEditorNode)
 /-- Build the full node editor visual tree. -/
 def nodeEditorVisual (rootName canvasName : ComponentId)
     (nodeNameFn : Nat → ComponentId)
-    (state : State) (theme : Theme) (config : NodeEditorConfig) : WidgetBuilder := do
+    (state : State) (theme : Theme) (config : NodeEditorConfig)
+    (nodeBodyWidgets : Array (Array WidgetBuilder)) (nodeBodyMinHeights : Array Float) : WidgetBuilder := do
   let canvas ← namedCustom canvasName (canvasSpec state.model state.camera config) {
     width := if config.fillWidth then .percent 1.0 else .auto
     height := if config.fillHeight then .percent 1.0 else .auto
@@ -346,7 +380,10 @@ def nodeEditorVisual (rootName canvasName : ComponentId)
     let node := state.model.nodes[i]!
     let isSelected := state.selectedNode == some i
     let isHovered := state.hoveredNode == some i
-    let widget ← nodeVisual (nodeNameFn i) node isSelected isHovered state.camera theme config
+    let bodyWidgets := nodeBodyWidgets.getD i #[]
+    let bodyMinHeight := nodeBodyMinHeights.getD i 0
+    let widget ← nodeVisual (nodeNameFn i) node isSelected isHovered state.camera
+      theme config bodyWidgets bodyMinHeight
     nodeWidgets := nodeWidgets.push widget
 
   let containerStyle : BoxStyle := {
@@ -379,8 +416,19 @@ end NodeEditor
     - Right/middle click + drag on canvas: pan camera
 -/
 def nodeEditor (initialModel : NodeEditorModel)
-    (config : NodeEditorConfig := {}) : WidgetM NodeEditorResult := do
+    (config : NodeEditorConfig := {})
+    (bodies : Array NodeEditorBody := #[]) : WidgetM NodeEditorResult := do
   let theme ← getThemeW
+
+  let mut bodyRenders : Array (Array ComponentRender) :=
+    Array.replicate initialModel.nodes.size #[]
+  let mut bodyMinHeights : Array Float :=
+    Array.replicate initialModel.nodes.size 0
+  for body in bodies do
+    if body.nodeIdx < initialModel.nodes.size then
+      let (_, renders) ← runWidgetChildren body.content
+      bodyRenders := bodyRenders.set! body.nodeIdx renders
+      bodyMinHeights := bodyMinHeights.set! body.nodeIdx (max 0 body.minHeight)
 
   let rootName ← registerComponentW (isInteractive := false)
   let canvasName ← registerComponentW
@@ -445,10 +493,17 @@ def nodeEditor (initialModel : NodeEditorModel)
         let clickedNode := NodeEditor.findClickedNode nodeNameFn nodeNames.size data
         match clickedNode with
         | some idx =>
+          let rootComponent := nodeNameFn idx
+          let topComponent := NodeEditor.topHitComponentId? data
+          let shouldStartNodeDrag :=
+            data.click.button == 0 &&
+            match topComponent with
+            | none => true
+            | some componentId => componentId == rootComponent
           if data.click.button == 0 then
             SpiderM.liftIO (fireSelect idx)
           let dragMode :=
-            if data.click.button == 0 then
+            if shouldStartNodeDrag then
               let node := state.model.nodes.getD idx default
               .node {
                 nodeIdx := idx
@@ -481,7 +536,14 @@ def nodeEditor (initialModel : NodeEditorModel)
 
   let _ ← dynWidget stateDyn fun state => do
     emit do
-      pure (NodeEditor.nodeEditorVisual rootName canvasName nodeNameFn state theme config)
+      let mut bodyWidgetsByNode : Array (Array WidgetBuilder) :=
+        Array.replicate bodyRenders.size #[]
+      for i in [:bodyRenders.size] do
+        let renders := bodyRenders.getD i #[]
+        let widgets ← renders.mapM id
+        bodyWidgetsByNode := bodyWidgetsByNode.set! i widgets
+      pure (NodeEditor.nodeEditorVisual rootName canvasName nodeNameFn state theme config
+        bodyWidgetsByNode bodyMinHeights)
 
   pure {
     onNodeSelect := selectTrigger
