@@ -7,6 +7,7 @@ import AfferentDemosTests.Smoke
 import AfferentDemosTests.StrokeCards
 import AfferentDemosTests.RegistryTests
 import AfferentDemosTests.WidgetPerfBench
+import AfferentDemosTests.WidgetTreePerfStress
 import Wisp
 
 def main : IO UInt32 := do
