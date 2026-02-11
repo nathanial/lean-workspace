@@ -44,42 +44,48 @@ test "timePickerVisual child layout depends on config flags" := do
   let time : TimeValue := { hours := 13, minutes := 5, seconds := 9 }
   let cfg24NoSeconds : TimePickerConfig := { use24Hour := true, showSeconds := false }
   let cfg12WithSeconds : TimePickerConfig := { use24Hour := false, showSeconds := true }
+  let container24 : ComponentId := 100
+  let container12 : ComponentId := 101
 
   let visual24 := timePickerVisual
-    "tp24"
-    "hu" "hd" "mu" "md" "su" "sd" "ampm"
+    container24
+    110 111 112 113 114 115 116
     time
     false false false false false false false
     testTheme cfg24NoSeconds
   let (widget24, _) ← visual24.run {}
 
   let visual12 := timePickerVisual
-    "tp12"
-    "hu" "hd" "mu" "md" "su" "sd" "ampm"
+    container12
+    120 121 122 123 124 125 126
     time
     false false false false false false false
     testTheme cfg12WithSeconds
   let (widget12, _) ← visual12.run {}
 
   match widget24 with
-  | .flex _ (some "tp24") _ _ children =>
+  | .flex _ _ _ _ children (some cid) =>
+      ensure (cid == container24) s!"Expected container component id {container24}, got {cid}"
       ensure (children.size == 3) s!"Expected 3 children (HH:MM), got {children.size}"
-  | _ => ensure false "Expected named 24-hour time picker root widget"
+  | _ => ensure false "Expected 24-hour time picker root widget with component id"
 
   match widget12 with
-  | .flex _ (some "tp12") _ _ children =>
+  | .flex _ _ _ _ children (some cid) =>
+      ensure (cid == container12) s!"Expected container component id {container12}, got {cid}"
       ensure (children.size == 6) s!"Expected 6 children (HH:MM:SS + AM/PM), got {children.size}"
-  | _ => ensure false "Expected named 12-hour time picker root widget"
+  | _ => ensure false "Expected 12-hour time picker root widget with component id"
 
 test "ampmButtonVisual renders the expected label text" := do
-  let (button, _) ← (ampmButtonVisual "ampm" false false testTheme).run {}
+  let ampmId : ComponentId := 200
+  let (button, _) ← (ampmButtonVisual ampmId false false testTheme).run {}
   match button with
-  | .flex _ (some "ampm") _ _ children =>
+  | .flex _ _ _ _ children (some cid) =>
+      ensure (cid == ampmId) s!"Expected AM/PM component id {ampmId}, got {cid}"
       ensure (children.size == 1) "AM/PM button should contain one text child"
       match children[0]! with
       | .text _ _ content .. =>
           ensure (content == "PM") s!"Expected PM label, got '{content}'"
       | _ => ensure false "Expected text child for AM/PM button label"
-  | _ => ensure false "Expected named AM/PM button widget"
+  | _ => ensure false "Expected AM/PM button widget with component id"
 
 def main : IO UInt32 := runAllSuites

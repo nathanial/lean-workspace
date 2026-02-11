@@ -25,9 +25,9 @@ import Afferent.UI.Arbor.Core.Types
 import Afferent.UI.Arbor.Core.TextMeasurer
 
 -- Render commands
-import Afferent.UI.Arbor.Render.Command
-import Afferent.UI.Arbor.Render.Builder
-import Afferent.UI.Arbor.Render.Collect
+import Afferent.Draw.Command
+import Afferent.Draw.Builder
+import Afferent.Draw.Collect
 
 -- Widget system
 import Afferent.UI.Arbor.Widget.Core

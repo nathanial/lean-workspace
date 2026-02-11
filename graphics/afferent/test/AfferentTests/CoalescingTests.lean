@@ -3,8 +3,8 @@
   Unit tests for render command reordering and batching optimization.
 -/
 import AfferentTests.Framework
-import Afferent.UI.Widget.Backend
-import Afferent.UI.Arbor.Render.Command
+import Afferent.Output.Execute
+import Afferent.Draw.Command
 
 namespace AfferentTests.CoalescingTests
 

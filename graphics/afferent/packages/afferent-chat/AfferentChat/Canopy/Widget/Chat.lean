@@ -322,7 +322,7 @@ def MessageListConfig.fromTheme (theme : Theme) (width height : Float) : Message
 }
 
 /-- Build visual representation of message list (pure WidgetBuilder). -/
-def messageListVisual (name : String) (messages : Array ChatMessage) (config : MessageListConfig)
+def messageListVisual (name : ComponentId) (messages : Array ChatMessage) (config : MessageListConfig)
     (scrollState : ScrollState) (contentHeight : Float) (theme : Theme) : WidgetBuilder := do
   -- Build message bubble builders
   let msgBuilders : Array WidgetBuilder := messages.map fun msg =>

@@ -5,7 +5,7 @@
 import Crucible
 import Afferent.UI.Arbor
 import Afferent.UI.Arbor.Widget.DSL
-import Afferent.UI.Arbor.Render.Collect
+import Afferent.Draw.Collect
 import Afferent.UI.Canopy.Reactive.Component
 import AfferentChat.Canopy.Widget.Chat
 import Afferent.UI.Canopy.Widget.Layout.Scroll
@@ -240,12 +240,12 @@ test "messageListVisual creates scroll container" := do
   let config := MessageListConfig.default
   let scrollState := ScrollState.zero
   let contentHeight := 200.0
-  let testName := "test-chat-scroll"
-  let builder := messageListVisual testName messages config scrollState contentHeight testTheme
+  let testComponentId : ComponentId := 100
+  let builder := messageListVisual testComponentId messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .scroll _ name _ _ _ _ _ _ =>
-    ensure (name == some testName) s!"Should have correct name, got {name}"
+  | .scroll _ _ _ _ _ _ _ _ componentId =>
+    ensure (componentId == some testComponentId) s!"Should have component id {testComponentId}, got {componentId}"
   | _ => ensure false "Expected scroll widget"
 
 test "messageListVisual with fixed size has min/max constraints" := do
@@ -253,10 +253,10 @@ test "messageListVisual with fixed size has min/max constraints" := do
   let config : MessageListConfig := { width := 400, height := 300 }
   let scrollState := ScrollState.zero
   let contentHeight := 100.0
-  let builder := messageListVisual "test-fixed" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 101 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .scroll _ _ style _ _ _ _ _ =>
+  | .scroll _ _ style _ _ _ _ _ _ =>
     -- Fixed mode should have min/max constraints
     ensure style.minWidth.isSome "Should have minWidth constraint"
     ensure style.maxWidth.isSome "Should have maxWidth constraint"
@@ -272,10 +272,10 @@ test "messageListVisual with fill options removes constraints" := do
   let config : MessageListConfig := { fillWidth := true, fillHeight := true }
   let scrollState := ScrollState.zero
   let contentHeight := 100.0
-  let builder := messageListVisual "test-fill" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 102 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .scroll _ _ style _ _ _ _ _ =>
+  | .scroll _ _ style _ _ _ _ _ _ =>
     -- Fill mode should not have min/max constraints
     ensure style.minWidth.isNone "Should not have minWidth constraint in fill mode"
     ensure style.maxWidth.isNone "Should not have maxWidth constraint in fill mode"
@@ -293,10 +293,10 @@ test "messageListVisual with fill options has growing flexItem" := do
   let config : MessageListConfig := { fillWidth := true, fillHeight := true }
   let scrollState := ScrollState.zero
   let contentHeight := 100.0
-  let builder := messageListVisual "test-flex" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 103 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
   match widget with
-  | .scroll _ _ style _ _ _ _ _ =>
+  | .scroll _ _ style _ _ _ _ _ _ =>
     match style.flexItem with
     | some item => ensure (item.grow > 0) "Should have positive grow"
     | none => ensure false "Should have flexItem in fill mode"
@@ -307,7 +307,7 @@ test "messageListVisual empty messages creates empty content" := do
   let config := MessageListConfig.default
   let scrollState := ScrollState.zero
   let contentHeight := 0.0
-  let builder := messageListVisual "test-empty" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 104 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
   -- Should still create valid widget tree
   ensure (widget.widgetCount >= 1) "Should create widget tree even with no messages"
@@ -319,7 +319,7 @@ test "messageListVisual layout with fixed size" := do
   let config : MessageListConfig := { width := 400, height := 300 }
   let scrollState := ScrollState.zero
   let contentHeight := 100.0
-  let builder := messageListVisual "test-message-list" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 105 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
 
   -- Measure and layout
@@ -339,7 +339,7 @@ test "messageListVisual layout with fill mode expands" := do
   let config : MessageListConfig := { fillWidth := true, fillHeight := true }
   let scrollState := ScrollState.zero
   let contentHeight := 100.0
-  let builder := messageListVisual "test-message-list-fill" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 106 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
 
   let containerWidth := 800.0
@@ -556,15 +556,15 @@ test "FRP: messageList scrollState starts at zero" := do
   shouldBeNear result.fst 0.0
   shouldBeNear result.snd 0.0
 
-test "FRP: useScroll filters events by widget name" := do
-  -- Test that useScroll properly filters scroll events by name
+test "FRP: useScroll filters events by component id" := do
+  -- Test that useScroll properly filters scroll events by component id
   let result ← runSpider do
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty testTheme
 
-    -- Register a component with a known name
+    -- Register a component with a known id
     let name ← (registerComponent false true).run events
 
-    -- Subscribe to filtered scroll events for that name
+    -- Subscribe to filtered scroll events for that component id
     let scrollEvents ← (useScroll name).run events
 
     -- Count how many events pass through
@@ -572,9 +572,9 @@ test "FRP: useScroll filters events by widget name" := do
     let _ ← SpiderM.liftIO <| scrollEvents.subscribe fun _ => do
       countRef.modify (· + 1)
 
-    -- Fire a scroll event for the CORRECT name (should pass filter)
+    -- Fire a scroll event for the correct component id (should pass filter)
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some name) {} {} 400 600 {} testWidget
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
 
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
@@ -623,9 +623,9 @@ test "FRP DEBUG: trace scroll event flow through messageList pipeline (SpiderM)"
       ({ scroll := ScrollState.zero, drag := {} } : ScrollCombinedState)
       allInputEvents
 
-    -- Step 7: Fire a scroll event for the correct name
+    -- Step 7: Fire a scroll event for the correct component id
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some name) {} {} 400 600 {} testWidget
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
 
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
@@ -639,8 +639,8 @@ test "FRP DEBUG: trace scroll event flow through messageList pipeline (SpiderM)"
     let finalState ← scrollState.sample
     pure (name, finalState.scroll.offsetY)
 
-  -- Check name is correct
-  ensure (result.fst == "chat-message-list-0") s!"Expected name 'chat-message-list-0', got '{result.fst}'"
+  -- Check component id is correct
+  ensure (result.fst == 0) s!"Expected component id 0, got {result.fst}"
   -- Check scroll offset changed
   ensure (result.snd > 0.0) s!"Expected offset > 0, got {result.snd}"
 
@@ -685,7 +685,7 @@ test "FRP DEBUG: trace scroll event flow in WidgetM" := do
 
     -- Fire scroll event
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some "chat-message-list-0") {} {} 400 600 {} testWidget
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {} {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
@@ -733,9 +733,9 @@ test "FRP: messageList responds to scroll wheel events" := do
     let initialOffset ← listResult.scrollState.sample
     ensure (initialOffset.offsetY == 0.0) s!"Initial offset should be 0, got {initialOffset.offsetY}"
 
-    -- Create a scroll widget with the registered name (chat-message-list-0)
+    -- Create a scroll widget with the registered component id (0)
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some "chat-message-list-0") {}
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
         {} 400 600 {} testWidget
 
     -- Fire a scroll event
@@ -789,7 +789,7 @@ test "FRP: multiple scroll events accumulate" := do
       { children := #[] } |>.run events
 
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := .scroll scrollWidgetId (some "chat-message-list-0") {}
+    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
         {} 400 900 {} testWidget
 
     -- Fire multiple scroll events
@@ -808,7 +808,7 @@ test "FRP: multiple scroll events accumulate" := do
   -- 3 scroll events * 2 deltaY * 20 speed = 120
   ensure (result > 100.0) s!"Offset should accumulate, got {result}"
 
-test "FRP: messageList scroll events are filtered by widget name" := do
+test "FRP: messageList scroll events are filtered by component id" := do
   let (fontReg, _) ← loadTestFontRegistry
   let result ← runSpider do
     let (events, inputs) ← createInputs fontReg testTheme
@@ -818,8 +818,8 @@ test "FRP: messageList scroll events are filtered by widget name" := do
     let (listResult, _) ← (messageList messagesDyn config false).run
       { children := #[] } |>.run events
 
-    -- Fire scroll for a DIFFERENT widget name (should be ignored)
-    let scrollWidget : Widget := .scroll 99 (some "different-widget") {}
+    -- Fire scroll for a different component id (should be ignored)
+    let scrollWidget : Widget := Widget.scrollC 99 999 {}
         {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -5.0, modifiers := {} }
@@ -846,7 +846,7 @@ test "FRP: scroll events ignored when not in hitPath" := do
       { children := #[] } |>.run events
 
     -- Fire scroll with widget ID not in hitPath (empty hitPath)
-    let scrollWidget : Widget := .scroll 99 (some "other-scroll") {}
+    let scrollWidget : Widget := Widget.scrollC 99 999 {}
         {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -5.0, modifiers := {} }
@@ -906,7 +906,7 @@ test "messageListVisual renders scrollbar when content exceeds viewport" := do
   let scrollState := ScrollState.zero
   let contentHeight := 1200.0  -- Much taller than viewport (300)
 
-  let builder := messageListVisual "test-scroll" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 107 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
 
   -- Measure and layout
@@ -928,7 +928,7 @@ test "messageListVisual does not render scrollbar when content fits" := do
   let scrollState := ScrollState.zero
   let contentHeight := 100.0  -- Fits in viewport (300)
 
-  let builder := messageListVisual "test-no-scroll" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 108 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
 
   let measureResult := measureWidget (M := Id) widget 400 300
@@ -945,7 +945,7 @@ test "messageListVisual scrollbar thumb moves with scroll offset" := do
   let contentHeight := 1200.0
 
   -- Widget at top (scroll offset = 0)
-  let builderTop := messageListVisual "test-scroll-top" messages config ScrollState.zero contentHeight testTheme
+  let builderTop := messageListVisual 109 messages config ScrollState.zero contentHeight testTheme
   let (widgetTop, _) ← builderTop.run {}
   let measureTop := measureWidget (M := Id) widgetTop 400 300
   let layoutsTop := Trellis.layout measureTop.node 400 300
@@ -953,7 +953,7 @@ test "messageListVisual scrollbar thumb moves with scroll offset" := do
 
   -- Widget scrolled down (scroll offset = 450)
   let scrolledState : ScrollState := { offsetX := 0, offsetY := 450.0 }
-  let builderScrolled := messageListVisual "test-scroll-down" messages config scrolledState contentHeight testTheme
+  let builderScrolled := messageListVisual 110 messages config scrolledState contentHeight testTheme
   let (widgetScrolled, _) ← builderScrolled.run {}
   let measureScrolled := measureWidget (M := Id) widgetScrolled 400 300
   let layoutsScrolled := Trellis.layout measureScrolled.node 400 300
@@ -972,7 +972,7 @@ test "messageListVisual scrollbar with custom thickness" := do
   let scrollState := ScrollState.zero
   let contentHeight := 1500.0  -- Much taller than viewport
 
-  let builder := messageListVisual "test-scroll-custom" messages config scrollState contentHeight testTheme
+  let builder := messageListVisual 111 messages config scrollState contentHeight testTheme
   let (widget, _) ← builder.run {}
 
   let measureResult := measureWidget (M := Id) widget 500 400

@@ -8,7 +8,7 @@
   Render flow:
   1. Arbor builds/measures/layouts widgets
   2. Arbor emits RenderCommands
-  3. `Afferent.Widget.Backend` executes commands through CanvasM/Metal
+  3. `Afferent.Output.Execute` executes commands through CanvasM/Metal
 
   Usage:
   ```lean
@@ -37,7 +37,7 @@
 import Afferent.UI.Arbor
 
 -- Afferent production backend that renders Arbor widgets via CanvasM/Metal
-import Afferent.UI.Widget.Backend
+import Afferent.Output.Execute
 import Afferent.Graphics.Text.Measurer
 
 -- Note: After importing this module, you can use:

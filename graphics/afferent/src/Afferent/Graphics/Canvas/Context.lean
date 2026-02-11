@@ -10,7 +10,7 @@ import Afferent.Graphics.Canvas.State
 import Afferent.Graphics.Render.Dynamic
 import Afferent.Graphics.Text.Font
 import Afferent.Runtime.FFI
-import Afferent.UI.Arbor.Render.Cache
+import Afferent.Draw.Runtime
 import Afferent.Runtime.Shader
 import Std.Data.HashMap
 
@@ -525,11 +525,8 @@ structure Canvas where
   meshInstanceBuffer : Option FFI.FloatBuffer := none
   /-- Capacity of mesh instance FloatBuffer (in floats). -/
   meshInstanceBufferCapacity : Nat := 0
-  /-- Persistent cache for CustomSpec render commands across frames.
-      Cache is keyed by widget name (from registerComponentW) + layout hash.
-      When data changes, dynWidget rebuilds and generates new widget names,
-      causing natural cache invalidation. -/
-  renderCache : IO.Ref Arbor.RenderCache
+  /-- Draw-layer runtime state (render-command cache, etc.). -/
+  drawRuntime : Afferent.Draw.Runtime
   /-- Cache of compiled fragment pipelines by hash.
       Fragment definitions are looked up from the global registry. -/
   fragmentCache : IO.Ref Shader.FragmentCache
@@ -539,16 +536,16 @@ namespace Canvas
 /-- Create a new canvas with a window. -/
 def create (width height : UInt32) (title : String) : IO Canvas := do
   let ctx ← DrawContext.create width height title
-  let renderCache ← IO.mkRef Arbor.RenderCache.empty
+  let drawRuntime ← Afferent.Draw.Runtime.create
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, renderCache, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, drawRuntime, fragmentCache }
 
 /-- Create a new canvas with a window and explicit screen scale factor. -/
 def createWithScale (width height : UInt32) (title : String) (screenScale : Float) : IO Canvas := do
   let ctx ← DrawContext.create width height title
-  let renderCache ← IO.mkRef Arbor.RenderCache.empty
+  let drawRuntime ← Afferent.Draw.Runtime.create
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, screenScale, renderCache, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, screenScale, drawRuntime, fragmentCache }
 
 /-- Get the current state. -/
 def state (c : Canvas) : CanvasState :=
@@ -595,18 +592,15 @@ def resetStateAndScissor (c : Canvas) : IO Canvas := do
   c.ctx.resetScissor
   pure { c with stateStack := StateStack.new }
 
-/-! ## Render Cache Diagnostics -/
+/-! ## Draw Cache Diagnostics -/
 
-/-- Get the number of cached render command entries.
-    Useful for verifying that caching is working. -/
-def getRenderCacheSize (c : Canvas) : IO Nat := do
-  let cache ← c.renderCache.get
-  pure cache.size
+/-- Get the number of cached draw-command entries. -/
+def getRenderCacheSize (c : Canvas) : IO Nat :=
+  Afferent.Draw.Runtime.getRenderCacheSize c.drawRuntime
 
-/-- Clear the render cache. Call this if you need to force re-rendering
-    (e.g., after a theme change that doesn't trigger widget rebuild). -/
-def clearRenderCache (c : Canvas) : IO Unit := do
-  c.renderCache.modify fun rc => Arbor.RenderCache.clear rc
+/-- Clear draw-command cache entries. -/
+def clearRenderCache (c : Canvas) : IO Unit :=
+  Afferent.Draw.Runtime.clearRenderCache c.drawRuntime
 
 /-! ## Style operations -/
 

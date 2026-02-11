@@ -3,9 +3,9 @@
   Declarative widget system foundation.
 -/
 import Afferent.UI.Arbor.Core.Types
-import Afferent.UI.Arbor.Render.Command
+import Afferent.Draw.Command
 import Trellis
-import Afferent.Graphics.Canvas.Context
+import Afferent.Output.Canvas
 
 namespace Afferent.Arbor
 

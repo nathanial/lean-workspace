@@ -28,21 +28,12 @@ import Afferent.Graphics.Canvas.Context
 import Afferent.Graphics.Text.Font
 import Afferent.Graphics.Text.Measurer
 
--- FFI (modular: Types, Window, Renderer, Text, FloatBuffer, Texture)
-import Afferent.Runtime.FFI
-
--- Layout
+-- Layered architecture
+import Afferent.Draw
+import Afferent.Widget
+import Afferent.Output
+import Afferent.Runner
 import Afferent.UI.Layout
-
--- Widget system
-import Afferent.UI.Widget
-
--- Arbor / Canopy (now bundled under Afferent)
-import Afferent.UI.Arbor
-import Afferent.UI.Canopy
-
--- App runtime helpers
-import Afferent.App.UIRunner
 
 -- Re-export useful Linalg types
 namespace Afferent

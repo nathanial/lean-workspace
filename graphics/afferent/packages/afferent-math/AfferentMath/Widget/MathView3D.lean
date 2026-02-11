@@ -10,7 +10,7 @@ import Afferent.UI.Arbor
 import Afferent.Core.Types
 import Afferent.Core.Path
 import Afferent.Core.Transform
-import Afferent.Graphics.Canvas.Context
+import Afferent.Output.Canvas
 import Afferent.Graphics.Text.Font
 import Trellis
 import Linalg.Vec2

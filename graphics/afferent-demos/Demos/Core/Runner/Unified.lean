@@ -295,7 +295,7 @@ def unifiedDemo : IO Unit := do
 
             let collectStart ← IO.monoNanosNow
             let (commands, cacheHits, cacheMisses) ←
-              Afferent.Arbor.collectCommandsCachedWithStats c.renderCache measuredWidget layouts
+              Afferent.Arbor.collectCommandsCachedWithStats c.drawRuntime.renderCache measuredWidget layouts
             let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
             let (batchStats, c') ← CanvasM.run c do

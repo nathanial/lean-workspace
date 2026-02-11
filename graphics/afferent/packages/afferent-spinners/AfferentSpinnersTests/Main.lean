@@ -24,10 +24,11 @@ test "explicit spinner color override is respected" := do
   let color := Spinner.getColor config testTheme
   ensure (color == override) "Spinner color override should be used when provided"
 
-test "spinnerVisual emits named root widget" := do
+test "spinnerVisual emits component-id root widget" := do
   let config : Spinner.Config := { variant := .orbit, dims := { size := 50.0, strokeWidth := 2.0 } }
-  let builder := spinnerVisual "spinner-root" 0.25 config testTheme
+  let rootId : ComponentId := 7
+  let builder := spinnerVisual rootId 0.25 config testTheme
   let (widget, _) ← builder.run {}
-  ensure (widget.name? == some "spinner-root") "Spinner root widget should preserve assigned name"
+  ensure (widget.componentId? == some rootId) "Spinner root widget should preserve assigned component id"
 
 def main : IO UInt32 := runAllSuites
