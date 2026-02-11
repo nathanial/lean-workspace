@@ -82,12 +82,12 @@ def getFont : ReactiveM Afferent.Font := do
   | none => SpiderM.liftIO (IO.throwServerError
       "Font not provided in ReactiveEvents. Pass a font to createInputs.")
 
-/-- Register a component and get an auto-generated name.
+/-- Register a component and get an auto-generated id.
     This is the preferred way to register components in ReactiveM context. -/
-def registerComponent (namePrefix : String) (isInput : Bool := false)
+def registerComponent (isInput : Bool := false)
     (isInteractive : Bool := true) : ReactiveM Afferent.Arbor.ComponentId := do
   let events ← getEvents
-  SpiderM.liftIO <| events.registry.register namePrefix isInput isInteractive
+  SpiderM.liftIO <| events.registry.register isInput isInteractive
 
 /-! ## Optional Hover/DynWidget Metrics (bench-only instrumentation) -/
 
@@ -313,9 +313,9 @@ def runWidget (m : WidgetM α) : ReactiveM (α × ComponentRender) := do
 def getEventsW : WidgetM ReactiveEvents := StateT.lift getEvents
 
 /-- Register a component in WidgetM context. -/
-def registerComponentW (namePrefix : String) (isInput : Bool := false)
+def registerComponentW (isInput : Bool := false)
     (isInteractive : Bool := true) : WidgetM Afferent.Arbor.ComponentId :=
-  StateT.lift (registerComponent namePrefix isInput isInteractive)
+  StateT.lift (registerComponent isInput isInteractive)
 
 /-! ## Hit Testing Helpers -/
 

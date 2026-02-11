@@ -18,8 +18,7 @@ open Trellis
 
 namespace Demos
 def worleyCellularNoiseTabContent (env : DemoEnv) : WidgetM Unit := do
-  let worleyName ← registerComponentW "worley-cellular-noise"
-
+  let worleyName ← registerComponentW
   let clickEvents ← useClickData worleyName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

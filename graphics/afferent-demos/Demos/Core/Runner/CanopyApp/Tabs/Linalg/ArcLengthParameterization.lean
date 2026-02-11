@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def arcLengthParameterizationTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let arcName ← registerComponentW "arc-length-parameterization"
-
+  let arcName ← registerComponentW
   let clickEvents ← useClickData arcName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

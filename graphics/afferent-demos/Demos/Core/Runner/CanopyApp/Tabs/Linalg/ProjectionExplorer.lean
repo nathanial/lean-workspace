@@ -18,8 +18,7 @@ open Trellis
 
 namespace Demos
 def projectionExplorerTabContent (env : DemoEnv) : WidgetM Unit := do
-  let projName ← registerComponentW "projection-explorer"
-
+  let projName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.ProjectionExplorerState) =>

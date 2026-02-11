@@ -66,7 +66,7 @@ def sidebar (config : SidebarConfig)
   let colors := theme.panel
 
   -- Toggle button registration
-  let toggleName ← registerComponentW "sidebar-toggle"
+  let toggleName ← registerComponentW
   let toggleClicks ← useClick toggleName
   let toggleHover ← useHover toggleName
 

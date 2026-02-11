@@ -20,8 +20,7 @@ namespace Demos
 
 def particleIntegrationComparisonTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "particle-integration-comparison"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.ParticleIntegrationComparisonState) =>

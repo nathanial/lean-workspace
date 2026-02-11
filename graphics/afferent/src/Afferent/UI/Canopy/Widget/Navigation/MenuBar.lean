@@ -142,8 +142,8 @@ def menuBar (menus : Array MenuBarMenu)
   let theme ← getThemeW
   -- Register trigger names
   let mut triggerNames : Array ComponentId := #[]
-  for i in [:menus.size] do
-    let name ← registerComponentW s!"menubar-trigger-{i}"
+  for _ in [:menus.size] do
+    let name ← registerComponentW
     triggerNames := triggerNames.push name
 
   -- Register item names and container names for all menus

@@ -223,7 +223,7 @@ def funnelChart (data : Dyn FunnelChart.Data)
     : WidgetM FunnelChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "funnel-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (funnelChartVisual name currentData theme dims)
 
   pure { data }

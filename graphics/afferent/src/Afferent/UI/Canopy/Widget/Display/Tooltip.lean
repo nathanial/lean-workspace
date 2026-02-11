@@ -128,8 +128,7 @@ deriving Repr, BEq, Inhabited
 def tooltip (config : TooltipConfig) (target : WidgetM α) : WidgetM (α × TooltipResult) := do
   let theme ← getThemeW
   let font ← getFontW
-  let name ← registerComponentW "tooltip-target"
-
+  let name ← registerComponentW
   -- Run target widget to get its renders
   let (result, targetRenders) ← runWidgetChildren target
 

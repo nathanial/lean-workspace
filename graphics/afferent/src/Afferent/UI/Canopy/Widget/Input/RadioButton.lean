@@ -91,7 +91,7 @@ def radioGroup (options : Array RadioOption) (initialSelection : String)
   let theme ← getThemeW
   let mut optionNames : Array ComponentId := #[]
   for _ in options do
-    let name ← registerComponentW "radio"
+    let name ← registerComponentW
     optionNames := optionNames.push name
 
   let allClicks ← useAllClicks

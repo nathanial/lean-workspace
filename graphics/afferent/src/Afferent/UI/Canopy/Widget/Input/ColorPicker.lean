@@ -343,11 +343,10 @@ def colorPicker (initialColor : Color := Color.red) (config : ColorPickerConfig 
     : WidgetM ColorPickerResult := do
   let theme ← getThemeW
   -- Register component names
-  let pickerName ← registerComponentW "colorpicker"
-  let svName ← registerComponentW "colorpicker-sv"
-  let hueName ← registerComponentW "colorpicker-hue"
-  let alphaName ← registerComponentW "colorpicker-alpha"
-
+  let pickerName ← registerComponentW
+  let svName ← registerComponentW
+  let hueName ← registerComponentW
+  let alphaName ← registerComponentW
   -- Get event streams
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers

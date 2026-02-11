@@ -265,10 +265,9 @@ structure ModalResult where
 -/
 def modal (title : String) (content : WidgetM Unit) : WidgetM ModalResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "modal" (isInteractive := false)
-  let backdropName ← registerComponentW "modal-backdrop" (isInteractive := false)
-  let closeName ← registerComponentW "modal-close"
-
+  let containerName ← registerComponentW (isInteractive := false)
+  let backdropName ← registerComponentW (isInteractive := false)
+  let closeName ← registerComponentW
   -- Pre-run content to get its renders
   let (_, contentRenders) ← runWidgetChildren content
 

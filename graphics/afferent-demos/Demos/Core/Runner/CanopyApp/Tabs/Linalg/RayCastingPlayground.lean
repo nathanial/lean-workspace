@@ -20,8 +20,7 @@ open AfferentMath.Widget
 
 namespace Demos
 def rayCastingPlaygroundTabContent (env : DemoEnv) : WidgetM Unit := do
-  let rayName ← registerComponentW "ray-casting-playground"
-
+  let rayName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.RayCastingPlaygroundState) =>

@@ -309,7 +309,7 @@ def radarChart (data : Dyn RadarChart.Data)
     : WidgetM RadarChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "radar-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (radarChartVisual name currentData theme dims)
 
   pure { data }

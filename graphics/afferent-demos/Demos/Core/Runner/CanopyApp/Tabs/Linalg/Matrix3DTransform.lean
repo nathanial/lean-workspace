@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def matrix3DTransformTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let mat3dName ← registerComponentW "matrix-3d-transform"
-
+  let mat3dName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.Matrix3DTransformState) =>

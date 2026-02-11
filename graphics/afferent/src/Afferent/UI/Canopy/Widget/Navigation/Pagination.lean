@@ -226,7 +226,7 @@ def pagination (totalPages : Nat) (initialPage : Nat := 0)
     let constDyn ← Dynamic.pureM (0 : Nat)
     return { onPageChange := neverEvent, currentPage := constDyn }
 
-  let containerName ← registerComponentW "pagination" (isInteractive := false)
+  let containerName ← registerComponentW (isInteractive := false)
 
   -- Clamp initial page
   let clampedInitial := if initialPage >= totalPages then totalPages - 1 else initialPage
@@ -235,7 +235,7 @@ def pagination (totalPages : Nat) (initialPage : Nat := 0)
   let maxButtons := config.maxVisiblePages + 2  -- +2 for prev/next
   let mut buttonNames : Array ComponentId := #[]
   for _ in [:maxButtons] do
-    let name ← registerComponentW "pagination-btn"
+    let name ← registerComponentW
     buttonNames := buttonNames.push name
   let buttonNameFn (i : Nat) : ComponentId := buttonNames.getD i 0
 

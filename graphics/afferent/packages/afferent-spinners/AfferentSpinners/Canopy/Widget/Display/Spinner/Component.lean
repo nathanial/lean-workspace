@@ -88,7 +88,7 @@ private def floatMod (x y : Float) : Float :=
 -/
 def spinner (config : Spinner.Config := {}) : WidgetM Unit := do
   let theme ← getThemeW
-  let name ← registerComponentW "spinner" (isInteractive := false)
+  let name ← registerComponentW (isInteractive := false)
 
   -- Generate a random time offset so multiple spinners don't animate in sync
   let cycleDuration : Float := 2.0 / config.speed

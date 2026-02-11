@@ -271,7 +271,7 @@ def gaugeChart (data : Dyn GaugeChart.Data)
     : WidgetM GaugeChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "gauge-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (gaugeChartVisual name currentData theme colors dims)
 
   pure { data }

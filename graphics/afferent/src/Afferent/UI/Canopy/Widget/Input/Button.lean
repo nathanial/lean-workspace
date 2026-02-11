@@ -239,11 +239,10 @@ private structure RippleState where
 deriving BEq, Inhabited
 
 /-- Shared helper for hover-driven button rendering. -/
-private def buttonWithVisual (namePrefix : String)
-    (render : ComponentId → Theme → WidgetState → WidgetBuilder)
+private def buttonWithVisual (render : ComponentId → Theme → WidgetState → WidgetBuilder)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW namePrefix
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -268,13 +267,13 @@ def buttonVisual (name : ComponentId) (labelText : String) (theme : Theme)
 -/
 def button (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     buttonVisual name label theme variant state
 
 /-- Icon-only button (square). -/
 def iconButton (icon : String) (variant : ButtonVariant := .secondary)
     (size : Float := 32.0) : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "icon-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name "" (some icon) .leading theme variant state
       (theme.padding * 0.5) (theme.padding * 0.5) theme.cornerRadius
       (minWidth := some size) (minHeight := some size)
@@ -284,14 +283,14 @@ def iconLabelButton (label : String) (icon : String)
     (variant : ButtonVariant := .primary)
     (iconPosition : IconPosition := .leading)
     : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "icon-label-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name label (some icon) iconPosition theme variant state
       theme.padding (theme.padding * 0.6) theme.cornerRadius
 
 /-- Floating Action Button (FAB). -/
 def fabButton (icon : String) (variant : ButtonVariant := .primary)
     (size : Float := 56.0) : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "fab-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name "" (some icon) .leading theme variant state
       0 0 (size / 2)
       (width := some size) (height := some size)
@@ -299,7 +298,7 @@ def fabButton (icon : String) (variant : ButtonVariant := .primary)
 /-- Mini Floating Action Button. -/
 def miniFabButton (icon : String) (variant : ButtonVariant := .primary)
     (size : Float := 40.0) : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "mini-fab-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name "" (some icon) .leading theme variant state
       0 0 (size / 2)
       (width := some size) (height := some size)
@@ -308,7 +307,7 @@ def miniFabButton (icon : String) (variant : ButtonVariant := .primary)
 def extendedFabButton (label : String) (icon : String)
     (variant : ButtonVariant := .primary)
     (height : Float := 48.0) : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "extended-fab-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name label (some icon) .leading theme variant state
       (theme.padding * 1.2) (theme.padding * 0.6) (height / 2)
       (minHeight := some height)
@@ -316,7 +315,7 @@ def extendedFabButton (label : String) (icon : String)
 /-- Pill-shaped button (fully rounded corners). -/
 def pillButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "pill-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name label none .leading theme variant state
       theme.padding (theme.padding * 0.6) 999.0
 
@@ -324,7 +323,7 @@ def pillButton (label : String) (variant : ButtonVariant := .primary)
 def compactButton (label : String) (variant : ButtonVariant := .primary)
     (icon : Option String := none) (iconPosition : IconPosition := .leading)
     : WidgetM (Reactive.Event Spider Unit) := do
-  buttonWithVisual "compact-button" fun name theme state =>
+  buttonWithVisual fun name theme state =>
     Button.buttonVisualWith name label icon iconPosition theme variant state
       (theme.padding * 0.6) (theme.padding * 0.35) theme.cornerRadius
       (font := theme.smallFont)
@@ -357,7 +356,7 @@ structure ToggleButtonResult where
 def toggleButton (label : String) (variant : ButtonVariant := .secondary)
     (initialOn : Bool := false) : WidgetM ToggleButtonResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "toggle-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let clicks ← useClick name
@@ -385,7 +384,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
   let theme ← getThemeW
   let mut buttonNames : Array ComponentId := #[]
   for _ in labels do
-    let name ← registerComponentW "toggle-group-btn"
+    let name ← registerComponentW
     buttonNames := buttonNames.push name
 
   let allClicks ← useAllClicks
@@ -515,8 +514,8 @@ private def splitButtonVisual (primaryName menuName : ComponentId) (label : Stri
 def splitButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM SplitButtonResult := do
   let theme ← getThemeW
-  let primaryName ← registerComponentW "split-primary"
-  let menuName ← registerComponentW "split-menu"
+  let primaryName ← registerComponentW
+  let menuName ← registerComponentW
   let primaryHover ← buttonHoverState primaryName
   let menuHover ← buttonHoverState menuName
   let primaryPressed ← buttonPressState primaryName
@@ -547,7 +546,7 @@ def loadingButton (label : String) (isLoading : Reactive.Dynamic Spider Bool)
     (variant : ButtonVariant := .primary) (spinnerSize : Float := 16.0)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "loading-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -724,7 +723,7 @@ private def takeChars (s : String) (n : Nat) : String :=
 def rippleButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "ripple-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -768,7 +767,7 @@ def rippleButton (label : String) (variant : ButtonVariant := .primary)
 def pulseButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "pulse-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -795,7 +794,7 @@ def pulseButton (label : String) (variant : ButtonVariant := .primary)
 def glowOnHoverButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "glow-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let hoverAnim ← hoverAnimState name
@@ -825,7 +824,7 @@ def glowOnHoverButton (label : String) (variant : ButtonVariant := .primary)
 def borderTraceButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "border-trace-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let hoverAnim ← hoverAnimState name
@@ -858,7 +857,7 @@ def borderTraceButton (label : String) (variant : ButtonVariant := .primary)
 def shimmerLoadingButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "shimmer-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -885,7 +884,7 @@ def shimmerLoadingButton (label : String) (variant : ButtonVariant := .primary)
 def bounceButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "bounce-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -926,7 +925,7 @@ def bounceButton (label : String) (variant : ButtonVariant := .primary)
 def jellyButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "jelly-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name
@@ -968,7 +967,7 @@ def jellyButton (label : String) (variant : ButtonVariant := .primary)
 def typewriterButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "typewriter-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let hoverAnim ← hoverAnimState name
@@ -1010,7 +1009,7 @@ def typewriterButton (label : String) (variant : ButtonVariant := .primary)
 def slideRevealButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "slide-reveal-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let hoverAnim ← hoverAnimState name
@@ -1040,7 +1039,7 @@ def slideRevealButton (label : String) (variant : ButtonVariant := .primary)
 def heartbeatButton (label : String) (variant : ButtonVariant := .primary)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "heartbeat-button"
+  let name ← registerComponentW
   let isHovered ← buttonHoverState name
   let isPressed ← buttonPressState name
   let onClick ← useClick name

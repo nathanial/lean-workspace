@@ -562,7 +562,7 @@ test "FRP: useScroll filters events by widget name" := do
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty testTheme
 
     -- Register a component with a known name
-    let name ← (registerComponent "test-scroll" false true).run events
+    let name ← (registerComponent false true).run events
 
     -- Subscribe to filtered scroll events for that name
     let scrollEvents ← (useScroll name).run events
@@ -595,7 +595,7 @@ test "FRP DEBUG: trace scroll event flow through messageList pipeline (SpiderM)"
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty testTheme
 
     -- Step 1: Register component and check name
-    let name ← (registerComponent "chat-message-list" false true).run events
+    let name ← (registerComponent false true).run events
 
     -- Step 2: Get filtered scroll events
     let scrollEvents ← (useScroll name).run events
@@ -651,7 +651,7 @@ test "FRP DEBUG: trace scroll event flow in WidgetM" := do
 
     -- Run the pipeline inside WidgetM - this time with ALL events like messageList
     let (scrollDyn, _) ← (do
-      let name ← registerComponentW "chat-message-list"
+      let name ← registerComponentW
       let scrollEvents ← useScroll name
       let allClicks ← useAllClicks
       let allHovers ← useAllHovers

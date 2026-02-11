@@ -102,7 +102,7 @@ def checkboxVisual (name : ComponentId) (labelText : String) (theme : Theme)
 def checkbox (label : String) (initialChecked : Bool := false)
     : WidgetM CheckboxResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "checkbox"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let clicks ← useClick name
   let isChecked ← Reactive.foldDyn (fun _ checked => !checked) initialChecked clicks

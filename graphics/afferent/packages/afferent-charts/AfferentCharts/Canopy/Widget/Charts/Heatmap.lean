@@ -278,7 +278,7 @@ def heatmap (data : Dyn Heatmap.Data) (scale : Heatmap.ColorScale := .viridis)
     : WidgetM HeatmapResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "heatmap" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (heatmapVisual name currentData scale theme dims)
 
   pure { data }

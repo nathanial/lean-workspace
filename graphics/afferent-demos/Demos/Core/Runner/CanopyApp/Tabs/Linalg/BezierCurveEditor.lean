@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def bezierCurveEditorTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let bezierName ← registerComponentW "bezier-curve-editor"
-
+  let bezierName ← registerComponentW
   let clickEvents ← useClickData bezierName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

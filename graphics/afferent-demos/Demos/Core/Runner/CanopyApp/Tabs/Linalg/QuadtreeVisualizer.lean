@@ -31,8 +31,7 @@ private def updateQuerySize (scale : Float) (state : Demos.Linalg.QuadtreeVisual
   { state with queryExtents := newExtents, queryRadius := newRadius }
 
 def quadtreeVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "quadtree-visualizer"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.QuadtreeVisualizerState) =>

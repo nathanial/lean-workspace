@@ -213,7 +213,7 @@ structure TextInputResult where
 def textInput (placeholder : String) (initialValue : String := "") : WidgetM TextInputResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let name ← registerComponentW "text-input" (isInput := true)
+  let name ← registerComponentW (isInput := true)
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput
   let fireFocusedInput := events.registry.fireFocus

@@ -18,8 +18,7 @@ open Trellis
 
 namespace Demos
 def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
-  let noiseName ← registerComponentW "noise-explorer-2d"
-
+  let noiseName ← registerComponentW
   let clickEvents ← useClickData noiseName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

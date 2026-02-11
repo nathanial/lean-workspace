@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 
 def bvhRayTracerTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "bvh-ray-tracer"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.BVHRayTracerState) =>

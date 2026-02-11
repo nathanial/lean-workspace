@@ -308,7 +308,7 @@ def lineChart (data : Dyn (Array Float)) (labels : Array String := #[])
     : WidgetM LineChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "line-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (lineChartVisual name currentData labels variant theme dims)
 
   pure { data }
@@ -330,7 +330,7 @@ def multiSeriesLineChart (series : Dyn (Array LineChart.Series))
     : WidgetM MultiSeriesLineChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
-    let name ← registerComponentW "line-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (multiSeriesLineChartVisual name currentSeries labels theme dims)
 
   pure { series }

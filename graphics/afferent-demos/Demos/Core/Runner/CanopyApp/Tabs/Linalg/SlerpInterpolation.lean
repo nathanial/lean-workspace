@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def slerpInterpolationTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let slerpName ← registerComponentW "slerp-interpolation"
-
+  let slerpName ← registerComponentW
   let clickEvents ← useClickData slerpName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

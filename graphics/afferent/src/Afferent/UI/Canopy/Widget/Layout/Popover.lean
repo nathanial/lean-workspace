@@ -177,9 +177,9 @@ def popoverVisual (containerName : ComponentId) (panelName : ComponentId) (_anch
 def popover (config : PopoverConfig := {}) (anchor : WidgetM α)
     (content : WidgetM Unit) : WidgetM (α × PopoverResult) := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "popover" (isInteractive := false)
-  let anchorName ← registerComponentW "popover-anchor"
-  let panelName ← registerComponentW "popover-panel" (isInteractive := false)
+  let containerName ← registerComponentW (isInteractive := false)
+  let anchorName ← registerComponentW
+  let panelName ← registerComponentW (isInteractive := false)
 
   -- Run anchor and content to get their renders
   let (anchorResult, anchorRenders) ← runWidgetChildren anchor

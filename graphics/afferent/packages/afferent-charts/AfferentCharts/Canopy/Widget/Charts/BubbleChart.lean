@@ -498,7 +498,7 @@ def bubbleChart (points : Dyn (Array BubbleChart.DataPoint))
     : WidgetM BubbleChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget points fun currentPoints => do
-    let name ← registerComponentW "bubble-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (bubbleChartVisual name currentPoints theme dims)
 
   pure { points }
@@ -518,7 +518,7 @@ def multiSeriesBubbleChart (series : Dyn (Array BubbleChart.Series))
     : WidgetM MultiSeriesBubbleChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
-    let name ← registerComponentW "bubble-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (multiSeriesBubbleChartVisual name currentSeries theme dims)
 
   pure { series }
@@ -534,7 +534,7 @@ def bubbleChartWithLegend (series : Dyn (Array BubbleChart.Series))
     : WidgetM MultiSeriesBubbleChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
-    let name ← registerComponentW "bubble-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (bubbleChartWithLegendVisual name currentSeries theme dims)
 
   pure { series }

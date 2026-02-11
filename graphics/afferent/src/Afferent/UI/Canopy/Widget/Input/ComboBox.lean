@@ -350,13 +350,13 @@ def comboBox (options : Array String) (placeholder : String := "Type to search..
     (initialValue : String := "") (config : ComboBoxConfig := {}) : WidgetM ComboBoxResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let containerName ← registerComponentW "combobox" (isInteractive := false)
-  let inputName ← registerComponentW "combobox-input" (isInput := true)
+  let containerName ← registerComponentW (isInteractive := false)
+  let inputName ← registerComponentW (isInput := true)
 
   -- Register option names (for max options)
   let mut optionNames : Array ComponentId := #[]
   for _ in options do
-    let name ← registerComponentW "combobox-option"
+    let name ← registerComponentW
     optionNames := optionNames.push name
   let optionNameFn (i : Nat) : ComponentId := optionNames.getD i 0
 

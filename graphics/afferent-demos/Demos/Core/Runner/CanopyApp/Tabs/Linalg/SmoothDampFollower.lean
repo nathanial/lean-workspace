@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def smoothDampFollowerTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let smoothName ← registerComponentW "smooth-damp-follower"
-
+  let smoothName ← registerComponentW
   let clickEvents ← useClickData smoothName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

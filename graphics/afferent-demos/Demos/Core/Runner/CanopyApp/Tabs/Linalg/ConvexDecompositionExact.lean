@@ -67,8 +67,7 @@ private def updateRotation (dx dy : Float) (state : Demos.Linalg.ConvexDecomposi
   { state with cameraYaw := newYaw, cameraPitch := newPitch }
 
 def convexDecompositionExactTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "convex-decomposition-exact"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.ConvexDecompositionExactState) =>

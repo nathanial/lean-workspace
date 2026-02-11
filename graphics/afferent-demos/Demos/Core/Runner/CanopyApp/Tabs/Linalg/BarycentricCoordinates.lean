@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def barycentricCoordinatesTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let baryName ← registerComponentW "barycentric-coordinates"
-
+  let baryName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.BarycentricCoordinatesState) =>

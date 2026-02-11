@@ -114,8 +114,8 @@ inductive PasswordInputEvent where
 def passwordInput (placeholder : String) (initialValue : String := "") : WidgetM TextInputResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let name ← registerComponentW "password-input" (isInput := true)
-  let toggleName ← registerComponentW "password-toggle"
+  let name ← registerComponentW (isInput := true)
+  let toggleName ← registerComponentW
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput
   let fireFocusedInput := events.registry.fireFocus

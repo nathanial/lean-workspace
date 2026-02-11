@@ -468,7 +468,7 @@ def textArea (placeholder : String) (initialState : TextAreaState)
     (width : Float := 280) (height : Float := 120) : WidgetM TextAreaResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let name ← registerComponentW "text-area" (isInput := true)
+  let name ← registerComponentW (isInput := true)
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput
   let fireFocusedInput := events.registry.fireFocus

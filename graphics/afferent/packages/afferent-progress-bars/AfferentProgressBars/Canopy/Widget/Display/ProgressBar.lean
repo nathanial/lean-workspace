@@ -200,7 +200,7 @@ def progressBar (initialValue : Float := 0.0) (variant : ProgressVariant := .pri
     (label : Option String := none) (showPercentage : Bool := false)
     : WidgetM ProgressBarResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "progress-bar" (isInteractive := false)
+  let name ← registerComponentW (isInteractive := false)
 
   -- Create a constant dynamic
   let value ← Dynamic.pureM initialValue
@@ -218,7 +218,7 @@ def progressBar (initialValue : Float := 0.0) (variant : ProgressVariant := .pri
 def progressBarIndeterminate (variant : ProgressVariant := .primary)
     (label : Option String := none) : WidgetM Unit := do
   let theme ← getThemeW
-  let name ← registerComponentW "progress-bar-indeterminate" (isInteractive := false)
+  let name ← registerComponentW (isInteractive := false)
 
   -- Use shared elapsed time (all widgets share ONE Dynamic, no per-widget foldDyn)
   let elapsedTime ← useElapsedTime
@@ -243,7 +243,7 @@ def progressBarWithEvents (valueUpdates : Reactive.Event Spider Float)
     (label : Option String := none) (showPercentage : Bool := true)
     : WidgetM ProgressBarResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "progress-bar" (isInteractive := false)
+  let name ← registerComponentW (isInteractive := false)
 
   let value ← Reactive.holdDyn initialValue valueUpdates
 

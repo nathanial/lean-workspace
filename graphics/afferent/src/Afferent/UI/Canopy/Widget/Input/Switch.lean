@@ -169,7 +169,7 @@ structure SwitchResult where
 def switch (label : Option String) (initialOn : Bool := false)
     : WidgetM SwitchResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "switch"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let clicks ← useClick name
   let animFrames ← useAnimationFrame

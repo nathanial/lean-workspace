@@ -42,8 +42,7 @@ private def updateCameraDistance (scale : Float) (state : Demos.Linalg.OctreeVie
   { state with cameraDistance := newDist }
 
 def octreeViewer3DTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "octree-viewer-3d"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.OctreeViewer3DState) =>

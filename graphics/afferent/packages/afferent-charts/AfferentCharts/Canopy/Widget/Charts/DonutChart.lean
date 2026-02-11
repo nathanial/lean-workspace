@@ -323,7 +323,7 @@ def donutChart (slices : Dyn (Array DonutChart.Slice))
     : WidgetM DonutChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget slices fun currentSlices => do
-    let name ← registerComponentW "donut-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (donutChartVisual name currentSlices theme dims)
 
   pure { slices }
@@ -339,7 +339,7 @@ def donutChartWithLegend (slices : Dyn (Array DonutChart.Slice))
     : WidgetM DonutChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget slices fun currentSlices => do
-    let name ← registerComponentW "donut-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (donutChartWithLegendVisual name currentSlices theme dims)
 
   pure { slices }

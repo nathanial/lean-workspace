@@ -149,7 +149,7 @@ With `dynWidget`:
 ```lean
 def switch (label : Option String) (theme : Theme) (initialOn : Bool := false)
     : WidgetM SwitchResult := do
-  let name ← registerComponentW "switch"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let clicks ← useClick name
   let animFrames ← useAnimationFrame
@@ -185,7 +185,7 @@ def switch (label : Option String) (theme : Theme) (initialOn : Bool := false)
 ```lean
 def switch (label : Option String) (theme : Theme) (initialOn : Bool := false)
     : WidgetM SwitchResult := do
-  let name ← registerComponentW "switch"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let clicks ← useClick name
   let animFrames ← useAnimationFrame

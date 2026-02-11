@@ -73,8 +73,7 @@ private def applySlider (state : Demos.Linalg.InertiaTensorVisualizerState)
   | .offsetY => { state with offsetY := value }
 
 def inertiaTensorVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "inertia-tensor-visualizer"
-
+  let demoName ← registerComponentW
   let clickEvents ← useClickData demoName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

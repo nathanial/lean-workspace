@@ -42,8 +42,7 @@ def mathView2DInteractive (config : MathView2D.Config := {})
     (font : Afferent.Font)
     (drawContent : MathView2D.View → CanvasM Unit)
     : WidgetM MathView2DResult := do
-  let name ← registerComponentW "mathview2d"
-
+  let name ← registerComponentW
   let clickEvents ← useClickData name
   let clickUpdates ← Event.mapM (fun data =>
     fun (s : MathView2DState) =>
@@ -122,8 +121,7 @@ def mathView3DInteractive (config : MathView3D.Config := {})
     (font : Afferent.Font)
     (drawContent : MathView3D.View → CanvasM Unit)
     : WidgetM MathView3DResult := do
-  let name ← registerComponentW "mathview3d"
-
+  let name ← registerComponentW
   let clickEvents ← useClickData name
   let clickUpdates ← Event.mapM (fun data =>
     fun (s : MathView3DState) =>

@@ -20,8 +20,7 @@ open AfferentMath.Widget
 
 namespace Demos
 def primitiveOverlapTesterTabContent (env : DemoEnv) : WidgetM Unit := do
-  let overlapName ← registerComponentW "primitive-overlap-tester"
-
+  let overlapName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.PrimitiveOverlapTesterState) =>

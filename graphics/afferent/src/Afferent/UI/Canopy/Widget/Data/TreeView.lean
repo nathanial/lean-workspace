@@ -251,7 +251,7 @@ partial def registerTreeNodeNames (nodes : Array TreeNode) (parentPath : TreePat
   let mut names : Std.HashMap TreePath ComponentId := {}
   for i in [:nodes.size] do
     let path := parentPath.push i
-    let name ← registerComponentW "tree-item"
+    let name ← registerComponentW
     names := names.insert path name
     match nodes.getD i (.leaf "" false) with
     | .branch _ children _ =>
@@ -269,7 +269,7 @@ partial def registerToggleNames (nodes : Array TreeNode) (parentPath : TreePath 
     let path := parentPath.push i
     match nodes.getD i (.leaf "" false) with
     | .branch _ children _ =>
-      let name ← registerComponentW "tree-toggle"
+      let name ← registerComponentW
       names := names.insert path name
       let subNames ← registerToggleNames children path
       for (subPath, subName) in subNames.toList do

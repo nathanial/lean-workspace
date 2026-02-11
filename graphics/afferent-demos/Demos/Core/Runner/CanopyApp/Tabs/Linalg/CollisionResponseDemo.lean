@@ -47,8 +47,7 @@ private def updateSlider (which : Demos.Linalg.CollisionSlider) (t : Float)
 
 def collisionResponseDemoTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "collision-response-demo"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.CollisionResponseDemoState) =>

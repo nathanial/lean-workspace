@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def eulerGimbalLockTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let gimbalName ← registerComponentW "euler-gimbal-lock"
-
+  let gimbalName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.EulerGimbalLockState) =>

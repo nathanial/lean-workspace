@@ -37,7 +37,7 @@ structure SeascapeFullState where
 
 def seascapeTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let seascapeName ← registerComponentW "seascape"
+  let seascapeName ← registerComponentW
   let clickEvents ← useClick seascapeName
   let keyEvents ← useKeyboardAll
   let mouseDeltas ← useMouseDelta

@@ -196,7 +196,7 @@ structure ToastManagerResult where
 -/
 def toastManager (defaultDuration : Float := 3.0) : WidgetM ToastManagerResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "toast-container" (isInteractive := false)
+  let containerName ← registerComponentW (isInteractive := false)
 
   -- Animation frames for timing
   let animFrame ← useAnimationFrame

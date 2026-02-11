@@ -414,7 +414,7 @@ def histogramFromBins (bins : Dyn (Array Histogram.Bin))
     : WidgetM HistogramResult := do
   let theme ← getThemeW
   let _ ← dynWidget bins fun currentBins => do
-    let name ← registerComponentW "histogram" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (histogramFromBinsVisual name currentBins variant theme dims showDensity)
 
   pure { bins }
@@ -455,7 +455,7 @@ def histogramFromCounts (labels : Array String) (counts : Dyn (Array Nat))
     : WidgetM HistogramFromCountsResult := do
   let theme ← getThemeW
   let _ ← dynWidget counts fun currentCounts => do
-    let name ← registerComponentW "histogram" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (histogramFromCountsVisual name labels currentCounts variant theme dims)
 
   pure { counts }

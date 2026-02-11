@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def vectorInterpolationTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let interpName ← registerComponentW "vector-interpolation"
-
+  let interpName ← registerComponentW
   let clickEvents ← useClickData interpName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

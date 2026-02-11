@@ -203,8 +203,8 @@ def searchInput (placeholder : String := "Search...") (initialValue : String := 
     : WidgetM SearchInputResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let name ← registerComponentW "search-input" (isInput := true)
-  let clearName ← registerComponentW "search-clear"
+  let name ← registerComponentW (isInput := true)
+  let clearName ← registerComponentW
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput
   let fireFocusedInput := events.registry.fireFocus

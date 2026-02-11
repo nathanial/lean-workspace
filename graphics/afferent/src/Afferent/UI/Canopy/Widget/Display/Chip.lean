@@ -96,10 +96,9 @@ def chip (label : String)
     (variant : ChipVariant := .filled)
     (removable : Bool := false) : WidgetM ChipResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "chip"
-
+  let name ← registerComponentW
   if removable then
-    let removeName ← registerComponentW "chip-remove"
+    let removeName ← registerComponentW
     let isRemoveHovered ← useHover removeName
     let onRemove ← useClick removeName
 

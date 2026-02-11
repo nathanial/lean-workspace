@@ -272,12 +272,11 @@ structure DropdownResult where
 def dropdown (options : Array String) (initialSelection : Nat := 0)
     : WidgetM DropdownResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "dropdown" (isInteractive := false)
-  let triggerName ← registerComponentW "dropdown-trigger"
-
+  let containerName ← registerComponentW (isInteractive := false)
+  let triggerName ← registerComponentW
   let mut optionNames : Array ComponentId := #[]
   for _ in options do
-    let name ← registerComponentW "dropdown-option"
+    let name ← registerComponentW
     optionNames := optionNames.push name
   let optionNameFn (i : Nat) : ComponentId := optionNames.getD i 0
 

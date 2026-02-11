@@ -50,8 +50,7 @@ private def applyClickForce (state : Demos.Linalg.RigidBodySimulatorState) (worl
 
 def rigidBodySimulatorTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "rigid-body-simulator"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.RigidBodySimulatorState) =>

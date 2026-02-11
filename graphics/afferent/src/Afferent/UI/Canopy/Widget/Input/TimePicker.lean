@@ -300,15 +300,14 @@ inductive TimePickerInputEvent where
 def timePicker (initialValue : TimeValue := {}) (config : TimePickerConfig := {})
     : WidgetM TimePickerResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "time-picker" (isInteractive := false)
-  let hoursUpName ← registerComponentW "time-picker-hours-up"
-  let hoursDownName ← registerComponentW "time-picker-hours-down"
-  let minutesUpName ← registerComponentW "time-picker-minutes-up"
-  let minutesDownName ← registerComponentW "time-picker-minutes-down"
-  let secondsUpName ← registerComponentW "time-picker-seconds-up"
-  let secondsDownName ← registerComponentW "time-picker-seconds-down"
-  let ampmName ← registerComponentW "time-picker-ampm"
-
+  let containerName ← registerComponentW (isInteractive := false)
+  let hoursUpName ← registerComponentW
+  let hoursDownName ← registerComponentW
+  let minutesUpName ← registerComponentW
+  let minutesDownName ← registerComponentW
+  let secondsUpName ← registerComponentW
+  let secondsDownName ← registerComponentW
+  let ampmName ← registerComponentW
   -- Hover states for all buttons
   let hoursUpHover ← useHover hoursUpName
   let hoursDownHover ← useHover hoursDownName

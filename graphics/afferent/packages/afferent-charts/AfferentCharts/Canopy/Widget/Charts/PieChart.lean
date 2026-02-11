@@ -263,7 +263,7 @@ def pieChart (slices : Dyn (Array PieChart.Slice))
     : WidgetM PieChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget slices fun currentSlices => do
-    let name ← registerComponentW "pie-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (pieChartVisual name currentSlices theme dims)
 
   pure { slices }
@@ -279,7 +279,7 @@ def pieChartWithLegend (slices : Dyn (Array PieChart.Slice))
     : WidgetM PieChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget slices fun currentSlices => do
-    let name ← registerComponentW "pie-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (pieChartWithLegendVisual name currentSlices theme dims)
 
   pure { slices }

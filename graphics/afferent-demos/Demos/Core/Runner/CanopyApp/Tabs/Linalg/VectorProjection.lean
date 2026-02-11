@@ -20,8 +20,7 @@ open AfferentMath.Widget
 
 namespace Demos
 def vectorProjectionTabContent (env : DemoEnv) : WidgetM Unit := do
-  let projName ← registerComponentW "vector-projection"
-
+  let projName ← registerComponentW
   let clickEvents ← useClickData projName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

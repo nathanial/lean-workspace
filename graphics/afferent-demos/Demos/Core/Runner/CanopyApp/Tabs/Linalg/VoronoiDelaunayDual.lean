@@ -22,8 +22,7 @@ namespace Demos
 
 def voronoiDelaunayDualTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "voronoi-delaunay-dual"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.VoronoiDelaunayDualState) =>

@@ -149,13 +149,13 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
     : WidgetM VirtualListResult := do
   let theme ← getThemeW
   let events ← getEventsW
-  let name ← registerComponentW "virtual-list"
+  let name ← registerComponentW
   let stateKey := config.instanceKey.getD s!"virtual-list-{name}"
 
   -- Register item names for hit testing.
   let mut itemNames : Array ComponentId := #[]
-  for i in [:itemCount] do
-    let itemName ← registerComponentW s!"virtual-list-item-{i}"
+  for _ in [:itemCount] do
+    let itemName ← registerComponentW
     itemNames := itemNames.push itemName
   let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 

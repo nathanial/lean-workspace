@@ -91,7 +91,7 @@ def toolbar (actions : Array ToolbarAction)
   -- Register button names and collect click events
   let mut buttonNames : Array ComponentId := #[]
   for _ in actions do
-    let name ← registerComponentW "toolbar-btn"
+    let name ← registerComponentW
     buttonNames := buttonNames.push name
 
   let allClicks ← useAllClicks

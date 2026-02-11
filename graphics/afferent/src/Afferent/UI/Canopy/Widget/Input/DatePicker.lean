@@ -307,14 +307,13 @@ inductive DatePickerInputEvent where
 def datePicker (initialDate : DatePickerDate) (config : DatePickerConfig := {})
     : WidgetM DatePickerResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "date-picker" (isInteractive := false)
-  let prevName ← registerComponentW "date-picker-prev"
-  let nextName ← registerComponentW "date-picker-next"
-
+  let containerName ← registerComponentW (isInteractive := false)
+  let prevName ← registerComponentW
+  let nextName ← registerComponentW
   let cellCount := 42
   let mut cellNames : Array ComponentId := #[]
   for _ in [:cellCount] do
-    let name ← registerComponentW "date-picker-day"
+    let name ← registerComponentW
     cellNames := cellNames.push name
   let cellNameFn (i : Nat) : ComponentId := cellNames.getD i 0
 

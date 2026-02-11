@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def domainWarpingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let warpName ← registerComponentW "domain-warping-demo"
-
+  let warpName ← registerComponentW
   let clickEvents ← useClickData warpName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

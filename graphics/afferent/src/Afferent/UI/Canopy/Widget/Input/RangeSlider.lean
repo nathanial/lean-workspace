@@ -137,7 +137,7 @@ inductive RangeSliderInputEvent where
 def rangeSlider (initialLow : Float := 0.25) (initialHigh : Float := 0.75)
     : WidgetM RangeSliderResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "range-slider"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers

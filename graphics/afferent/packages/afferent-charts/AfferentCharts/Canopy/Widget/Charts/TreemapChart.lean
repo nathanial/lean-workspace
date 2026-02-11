@@ -318,7 +318,7 @@ def treemapChart (data : Dyn TreemapChart.Data)
     : WidgetM TreemapChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "treemap-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (treemapChartVisual name currentData theme dims)
 
   pure { data }

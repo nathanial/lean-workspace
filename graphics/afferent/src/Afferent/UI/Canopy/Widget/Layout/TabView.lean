@@ -207,11 +207,11 @@ structure TabViewResult where
 def tabView (tabs : Array TabDef) (initialTab : Nat := 0) (keepAlive : Bool := false)
     : WidgetM TabViewResult := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "tabview" (isInteractive := false)
+  let containerName ← registerComponentW (isInteractive := false)
 
   let mut headerNames : Array ComponentId := #[]
   for _ in tabs do
-    let name ← registerComponentW "tab-header"
+    let name ← registerComponentW
     headerNames := headerNames.push name
   let headerNameFn (i : Nat) : ComponentId := headerNames.getD i 0
 

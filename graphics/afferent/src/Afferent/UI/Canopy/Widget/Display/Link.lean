@@ -33,7 +33,7 @@ def linkVisual (name : ComponentId) (linkText : String) (theme : Theme)
 def link (linkText : String) (color : Option Color := none)
     : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "link"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let onClick ← useClick name
   let linkColor := color.getD theme.primary.background
@@ -52,7 +52,7 @@ def link (linkText : String) (color : Option Color := none)
 def linkWithIcon (linkText : String) (icon : String)
     (color : Option Color := none) : WidgetM (Reactive.Event Spider Unit) := do
   let theme ← getThemeW
-  let name ← registerComponentW "link-with-icon"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let onClick ← useClick name
   let linkColor := color.getD theme.primary.background

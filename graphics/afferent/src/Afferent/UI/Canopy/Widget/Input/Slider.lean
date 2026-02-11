@@ -131,7 +131,7 @@ inductive SliderInputEvent where
 def slider (label : Option String) (initialValue : Float := 0.5)
     : WidgetM SliderResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "slider"
+  let name ← registerComponentW
   let isHovered ← useHover name
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers

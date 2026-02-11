@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def matrix2DTransformTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let mat2dName ← registerComponentW "matrix-2d-transform"
-
+  let mat2dName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.Matrix2DTransformState) =>

@@ -29,7 +29,7 @@ structure ReactiveInputs where
   /-- Fire when scroll wheel is used. -/
   fireScroll : ScrollData → IO Unit
 
-/-- Registry for auto-generating widget names and tracking component categories. -/
+/-- Registry for auto-generating component IDs and tracking component categories. -/
 structure ComponentRegistry where
   private mk ::
   /-- Counter for generating unique IDs. -/
@@ -63,7 +63,7 @@ def ComponentRegistry.create : SpiderM ComponentRegistry := do
   }
 
 /-- Reset the registry for a new frame.
-    Clears the counter and name arrays to prevent unbounded growth. -/
+    Clears the counter and category arrays to prevent unbounded growth. -/
 def ComponentRegistry.reset (reg : ComponentRegistry) : IO Unit := do
   reg.idCounter.set 0
   reg.inputIds.set #[]
@@ -76,11 +76,10 @@ def ComponentRegistry.getStats (reg : ComponentRegistry) : IO (Nat × Nat × Nat
   let interactiveCount ← reg.interactiveIds.get
   pure (counter, inputCount.size, interactiveCount.size)
 
-/-- Register a component and get an auto-generated name.
-    - `namePrefix`: Component type prefix (e.g., "button", "text-input")
+/-- Register a component and get an auto-generated id.
     - `isInput`: Whether this is a focusable input widget
     - `isInteractive`: Whether this widget responds to clicks -/
-def ComponentRegistry.register (reg : ComponentRegistry) (_namePrefix : String)
+def ComponentRegistry.register (reg : ComponentRegistry)
     (isInput : Bool := false) (isInteractive : Bool := true) : IO Afferent.Arbor.ComponentId := do
   let componentId ← reg.idCounter.modifyGet fun n => (n, n + 1)
   if isInput then
@@ -122,7 +121,7 @@ structure ReactiveEvents where
   elapsedTime : Dynamic Spider Float
   /-- Scroll events with layout context. -/
   scrollEvent : Event Spider ScrollData
-  /-- Component registry for auto-generating names. -/
+  /-- Component registry for auto-generating component IDs. -/
   registry : ComponentRegistry
   /-- Font registry for text measurement. -/
   fontRegistry : Afferent.FontRegistry
@@ -163,11 +162,11 @@ private def buildHoverChangeEvent (hoverEvent : Event Spider HoverData) (registr
 
 /-- Reset the component registry for a new frame.
     Call this at the start of each frame to prevent memory leaks from
-    unbounded growth of component names and IDs. -/
+    unbounded growth of tracked component IDs. -/
 def ReactiveEvents.resetRegistry (events : ReactiveEvents) : IO Unit :=
   events.registry.reset
 
-/-- Get diagnostic stats: (idCounter, inputNames.size, interactiveNames.size). -/
+/-- Get diagnostic stats: (idCounter, inputIds.size, interactiveIds.size). -/
 def ReactiveEvents.getRegistryStats (events : ReactiveEvents) : IO (Nat × Nat × Nat) :=
   events.registry.getStats
 

@@ -18,8 +18,7 @@ open Trellis
 
 namespace Demos
 def quaternionVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
-  let quatName ← registerComponentW "quaternion-visualizer"
-
+  let quatName ← registerComponentW
   let clickEvents ← useClickData quatName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 && data.click.button != 1 then

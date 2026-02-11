@@ -43,7 +43,7 @@ def clickCounterPanel : WidgetM Unit := do
   titledPanel' "Click Counter" .outlined do
     caption' "Button displays its own click count:"
     -- Register the button for event handling
-    let name ← registerComponentW "counter-button"
+    let name ← registerComponentW
     let isHovered ← useHover name
     let onClick ← useClick name
     -- Count clicks using foldDyn

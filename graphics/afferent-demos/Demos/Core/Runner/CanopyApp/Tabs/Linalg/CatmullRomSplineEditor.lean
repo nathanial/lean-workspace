@@ -21,8 +21,7 @@ open AfferentMath.Widget
 namespace Demos
 def catmullRomSplineEditorTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let catmullName ← registerComponentW "catmull-rom-spline-editor"
-
+  let catmullName ← registerComponentW
   let clickEvents ← useClickData catmullName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

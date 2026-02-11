@@ -278,7 +278,7 @@ def mathPlot (series : Dyn (Array MathPlot.Series))
     (config : MathPlot.Config := {}) : WidgetM MathPlotResult := do
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
-    let name ← registerComponentW "math-plot" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (mathPlotVisual name currentSeries theme dims config)
   pure { series }
 

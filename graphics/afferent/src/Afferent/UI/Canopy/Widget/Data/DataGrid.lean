@@ -197,7 +197,7 @@ def dataGrid (columns : Array DataGridColumn) (rows : Array (Array String))
     (config : DataGridConfig := {}) : WidgetM DataGridResult := do
   let theme ← getThemeW
   let font ← getFontW
-  let gridName ← registerComponentW "datagrid" (isInput := true)
+  let gridName ← registerComponentW (isInput := true)
   let events ← getEventsW
   let focusedInput := events.registry.focusedInput
   let fireFocus := events.registry.fireFocus
@@ -208,14 +208,14 @@ def dataGrid (columns : Array DataGridColumn) (rows : Array (Array String))
   -- Register cell names for hit testing (header uses its own names)
   let mut headerNames : Array ComponentId := #[]
   for _ in [:colCount] do
-    let name ← registerComponentW "datagrid-header-cell"
+    let name ← registerComponentW
     headerNames := headerNames.push name
   let headerCellNameFn (c : Nat) : ComponentId := headerNames.getD c 0
 
   let mut cellNames : Array ComponentId := #[]
   for _ in [:rowCount] do
     for _ in [:colCount] do
-      let name ← registerComponentW "datagrid-cell"
+      let name ← registerComponentW
       cellNames := cellNames.push name
   let cellNameFn (r c : Nat) : ComponentId :=
     cellNames.getD (r * colCount + c) 0

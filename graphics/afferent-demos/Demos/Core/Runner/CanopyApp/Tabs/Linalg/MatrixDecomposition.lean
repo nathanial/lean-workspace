@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def matrixDecompositionTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let decompName ← registerComponentW "matrix-decomposition"
-
+  let decompName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.MatrixDecompositionState) =>

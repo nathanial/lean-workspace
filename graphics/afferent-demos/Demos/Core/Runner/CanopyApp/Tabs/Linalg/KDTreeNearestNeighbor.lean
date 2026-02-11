@@ -27,8 +27,7 @@ private def updateRadius (scale : Float) (state : Demos.Linalg.KDTreeNearestNeig
   { state with radius := Linalg.Float.clamp (state.radius * scale) minR maxR }
 
 def kdTreeNearestNeighborTabContent (env : DemoEnv) : WidgetM Unit := do
-  let demoName ← registerComponentW "kd-tree-nearest-neighbor"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.KDTreeNearestNeighborState) =>

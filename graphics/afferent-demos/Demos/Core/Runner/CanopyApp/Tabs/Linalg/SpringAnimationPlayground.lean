@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def springAnimationPlaygroundTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let springName ← registerComponentW "spring-animation-playground"
-
+  let springName ← registerComponentW
   let clickEvents ← useClickData springName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then

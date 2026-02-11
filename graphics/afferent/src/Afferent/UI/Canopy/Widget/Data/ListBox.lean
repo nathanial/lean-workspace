@@ -109,8 +109,8 @@ def listBox (items : Array String)
   let theme ← getThemeW
   -- Register item names for hit testing
   let mut itemNames : Array ComponentId := #[]
-  for i in [:items.size] do
-    let name ← registerComponentW s!"listbox-item-{i}"
+  for _ in [:items.size] do
+    let name ← registerComponentW
     itemNames := itemNames.push name
   let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 
@@ -174,8 +174,8 @@ def listBoxWithSelection (items : Array String) (initialSelection : Array Nat)
   let theme ← getThemeW
   -- Register item names for hit testing
   let mut itemNames : Array ComponentId := #[]
-  for i in [:items.size] do
-    let name ← registerComponentW s!"listbox-item-{i}"
+  for _ in [:items.size] do
+    let name ← registerComponentW
     itemNames := itemNames.push name
   let itemNameFn (i : Nat) : ComponentId := itemNames.getD i 0
 

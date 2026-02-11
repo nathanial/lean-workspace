@@ -202,9 +202,8 @@ inductive SplitPaneInputEvent where
 def splitPane (config : SplitPaneConfig) (first : WidgetM α) (second : WidgetM β)
     : WidgetM ((α × β) × SplitPaneResult) := do
   let theme ← getThemeW
-  let containerName ← registerComponentW "split-pane" (isInteractive := false)
-  let handleName ← registerComponentW "split-pane-handle"
-
+  let containerName ← registerComponentW (isInteractive := false)
+  let handleName ← registerComponentW
   -- Pre-run child panes to get their renders
   let (firstResult, firstRenders) ← runWidgetChildren first
   let (secondResult, secondRenders) ← runWidgetChildren second

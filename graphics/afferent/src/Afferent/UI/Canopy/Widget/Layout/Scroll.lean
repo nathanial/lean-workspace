@@ -217,7 +217,7 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
     : WidgetM (α × ScrollContainerResult) := do
   let theme ← getThemeW
   let fontRegistry ← getFontRegistry
-  let name ← registerComponentW "scroll-container"
+  let name ← registerComponentW
   let scrollEvents ← useScroll name
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers

@@ -275,7 +275,7 @@ def candlestickChart (data : Dyn CandlestickChart.Data)
     : WidgetM CandlestickChartResult := do
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
-    let name ← registerComponentW "candlestick-chart" (isInteractive := false)
+    let name ← registerComponentW (isInteractive := false)
     emit do pure (candlestickChartVisual name currentData theme colors dims)
 
   pure { data }

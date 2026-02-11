@@ -22,8 +22,7 @@ namespace Demos
 
 def convexHull2DTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "convex-hull-2d"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.ConvexHull2DState) =>

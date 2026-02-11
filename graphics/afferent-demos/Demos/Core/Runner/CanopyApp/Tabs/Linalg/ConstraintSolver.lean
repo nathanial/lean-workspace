@@ -28,8 +28,7 @@ private def pickPoint (state : Demos.Linalg.ConstraintSolverState)
 
 def constraintSolverTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "constraint-solver"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.ConstraintSolverState) =>

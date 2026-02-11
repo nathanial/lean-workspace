@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def easingFunctionGalleryTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let easingName ← registerComponentW "easing-function-gallery"
-
+  let easingName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.EasingFunctionGalleryState) =>

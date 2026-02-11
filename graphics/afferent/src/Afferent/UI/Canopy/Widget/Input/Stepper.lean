@@ -34,9 +34,6 @@ end StepperConfig
 
 namespace Stepper
 
-private def decPrefix : String := "stepper-dec"
-private def incPrefix : String := "stepper-inc"
-
 def clamp (value : Int) (config : StepperConfig) : Int :=
   if value < config.min then config.min
   else if value > config.max then config.max
@@ -125,9 +122,8 @@ structure StepperResult where
 def stepper (initialValue : Int := 0) (config : StepperConfig := {})
     : WidgetM StepperResult := do
   let theme ← getThemeW
-  let decName ← registerComponentW Stepper.decPrefix
-  let incName ← registerComponentW Stepper.incPrefix
-
+  let decName ← registerComponentW
+  let incName ← registerComponentW
   let decHovered ← useHover decName
   let incHovered ← useHover incName
   let decClicks ← useClick decName

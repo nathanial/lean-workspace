@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def fbmTerrainGeneratorTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let terrainName ← registerComponentW "fbm-terrain-generator"
-
+  let terrainName ← registerComponentW
   let clickEvents ← useClickData terrainName
   let clickUpdates ← Event.mapM (fun data =>
     let button := data.click.button

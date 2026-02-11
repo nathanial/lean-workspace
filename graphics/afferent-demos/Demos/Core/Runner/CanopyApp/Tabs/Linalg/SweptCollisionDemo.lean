@@ -47,8 +47,7 @@ private def pickDragTarget (state : Demos.Linalg.SweptCollisionDemoState)
 
 def sweptCollisionDemoTabContent (env : DemoEnv) : WidgetM Unit := do
   let animFrame ← useAnimationFrame
-  let demoName ← registerComponentW "swept-collision-demo"
-
+  let demoName ← registerComponentW
   let keyEvents ← useKeyboard
   let keyUpdates ← Event.mapM (fun data =>
     fun (s : Demos.Linalg.SweptCollisionDemoState) =>

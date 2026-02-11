@@ -371,7 +371,7 @@ def messageListVisual (name : String) (messages : Array ChatMessage) (config : M
 def messageList (messages : Reactive.Dynamic Spider (Array ChatMessage)) (config : MessageListConfig)
     (autoScroll : Bool := true) : WidgetM MessageListResult := do
   let theme ← getThemeW
-  let name ← registerComponentW "chat-message-list"
+  let name ← registerComponentW
   let scrollEvents ← useScroll name
   let allClicks ← useAllClicks
   let allHovers ← useAllHovers

@@ -317,7 +317,7 @@ partial def registerMenuItemNames (items : Array MenuItem) (parentPath : MenuPat
   let mut names : Std.HashMap MenuPath ComponentId := {}
   for i in [:items.size] do
     let path := parentPath.push i
-    let name ← registerComponentW "menu-item"
+    let name ← registerComponentW
     names := names.insert path name
     match items.getD i .separator with
     | .submenu _ subItems _ =>
@@ -332,13 +332,13 @@ partial def registerSubmenuContainerNames (items : Array MenuItem) (parentPath :
     : WidgetM (Std.HashMap MenuPath ComponentId) := do
   let mut names : Std.HashMap MenuPath ComponentId := {}
   -- Root container
-  let rootName ← registerComponentW "menu" (isInteractive := false)
+  let rootName ← registerComponentW (isInteractive := false)
   names := names.insert parentPath rootName
   for i in [:items.size] do
     let path := parentPath.push i
     match items.getD i .separator with
     | .submenu _ subItems _ =>
-      let subName ← registerComponentW "submenu" (isInteractive := false)
+      let subName ← registerComponentW (isInteractive := false)
       names := names.insert path subName
       let subNames ← registerSubmenuContainerNames subItems path
       for (subPath, subSubName) in subNames.toList do
@@ -366,8 +366,7 @@ def menu (items : Array MenuItem)
     (config : MenuConfig := Menu.defaultConfig)
     (trigger : WidgetM α) : WidgetM (α × MenuResult) := do
   let theme ← getThemeW
-  let triggerName ← registerComponentW "menu-trigger"
-
+  let triggerName ← registerComponentW
   -- Register names for all items and containers recursively
   let itemNames ← registerMenuItemNames items
   let containerNames ← registerSubmenuContainerNames items

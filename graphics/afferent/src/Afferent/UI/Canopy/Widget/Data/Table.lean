@@ -184,29 +184,29 @@ def table (columns : Array TableColumn) (rows : Array (Array String))
     : WidgetM TableResult := do
   let theme ← getThemeW
   -- Register container name
-  let containerName ← registerComponentW "table"
-  let headerRowName ← registerComponentW "table-header" (isInteractive := false)
+  let containerName ← registerComponentW
+  let headerRowName ← registerComponentW (isInteractive := false)
 
   -- Register header cell names
   let mut headerCellNames : Array ComponentId := #[]
-  for i in [:columns.size] do
-    let name ← registerComponentW s!"table-header-cell-{i}" (isInteractive := false)
+  for _ in [:columns.size] do
+    let name ← registerComponentW (isInteractive := false)
     headerCellNames := headerCellNames.push name
   let headerCellNameFn (i : Nat) : ComponentId := headerCellNames.getD i 0
 
   -- Register row names
   let mut rowNames : Array ComponentId := #[]
-  for i in [:rows.size] do
-    let name ← registerComponentW s!"table-row-{i}"
+  for _ in [:rows.size] do
+    let name ← registerComponentW
     rowNames := rowNames.push name
   let rowNameFn (i : Nat) : ComponentId := rowNames.getD i 0
 
   -- Register cell names (row × col)
   let mut cellNames : Array (Array ComponentId) := #[]
-  for i in [:rows.size] do
+  for _ in [:rows.size] do
     let mut rowCellNames : Array ComponentId := #[]
-    for j in [:columns.size] do
-      let name ← registerComponentW s!"table-cell-{i}-{j}" (isInteractive := false)
+    for _ in [:columns.size] do
+      let name ← registerComponentW (isInteractive := false)
       rowCellNames := rowCellNames.push name
     cellNames := cellNames.push rowCellNames
   let cellNameFn (rowIdx colIdx : Nat) : ComponentId :=

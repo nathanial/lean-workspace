@@ -965,7 +965,7 @@ test "FRP: useHover updates via hover fan registry" := do
   let result ← runSpider do
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty testTheme
 
-    let name ← (registerComponent "hover-test").run events
+    let name ← (registerComponent).run events
     let hoveredDyn ← (useHover name).run events
 
     let wid : WidgetId := 0

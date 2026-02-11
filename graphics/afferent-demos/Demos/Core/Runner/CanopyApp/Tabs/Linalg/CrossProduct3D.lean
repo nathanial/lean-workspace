@@ -19,8 +19,7 @@ open Trellis
 namespace Demos
 def crossProduct3DTabContent (env : DemoEnv) : WidgetM Unit := do
   let _elapsedTime ← useElapsedTime
-  let crossName ← registerComponentW "cross-product-3d"
-
+  let crossName ← registerComponentW
   let clickEvents ← useClickData crossName
   let clickUpdates ← Event.mapM (fun data =>
     if data.click.button != 0 then
