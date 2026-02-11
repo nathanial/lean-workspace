@@ -18,107 +18,90 @@ open Trellis
 
 namespace Demos
 def worleyCellularNoiseTabContent (env : DemoEnv) : WidgetM Unit := do
-  let worleyName ← registerComponentW
-  let clickEvents ← useClickData worleyName
-  let clickUpdates ← Event.mapM (fun data =>
-    if data.click.button != 0 then
-      id
-    else
-      match data.componentMap.get? worleyName with
-      | some wid =>
-          match data.layouts.get wid with
-          | some layout =>
-              let rect := layout.contentRect
-              let localX := data.click.x - rect.x
-              let localY := data.click.y - rect.y
-              let drop := Demos.Linalg.worleyDropdownLayout rect.width rect.height env.screenScale
-              let inDrop := localX >= drop.x && localX <= drop.x + drop.width
-                && localY >= drop.y && localY <= drop.y + drop.height
-              fun (state : Demos.Linalg.WorleyCellularState) =>
-                if inDrop then
-                  { state with dropdownOpen := !state.dropdownOpen }
-                else if state.dropdownOpen then
-                  let selected := (Array.range Demos.Linalg.worleyModeOptions.size).findSome? fun i =>
-                    let optLayout := Demos.Linalg.worleyDropdownOptionLayout drop i
-                    if localX >= optLayout.x && localX <= optLayout.x + optLayout.width
-                        && localY >= optLayout.y && localY <= optLayout.y + optLayout.height then
-                      some (Demos.Linalg.worleyModeOptions.getD i .f1)
-                    else none
-                  match selected with
-                  | some opt => { state with mode := opt, dropdownOpen := false }
-                  | none => { state with dropdownOpen := false }
-                else
-                  let layout := Demos.Linalg.worleySliderLayout rect.width rect.height env.screenScale
-                  let inSlider := localX >= layout.x && localX <= layout.x + layout.width
-                    && localY >= layout.y - 10.0 && localY <= layout.y + layout.height + 10.0
-                  if inSlider then
-                    let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                    let newState := { state with jitter := Demos.Linalg.worleyJitterFromSlider t }
-                    { newState with dragging := .slider }
-                  else
-                    let toggleA := Demos.Linalg.worleyToggleLayout rect.width rect.height env.screenScale 0
-                    let toggleB := Demos.Linalg.worleyToggleLayout rect.width rect.height env.screenScale 1
-                    let toggleC := Demos.Linalg.worleyToggleLayout rect.width rect.height env.screenScale 2
-                    let hitToggle (t : Demos.Linalg.WorleyToggleLayout) : Bool :=
-                      localX >= t.x && localX <= t.x + t.size && localY >= t.y && localY <= t.y + t.size
-                    if hitToggle toggleA then
-                      { state with showEdges := !state.showEdges }
-                    else if hitToggle toggleB then
-                      { state with showPoints := !state.showPoints }
-                    else if hitToggle toggleC then
-                      { state with showConnections := !state.showConnections }
-                    else
-                      state
-          | none => id
-      | none => id
-    ) clickEvents
+  let initial := Demos.Linalg.worleyCellularInitialState
+  let (stateUpdates, fireStateUpdate) ← Reactive.newTriggerEvent
+    (t := Spider) (a := Demos.Linalg.WorleyCellularState → Demos.Linalg.WorleyCellularState)
 
-  let hoverEvents ← useAllHovers
-  let hoverUpdates ← Event.mapM (fun data =>
-    match data.componentMap.get? worleyName with
-    | some wid =>
-        match data.layouts.get wid with
-        | some layout =>
-            let rect := layout.contentRect
-            let localX := data.x - rect.x
-            fun (state : Demos.Linalg.WorleyCellularState) =>
-              match state.dragging with
-              | .slider =>
-                  let layout := Demos.Linalg.worleySliderLayout rect.width rect.height env.screenScale
-                  let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                  { state with jitter := Demos.Linalg.worleyJitterFromSlider t }
-              | .none => state
-        | none => id
-    | none => id
-    ) hoverEvents
+  let state ← foldDyn (fun f s => f s) initial stateUpdates
 
-  let mouseUpEvents ← useAllMouseUp
-  let mouseUpUpdates ← Event.mapM (fun _ =>
-    fun (s : Demos.Linalg.WorleyCellularState) => { s with dragging := .none }
-    ) mouseUpEvents
+  let panelWidth : Float := 300.0 * env.screenScale
+  let rootStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let plotStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let panelStyle : BoxStyle := {
+    flexItem := some (FlexItem.fixed panelWidth)
+    width := .length panelWidth
+    minWidth := some panelWidth
+    height := .percent 1.0
+    padding := EdgeInsets.uniform (16.0 * env.screenScale)
+    backgroundColor := some (Color.rgba 0.08 0.08 0.1 0.95)
+    borderColor := some (Color.gray 0.22)
+    borderWidth := 1
+  }
 
-  let keyEvents ← useKeyboard
-  let keyUpdates ← Event.mapM (fun data =>
-    fun (s : Demos.Linalg.WorleyCellularState) =>
-      if data.event.isPress then
-        match data.event.key with
-        | .char 'r' => Demos.Linalg.worleyCellularInitialState
-        | _ => s
-      else s
-    ) keyEvents
+  row' (gap := 0) (style := rootStyle) do
+    column' (gap := 0) (style := plotStyle) do
+      let _ ← dynWidget state fun s => do
+        emit (pure (Demos.Linalg.worleyCellularNoiseWidget env s))
+      pure ()
 
-  let allUpdates ← Event.mergeAllListM [clickUpdates, hoverUpdates, mouseUpUpdates, keyUpdates]
-  let state ← foldDyn (fun f s => f s) Demos.Linalg.worleyCellularInitialState allUpdates
+    column' (gap := 8.0 * env.screenScale) (style := panelStyle) do
+      heading2' "Worley Cellular"
+      caption' "worley2D + Voronoi"
+      spacer' 0 (6.0 * env.screenScale)
 
-  let _ ← dynWidget state fun s => do
-    let containerStyle : BoxStyle := {
-      flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
-      height := .percent 1.0
-    }
-    emit (pure (namedColumn worleyName 0 containerStyle #[
-      Demos.Linalg.worleyCellularNoiseWidget env s
-    ]))
+      caption' "Mode"
+      let dropdownResult ← dropdown Demos.Linalg.worleyModeOptionLabels
+        (Demos.Linalg.worleyModeOptionIndex initial.mode)
+      let modeActions ← Event.mapM (fun idx =>
+        let mode := Demos.Linalg.worleyModeOptionAt idx
+        fireStateUpdate (fun s =>
+          if s.mode == mode then s else { s with mode := mode }
+        )
+      ) dropdownResult.onSelect
+      performEvent_ modeActions
+
+      spacer' 0 (6.0 * env.screenScale)
+
+      let wireSwitch (label : String)
+          (getField : Demos.Linalg.WorleyCellularState → Bool)
+          (setField : Demos.Linalg.WorleyCellularState → Bool → Demos.Linalg.WorleyCellularState)
+          : WidgetM Unit := do
+        let sw ← switch (some label) (getField initial)
+        let actions ← Event.mapM (fun on =>
+          fireStateUpdate (fun s =>
+            let curr := getField s
+            if curr == on then s else setField s on
+          )
+        ) sw.onToggle
+        performEvent_ actions
+
+      wireSwitch "Show Edges" (fun s => s.showEdges)
+        (fun s on => { s with showEdges := on })
+      wireSwitch "Show Points" (fun s => s.showPoints)
+        (fun s on => { s with showPoints := on })
+      wireSwitch "Connections" (fun s => s.showConnections)
+        (fun s on => { s with showConnections := on })
+
+      spacer' 0 (8.0 * env.screenScale)
+
+      let _ ← dynWidget state fun s =>
+        caption' s!"Jitter: {Demos.Linalg.worleyJitterLabel s}"
+      let sliderResult ← slider none (Demos.Linalg.worleyJitterSliderT initial)
+      let jitterActions ← Event.mapM (fun t =>
+        fireStateUpdate (fun s => Demos.Linalg.worleyApplyJitterSlider s t)
+      ) sliderResult.onChange
+      performEvent_ jitterActions
+
+      pure ()
+
   pure ()
 
 end Demos

@@ -1,5 +1,6 @@
 /-
   Worley Cellular Noise - Visualize Worley F1/F2 distances and feature points.
+  Side-panel controls are provided by Canopy widgets in the tab module.
 -/
 import Afferent
 import Afferent.UI.Widget
@@ -25,19 +26,12 @@ inductive WorleyMode where
   | f3f1
   deriving BEq, Inhabited
 
-inductive WorleyDrag where
-  | none
-  | slider
-  deriving BEq, Inhabited
-
 structure WorleyCellularState where
   mode : WorleyMode := .f1
   jitter : Float := 1.0
   showEdges : Bool := true
   showPoints : Bool := true
   showConnections : Bool := false
-  dropdownOpen : Bool := false
-  dragging : WorleyDrag := .none
   deriving Inhabited
 
 def worleyCellularInitialState : WorleyCellularState := {}
@@ -50,54 +44,13 @@ def worleyCellularMathViewConfig (screenScale : Float) : MathView2D.Config := {
   showLabels := false
 }
 
-structure WorleySliderLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
-structure WorleyToggleLayout where
-  x : Float
-  y : Float
-  size : Float
-
-structure WorleyDropdownLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
 def worleyModeOptions : Array WorleyMode := #[.f1, .f2, .f2f1, .f3f1]
 
-private def panelWidth (screenScale : Float) : Float :=
-  250.0 * screenScale
+def worleyModeOptionAt (idx : Nat) : WorleyMode :=
+  worleyModeOptions.getD idx .f1
 
-private def panelX (w screenScale : Float) : Float :=
-  w - panelWidth screenScale
-
-def worleyDropdownLayout (w _h screenScale : Float) : WorleyDropdownLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 90.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 28.0 * screenScale
-  { x := x, y := y, width := width, height := height }
-
-def worleyDropdownOptionLayout (base : WorleyDropdownLayout) (idx : Nat) : WorleyDropdownLayout :=
-  { x := base.x, y := base.y + base.height + idx.toFloat * base.height,
-    width := base.width, height := base.height }
-
-def worleySliderLayout (w _h screenScale : Float) : WorleySliderLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 150.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 8.0 * screenScale
-  { x := x, y := y, width := width, height := height }
-
-def worleyToggleLayout (w _h screenScale : Float) (idx : Nat) : WorleyToggleLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 190.0 * screenScale + idx.toFloat * 26.0 * screenScale
-  let size := 16.0 * screenScale
-  { x := x, y := y, size := size }
+def worleyModeOptionIndex (mode : WorleyMode) : Nat :=
+  worleyModeOptions.findIdx? (fun opt => opt == mode) |>.getD 0
 
 private def clamp01 (t : Float) : Float :=
   Float.clamp t 0.0 1.0
@@ -108,57 +61,54 @@ def worleyJitterFromSlider (t : Float) : Float :=
 private def jitterToSlider (v : Float) : Float :=
   clamp01 v
 
+def worleyJitterSliderT (state : WorleyCellularState) : Float :=
+  jitterToSlider state.jitter
+
+def worleyApplyJitterSlider (state : WorleyCellularState) (t : Float) : WorleyCellularState :=
+  { state with jitter := worleyJitterFromSlider t }
+
+def worleyJitterLabel (state : WorleyCellularState) : String :=
+  formatFloat state.jitter
+
 def WorleyMode.label : WorleyMode -> String
   | .f1 => "F1"
   | .f2 => "F2"
   | .f2f1 => "F2 - F1"
   | .f3f1 => "F3 - F1"
 
-private def renderSlider (label value : String) (t : Float) (layout : WorleySliderLayout)
-    (fontSmall : Font) (active : Bool := false) : CanvasM Unit := do
-  let t := clamp01 t
-  let knobX := layout.x + t * layout.width
-  let knobY := layout.y + layout.height / 2.0
-  let knobRadius := layout.height * 0.75
-  let trackHeight := layout.height * 0.5
+def worleyModeOptionLabels : Array String :=
+  worleyModeOptions.map (fun opt => opt.label)
 
-  setFillColor (if active then Color.gray 0.7 else Color.gray 0.5)
-  fillPath (Afferent.Path.rectangleXYWH layout.x
-    (layout.y + layout.height / 2.0 - trackHeight / 2.0)
-    layout.width trackHeight)
+private structure WorleySampleCacheKey where
+  mode : WorleyMode
+  jitter : Float
+  showEdges : Bool
+  scale : Float
+  res : Nat
+  deriving BEq, Inhabited
 
-  setFillColor (if active then Color.yellow else Color.gray 0.85)
-  fillPath (Afferent.Path.circle (Point.mk knobX knobY) knobRadius)
+private structure WorleySampleCache where
+  key : Option WorleySampleCacheKey := none
+  samples : Array Float := #[]
+  deriving Inhabited
 
-  setFillColor (Color.gray 0.75)
-  fillTextXY s!"{label}: {value}" layout.x (layout.y - 6.0) fontSmall
+initialize worleySampleCacheRef : IO.Ref WorleySampleCache ← IO.mkRef {}
 
-private def renderToggle (label : String) (value : Bool) (layout : WorleyToggleLayout)
-    (fontSmall : Font) : CanvasM Unit := do
-  let box := Afferent.Path.rectangleXYWH layout.x layout.y layout.size layout.size
-  setStrokeColor (Color.gray 0.6)
-  setLineWidth 1.5
-  strokePath box
-  if value then
-    setFillColor (Color.rgba 0.3 0.9 0.6 1.0)
-    fillPath (Afferent.Path.rectangleXYWH (layout.x + 3) (layout.y + 3)
-      (layout.size - 6) (layout.size - 6))
-  setFillColor (Color.gray 0.8)
-  fillTextXY label (layout.x + layout.size + 8.0) (layout.y + layout.size - 3.0) fontSmall
+private structure WorleyRectBatchKey where
+  sampleKey : WorleySampleCacheKey
+  plotW : Float
+  plotH : Float
+  originX : Float
+  originY : Float
+  deriving BEq, Inhabited
 
-private def renderDropdown (label : String) (layout : WorleyDropdownLayout) (isOpen : Bool)
-    (fontSmall : Font) : CanvasM Unit := do
-  setFillColor (Color.gray 0.15)
-  fillPath (Afferent.Path.rectangleXYWH layout.x layout.y layout.width layout.height)
-  setStrokeColor (Color.gray 0.4)
-  setLineWidth 1.0
-  strokePath (Afferent.Path.rectangleXYWH layout.x layout.y layout.width layout.height)
-  setFillColor (Color.gray 0.85)
-  fillTextXY label (layout.x + 8.0) (layout.y + layout.height - 8.0) fontSmall
-  let arrowX := layout.x + layout.width - 16.0
-  let arrowY := layout.y + layout.height / 2.0
-  let arrow := if isOpen then "^" else "v"
-  fillTextXY arrow arrowX (arrowY + 5.0) fontSmall
+private structure WorleyRectBatchCache where
+  key : Option WorleyRectBatchKey := none
+  data : Array Float := #[]
+  count : Nat := 0
+  deriving Inhabited
+
+initialize worleyRectBatchCacheRef : IO.Ref WorleyRectBatchCache ← IO.mkRef {}
 
 -- Permutation table (copied from Linalg.Noise to match feature points).
 private def permTable : Array UInt8 := #[
@@ -203,148 +153,210 @@ private def featurePoint (ci cj : Int) (jitter : Float) : Vec2 :=
   let py := intToFloat cj + worleyHash ci cj 1 * jitter
   Vec2.mk px py
 
+private def floorToNat (x : Float) : Nat :=
+  (Float.floor x).toUInt64.toNat
+
+private def worleySampleCacheKey (state : WorleyCellularState) (scale : Float) (res : Nat)
+    : WorleySampleCacheKey := {
+  mode := state.mode
+  jitter := state.jitter
+  showEdges := state.showEdges
+  scale := scale
+  res := res
+}
+
+private def worleySample01 (state : WorleyCellularState) (sx sy : Float) : Float :=
+  let r := Noise.worley2D sx sy state.jitter
+  let value := match state.mode with
+    | .f1 => r.f1
+    | .f2 => r.f2
+    | .f2f1 => r.f2 - r.f1
+    | .f3f1 => r.f3 - r.f1
+  let n01 := Float.clamp (1.0 - value / 1.6) 0.0 1.0
+  if state.showEdges then
+    let edge01 := Float.clamp ((r.f2 - r.f1) * 3.0) 0.0 1.0
+    Float.clamp (n01 + edge01 * 0.7) 0.0 1.0
+  else
+    n01
+
+private def buildWorleySamples (state : WorleyCellularState) (scale : Float) (res : Nat) : Array Float := Id.run do
+  let mut samples : Array Float := Array.mkEmpty (res * res)
+  let invRes := if res == 0 then 0.0 else 1.0 / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let u := xi.toFloat * invRes - 0.5
+      let v := yi.toFloat * invRes - 0.5
+      let sx := u * scale
+      let sy := v * scale
+      samples := samples.push (worleySample01 state sx sy)
+  samples
+
+private def getWorleySamplesCached (state : WorleyCellularState) (scale : Float) (res : Nat)
+    : IO (Array Float) := do
+  let key := worleySampleCacheKey state scale res
+  let cache ← worleySampleCacheRef.get
+  match cache.key with
+  | some existing =>
+      if existing == key then
+        pure cache.samples
+      else
+        let samples := buildWorleySamples state scale res
+        worleySampleCacheRef.set { key := some key, samples := samples }
+        pure samples
+  | none =>
+      let samples := buildWorleySamples state scale res
+      worleySampleCacheRef.set { key := some key, samples := samples }
+      pure samples
+
+private def worleyRectBatchKey (state : WorleyCellularState) (scale : Float) (res : Nat)
+    (plotW plotH originX originY : Float) : WorleyRectBatchKey := {
+  sampleKey := worleySampleCacheKey state scale res
+  plotW := plotW
+  plotH := plotH
+  originX := originX
+  originY := originY
+}
+
+private def buildWorleyRectBatchData (samples : Array Float) (res : Nat)
+    (plotW plotH originX originY : Float) : Array Float := Id.run do
+  let mut data : Array Float := Array.mkEmpty (res * res * 9)
+  if res == 0 then
+    return data
+  let cellW := plotW / res.toFloat
+  let cellH := plotH / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      let x := originX + xi.toFloat * cellW
+      let y := originY + yi.toFloat * cellH
+      data := data
+        |>.push x |>.push y |>.push (cellW + 0.5) |>.push (cellH + 0.5)
+        |>.push n01 |>.push n01 |>.push n01 |>.push 1.0 |>.push 0.0
+  data
+
+private def getWorleyRectBatchDataCached (state : WorleyCellularState) (scale : Float) (res : Nat)
+    (samples : Array Float) (plotW plotH originX originY : Float) : IO (Array Float × Nat) := do
+  let key := worleyRectBatchKey state scale res plotW plotH originX originY
+  let cache ← worleyRectBatchCacheRef.get
+  match cache.key with
+  | some existing =>
+      if existing == key then
+        pure (cache.data, cache.count)
+      else
+        let data := buildWorleyRectBatchData samples res plotW plotH originX originY
+        let count := res * res
+        worleyRectBatchCacheRef.set { key := some key, data := data, count := count }
+        pure (data, count)
+  | none =>
+      let data := buildWorleyRectBatchData samples res plotW plotH originX originY
+      let count := res * res
+      worleyRectBatchCacheRef.set { key := some key, data := data, count := count }
+      pure (data, count)
+
 structure WorleyPoint where
   cellX : Int
   cellY : Int
   pos : Vec2
 
 def renderWorleyCellular (state : WorleyCellularState)
-    (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
-  let w := view.width
-  let h := view.height
-  let panelW := panelWidth screenScale
-  let plotW := w - panelW
-  let plotH := h
+    (view : MathView2D.View) (screenScale : Float) : CanvasM Unit := do
+  let plotW := view.width
+  let plotH := view.height
 
   setFillColor (Color.gray 0.08)
   fillPath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
 
   let scale := 3.4
   let cellSize := 6.0 * screenScale
-  let resX := Float.floor (plotW / cellSize)
-  let resY := Float.floor (plotH / cellSize)
-  let res := Nat.max 28 (Nat.min resX.toUInt64.toNat resY.toUInt64.toNat)
-  let cellW := plotW / res.toFloat
-  let cellH := plotH / res.toFloat
+  let resX := floorToNat (plotW / cellSize)
+  let resY := floorToNat (plotH / cellSize)
+  let res := Nat.max 32 (Nat.min 96 (Nat.min resX resY))
+  let samples ← getWorleySamplesCached state scale res
 
-  for yi in [:res] do
-    for xi in [:res] do
-      let u := xi.toFloat / res.toFloat - 0.5
-      let v := yi.toFloat / res.toFloat - 0.5
-      let sx := u * scale
-      let sy := v * scale
-      let r := Noise.worley2D sx sy state.jitter
-      let f1 := Noise.worley2DF1 sx sy state.jitter
-      let value := match state.mode with
-        | .f1 => f1
-        | .f2 => r.f2
-        | .f2f1 => r.f2 - r.f1
-        | .f3f1 => r.f3 - r.f1
-      let mut n01 := Float.clamp (1.0 - value / 1.6) 0.0 1.0
-      if state.showEdges then
-        let edge := Noise.worley2DEdge sx sy state.jitter
-        let edge01 := Float.clamp (edge * 3.0) 0.0 1.0
-        n01 := Float.clamp (n01 + edge01 * 0.7) 0.0 1.0
-      setFillColor (Color.gray n01)
-      fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
-        (cellW + 0.5) (cellH + 0.5))
+  let canvas ← getCanvas
+  let t := canvas.state.transform
+  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
+  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
 
-  -- Feature points and connections
-  let minX := -0.5 * scale
-  let maxX := 0.5 * scale
-  let minCell := floatToInt (Float.floor minX) - 1
-  let maxCell := floatToInt (Float.floor maxX) + 1
-  let mut points : Array WorleyPoint := #[]
-  let mut ci := minCell
-  while ci <= maxCell do
-    let mut cj := minCell
-    while cj <= maxCell do
-      let p := featurePoint ci cj state.jitter
-      points := points.push { cellX := ci, cellY := cj, pos := p }
-      cj := cj + 1
-    ci := ci + 1
+  if axisAlignedTranslateOnly then
+    let (batchData, batchCount) ← getWorleyRectBatchDataCached state scale res samples plotW plotH t.tx t.ty
+    if batchCount > 0 then
+      let renderer := canvas.ctx.renderer
+      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
+      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
+  else
+    let cellW := plotW / res.toFloat
+    let cellH := plotH / res.toFloat
+    for yi in [:res] do
+      for xi in [:res] do
+        let idx := yi * res + xi
+        let n01 := samples.getD idx 0.0
+        setFillColor (Color.gray n01)
+        fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
+          (cellW + 0.5) (cellH + 0.5))
 
-  let worldToScreen := fun (p : Vec2) =>
-    let u := p.x / scale + 0.5
-    let v := p.y / scale + 0.5
-    (u * plotW, v * plotH)
+  if state.showPoints || state.showConnections then
+    let minX := -0.5 * scale
+    let maxX := 0.5 * scale
+    let minCell := floatToInt (Float.floor minX) - 1
+    let maxCell := floatToInt (Float.floor maxX) + 1
+    let mut points : Array WorleyPoint := #[]
+    let mut ci := minCell
+    while ci <= maxCell do
+      let mut cj := minCell
+      while cj <= maxCell do
+        let p := featurePoint ci cj state.jitter
+        points := points.push { cellX := ci, cellY := cj, pos := p }
+        cj := cj + 1
+      ci := ci + 1
 
-  if state.showConnections then
-    setStrokeColor (Color.rgba 0.8 0.6 0.2 0.4)
-    setLineWidth (1.0 * screenScale)
-    for i in [:points.size] do
-      let p := points.getD i { cellX := 0, cellY := 0, pos := Vec2.zero }
-      let mut bestDist := Float.infinity
-      let mut best : Option WorleyPoint := none
-      for j in [:points.size] do
-        if i != j then
-          let q := points.getD j { cellX := 0, cellY := 0, pos := Vec2.zero }
-          let d := (p.pos - q.pos).length
-          if d < bestDist then
-            bestDist := d
-            best := some q
-      match best with
-      | some q =>
-          if bestDist < 1.8 then
-            let a := worldToScreen p.pos
-            let b := worldToScreen q.pos
-            let path := Afferent.Path.empty
-              |>.moveTo (Point.mk a.1 a.2)
-              |>.lineTo (Point.mk b.1 b.2)
-            strokePath path
-      | none => pure ()
+    let worldToScreen := fun (p : Vec2) =>
+      let u := p.x / scale + 0.5
+      let v := p.y / scale + 0.5
+      (u * plotW, v * plotH)
 
-  if state.showPoints then
-    for p in points do
-      let s := worldToScreen p.pos
-      setFillColor (Color.rgba 0.95 0.4 0.2 0.9)
-      fillPath (Afferent.Path.circle (Point.mk s.1 s.2) (3.0 * screenScale))
+    if state.showConnections then
+      setStrokeColor (Color.rgba 0.8 0.6 0.2 0.4)
+      setLineWidth (1.0 * screenScale)
+      for i in [:points.size] do
+        let p := points.getD i { cellX := 0, cellY := 0, pos := Vec2.zero }
+        let mut bestDist := Float.infinity
+        let mut best : Option WorleyPoint := none
+        for j in [:points.size] do
+          if i != j then
+            let q := points.getD j { cellX := 0, cellY := 0, pos := Vec2.zero }
+            let d := (p.pos - q.pos).length
+            if d < bestDist then
+              bestDist := d
+              best := some q
+        match best with
+        | some q =>
+            if bestDist < 1.8 then
+              let a := worldToScreen p.pos
+              let b := worldToScreen q.pos
+              let path := Afferent.Path.empty
+                |>.moveTo (Point.mk a.1 a.2)
+                |>.lineTo (Point.mk b.1 b.2)
+              strokePath path
+        | none => pure ()
+
+    if state.showPoints then
+      for p in points do
+        let s := worldToScreen p.pos
+        setFillColor (Color.rgba 0.95 0.4 0.2 0.9)
+        fillPath (Afferent.Path.circle (Point.mk s.1 s.2) (3.0 * screenScale))
 
   setStrokeColor (Color.gray 0.35)
   setLineWidth 1.0
   strokePath (Afferent.Path.rectangleXYWH 0 0 plotW plotH)
-
-  let pX := panelX w screenScale
-  setFillColor (Color.rgba 0.08 0.08 0.1 0.95)
-  fillPath (Afferent.Path.rectangleXYWH pX 0 panelW h)
-
-  setFillColor VecColor.label
-  fillTextXY "WORLEY CELLULAR" (pX + 20 * screenScale) (36 * screenScale) fontMedium
-  setFillColor (Color.gray 0.6)
-  fillTextXY "worley2D + Voronoi" (pX + 20 * screenScale) (58 * screenScale) fontSmall
-
-  let drop := worleyDropdownLayout w h screenScale
-  renderDropdown s!"Mode: {state.mode.label}" drop state.dropdownOpen fontSmall
-  if state.dropdownOpen then
-    for i in [:worleyModeOptions.size] do
-      let opt := worleyModeOptions.getD i .f1
-      let optLayout := worleyDropdownOptionLayout drop i
-      setFillColor (if opt == state.mode then Color.rgba 0.2 0.5 0.8 0.6 else Color.gray 0.18)
-      fillPath (Afferent.Path.rectangleXYWH optLayout.x optLayout.y optLayout.width optLayout.height)
-      setFillColor (if opt == state.mode then Color.white else Color.gray 0.75)
-      fillTextXY opt.label (optLayout.x + 8.0) (optLayout.y + optLayout.height - 8.0) fontSmall
-
-  let layout := worleySliderLayout w h screenScale
-  let t := jitterToSlider state.jitter
-  let active := match state.dragging with | .slider => true | _ => false
-  renderSlider "Jitter" (formatFloat state.jitter) t layout fontSmall active
-
-  let toggleA := worleyToggleLayout w h screenScale 0
-  let toggleB := worleyToggleLayout w h screenScale 1
-  let toggleC := worleyToggleLayout w h screenScale 2
-  renderToggle "Show Edges" state.showEdges toggleA fontSmall
-  renderToggle "Show Points" state.showPoints toggleB fontSmall
-  renderToggle "Connections" state.showConnections toggleC fontSmall
-
-  setFillColor (Color.gray 0.6)
-  fillTextXY "R: reset" (pX + 20 * screenScale) (h - 30 * screenScale) fontSmall
 
 /-- Create worley cellular widget. -/
 def worleyCellularNoiseWidget (env : DemoEnv) (state : WorleyCellularState)
     : Afferent.Arbor.WidgetBuilder := do
   let config := worleyCellularMathViewConfig env.screenScale
   MathView2D.mathView2D config env.fontSmall (fun view => do
-    renderWorleyCellular state view env.screenScale env.fontMedium env.fontSmall
+    renderWorleyCellular state view env.screenScale
   )
 
 end Demos.Linalg
