@@ -19,84 +19,9 @@ open Trellis
 namespace Demos
 def domainWarpingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
-  let warpName ← registerComponentW
-  let clickEvents ← useClickData warpName
-  let clickUpdates ← Event.mapM (fun data =>
-    if data.click.button != 0 then
-      id
-    else
-      match data.componentMap.get? warpName with
-      | some wid =>
-          match data.layouts.get wid with
-          | some layout =>
-              let rect := layout.contentRect
-              let localX := data.click.x - rect.x
-              let localY := data.click.y - rect.y
-              let toggleA := Demos.Linalg.domainWarpingToggleLayout rect.width rect.height env.screenScale 0
-              let toggleB := Demos.Linalg.domainWarpingToggleLayout rect.width rect.height env.screenScale 1
-              let toggleC := Demos.Linalg.domainWarpingToggleLayout rect.width rect.height env.screenScale 2
-              let hitToggle (t : Demos.Linalg.DomainWarpingToggleLayout) : Bool :=
-                localX >= t.x && localX <= t.x + t.size && localY >= t.y && localY <= t.y + t.size
-              fun (state : Demos.Linalg.DomainWarpingState) =>
-                if hitToggle toggleA then
-                  { state with useAdvanced := !state.useAdvanced }
-                else if hitToggle toggleB then
-                  { state with animate := !state.animate }
-                else if hitToggle toggleC then
-                  { state with showVectors := !state.showVectors }
-                else
-                  let sliders : Array Demos.Linalg.WarpingSlider := #[.strength1, .strength2, .scale, .speed]
-                  let hit := (Array.range sliders.size).findSome? fun i =>
-                    let layout := Demos.Linalg.domainWarpingSliderLayout rect.width rect.height env.screenScale i
-                    let within := localX >= layout.x && localX <= layout.x + layout.width
-                      && localY >= layout.y - 10.0 && localY <= layout.y + layout.height + 10.0
-                    if within then some (i, sliders.getD i .strength1) else none
-                  match hit with
-                  | some (idx, which) =>
-                      let layout := Demos.Linalg.domainWarpingSliderLayout rect.width rect.height env.screenScale idx
-                      let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                      let newState := Demos.Linalg.domainWarpingApplySlider state which t
-                      { newState with dragging := .slider which }
-                  | none => state
-          | none => id
-      | none => id
-    ) clickEvents
-
-  let hoverEvents ← useAllHovers
-  let hoverUpdates ← Event.mapM (fun data =>
-    match data.componentMap.get? warpName with
-    | some wid =>
-        match data.layouts.get wid with
-        | some layout =>
-            let rect := layout.contentRect
-            let localX := data.x - rect.x
-            fun (state : Demos.Linalg.DomainWarpingState) =>
-              match state.dragging with
-              | .slider which =>
-                  let sliders : Array Demos.Linalg.WarpingSlider := #[.strength1, .strength2, .scale, .speed]
-                  let idx := sliders.findIdx? (fun s => s == which) |>.getD 0
-                  let layout := Demos.Linalg.domainWarpingSliderLayout rect.width rect.height env.screenScale idx
-                  let t := Linalg.Float.clamp ((localX - layout.x) / layout.width) 0.0 1.0
-                  Demos.Linalg.domainWarpingApplySlider state which t
-              | .none => state
-        | none => id
-    | none => id
-    ) hoverEvents
-
-  let mouseUpEvents ← useAllMouseUp
-  let mouseUpUpdates ← Event.mapM (fun _ =>
-    fun (s : Demos.Linalg.DomainWarpingState) => { s with dragging := .none }
-    ) mouseUpEvents
-
-  let keyEvents ← useKeyboard
-  let keyUpdates ← Event.mapM (fun data =>
-    fun (s : Demos.Linalg.DomainWarpingState) =>
-      if data.event.isPress then
-        match data.event.key with
-        | .char 'r' => Demos.Linalg.domainWarpingInitialState
-        | _ => s
-      else s
-    ) keyEvents
+  let initial := Demos.Linalg.domainWarpingInitialState
+  let (stateUpdates, fireStateUpdate) ← Reactive.newTriggerEvent
+    (t := Spider) (a := Demos.Linalg.DomainWarpingState → Demos.Linalg.DomainWarpingState)
 
   -- Time-based animation updates (track lastTime in state)
   let timeUpdates ← Event.mapM (fun t =>
@@ -108,18 +33,78 @@ def domainWarpingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
         { state with lastTime := t }
     ) elapsedTime.updated
 
-  let allUpdates ← Event.mergeAllListM [clickUpdates, hoverUpdates, mouseUpUpdates, keyUpdates, timeUpdates]
-  let state ← foldDyn (fun f s => f s) Demos.Linalg.domainWarpingInitialState allUpdates
+  let allUpdates ← Event.mergeAllListM [stateUpdates, timeUpdates]
+  let state ← foldDyn (fun f s => f s) initial allUpdates
 
-  let _ ← dynWidget state fun s => do
-    let containerStyle : BoxStyle := {
-      flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
-      height := .percent 1.0
-    }
-    emit (pure (namedColumn warpName 0 containerStyle #[
-      Demos.Linalg.domainWarpingDemoWidget env s
-    ]))
+  let panelWidth : Float := 300.0 * env.screenScale
+  let rootStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let plotStyle : BoxStyle := {
+    flexItem := some (FlexItem.growing 1)
+    width := .percent 1.0
+    height := .percent 1.0
+  }
+  let panelStyle : BoxStyle := {
+    flexItem := some (FlexItem.fixed panelWidth)
+    width := .length panelWidth
+    minWidth := some panelWidth
+    height := .percent 1.0
+    padding := EdgeInsets.uniform (16.0 * env.screenScale)
+    backgroundColor := some (Color.rgba 0.08 0.08 0.1 0.95)
+    borderColor := some (Color.gray 0.22)
+    borderWidth := 1
+  }
+
+  row' (gap := 0) (style := rootStyle) do
+    column' (gap := 0) (style := plotStyle) do
+      let _ ← dynWidget state fun s => do
+        emit (pure (Demos.Linalg.domainWarpingDemoWidget env s))
+      pure ()
+
+    column' (gap := 8.0 * env.screenScale) (style := panelStyle) do
+      heading2' "Domain Warping"
+      caption' "warp2D / warp2DAdvanced"
+      spacer' 0 (6.0 * env.screenScale)
+
+      let wireSwitch (label : String)
+          (getField : Demos.Linalg.DomainWarpingState → Bool)
+          (setField : Demos.Linalg.DomainWarpingState → Bool → Demos.Linalg.DomainWarpingState)
+          : WidgetM Unit := do
+        let sw ← switch (some label) (getField initial)
+        let actions ← Event.mapM (fun on =>
+          fireStateUpdate (fun s =>
+            let curr := getField s
+            if curr == on then s else setField s on
+          )
+        ) sw.onToggle
+        performEvent_ actions
+
+      wireSwitch "Advanced" (fun s => s.useAdvanced)
+        (fun s on => { s with useAdvanced := on })
+      wireSwitch "Animate" (fun s => s.animate)
+        (fun s on => { s with animate := on })
+      wireSwitch "Show Vectors" (fun s => s.showVectors)
+        (fun s on => { s with showVectors := on })
+
+      spacer' 0 (8.0 * env.screenScale)
+
+      let wireSlider (which : Demos.Linalg.WarpingSlider) : WidgetM Unit := do
+        let _ ← dynWidget state fun s =>
+          caption' s!"{Demos.Linalg.domainWarpingSliderLabel which}: {Demos.Linalg.domainWarpingSliderValueLabel s which}"
+        let sliderResult ← slider none (Demos.Linalg.domainWarpingSliderT initial which)
+        let sliderActions ← Event.mapM (fun t =>
+          fireStateUpdate (fun s => Demos.Linalg.domainWarpingApplySlider s which t)
+        ) sliderResult.onChange
+        performEvent_ sliderActions
+
+      for which in Demos.Linalg.domainWarpingSliderOrder do
+        wireSlider which
+
+      pure ()
+
   pure ()
 
 end Demos

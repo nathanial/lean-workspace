@@ -1,6 +1,7 @@
 /-
   Domain Warping Demo - Before/after comparison of warped noise.
   Shows warp vectors and animated evolution.
+  Side-panel controls are provided by Canopy widgets in the tab module.
 -/
 import Afferent
 import Afferent.UI.Widget
@@ -26,11 +27,6 @@ inductive WarpingSlider where
   | speed
   deriving BEq, Inhabited
 
-inductive WarpingDrag where
-  | none
-  | slider (which : WarpingSlider)
-  deriving BEq, Inhabited
-
 structure DomainWarpingState where
   strength1 : Float := 3.0
   strength2 : Float := 4.5
@@ -41,7 +37,6 @@ structure DomainWarpingState where
   useAdvanced : Bool := false
   time : Float := 0.0
   lastTime : Float := 0.0
-  dragging : WarpingDrag := .none
   deriving Inhabited
 
 def domainWarpingInitialState : DomainWarpingState := {}
@@ -53,37 +48,6 @@ def domainWarpingMathViewConfig (screenScale : Float) : MathView2D.Config := {
   showAxes := false
   showLabels := false
 }
-
-structure DomainWarpingSliderLayout where
-  x : Float
-  y : Float
-  width : Float
-  height : Float
-
-structure DomainWarpingToggleLayout where
-  x : Float
-  y : Float
-  size : Float
-
-private def panelWidth (screenScale : Float) : Float :=
-  250.0 * screenScale
-
-private def panelX (w screenScale : Float) : Float :=
-  w - panelWidth screenScale
-
-def domainWarpingSliderLayout (w _h screenScale : Float) (idx : Nat) : DomainWarpingSliderLayout :=
-  let startX := panelX w screenScale + 20.0 * screenScale
-  let startY := 120.0 * screenScale
-  let width := panelWidth screenScale - 40.0 * screenScale
-  let height := 8.0 * screenScale
-  let spacing := 34.0 * screenScale
-  { x := startX, y := startY + idx.toFloat * spacing, width := width, height := height }
-
-def domainWarpingToggleLayout (w _h screenScale : Float) (idx : Nat) : DomainWarpingToggleLayout :=
-  let x := panelX w screenScale + 20.0 * screenScale
-  let y := 70.0 * screenScale + idx.toFloat * 26.0 * screenScale
-  let size := 16.0 * screenScale
-  { x := x, y := y, size := size }
 
 private def clamp01 (t : Float) : Float :=
   Float.clamp t 0.0 1.0
@@ -106,14 +70,18 @@ private def speedFromSlider (t : Float) : Float :=
 private def speedToSlider (v : Float) : Float :=
   clamp01 ((v - 0.05) / 0.9)
 
-private def sliderLabel (which : WarpingSlider) : String :=
+def domainWarpingSliderOrder : Array WarpingSlider := #[
+  .strength1, .strength2, .scale, .speed
+]
+
+def domainWarpingSliderLabel (which : WarpingSlider) : String :=
   match which with
   | .strength1 => "Strength 1"
   | .strength2 => "Strength 2"
   | .scale => "Scale"
   | .speed => "Speed"
 
-private def sliderValueLabel (state : DomainWarpingState) (which : WarpingSlider) : String :=
+def domainWarpingSliderValueLabel (state : DomainWarpingState) (which : WarpingSlider) : String :=
   match which with
   | .strength1 => formatFloat state.strength1
   | .strength2 => formatFloat state.strength2
@@ -129,44 +97,180 @@ def domainWarpingApplySlider (state : DomainWarpingState) (which : WarpingSlider
   | .scale => { state with scale := scaleFromSlider t }
   | .speed => { state with speed := speedFromSlider t }
 
-private def domainWarpingSliderT (state : DomainWarpingState) (which : WarpingSlider) : Float :=
+def domainWarpingSliderT (state : DomainWarpingState) (which : WarpingSlider) : Float :=
   match which with
   | .strength1 => strengthToSlider state.strength1
   | .strength2 => strengthToSlider state.strength2
   | .scale => scaleToSlider state.scale
   | .speed => speedToSlider state.speed
 
-private def renderSlider (label value : String) (t : Float) (layout : DomainWarpingSliderLayout)
-    (fontSmall : Font) (active : Bool := false) : CanvasM Unit := do
-  let t := clamp01 t
-  let knobX := layout.x + t * layout.width
-  let knobY := layout.y + layout.height / 2.0
-  let knobRadius := layout.height * 0.75
-  let trackHeight := layout.height * 0.5
+private structure DomainWarpSampleCacheKey where
+  useWarp : Bool
+  useAdvanced : Bool
+  strength1 : Float
+  strength2 : Float
+  scale : Float
+  time : Float
+  res : Nat
+  deriving BEq, Inhabited
 
-  setFillColor (if active then Color.gray 0.7 else Color.gray 0.5)
-  fillPath (Afferent.Path.rectangleXYWH layout.x
-    (layout.y + layout.height / 2.0 - trackHeight / 2.0)
-    layout.width trackHeight)
+private structure DomainWarpSampleCacheEntry where
+  key : Option DomainWarpSampleCacheKey := none
+  samples : Array Float := #[]
+  deriving Inhabited
 
-  setFillColor (if active then Color.yellow else Color.gray 0.85)
-  fillPath (Afferent.Path.circle (Point.mk knobX knobY) knobRadius)
+private structure DomainWarpSampleCache where
+  base : DomainWarpSampleCacheEntry := {}
+  warped : DomainWarpSampleCacheEntry := {}
+  deriving Inhabited
 
-  setFillColor (Color.gray 0.75)
-  fillTextXY s!"{label}: {value}" layout.x (layout.y - 6.0) fontSmall
+initialize domainWarpSampleCacheRef : IO.Ref DomainWarpSampleCache ← IO.mkRef {}
 
-private def renderToggle (label : String) (value : Bool) (layout : DomainWarpingToggleLayout)
-    (fontSmall : Font) : CanvasM Unit := do
-  let box := Afferent.Path.rectangleXYWH layout.x layout.y layout.size layout.size
-  setStrokeColor (Color.gray 0.6)
-  setLineWidth 1.5
-  strokePath box
-  if value then
-    setFillColor (Color.rgba 0.3 0.9 0.6 1.0)
-    fillPath (Afferent.Path.rectangleXYWH (layout.x + 3) (layout.y + 3)
-      (layout.size - 6) (layout.size - 6))
-  setFillColor (Color.gray 0.8)
-  fillTextXY label (layout.x + layout.size + 8.0) (layout.y + layout.size - 3.0) fontSmall
+private structure DomainWarpRectBatchKey where
+  sampleKey : DomainWarpSampleCacheKey
+  x : Float
+  y : Float
+  w : Float
+  h : Float
+  originX : Float
+  originY : Float
+  deriving BEq, Inhabited
+
+private structure DomainWarpRectBatchCacheEntry where
+  key : Option DomainWarpRectBatchKey := none
+  data : Array Float := #[]
+  count : Nat := 0
+  deriving Inhabited
+
+private structure DomainWarpRectBatchCache where
+  base : DomainWarpRectBatchCacheEntry := {}
+  warped : DomainWarpRectBatchCacheEntry := {}
+  deriving Inhabited
+
+initialize domainWarpRectBatchCacheRef : IO.Ref DomainWarpRectBatchCache ← IO.mkRef {}
+
+private def floorToNat (x : Float) : Nat :=
+  (Float.floor x).toUInt64.toNat
+
+private def domainWarpSampleCacheKey (state : DomainWarpingState) (time : Float) (useWarp : Bool)
+    (res : Nat) : DomainWarpSampleCacheKey := {
+  useWarp := useWarp
+  useAdvanced := state.useAdvanced
+  strength1 := state.strength1
+  strength2 := state.strength2
+  scale := state.scale
+  time := time
+  res := res
+}
+
+private def domainWarpSample01 (state : DomainWarpingState) (time sx sy : Float) (useWarp : Bool) : Float :=
+  let sx := sx + time * 0.2
+  let sy := sy + time * 0.15
+  let n := if useWarp then
+    if state.useAdvanced then
+      Noise.warp2DAdvanced sx sy state.strength1 state.strength2
+    else
+      Noise.warp2D sx sy state.strength1
+  else
+    Noise.fbm2D sx sy
+  Noise.normalize n
+
+private def buildDomainWarpSamples (state : DomainWarpingState) (time : Float)
+    (useWarp : Bool) (res : Nat) : Array Float := Id.run do
+  let mut samples : Array Float := Array.mkEmpty (res * res)
+  let invRes := if res == 0 then 0.0 else 1.0 / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let u := xi.toFloat * invRes - 0.5
+      let v := yi.toFloat * invRes - 0.5
+      let sx := u * state.scale
+      let sy := v * state.scale
+      samples := samples.push (domainWarpSample01 state time sx sy useWarp)
+  samples
+
+private def getDomainWarpSamplesCached (state : DomainWarpingState) (time : Float)
+    (useWarp : Bool) (res : Nat) : IO (Array Float) := do
+  let key := domainWarpSampleCacheKey state time useWarp res
+  let cache ← domainWarpSampleCacheRef.get
+  let slot := if useWarp then cache.warped else cache.base
+  match slot.key with
+  | some existing =>
+      if existing == key then
+        pure slot.samples
+      else
+        let samples := buildDomainWarpSamples state time useWarp res
+        let newSlot : DomainWarpSampleCacheEntry := { key := some key, samples := samples }
+        if useWarp then
+          domainWarpSampleCacheRef.set { cache with warped := newSlot }
+        else
+          domainWarpSampleCacheRef.set { cache with base := newSlot }
+        pure samples
+  | none =>
+      let samples := buildDomainWarpSamples state time useWarp res
+      let newSlot : DomainWarpSampleCacheEntry := { key := some key, samples := samples }
+      if useWarp then
+        domainWarpSampleCacheRef.set { cache with warped := newSlot }
+      else
+        domainWarpSampleCacheRef.set { cache with base := newSlot }
+      pure samples
+
+private def domainWarpRectBatchKey (state : DomainWarpingState) (time : Float) (useWarp : Bool)
+    (res : Nat) (x y w h originX originY : Float) : DomainWarpRectBatchKey := {
+  sampleKey := domainWarpSampleCacheKey state time useWarp res
+  x := x
+  y := y
+  w := w
+  h := h
+  originX := originX
+  originY := originY
+}
+
+private def buildDomainWarpRectBatchData (samples : Array Float) (x y w h : Float) (res : Nat)
+    (originX originY : Float) : Array Float := Id.run do
+  let mut data : Array Float := Array.mkEmpty (res * res * 9)
+  if res == 0 then
+    return data
+  let cellW := w / res.toFloat
+  let cellH := h / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      let px := originX + x + xi.toFloat * cellW
+      let py := originY + y + yi.toFloat * cellH
+      data := data
+        |>.push px |>.push py |>.push (cellW + 0.5) |>.push (cellH + 0.5)
+        |>.push n01 |>.push n01 |>.push n01 |>.push 1.0 |>.push 0.0
+  data
+
+private def getDomainWarpRectBatchDataCached (state : DomainWarpingState) (time : Float)
+    (useWarp : Bool) (res : Nat) (samples : Array Float)
+    (x y w h originX originY : Float) : IO (Array Float × Nat) := do
+  let key := domainWarpRectBatchKey state time useWarp res x y w h originX originY
+  let cache ← domainWarpRectBatchCacheRef.get
+  let slot := if useWarp then cache.warped else cache.base
+  match slot.key with
+  | some existing =>
+      if existing == key then
+        pure (slot.data, slot.count)
+      else
+        let data := buildDomainWarpRectBatchData samples x y w h res originX originY
+        let count := res * res
+        let newSlot : DomainWarpRectBatchCacheEntry := { key := some key, data := data, count := count }
+        if useWarp then
+          domainWarpRectBatchCacheRef.set { cache with warped := newSlot }
+        else
+          domainWarpRectBatchCacheRef.set { cache with base := newSlot }
+        pure (data, count)
+  | none =>
+      let data := buildDomainWarpRectBatchData samples x y w h res originX originY
+      let count := res * res
+      let newSlot : DomainWarpRectBatchCacheEntry := { key := some key, data := data, count := count }
+      if useWarp then
+        domainWarpRectBatchCacheRef.set { cache with warped := newSlot }
+      else
+        domainWarpRectBatchCacheRef.set { cache with base := newSlot }
+      pure (data, count)
 
 private def renderNoisePanel (x y w h : Float) (label : String)
     (state : DomainWarpingState) (time : Float)
@@ -175,29 +279,33 @@ private def renderNoisePanel (x y w h : Float) (label : String)
   fillPath (Afferent.Path.rectangleXYWH x y w h)
 
   let cellSize := 6.0 * screenScale
-  let resX := Float.floor (w / cellSize)
-  let resY := Float.floor (h / cellSize)
-  let res := Nat.max 28 (Nat.min resX.toUInt64.toNat resY.toUInt64.toNat)
-  let cellW := w / res.toFloat
-  let cellH := h / res.toFloat
+  let resX := floorToNat (w / cellSize)
+  let resY := floorToNat (h / cellSize)
+  let res := Nat.max 28 (Nat.min 72 (Nat.min resX resY))
+  let samples ← getDomainWarpSamplesCached state time useWarp res
 
-  for yi in [:res] do
-    for xi in [:res] do
-      let u := xi.toFloat / res.toFloat - 0.5
-      let v := yi.toFloat / res.toFloat - 0.5
-      let sx := u * state.scale + time * 0.2
-      let sy := v * state.scale + time * 0.15
-      let n := if useWarp then
-        if state.useAdvanced then
-          Noise.warp2DAdvanced sx sy state.strength1 state.strength2
-        else
-          Noise.warp2D sx sy state.strength1
-      else
-        Noise.fbm2D sx sy
-      let n01 := Noise.normalize n
-      setFillColor (Color.gray n01)
-      fillPath (Afferent.Path.rectangleXYWH (x + xi.toFloat * cellW) (y + yi.toFloat * cellH)
-        (cellW + 0.5) (cellH + 0.5))
+  let canvas ← getCanvas
+  let t := canvas.state.transform
+  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
+  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
+
+  if axisAlignedTranslateOnly then
+    let (batchData, batchCount) ← getDomainWarpRectBatchDataCached
+      state time useWarp res samples x y w h t.tx t.ty
+    if batchCount > 0 then
+      let renderer := canvas.ctx.renderer
+      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
+      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
+  else
+    let cellW := w / res.toFloat
+    let cellH := h / res.toFloat
+    for yi in [:res] do
+      for xi in [:res] do
+        let idx := yi * res + xi
+        let n01 := samples.getD idx 0.0
+        setFillColor (Color.gray n01)
+        fillPath (Afferent.Path.rectangleXYWH (x + xi.toFloat * cellW) (y + yi.toFloat * cellH)
+          (cellW + 0.5) (cellH + 0.5))
 
   setStrokeColor (Color.gray 0.35)
   setLineWidth 1.0
@@ -233,11 +341,10 @@ private def renderWarpVectors (x y w h : Float) (state : DomainWarpingState) (ti
 
 /-- Render domain warping demo. -/
 def renderDomainWarpingDemo (state : DomainWarpingState)
-    (view : MathView2D.View) (screenScale : Float) (fontMedium fontSmall : Font) : CanvasM Unit := do
+    (view : MathView2D.View) (screenScale : Float) (fontSmall : Font) : CanvasM Unit := do
   let w := view.width
   let h := view.height
-  let panelW := panelWidth screenScale
-  let contentW := w - panelW
+  let contentW := w
   let pad := 18.0 * screenScale
   let viewW := (contentW - pad * 3.0) / 2.0
   let viewH := h - pad * 2.0
@@ -252,41 +359,12 @@ def renderDomainWarpingDemo (state : DomainWarpingState)
   if state.showVectors then
     renderWarpVectors leftX viewY viewW viewH state t screenScale
 
-  let pX := panelX w screenScale
-  setFillColor (Color.rgba 0.08 0.08 0.1 0.95)
-  fillPath (Afferent.Path.rectangleXYWH pX 0 panelW h)
-
-  setFillColor VecColor.label
-  fillTextXY "DOMAIN WARPING" (pX + 20 * screenScale) (36 * screenScale) fontMedium
-  setFillColor (Color.gray 0.6)
-  fillTextXY "warp2D / warp2DAdvanced" (pX + 20 * screenScale) (58 * screenScale) fontSmall
-
-  let toggleA := domainWarpingToggleLayout w h screenScale 0
-  let toggleB := domainWarpingToggleLayout w h screenScale 1
-  let toggleC := domainWarpingToggleLayout w h screenScale 2
-  renderToggle "Advanced" state.useAdvanced toggleA fontSmall
-  renderToggle "Animate" state.animate toggleB fontSmall
-  renderToggle "Show Vectors" state.showVectors toggleC fontSmall
-
-  let sliders : Array WarpingSlider := #[.strength1, .strength2, .scale, .speed]
-  for i in [:sliders.size] do
-    let which := sliders.getD i .strength1
-    let layout := domainWarpingSliderLayout w h screenScale i
-    let active := match state.dragging with
-      | .slider s => s == which
-      | _ => false
-    let t := domainWarpingSliderT state which
-    renderSlider (sliderLabel which) (sliderValueLabel state which) t layout fontSmall active
-
-  setFillColor (Color.gray 0.6)
-  fillTextXY "R: reset" (pX + 20 * screenScale) (h - 30 * screenScale) fontSmall
-
 /-- Create the domain warping widget. -/
 def domainWarpingDemoWidget (env : DemoEnv) (state : DomainWarpingState)
     : Afferent.Arbor.WidgetBuilder := do
   let config := domainWarpingMathViewConfig env.screenScale
   MathView2D.mathView2D config env.fontSmall (fun view => do
-    renderDomainWarpingDemo state view env.screenScale env.fontMedium env.fontSmall
+    renderDomainWarpingDemo state view env.screenScale env.fontSmall
   )
 
 end Demos.Linalg
