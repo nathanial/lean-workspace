@@ -122,7 +122,7 @@ private def BenchResult.diff (base next : BenchResult) : BenchResult :=
     hoverMs := next.hoverMs - base.hoverMs }
 
 private def ensureTargetCountsStable (label : String) (baseline hover : BenchResult)
-    (minTargets : Nat) : TestM Unit := do
+    (minTargets : Nat) := do
   ensure (baseline.targetCount >= minTargets)
     s!"Expected at least {minTargets} {label} targets (baseline), got {baseline.targetCount}"
   ensure (hover.targetCount >= minTargets)

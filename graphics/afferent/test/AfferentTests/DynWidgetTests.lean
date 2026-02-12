@@ -47,7 +47,7 @@ test "initial build uses current dynamic value" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let v ← SpiderM.liftIO capturedValue.get
     ensure (v == 42) s!"Expected 42, got {v}"
   ).run spiderEnv
@@ -69,7 +69,7 @@ test "rebuilds on dynamic update" := do
         pure ()
 
     -- Initial build
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let count1 ← SpiderM.liftIO rebuildCount.get
     ensure (count1 == 1) s!"Initial build should be 1, got {count1}"
 
@@ -95,7 +95,7 @@ test "rebuild count matches update count" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Fire 5 updates
     for i in [1:6] do
       fire i
@@ -118,7 +118,7 @@ test "result dynamic tracks builder output" := do
           pure (v * 2)  -- Return doubled value
         pure result
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Check initial value
     let initial ← SpiderM.liftIO resultDyn.sample
     ensure (initial == 20) s!"Initial result should be 20, got {initial}"
@@ -147,9 +147,9 @@ test "constant dynamic never rebuilds after initial" := do
         pure ()
 
     -- Render multiple times
-    let _ ← render
-    let _ ← render
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
+    let _ ← SpiderM.liftIO render.materialize
+    let _ ← SpiderM.liftIO render.materialize
 
     let count ← SpiderM.liftIO rebuildCount.get
     -- Should only be 1 (initial build), no re-renders
@@ -173,7 +173,7 @@ test "duplicate values still trigger rebuild" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Fire same value twice
     fire 5
     fire 5
@@ -201,7 +201,7 @@ test "multiple renders without update don't rebuild" := do
 
     -- Call render 5 times without firing updates
     for _ in [0:5] do
-      let _ ← render
+      let _ ← SpiderM.liftIO render.materialize
 
     let count ← SpiderM.liftIO rebuildCount.get
     ensure (count == 1) s!"Multiple renders without update should not rebuild, got {count}"
@@ -231,7 +231,7 @@ test "nested dynWidget: inner change doesn't rebuild outer" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let outer1 ← SpiderM.liftIO outerCount.get
     let inner1 ← SpiderM.liftIO innerCount.get
     ensure (outer1 == 1) s!"Initial outer should be 1, got {outer1}"
@@ -267,7 +267,7 @@ test "nested dynWidget: outer change rebuilds both" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Fire outer
     fireOuter 1
     let outer ← SpiderM.liftIO outerCount.get
@@ -305,7 +305,7 @@ test "deeply nested dynWidget (5 levels)" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let arr ← SpiderM.liftIO counts.get
     -- All levels should have built once
     for i in [0:5] do
@@ -334,7 +334,7 @@ test "sibling dynWidgets are independent" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Fire A only
     fireA 1
     let a1 ← SpiderM.liftIO countA.get
@@ -371,7 +371,7 @@ test "zipWithM triggers rebuild when either changes" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let count1 ← SpiderM.liftIO rebuildCount.get
     ensure (count1 == 1) s!"Initial should be 1, got {count1}"
 
@@ -405,7 +405,7 @@ test "zipWith3M triggers on any of three" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     fireA 1
     fireB 1
     fireC 1
@@ -434,7 +434,7 @@ test "chained dynamics through dynWidget result" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let count1 ← SpiderM.liftIO chainedCount.get
     ensure (count1 == 1) s!"Initial chained should be 1, got {count1}"
 
@@ -460,7 +460,7 @@ test "empty builder emits spacer" := do
           pure ()
         pure ()
 
-    let builder ← render
+    let builder ← SpiderM.liftIO render.materialize
     let widget := buildFrom 0 builder
     -- Should be a spacer (rect with 0x0 dimensions)
     match widget with
@@ -482,7 +482,7 @@ test "single child emits directly without wrapper" := do
           emit (spacer 50 50)
         pure ()
 
-    let builder ← render
+    let builder ← SpiderM.liftIO render.materialize
     let widget := buildFrom 0 builder
     -- Should be the spacer directly, not wrapped
     match widget with
@@ -505,7 +505,7 @@ test "multiple children wrapped in column" := do
           emit (spacer 20 20)
         pure ()
 
-    let builder ← render
+    let builder ← SpiderM.liftIO render.materialize
     let widget := buildFrom 0 builder
     -- Should be wrapped in a flex column
     match widget with
@@ -533,7 +533,7 @@ test "dynamic that never fires works correctly" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let v ← SpiderM.liftIO capturedValue.get
     ensure (v == 42) s!"Should capture initial value 42, got {v}"
     -- No fires, but no errors either
@@ -557,7 +557,7 @@ test "rapid sequential fires handled correctly" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Fire 10 times rapidly
     for i in [1:11] do
       fire i
@@ -586,7 +586,7 @@ test "builder accesses outer scope correctly" := do
           pure ()
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let sum1 ← SpiderM.liftIO capturedSum.get
     ensure (sum1 == 100) s!"Initial sum should be 100, got {sum1}"
 
@@ -617,7 +617,7 @@ test "inner dynWidget update produces correct tree text" := do
         pure ()
 
     -- Initial render should show "Count: 0"
-    let builder1 ← render
+    let builder1 ← SpiderM.liftIO render.materialize
     let widget1 := buildFrom 0 builder1
     match widget1 with
     | .text _ _ content .. =>
@@ -626,7 +626,7 @@ test "inner dynWidget update produces correct tree text" := do
 
     -- Fire inner update to 5
     fireInner 5
-    let builder2 ← render
+    let builder2 ← SpiderM.liftIO render.materialize
     let widget2 := buildFrom 0 builder2
     match widget2 with
     | .text _ _ content .. =>
@@ -635,7 +635,7 @@ test "inner dynWidget update produces correct tree text" := do
 
     -- Fire again to 42
     fireInner 42
-    let builder3 ← render
+    let builder3 ← SpiderM.liftIO render.materialize
     let widget3 := buildFrom 0 builder3
     match widget3 with
     | .text _ _ content .. =>
@@ -666,7 +666,7 @@ test "nested tree preserves structure with updated inner text" := do
         pure ()
 
     -- Initial: column with 2 text children
-    let builder1 ← render
+    let builder1 ← SpiderM.liftIO render.materialize
     let widget1 := buildFrom 0 builder1
     match widget1 with
     | .flex _ _ props _ children =>
@@ -681,7 +681,7 @@ test "nested tree preserves structure with updated inner text" := do
 
     -- Fire to change inner value
     fireInner 99
-    let builder2 ← render
+    let builder2 ← SpiderM.liftIO render.materialize
     let widget2 := buildFrom 0 builder2
 
     -- Outer should NOT have rebuilt
@@ -723,7 +723,7 @@ test "dynWidgetKeyedList reuses unchanged keys and rebuilds only changed keys" :
           pure item.2
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let k1a ← SpiderM.liftIO key1Builds.get
     let k2a ← SpiderM.liftIO key2Builds.get
     ensure (k1a == 1) s!"Key 1 initial builds should be 1, got {k1a}"
@@ -768,7 +768,7 @@ test "dynWidgetKeyedList disposes removed keys and rebuilt keys" := do
           pure item.2
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Remove key 2.
     fireItems #[(1, 10)]
     let c1a ← SpiderM.liftIO cleanup1.get
@@ -815,7 +815,7 @@ test "dynWidgetKeyedList preserves order and skips rebuild on pure reorder" := d
           pure item.2
         pure resultDyn
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let initialOrder ← SpiderM.liftIO resultDyn.sample
     ensure (initialOrder == #[10, 20, 30]) s!"Initial order mismatch: {initialOrder}"
 
@@ -872,7 +872,7 @@ test "dynWidgetKeyedList handles mixed add/remove/update in one frame" := do
           pure item.2
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     -- Remove key 1, update key 2, keep key 3, add key 4.
     fireItems #[(2, 25), (3, 30), (4, 40)]
 
@@ -920,7 +920,7 @@ test "dynWidget disposes child scope on rebuild" := do
           emit (spacer 10 10)
         pure ()
 
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
     let count0 ← SpiderM.liftIO cleanupCount.get
     ensure (count0 == 0) s!"No cleanups yet, got {count0}"
 

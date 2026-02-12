@@ -63,6 +63,10 @@ inductive RenderCommand where
   /-- Stroke a rectangle outline. -/
   | strokeRect (rect : Rect) (color : Color) (lineWidth : Float) (cornerRadius : Float := 0)
 
+  /-- Stroke multiple rectangles in a single command.
+      data layout: [x, y, width, height, r, g, b, a, cornerRadius] per rect. -/
+  | strokeRectBatch (data : Array Float) (count : Nat) (lineWidth : Float)
+
   /-- Fill a circle with a solid color. -/
   | fillCircle (center : Point) (radius : Float) (color : Color)
 
@@ -263,7 +267,7 @@ namespace RenderCommand
 /-- Get the batching category for a render command. -/
 def category : RenderCommand → CommandCategory
   | .fillRect .. | .fillRectStyle .. => .fillRect
-  | .strokeRect .. => .strokeRect
+  | .strokeRect .. | .strokeRectBatch .. => .strokeRect
   | .fillCircle .. | .fillCircleBatch .. => .fillCircle
   | .strokeCircle .. => .strokeCircle
   | .strokeLine .. | .strokeLineBatch .. => .strokeLine

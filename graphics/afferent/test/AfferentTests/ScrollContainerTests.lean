@@ -275,7 +275,7 @@ test "column' render produces widget with correct child count" := do
         pure ()
     ).run { children := #[] } |>.run events
     -- Run the emitted render to get the WidgetBuilder
-    let builder ← state.children[0]!
+    let builder ← SpiderM.liftIO state.children[0]!.materialize
     -- Run the builder to get the Widget
     let (widget, _) ← builder.run {}
     pure widget.widgetCount
@@ -295,7 +295,7 @@ test "nested column' in runWidgetChildren preserves children" := do
     -- Should have 1 render (the column)
     ensure (outerChildRenders.size == 1) s!"Expected 1 outer render, got {outerChildRenders.size}"
     -- Run that render
-    let builder ← outerChildRenders[0]!
+    let builder ← SpiderM.liftIO outerChildRenders[0]!.materialize
     let (widget, _) ← builder.run {}
     pure widget.widgetCount
   -- 1 column + 5 text widgets = 6
@@ -314,7 +314,7 @@ test "scroll container child collection - simulated" := do
     ).run { children := #[] } |>.run events
 
     -- Step 2: In the emit block, run childRenders.mapM (liftIO ·) to get WidgetBuilders
-    let widgets ← childRenders.mapM SpiderM.liftIO
+    let widgets ← SpiderM.liftIO <| ComponentRender.materializeAll childRenders
 
     -- Step 3: Wrap in a column (like scrollContainer does)
     let childBuilder := column (gap := 0) (style := {}) widgets
@@ -724,7 +724,7 @@ test "FRP: scrollContainer measures actual content height" := do
     ensure (state.children.size == 1)
       s!"Expected exactly one emitted child render, got {state.children.size}"
 
-    let builder ← state.children[0]!
+    let builder ← SpiderM.liftIO state.children[0]!.materialize
     let (widget, _) ← builder.run {}
     match widget with
     | .scroll _ _ _ _ _ contentH _ _ _ =>
@@ -757,7 +757,7 @@ test "FRP: scrollContainer measurement avoids runaway percent-height content" :=
     ensure (state.children.size == 1)
       s!"Expected exactly one emitted child render, got {state.children.size}"
 
-    let builder ← state.children[0]!
+    let builder ← SpiderM.liftIO state.children[0]!.materialize
     let (widget, _) ← builder.run {}
     match widget with
     | .scroll _ _ _ _ _ contentH _ _ _ =>

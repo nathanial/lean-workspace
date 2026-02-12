@@ -345,7 +345,7 @@ test "listBox selection after scroll uses scrolled hit target" := do
         SpiderM.liftIO <| selectedRef.set (some result.selectedItems)
         pure ()
 
-    let initialBuilder ← render
+    let initialBuilder ← SpiderM.liftIO render.materialize
     let initialWidget := Afferent.Arbor.build initialBuilder
     let initialMeasured := Afferent.Arbor.measureWidget (M := Id) initialWidget viewportW viewportH
     let initialLayouts := Trellis.layout initialMeasured.node viewportW viewportH
@@ -362,7 +362,7 @@ test "listBox selection after scroll uses scrolled hit target" := do
       componentMap := initialComponentMap
     }
 
-    let scrolledBuilder ← render
+    let scrolledBuilder ← SpiderM.liftIO render.materialize
     let scrolledWidget := Afferent.Arbor.build scrolledBuilder
     let scrolledMeasured := Afferent.Arbor.measureWidget (M := Id) scrolledWidget viewportW viewportH
     let scrolledLayouts := Trellis.layout scrolledMeasured.node viewportW viewportH

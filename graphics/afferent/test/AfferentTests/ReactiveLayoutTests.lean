@@ -40,7 +40,7 @@ test "column' produces widget with flexItem in style" := do
         column' (gap := 0) (style := rootStyle) do
           pure ()
     -- Execute the IO to get WidgetBuilder
-    let builder ← render
+    let builder ← SpiderM.liftIO render.materialize
     -- Build the widget
     let widget := buildFrom 0 builder
     -- Check the widget's style has flexItem
@@ -237,7 +237,7 @@ test "reactive column' through measure+layout fills viewport" := do
       runWidget do
         column' (gap := 0) (style := contentStyle) do
           pure ()
-    let builder ← render
+    let builder ← SpiderM.liftIO render.materialize
     pure (buildFrom 100 builder)
   ).run spiderEnv
 

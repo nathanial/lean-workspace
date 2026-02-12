@@ -50,7 +50,7 @@ test "virtualList preserves scroll offset across dynWidget rebuild when keyed" :
           pure ()
         pure ()
 
-    let initialBuilder ← render
+    let initialBuilder ← SpiderM.liftIO render.materialize
     let initialWidget := Afferent.Arbor.build initialBuilder
     let initialMeasured := Afferent.Arbor.measureWidget (M := Id) initialWidget 320 220
     let initialLayouts := Trellis.layout initialMeasured.node 320 220
@@ -75,7 +75,7 @@ test "virtualList preserves scroll offset across dynWidget rebuild when keyed" :
       | none => panic! "expected initial scroll dynamic from virtualList"
 
     fire 1
-    let _ ← render
+    let _ ← SpiderM.liftIO render.materialize
 
     let afterRebuild ← match ← SpiderM.liftIO scrollDynRef.get with
       | some dyn =>

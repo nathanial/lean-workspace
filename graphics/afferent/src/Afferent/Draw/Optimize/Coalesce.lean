@@ -95,6 +95,29 @@ def computeBounds (cmd : RenderCommand) (transform : Transform) : Option Command
   | .strokeRect rect _ _ _ =>
       let p := transform.apply rect.origin
       some (CommandBounds.fromRect p.x p.y rect.size.width rect.size.height)
+  | .strokeRectBatch data count _ =>
+      Id.run do
+        if count == 0 then
+          return none
+        let x0 := data[0]!
+        let y0 := data[1]!
+        let w0 := data[2]!
+        let h0 := data[3]!
+        let mut minX := x0
+        let mut minY := y0
+        let mut maxX := x0 + w0
+        let mut maxY := y0 + h0
+        for i in [1:count] do
+          let base := i * 9
+          let x := data[base]!
+          let y := data[base + 1]!
+          let w := data[base + 2]!
+          let h := data[base + 3]!
+          minX := min minX x
+          minY := min minY y
+          maxX := max maxX (x + w)
+          maxY := max maxY (y + h)
+        return some { minX, minY, maxX, maxY }
   | .fillCircle center radius _ =>
       let p := transform.apply center
       some (CommandBounds.fromCircle p.x p.y radius)
@@ -221,6 +244,61 @@ def flattenCommand (cmd : RenderCommand) (transform : Transform)
                    |>.push p
         let bounds := some { minX, minY, maxX, maxY : CommandBounds }
         return (.strokeLineBatch out count lineWidth, bounds)
+  | .strokeRectBatch data count lineWidth =>
+      Id.run do
+        if count == 0 then
+          return (.strokeRectBatch data count lineWidth, none)
+        if transform == Transform.identity then
+          let x0 := data[0]!
+          let y0 := data[1]!
+          let w0 := data[2]!
+          let h0 := data[3]!
+          let mut minX := x0
+          let mut minY := y0
+          let mut maxX := x0 + w0
+          let mut maxY := y0 + h0
+          for i in [1:count] do
+            let base := i * 9
+            let x := data[base]!
+            let y := data[base + 1]!
+            let w := data[base + 2]!
+            let h := data[base + 3]!
+            minX := min minX x
+            minY := min minY y
+            maxX := max maxX (x + w)
+            maxY := max maxY (y + h)
+          let bounds := some { minX, minY, maxX, maxY : CommandBounds }
+          return (.strokeRectBatch data count lineWidth, bounds)
+        let x0 := data[0]!
+        let y0 := data[1]!
+        let w0 := data[2]!
+        let h0 := data[3]!
+        let tp0 := transform.apply ⟨x0, y0⟩
+        let mut minX := tp0.x
+        let mut minY := tp0.y
+        let mut maxX := tp0.x + w0
+        let mut maxY := tp0.y + h0
+        let mut out : Array Float := Array.mkEmpty data.size
+        out := out.push tp0.x |>.push tp0.y |>.push w0 |>.push h0
+                 |>.push data[4]! |>.push data[5]! |>.push data[6]!
+                 |>.push data[7]! |>.push data[8]!
+        for i in [1:count] do
+          let base := i * 9
+          let x := data[base]!
+          let y := data[base + 1]!
+          let w := data[base + 2]!
+          let h := data[base + 3]!
+          let tp := transform.apply ⟨x, y⟩
+          minX := min minX tp.x
+          minY := min minY tp.y
+          maxX := max maxX (tp.x + w)
+          maxY := max maxY (tp.y + h)
+          out := out.push tp.x |>.push tp.y |>.push w |>.push h
+                   |>.push data[base + 4]! |>.push data[base + 5]!
+                   |>.push data[base + 6]! |>.push data[base + 7]!
+                   |>.push data[base + 8]!
+        let bounds := some { minX, minY, maxX, maxY : CommandBounds }
+        return (.strokeRectBatch out count lineWidth, bounds)
   | .fillCircleBatch data count =>
       Id.run do
         if count == 0 then
@@ -413,6 +491,47 @@ def coalesceByCategory (bounded : Array BoundedCommand) : Array RenderCommand :=
   for cmd in bucket6 do out := out.push cmd
   out
 
+/-- Compress stroke-rect commands into `strokeRectBatch` commands per contiguous lineWidth run. -/
+private def packStrokeRectCommands (cmds : Array RenderCommand) : Array RenderCommand := Id.run do
+  if cmds.isEmpty then return #[]
+  let mut out : Array RenderCommand := Array.mkEmpty cmds.size
+  let mut runData : Array Float := #[]
+  let mut runCount : Nat := 0
+  let mut runLineWidth : Float := 0.0
+
+  let flushRun := fun (out : Array RenderCommand) (runData : Array Float)
+      (runCount : Nat) (runLineWidth : Float) =>
+    if runCount == 0 then out
+    else out.push (.strokeRectBatch runData runCount runLineWidth)
+
+  for cmd in cmds do
+    match cmd with
+    | .strokeRect rect color lw cornerRadius =>
+      if runCount == 0 then
+        runLineWidth := lw
+      else if runLineWidth != lw then
+        out := flushRun out runData runCount runLineWidth
+        runData := #[]
+        runCount := 0
+        runLineWidth := lw
+      runData := runData.push rect.origin.x |>.push rect.origin.y
+        |>.push rect.size.width |>.push rect.size.height
+        |>.push color.r |>.push color.g |>.push color.b |>.push color.a
+        |>.push cornerRadius
+      runCount := runCount + 1
+    | .strokeRectBatch _ _ _ =>
+      out := flushRun out runData runCount runLineWidth
+      runData := #[]
+      runCount := 0
+      out := out.push cmd
+    | _ =>
+      out := flushRun out runData runCount runLineWidth
+      runData := #[]
+      runCount := 0
+      out := out.push cmd
+  out := flushRun out runData runCount runLineWidth
+  out
+
 /-- Coalesce commands by category while preserving stateful command order.
     Splits at any non-batchable ("other") command so transforms/clips apply.
     Uses bucket sort within each segment for O(N) performance. -/
@@ -439,7 +558,7 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
       -- Flush accumulated buckets before the "other" command
       for cmd in bucket0 do out := out.push cmd
       for cmd in bucket1 do out := out.push cmd
-      for cmd in bucket2 do out := out.push cmd
+      for cmd in packStrokeRectCommands bucket2 do out := out.push cmd
       for cmd in bucket3 do out := out.push cmd
       for cmd in bucket4 do out := out.push cmd
       for cmd in bucket5 do out := out.push cmd
@@ -465,7 +584,7 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
   -- Flush any remaining commands
   for cmd in bucket0 do out := out.push cmd
   for cmd in bucket1 do out := out.push cmd
-  for cmd in bucket2 do out := out.push cmd
+  for cmd in packStrokeRectCommands bucket2 do out := out.push cmd
   for cmd in bucket3 do out := out.push cmd
   for cmd in bucket4 do out := out.push cmd
   for cmd in bucket5 do out := out.push cmd

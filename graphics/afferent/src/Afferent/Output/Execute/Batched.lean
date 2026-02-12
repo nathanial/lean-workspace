@@ -360,6 +360,23 @@ private def handleFillCircleBatch (reg : FontRegistry) (state : BatchState)
   else
     pure state
 
+private def handleStrokeRectBatch (reg : FontRegistry) (state : BatchState)
+    (data : Array Float) (count : Nat) (lineWidth : Float) : CanvasM BatchState := do
+  let state ← flushForStrokeRect reg state
+  let state ← flushStrokeRects state
+  if count > 0 then
+    let t0 ← IO.monoNanosNow
+    executeCommand reg (.strokeRectBatch data count lineWidth)
+    let t1 ← IO.monoNanosNow
+    let stats := { state.stats with
+      batchedCalls := state.stats.batchedCalls + 1
+      strokeRectsBatched := state.stats.strokeRectsBatched + count }
+    pure { state with
+      stats := stats
+      drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
+  else
+    pure state
+
 private def handleStrokeCircle (reg : FontRegistry) (state : BatchState) (center : Point)
     (radius : Float) (color : Color) (lineWidth : Float) : CanvasM BatchState := do
   let state ← flushForStrokeCircle reg state
@@ -443,6 +460,8 @@ private def handleCommand (reg : FontRegistry) (state : BatchState)
     handleFillCircle reg state center radius color
   | .fillCircleBatch data count =>
     handleFillCircleBatch reg state data count
+  | .strokeRectBatch data count lineWidth =>
+    handleStrokeRectBatch reg state data count lineWidth
   | .strokeCircle center radius color lineWidth =>
     handleStrokeCircle reg state center radius color lineWidth
   | .fillText text x y fontId color =>

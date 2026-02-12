@@ -125,6 +125,14 @@ def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : C
       let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
       canvas.ctx.renderer.drawLineBatch data count.toUInt32 lineWidth canvasWidth canvasHeight
 
+  | .strokeRectBatch data count lineWidth =>
+    if count == 0 then
+      pure ()
+    else
+      let canvas ← CanvasM.getCanvas
+      let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
+      canvas.ctx.renderer.drawBatch 2 data count.toUInt32 lineWidth 0.0 canvasWidth canvasHeight
+
   | .fillCircleBatch data count =>
     if count == 0 then
       pure ()
