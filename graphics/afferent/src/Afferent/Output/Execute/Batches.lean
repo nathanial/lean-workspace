@@ -32,6 +32,10 @@ structure BatchStats where
   linesBatched : Nat := 0
   /-- Number of texts batched. -/
   textsBatched : Nat := 0
+  /-- Number of `fillText` commands seen in the coalesced stream. -/
+  textFillCommands : Nat := 0
+  /-- Number of times the text batch was flushed to a draw call. -/
+  textBatchFlushes : Nat := 0
   /-- Time spent computing bounded commands (transform flattening) in ms. -/
   timeFlattenMs : Float := 0.0
   /-- Time spent coalescing/sorting commands in ms. -/

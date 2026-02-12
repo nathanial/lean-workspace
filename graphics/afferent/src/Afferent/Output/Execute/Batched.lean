@@ -40,7 +40,7 @@ private structure BatchState where
   stats : BatchStats
   drawCallTimeNs : Nat
 
-private def initBatchState (totalCommands : Nat) : BatchState :=
+private def initBatchState (totalCommands : Nat) (textFillCommands : Nat) : BatchState :=
   { rectBatch := #[]
     strokeRectBatch := #[]
     currentStrokeLineWidth := 0.0
@@ -51,7 +51,7 @@ private def initBatchState (totalCommands : Nat) : BatchState :=
     currentTextFontId := none
     fragmentParamsBatch := #[]
     currentFragmentHash := none
-    stats := { totalCommands := totalCommands }
+    stats := { totalCommands := totalCommands, textFillCommands := textFillCommands }
     drawCallTimeNs := 0 }
 
 private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
@@ -169,7 +169,8 @@ private def flushTexts (reg : FontRegistry) (state : BatchState) : CanvasM Batch
         let t1 ← IO.monoNanosNow
         let stats := { state.stats with
           batchedCalls := state.stats.batchedCalls + 1
-          textsBatched := state.stats.textsBatched + state.textBatch.size }
+          textsBatched := state.stats.textsBatched + state.textBatch.size
+          textBatchFlushes := state.stats.textBatchFlushes + 1 }
         pure { state with
           textBatch := #[]
           currentTextFontId := none
@@ -517,7 +518,11 @@ def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.
   let tLoop0 ← IO.monoNanosNow
 
   let totalCommands := cmds.size
-  let mut state := initBatchState totalCommands
+  let textFillCommands := cmds.foldl (init := 0) fun acc cmd =>
+    match cmd with
+    | .fillText .. => acc + 1
+    | _ => acc
+  let mut state := initBatchState totalCommands textFillCommands
   state ← processCommands reg cmds state
   let tLoop1 ← IO.monoNanosNow
 

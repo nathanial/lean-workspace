@@ -36,6 +36,8 @@ structure RunnerStats where
   strokeRectsBatched : Nat := 0
   linesBatched : Nat := 0
   textsBatched : Nat := 0
+  textFillCommands : Nat := 0
+  textBatchFlushes : Nat := 0
   flattenMs : Float := 0.0
   coalesceMs : Float := 0.0
   batchLoopMs : Float := 0.0

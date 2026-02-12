@@ -46,6 +46,9 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
     else
       let reduced := stats.commandCount.toFloat - stats.coalescedCommandCount.toFloat
       reduced / stats.commandCount.toFloat
+  let avgTextsPerFlush :=
+    if stats.textBatchFlushes == 0 then 0.0
+    else stats.textsBatched.toFloat / stats.textBatchFlushes.toFloat
   let accountingGap := Float.abs stats.unaccountedMs
   let line1 := s!"frame {formatFloat stats.frameMs}ms • {formatFloat stats.fps 1} fps"
   let line2 := s!"begin {formatFloat stats.beginFrameMs}ms • input {formatFloat stats.inputMs}ms • reactive {formatFloat stats.reactiveMs}ms (prop {formatFloat stats.reactivePropagateMs}ms • render {formatFloat stats.reactiveRenderMs}ms)"
@@ -55,9 +58,10 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line6 := s!"widgets {stats.widgetCount} • layouts {stats.layoutCount} • draws {stats.drawCalls}"
   let line7 := s!"draw calls batched {stats.batchedCalls} • single {stats.individualCalls} • batched rate {formatPercent batchCallRate}"
   let line8 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
-  let line9 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
-  let line10 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10]
+  let line9 := s!"text cmds {stats.textFillCommands} • text flushes {stats.textBatchFlushes} • avg/flush {formatFloat avgTextsPerFlush 1}"
+  let line10 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
+  let line11 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
