@@ -199,9 +199,7 @@ private def buildWidgetPerfBarChartTabLikeTree
                 height := .percent 1.0
               }
               column' (gap := 0) (style := rightPanelStyle) do
-                if instanceCount <= 20 then
-                  renderWidgetGrid .barChart instanceCount
-                else
+                if shouldUseGridScroll .barChart instanceCount windowH then
                   let cfg : ScrollContainerConfig := {
                     width := windowW
                     height := windowH
@@ -212,8 +210,10 @@ private def buildWidgetPerfBarChartTabLikeTree
                     scrollbarVisibility := .always
                   }
                   let (_, _) ← scrollContainer cfg do
-                    renderWidgetGrid .barChart instanceCount
+                    renderWidgetGrid .barChart instanceCount (fillRows := false)
                   pure ()
+                else
+                  renderWidgetGrid .barChart instanceCount (fillRows := true)
         pure render
       let builder ← SpiderM.liftIO render
       pure (Afferent.Arbor.buildFrom 0 builder)
@@ -245,6 +245,18 @@ private def assertNoTrailingEmptyRows (label : String) (instanceCount : Nat) (pr
   let slack := slots - instanceCount
   ensure (slack < cols || instanceCount == 0)
     s!"{label}: found at least one fully empty trailing row (count={instanceCount}, rows={rows}, cols={cols}, slots={slots}, slack={slack})"
+
+private def minCustomHeight (widget : Widget) (layouts : Trellis.LayoutResult) : IO Float := do
+  let ids := customIds widget
+  ensure (ids.size > 0) "Expected at least one custom node"
+  let mut minH : Float := 1e9
+  for cid in ids do
+    match layouts.get cid with
+    | some layout =>
+      if layout.borderRect.height < minH then
+        minH := layout.borderRect.height
+    | none => pure ()
+  pure minH
 
 testSuite "WidgetPerf Grid Layout"
 
@@ -337,18 +349,21 @@ test "widget perf tab logic: bar chart x10 fills height with no phantom scroll" 
   let (_, layouts) ← measureAndLayout widget rootW rootH
   ensure (firstScrollData? widget |>.isNone)
     "Did not expect a scroll container for 10 instances"
-
-  let chartIds := customIds widget
-  ensure (chartIds.size >= 10)
-    s!"Expected at least 10 chart custom nodes, got {chartIds.size}"
-  let mut minChartH : Float := 1e9
-  for cid in chartIds do
-    match layouts.get cid with
-    | some layout =>
-      if layout.borderRect.height < minChartH then
-        minChartH := layout.borderRect.height
-    | none => pure ()
+  let minChartH ← minCustomHeight widget layouts
   ensure (minChartH >= 180.0)
     s!"Expected bar chart widgets to expand vertically (min chart height={minChartH})"
+
+test "widget perf tab logic: bar chart x100 still fills height without phantom scroll" := do
+  let rootW := 1800.0
+  let rootH := 720.0
+  let windowW := 1800.0
+  let windowH := 1200.0
+  let widget ← buildWidgetPerfBarChartTabLikeTree 100 rootW rootH windowW windowH
+  let (_, layouts) ← measureAndLayout widget rootW rootH
+  ensure (firstScrollData? widget |>.isNone)
+    "Did not expect a scroll container for 100 instances when intrinsic content fits the viewport"
+  let minChartH ← minCustomHeight widget layouts
+  ensure (minChartH >= 90.0)
+    s!"Expected bar chart widgets to stretch beyond intrinsic height for x100 (min chart height={minChartH})"
 
 end AfferentDemosTests.WidgetPerfGridLayout

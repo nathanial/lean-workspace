@@ -24,6 +24,8 @@ private def widgetGridColumns : Nat := 20
 private def defaultWidgetInstanceCount : Nat := 10
 private def widgetInstanceOptions : Array Nat := #[1, 10, 100, 1000, 2000, 10000]
 private def widgetInstanceOptionLabels : Array String := widgetInstanceOptions.map toString
+private def widgetGridGap : Float := 6
+private def widgetPerfChromeHeightEstimate : Float := 150
 private def defaultWidgetInstanceIndex : Nat :=
   (widgetInstanceOptions.findIdx? (· == defaultWidgetInstanceCount)).getD 0
 
@@ -176,6 +178,73 @@ def allWidgetTypes : Array WidgetType := #[
 ]
 
 def widgetTypeNames : Array String := allWidgetTypes.map WidgetType.name
+
+/-- Conservative intrinsic row-height estimate by widget type. -/
+private def estimatedIntrinsicRowHeight : WidgetType → Float
+  | .label => 28
+  | .caption => 24
+  | .spacer => 30
+  | .panel => 36
+  | .button => 40
+  | .checkbox => 32
+  | .switch => 30
+  | .radioGroup => 44
+  | .slider => 32
+  | .stepper => 34
+  | .progressBar => 30
+  | .progressIndeterminate => 30
+  | .dropdown => 40
+  | .spinnerCircleDots => 56
+  | .spinnerRing => 56
+  | .spinnerBouncingDots => 56
+  | .spinnerBars => 56
+  | .spinnerDualRing => 56
+  | .spinnerOrbit => 56
+  | .spinnerPulse => 56
+  | .spinnerHelix => 56
+  | .spinnerWave => 56
+  | .spinnerSpiral => 56
+  | .spinnerClock => 56
+  | .spinnerPendulum => 56
+  | .spinnerRipple => 56
+  | .spinnerHeartbeat => 56
+  | .spinnerGears => 56
+  | .barChart => 80
+  | .lineChart => 80
+  | .areaChart => 80
+  | .pieChart => 80
+  | .donutChart => 80
+  | .scatterPlot => 80
+  | .horizontalBarChart => 80
+  | .bubbleChart => 80
+  | .histogram => 80
+  | .boxPlot => 80
+  | .heatmap => 80
+  | .stackedBarChart => 80
+  | .groupedBarChart => 80
+  | .stackedAreaChart => 80
+  | .radarChart => 100
+  | .candlestickChart => 80
+  | .waterfallChart => 80
+  | .gaugeChart => 70
+  | .funnelChart => 80
+  | .treemapChart => 80
+  | .sankeyDiagram => 80
+  | .mixed => 80
+
+/-- Decide if grid content should be wrapped in a vertical scroller.
+    Rule: fill available space when intrinsic content fits; use intrinsic + scroll only on overflow. -/
+def shouldUseGridScroll (wtype : WidgetType) (instanceCount : Nat) (windowHeight : Float) : Bool :=
+  if instanceCount == 0 then
+    false
+  else
+    let maxCols := if wtype == .mixed then Nat.min renderableWidgetTypes.size widgetGridColumns else widgetGridColumns
+    let (_, rowCount) := chooseGridDims instanceCount maxCols
+    let rowH := estimatedIntrinsicRowHeight wtype
+    let intrinsicRowsH :=
+      rowCount.toFloat * rowH + max 0 ((rowCount - 1).toFloat * widgetGridGap)
+    let availableH := max 0 (windowHeight - widgetPerfChromeHeightEstimate)
+    intrinsicRowsH > availableH
 
 /-- Sample data for charts. -/
 def sampleBarData : Array Float := #[42.0, 78.0, 56.0, 91.0]
@@ -482,7 +551,7 @@ def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle
   pure result
 
 /-- Render a mixed grid with the requested total instance count. -/
-def renderMixedGrid (instanceCount : Nat) : WidgetM Unit := do
+def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Unit := do
   let containerStyle : BoxStyle := {
     flexItem := some (FlexItem.growing 1)
     width := .percent 1.0
@@ -490,7 +559,7 @@ def renderMixedGrid (instanceCount : Nat) : WidgetM Unit := do
   let numTypes := renderableWidgetTypes.size
   let maxCols := Nat.min numTypes widgetGridColumns
   let (numCols, numRows) := chooseGridDims instanceCount maxCols
-  let rowTrack := if numRows <= 1 then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+  let rowTrack := if fillRows then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
   let rowTemplate := Array.replicate numRows rowTrack
   let colTemplate := Array.replicate numCols (Trellis.TrackSize.fr 1)
   let gridProps : Trellis.GridContainer := {
@@ -514,16 +583,16 @@ def renderMixedGrid (instanceCount : Nat) : WidgetM Unit := do
             pure ()
 
 /-- Render a grid of widgets for a given type. -/
-def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat) : WidgetM Unit := do
+def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Unit := do
   if wtype == .mixed then
-    renderMixedGrid instanceCount
+    renderMixedGrid instanceCount fillRows
   else
     let containerStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
       width := .percent 1.0
     }
     let (effectiveColumns, rowCount) := chooseGridDims instanceCount widgetGridColumns
-    let rowTrack := if rowCount <= 1 then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+    let rowTrack := if fillRows then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
     let rowTemplate := Array.replicate rowCount rowTrack
     let colTemplate := Array.replicate effectiveColumns (Trellis.TrackSize.fr 1)
     let gridProps : Trellis.GridContainer := {
@@ -621,12 +690,13 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
           let _ ← dynWidget renderConfig (fun (selIdx, countIdx) => do
             let wtype := allWidgetTypes.getD selIdx .label
             let instanceCount := widgetInstanceOptions.getD countIdx defaultWidgetInstanceCount
-            if instanceCount <= widgetGridColumns then
-              renderWidgetGrid wtype instanceCount
-            else
+            let needsScroll := shouldUseGridScroll wtype instanceCount env.windowHeightF
+            if needsScroll then
               let (_, _) ← scrollContainer gridScrollConfig do
-                renderWidgetGrid wtype instanceCount
-              pure ())
+                renderWidgetGrid wtype instanceCount (fillRows := false)
+              pure ()
+            else
+              renderWidgetGrid wtype instanceCount (fillRows := true))
           pure ()
 
   pure { render }
