@@ -14,6 +14,7 @@ import Demos.Layout.Flexbox
 import Demos.Visuals.ShapeGallery
 import Demos.Visuals.LineCaps
 import Demos.Visuals.DashedLines
+import Demos.Visuals.VoxelWorld
 import Demos.Chat.App
 import Demos.Linalg.Shared
 import Demos.Linalg.VectorInterpolation
