@@ -387,13 +387,16 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
         -- fall back to viewport-constrained measurement to avoid runaway scroll ranges.
         let probeH : Float := 1000000
         let (probeW, probeContentH) ← measureAt probeH
+        let fallbackH : Float := if config.fillHeight then 0 else config.height
         let (measuredContentW, measuredContentH) ←
           if probeContentH >= probeH * 0.9 then
-            measureAt config.height
+            measureAt fallbackH
           else
             pure (probeW, probeContentH)
-        let contentW := if config.horizontalScroll then max config.width measuredContentW else config.width
-        let contentH := if config.verticalScroll then max config.height measuredContentH else config.height
+        let minViewportW : Float := if config.fillWidth then 0 else config.width
+        let minViewportH : Float := if config.fillHeight then 0 else config.height
+        let contentW := max minViewportW measuredContentW
+        let contentH := max minViewportH measuredContentH
         contentSizeRef.set (contentW, contentH)
         -- Pass the builder (not the built widget) so IDs are fresh
         pure (scrollContainerVisual name config theme state.scroll contentW contentH childBuilder)

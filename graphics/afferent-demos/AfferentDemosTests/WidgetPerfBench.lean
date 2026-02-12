@@ -50,6 +50,8 @@ private structure BenchConfig where
 
 deriving Inhabited
 
+private def benchWidgetInstanceCount : Nat := 2000
+
 private structure BenchAccum where
   frames : Nat := 0
   updateMs : Float := 0
@@ -171,7 +173,7 @@ private def widgetPerfRender (selected : WidgetType) : ReactiveM ComponentRender
 
     column' (gap := 16) (style := rootStyle) do
       heading1' "Widget Performance Test"
-      caption' "Select a widget type to render 1000 instances"
+      caption' s!"Select a widget type to render {benchWidgetInstanceCount} instances"
 
       let contentRowStyle : BoxStyle := {
         flexItem := some (FlexItem.growing 1)
@@ -204,7 +206,7 @@ private def widgetPerfRender (selected : WidgetType) : ReactiveM ComponentRender
         column' (gap := 0) (style := rightPanelStyle) do
           let _ ← dynWidget selectedType (fun selIdx => do
             let wtype := allWidgetTypes.getD selIdx .label
-            renderWidgetGrid wtype)
+            renderWidgetGrid wtype benchWidgetInstanceCount)
           pure ()
 
   pure render

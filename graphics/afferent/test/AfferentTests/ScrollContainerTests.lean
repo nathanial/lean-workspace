@@ -656,6 +656,24 @@ def collectForViewport (widget : Widget) (viewportW viewportH : Float) : Array R
   let layouts := Trellis.layout measured.node viewportW viewportH
   collectCommands measured.widget layouts
 
+/-- Find the first scroll widget in a tree. -/
+partial def firstScrollInfo? (widget : Widget) : Option (WidgetId × Float × Float × Widget) :=
+  match widget with
+  | .scroll id _ _ _ contentW contentH _ child _ => some (id, contentW, contentH, child)
+  | .flex _ _ _ _ children _ =>
+    children.foldl (fun found child =>
+      match found with
+      | some _ => found
+      | none => firstScrollInfo? child
+    ) none
+  | .grid _ _ _ _ children _ =>
+    children.foldl (fun found child =>
+      match found with
+      | some _ => found
+      | none => firstScrollInfo? child
+    ) none
+  | _ => none
+
 test "FRP: scrollContainer responds to scroll wheel events" := do
   let result ← runSpider do
     let (events, inputs) ← createInputs Afferent.FontRegistry.empty testTheme
@@ -768,6 +786,122 @@ test "FRP: scrollContainer measurement avoids runaway percent-height content" :=
 
   ensure (measuredContentH < 5000.0)
     s!"Content height ballooned unexpectedly: {measuredContentH}"
+
+test "FRP: fillHeight should not create phantom vertical range under constrained parent" := do
+  let (contentH, viewportH, childH, rootH, configuredScrollH) ← runSpider do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let rootW := 300.0
+    let rootH := 220.0
+    let configuredScrollH := 1200.0
+
+    let (_, state) ← (do
+      column' (gap := 12) (style := { width := .length rootW, height := .length rootH }) do
+        emit (coloredBox Tincture.Color.blue 280 40)
+        let _ ← scrollContainer {
+          width := rootW
+          height := configuredScrollH
+          verticalScroll := true
+          horizontalScroll := false
+          fillWidth := true
+          fillHeight := true
+        } do
+          emit (coloredBox Tincture.Color.red 280 80)
+          pure ()
+        pure ()
+    ).run { children := #[] } |>.run events
+
+    ensure (state.children.size == 1)
+      s!"Expected one root render, got {state.children.size}"
+    let builder ← SpiderM.liftIO state.children[0]!.materialize
+    let (widget, _) ← builder.run {}
+
+    let (scrollId, _contentW, contentH, scrollChild) ←
+      match firstScrollInfo? widget with
+      | some info => pure info
+      | none =>
+        ensure false "Expected a scroll widget in rendered tree"
+        pure (0, 0.0, 0.0, .spacer 0 none 0 0)
+
+    let measured : MeasureResult := measureWidget (M := Id) widget rootW rootH
+    let layouts := Trellis.layout measured.node rootW rootH
+    let scrollLayout :=
+      match layouts.get scrollId with
+      | some layout => layout
+      | none => { nodeId := scrollId, contentRect := { x := 0, y := 0, width := 0, height := 0 }, borderRect := { x := 0, y := 0, width := 0, height := 0 } }
+    let childLayout :=
+      match layouts.get scrollChild.id with
+      | some layout => layout
+      | none => { nodeId := scrollChild.id, contentRect := { x := 0, y := 0, width := 0, height := 0 }, borderRect := { x := 0, y := 0, width := 0, height := 0 } }
+    pure (contentH, scrollLayout.contentRect.height, childLayout.borderRect.height, rootH, configuredScrollH)
+
+  let slack := contentH - max viewportH childH
+  ensure (viewportH <= rootH + 1.0)
+    s!"Scroll viewport should be constrained by parent height (viewportH={viewportH}, rootH={rootH})"
+  ensure (viewportH < configuredScrollH)
+    s!"Scroll viewport unexpectedly matches configured height instead of constrained parent (viewportH={viewportH}, configured={configuredScrollH})"
+  ensure (childH <= 120.0)
+    s!"Expected small child content height, got {childH}"
+  ensure (slack <= 16.0)
+    s!"Unexpected phantom scroll range: contentH={contentH}, viewportH={viewportH}, childH={childH}, slack={slack}"
+
+test "FRP: fillHeight should not create phantom vertical range for wide one-row content" := do
+  let (contentH, viewportH, childH, rootH, configuredScrollH) ← runSpider do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let rootW := 1400.0
+    let rootH := 260.0
+    let configuredScrollH := 1000.0
+
+    let (_, state) ← (do
+      column' (gap := 8) (style := { width := .length rootW, height := .length rootH }) do
+        emit (coloredBox (Tincture.Color.gray 0.4) 1000 20)
+        let _ ← scrollContainer {
+          width := rootW
+          height := configuredScrollH
+          verticalScroll := true
+          horizontalScroll := false
+          fillWidth := true
+          fillHeight := true
+        } do
+          emit <| grid 10 6 { width := .percent 1.0 } (
+            (List.range 10).map (fun _ => coloredBox Tincture.Color.green 120 80) |>.toArray
+          )
+          pure ()
+        pure ()
+    ).run { children := #[] } |>.run events
+
+    ensure (state.children.size == 1)
+      s!"Expected one root render, got {state.children.size}"
+    let builder ← SpiderM.liftIO state.children[0]!.materialize
+    let (widget, _) ← builder.run {}
+
+    let (scrollId, _contentW, contentH, scrollChild) ←
+      match firstScrollInfo? widget with
+      | some info => pure info
+      | none =>
+        ensure false "Expected a scroll widget in rendered tree"
+        pure (0, 0.0, 0.0, Widget.spacer 0 none 0 0)
+
+    let measured : MeasureResult := measureWidget (M := Id) widget rootW rootH
+    let layouts := Trellis.layout measured.node rootW rootH
+    let scrollLayout :=
+      match layouts.get scrollId with
+      | some layout => layout
+      | none => { nodeId := scrollId, contentRect := { x := 0, y := 0, width := 0, height := 0 }, borderRect := { x := 0, y := 0, width := 0, height := 0 } }
+    let childLayout :=
+      match layouts.get scrollChild.id with
+      | some layout => layout
+      | none => { nodeId := scrollChild.id, contentRect := { x := 0, y := 0, width := 0, height := 0 }, borderRect := { x := 0, y := 0, width := 0, height := 0 } }
+    pure (contentH, scrollLayout.contentRect.height, childLayout.borderRect.height, rootH, configuredScrollH)
+
+  let slack := contentH - max viewportH childH
+  ensure (viewportH <= rootH + 1.0)
+    s!"Scroll viewport should be constrained by parent height (viewportH={viewportH}, rootH={rootH})"
+  ensure (viewportH < configuredScrollH)
+    s!"Scroll viewport unexpectedly matches configured height instead of constrained parent (viewportH={viewportH}, configured={configuredScrollH})"
+  ensure (childH <= 160.0)
+    s!"Expected one-row child content height, got {childH}"
+  ensure (slack <= 16.0)
+    s!"Unexpected phantom scroll range for wide row: contentH={contentH}, viewportH={viewportH}, childH={childH}, slack={slack}"
 
 test "scrollbar geometry: thumb height follows viewport/content ratio" := do
   let viewportW := 300.0

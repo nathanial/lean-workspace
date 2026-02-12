@@ -7,6 +7,7 @@ import AfferentDemosTests.Smoke
 import AfferentDemosTests.StrokeCards
 import AfferentDemosTests.RegistryTests
 import AfferentDemosTests.WidgetPerfBench
+import AfferentDemosTests.WidgetPerfGridLayout
 import AfferentDemosTests.WidgetTreePerfStress
 import Wisp
 

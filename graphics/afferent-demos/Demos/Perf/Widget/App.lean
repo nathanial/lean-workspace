@@ -1,6 +1,6 @@
 /-
   WidgetPerf - Diagnostic page to isolate widget performance.
-  Select a widget type from the list to see 2000 instances in a grid.
+  Select a widget type and instance count from the left panel.
 -/
 import Reactive
 import Afferent
@@ -20,9 +20,34 @@ open Trellis
 
 namespace Demos.WidgetPerf
 
-private def widgetInstanceCount : Nat := 2000
 private def widgetGridColumns : Nat := 20
-private def widgetGridRows : Nat := widgetInstanceCount / widgetGridColumns
+private def defaultWidgetInstanceCount : Nat := 10
+private def widgetInstanceOptions : Array Nat := #[1, 10, 100, 1000, 2000, 10000]
+private def widgetInstanceOptionLabels : Array String := widgetInstanceOptions.map toString
+private def defaultWidgetInstanceIndex : Nat :=
+  (widgetInstanceOptions.findIdx? (· == defaultWidgetInstanceCount)).getD 0
+
+private def gridRowCount (instanceCount columns : Nat) : Nat :=
+  if instanceCount == 0 then 0 else (instanceCount + columns - 1) / columns
+
+/-- Choose grid dimensions bounded by `maxColumns` while minimizing empty slots. -/
+private def chooseGridDims (instanceCount maxColumns : Nat) : Nat × Nat :=
+  if instanceCount == 0 then
+    (0, 0)
+  else
+    let maxCols := Nat.max 1 (Nat.min maxColumns instanceCount)
+    let step := fun best cols =>
+      let rows := gridRowCount instanceCount cols
+      let slots := rows * cols
+      let slack := slots - instanceCount
+      let (bestCols, bestRows, bestSlack) := best
+      if slack < bestSlack || (slack == bestSlack && cols > bestCols) then
+        (cols, rows, slack)
+      else
+        (bestCols, bestRows, bestSlack)
+    let candidates := (List.range maxCols).map (· + 1)
+    let (cols, rows, _) := candidates.foldl step (1, instanceCount, instanceCount - 1)
+    (cols, rows)
 
 /-- Widget types we can test. -/
 inductive WidgetType
@@ -172,12 +197,10 @@ def sampleSankeyData : SankeyDiagram.Data :=
   ]
   { nodes, links }
 
-/-- Render a single widget of the given type, wrapped in a growing cell. -/
+/-- Render a single widget of the given type in a grid cell. -/
 def renderWidget (wtype : WidgetType) (index : Nat) : WidgetM Unit := do
   let cellStyle : BoxStyle := {
-    flexItem := some (FlexItem.growing 1)
     width := .percent 1.0
-    height := .percent 1.0
   }
   column' (gap := 0) (style := cellStyle) do match wtype with
   -- Simple
@@ -458,21 +481,24 @@ def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle
   emitRender render
   pure result
 
-/-- Render a mixed grid with 10 instances of each widget type, interleaved. -/
-def renderMixedGrid : WidgetM Unit := do
+/-- Render a mixed grid with the requested total instance count. -/
+def renderMixedGrid (instanceCount : Nat) : WidgetM Unit := do
   let containerStyle : BoxStyle := {
     flexItem := some (FlexItem.growing 1)
     width := .percent 1.0
   }
   let numTypes := renderableWidgetTypes.size
-  let totalWidgets := numTypes * 10  -- 10 of each type
-  let numCols := 47  -- One of each type per row
-  let numRows := 10  -- 10 instances of each
-  let rowTemplate := Array.replicate numRows Trellis.TrackSize.auto
+  let maxCols := Nat.min numTypes widgetGridColumns
+  let (numCols, numRows) := chooseGridDims instanceCount maxCols
+  let rowTrack := if numRows <= 1 then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+  let rowTemplate := Array.replicate numRows rowTrack
   let colTemplate := Array.replicate numCols (Trellis.TrackSize.fr 1)
-  let gridProps := Trellis.GridContainer.withTemplate rowTemplate colTemplate 6
+  let gridProps : Trellis.GridContainer := {
+    Trellis.GridContainer.withTemplate rowTemplate colTemplate 6 with
+    alignContent := .stretch
+  }
   column' (gap := 6) (style := containerStyle) do
-    heading3' s!"Mixed Grid ({numTypes} types × 10 = {totalWidgets} instances)"
+    heading3' s!"Mixed Grid ({instanceCount} instances across {numTypes} widget types)"
     let gridStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
       width := .percent 1.0
@@ -480,33 +506,39 @@ def renderMixedGrid : WidgetM Unit := do
     gridCustom' gridProps gridStyle do
       for row in [:numRows] do
         for col in [:numCols] do
-          let wtype := renderableWidgetTypes.getD col .label
           let index := row * numCols + col
-          renderWidget wtype index
+          if index < instanceCount then
+            let wtype := renderableWidgetTypes.getD (index % numTypes) .label
+            renderWidget wtype index
+          else
+            pure ()
 
 /-- Render a grid of widgets for a given type. -/
-def renderWidgetGrid (wtype : WidgetType) : WidgetM Unit := do
+def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat) : WidgetM Unit := do
   if wtype == .mixed then
-    renderMixedGrid
+    renderMixedGrid instanceCount
   else
     let containerStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
       width := .percent 1.0
     }
-    let rowTemplate := Array.replicate widgetGridRows Trellis.TrackSize.auto
-    let colTemplate := Array.replicate widgetGridColumns (Trellis.TrackSize.fr 1)
-    let gridProps := Trellis.GridContainer.withTemplate rowTemplate colTemplate 6
+    let (effectiveColumns, rowCount) := chooseGridDims instanceCount widgetGridColumns
+    let rowTrack := if rowCount <= 1 then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+    let rowTemplate := Array.replicate rowCount rowTrack
+    let colTemplate := Array.replicate effectiveColumns (Trellis.TrackSize.fr 1)
+    let gridProps : Trellis.GridContainer := {
+      Trellis.GridContainer.withTemplate rowTemplate colTemplate 6 with
+      alignContent := .stretch
+    }
     column' (gap := 6) (style := containerStyle) do
-      heading3' s!"Grid of {wtype.name} ({widgetInstanceCount} instances)"
+      heading3' s!"Grid of {wtype.name} ({instanceCount} instances)"
       let gridStyle : BoxStyle := {
         flexItem := some (FlexItem.growing 1)
         width := .percent 1.0
       }
       gridCustom' gridProps gridStyle do
-        for row in [0:widgetGridRows] do
-          for col in [0:widgetGridColumns] do
-            let index := row * widgetGridColumns + col
-            renderWidget wtype index
+        for index in [0:instanceCount] do
+          renderWidget wtype index
 
 /-- Application state. -/
 structure AppState where
@@ -517,6 +549,8 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
   -- Pre-create a Dynamic for the selected widget type
   let (selectionEvent, fireSelection) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
   let selectedType ← Reactive.holdDyn 0 selectionEvent
+  let (instanceCountEvent, fireInstanceCount) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
+  let selectedInstanceCountIndex ← Reactive.holdDyn defaultWidgetInstanceIndex instanceCountEvent
 
   let (_, render) ← runWidget do
     let rootStyle : BoxStyle := {
@@ -529,7 +563,7 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
 
     column' (gap := 16) (style := rootStyle) do
       heading1' "Widget Performance Test"
-      caption' s!"Select a widget type to render {widgetInstanceCount} instances"
+      caption' "Select a widget type and instance count"
 
       -- Main content row (fills remaining space)
       let contentRowStyle : BoxStyle := {
@@ -557,6 +591,12 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
           -- Show current selection
           let _ ← dynWidget selectedType (fun sel =>
             caption' s!"Selected: {widgetTypeNames.getD sel "none"}")
+          caption' "Instance count:"
+          let instanceResult ← dropdown widgetInstanceOptionLabels defaultWidgetInstanceIndex
+          let instanceAction ← Event.mapM (fun idx => fireInstanceCount idx) instanceResult.onSelect
+          performEvent_ instanceAction
+          let _ ← dynWidget selectedInstanceCountIndex (fun idx =>
+            caption' s!"Instances: {widgetInstanceOptions.getD idx defaultWidgetInstanceCount}")
           pure ()
 
         -- Right panel: Grid of selected widget type (fills remaining space)
@@ -575,11 +615,18 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
             fillHeight := true
             scrollbarVisibility := .always
           }
-          let (_, _) ← scrollContainer gridScrollConfig do
-            let _ ← dynWidget selectedType (fun selIdx => do
-              let wtype := allWidgetTypes.getD selIdx .label
-              renderWidgetGrid wtype)
-            pure ()
+          let renderConfig ← Dynamic.zipWithM
+            (fun selIdx countIdx => (selIdx, countIdx))
+            selectedType selectedInstanceCountIndex
+          let _ ← dynWidget renderConfig (fun (selIdx, countIdx) => do
+            let wtype := allWidgetTypes.getD selIdx .label
+            let instanceCount := widgetInstanceOptions.getD countIdx defaultWidgetInstanceCount
+            if instanceCount <= widgetGridColumns then
+              renderWidgetGrid wtype instanceCount
+            else
+              let (_, _) ← scrollContainer gridScrollConfig do
+                renderWidgetGrid wtype instanceCount
+              pure ())
           pure ()
 
   pure { render }
