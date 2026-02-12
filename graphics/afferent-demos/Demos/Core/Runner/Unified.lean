@@ -282,12 +282,20 @@ def unifiedDemo : IO Unit := do
             let layouts := Trellis.layout measureResult.node screenW screenH
             let layoutEnd ← IO.monoNanosNow
             let indexStart := layoutEnd
+            let indexBuildStart := indexStart
             let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
+            let indexBuildEnd ← IO.monoNanosNow
+            let indexSnapshotStoreStart := indexBuildEnd
             rs := { rs with inputSnapshot := some { layouts := layouts, hitIndex := hitIndex } }
+            let indexSnapshotStoreEnd ← IO.monoNanosNow
+            let indexInteractiveIdsStart := indexSnapshotStoreEnd
             let interactiveIds :=
               hitIndex.componentMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
+            let indexInteractiveIdsEnd ← IO.monoNanosNow
+            let indexRegistrySetStart := indexInteractiveIdsEnd
             rs.events.registry.interactiveIds.set interactiveIds
-            let indexEnd ← IO.monoNanosNow
+            let indexRegistrySetEnd ← IO.monoNanosNow
+            let indexEnd := indexRegistrySetEnd
 
             let collectStart ← IO.monoNanosNow
             let commands := Afferent.Arbor.collectCommands measuredWidget layouts
@@ -312,6 +320,10 @@ def unifiedDemo : IO Unit := do
             let reactiveMs := (reactiveEnd - reactiveStart).toFloat / 1000000.0
             let layoutMs := (layoutEnd - layoutStart).toFloat / 1000000.0
             let indexMs := (indexEnd - indexStart).toFloat / 1000000.0
+            let indexBuildMs := (indexBuildEnd - indexBuildStart).toFloat / 1000000.0
+            let indexSnapshotStoreMs := (indexSnapshotStoreEnd - indexSnapshotStoreStart).toFloat / 1000000.0
+            let indexInteractiveIdsMs := (indexInteractiveIdsEnd - indexInteractiveIdsStart).toFloat / 1000000.0
+            let indexRegistrySetMs := (indexRegistrySetEnd - indexRegistrySetStart).toFloat / 1000000.0
             let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
@@ -333,6 +345,10 @@ def unifiedDemo : IO Unit := do
               reactiveRenderMs := reactiveRenderMs
               layoutMs := layoutMs
               indexMs := indexMs
+              indexBuildMs := indexBuildMs
+              indexSnapshotStoreMs := indexSnapshotStoreMs
+              indexInteractiveIdsMs := indexInteractiveIdsMs
+              indexRegistrySetMs := indexRegistrySetMs
               collectMs := collectMs
               executeMs := executeMs
               endFrameMs := endFrameMs

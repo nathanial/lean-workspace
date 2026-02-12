@@ -21,6 +21,10 @@ structure RunnerStats where
   reactiveRenderMs : Float := 0.0
   layoutMs : Float := 0.0
   indexMs : Float := 0.0
+  indexBuildMs : Float := 0.0
+  indexSnapshotStoreMs : Float := 0.0
+  indexInteractiveIdsMs : Float := 0.0
+  indexRegistrySetMs : Float := 0.0
   collectMs : Float := 0.0
   executeMs : Float := 0.0
   endFrameMs : Float := 0.0
