@@ -330,6 +330,8 @@ def unifiedDemo : IO Unit := do
             let executeBatchMs := executeBatchNs.toFloat / 1000000.0
             let executeCustomMs := executeCustomNs.toFloat / 1000000.0
             let executeOverheadMs := max 0.0 (executeMs - executeBatchMs - executeCustomMs)
+            let batchResidualMs := max 0.0
+              (executeBatchMs - batchStats.timeFlattenMs - batchStats.timeCoalesceMs - batchStats.timeBatchLoopMs)
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
             let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
@@ -358,6 +360,7 @@ def unifiedDemo : IO Unit := do
               executeBatchMs := executeBatchMs
               executeCustomMs := executeCustomMs
               executeOverheadMs := executeOverheadMs
+              batchResidualMs := batchResidualMs
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs

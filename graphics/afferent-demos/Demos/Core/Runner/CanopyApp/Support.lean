@@ -61,7 +61,7 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line9 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
   let line10 := s!"text cmds {stats.textFillCommands} • text flushes {stats.textBatchFlushes} • avg/flush {formatFloat avgTextsPerFlush 1}"
   let line11 := s!"exec split batch {formatFloat stats.executeBatchMs}ms • custom {formatFloat stats.executeCustomMs}ms • overhead {formatFloat stats.executeOverheadMs}ms"
-  let line12 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • draw {formatFloat stats.drawCallMs}ms"
+  let line12 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • residual {formatFloat stats.batchResidualMs}ms • draw {formatFloat stats.drawCallMs}ms"
   let line13 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
   #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13]
 
