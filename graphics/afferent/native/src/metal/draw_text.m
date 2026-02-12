@@ -15,12 +15,9 @@ typedef struct {
     uint64_t texts_hash;
     uint32_t glyph_count;
     size_t static_bytes;
-    size_t run_bytes;
     size_t total_bytes;
     uint64_t last_used;
     __strong id<MTLBuffer> static_glyph_buffer;
-    __strong id<MTLBuffer> run_buffer;
-    TextRunDynamic* last_runs;
 } TextBatchCacheEntry;
 
 static TextBatchCacheEntry g_text_batch_cache[TEXT_BATCH_CACHE_MAX_ENTRIES] = {0};
@@ -77,15 +74,9 @@ static void text_batch_cache_clear_entry(TextBatchCacheEntry* entry) {
     entry->texts_hash = 0;
     entry->glyph_count = 0;
     entry->static_bytes = 0;
-    entry->run_bytes = 0;
     entry->total_bytes = 0;
     entry->last_used = 0;
     entry->static_glyph_buffer = nil;
-    entry->run_buffer = nil;
-    if (entry->last_runs) {
-        free(entry->last_runs);
-        entry->last_runs = NULL;
-    }
 }
 
 static void text_batch_cache_evict_index(int idx) {
@@ -220,7 +211,7 @@ static TextBatchCacheEntry* build_or_get_batch_cache_entry(
     uint64_t hash = text_batch_hash(texts, count);
 
     TextBatchCacheEntry* cached = text_batch_cache_lookup(font_key, atlas_version, hash, count);
-    if (cached && cached->static_glyph_buffer && cached->run_buffer) {
+    if (cached && cached->static_glyph_buffer) {
         return cached;
     }
 
@@ -244,25 +235,10 @@ static TextBatchCacheEntry* build_or_get_batch_cache_entry(
     }
     memcpy(static_buffer.contents, instances, static_bytes);
 
-    size_t run_bytes = (size_t)count * sizeof(TextRunDynamic);
-    id<MTLBuffer> run_buffer =
-        [renderer->device newBufferWithLength:run_bytes options:MTLResourceStorageModeShared];
-    if (!run_buffer) {
-        if (out_result) *out_result = AFFERENT_ERROR_TEXT_FAILED;
-        return NULL;
-    }
-
-    TextRunDynamic* last_runs = calloc((size_t)count, sizeof(TextRunDynamic));
-    if (!last_runs) {
-        if (out_result) *out_result = AFFERENT_ERROR_TEXT_FAILED;
-        return NULL;
-    }
-
-    size_t total_bytes = static_bytes + run_bytes;
+    size_t total_bytes = static_bytes;
     text_batch_cache_make_room(total_bytes);
     int slot = text_batch_cache_find_slot();
     if (slot < 0) {
-        free(last_runs);
         if (out_result) *out_result = AFFERENT_ERROR_TEXT_FAILED;
         return NULL;
     }
@@ -276,12 +252,9 @@ static TextBatchCacheEntry* build_or_get_batch_cache_entry(
     entry->texts_hash = hash;
     entry->glyph_count = instance_count;
     entry->static_bytes = static_bytes;
-    entry->run_bytes = run_bytes;
     entry->total_bytes = total_bytes;
     entry->last_used = g_text_batch_cache_tick++;
     entry->static_glyph_buffer = static_buffer;
-    entry->run_buffer = run_buffer;
-    entry->last_runs = last_runs;
 
     g_text_batch_cache_bytes += total_bytes;
     return entry;
@@ -317,7 +290,7 @@ AfferentResult afferent_text_render_batch(
         if (cacheResult != AFFERENT_OK) {
             return cacheResult;
         }
-        if (!entry || !entry->static_glyph_buffer || entry->glyph_count == 0 || !entry->run_buffer) {
+        if (!entry || !entry->static_glyph_buffer || entry->glyph_count == 0) {
             return AFFERENT_OK;
         }
 
@@ -350,16 +323,24 @@ AfferentResult afferent_text_render_batch(
             run->color[3] = a;
         }
 
-        // Dirty-run dynamic update: only write changed run records.
-        TextRunDynamic* gpuRuns = (TextRunDynamic*)entry->run_buffer.contents;
-        for (uint32_t i = 0; i < count; i++) {
-            TextRunDynamic* src = &g_text_run_dynamic_scratch[i];
-            TextRunDynamic* prev = &entry->last_runs[i];
-            if (memcmp(prev, src, sizeof(TextRunDynamic)) != 0) {
-                gpuRuns[i] = *src;
-                *prev = *src;
-            }
+        // IMPORTANT: dynamic run data must be per draw-call.
+        // Reusing one mutable run buffer from the cache lets later writes in the same frame
+        // overwrite positions for earlier draws before GPU execution.
+        size_t run_bytes = (size_t)count * sizeof(TextRunDynamic);
+        id<MTLBuffer> run_buffer = pool_acquire_buffer(
+            renderer->device,
+            g_buffer_pool.text_vertex_pool,
+            &g_buffer_pool.text_vertex_pool_count,
+            run_bytes
+        );
+        if (!run_buffer) {
+            run_buffer = [renderer->device newBufferWithLength:run_bytes
+                                                       options:MTLResourceStorageModeShared];
         }
+        if (!run_buffer) {
+            return AFFERENT_ERROR_TEXT_FAILED;
+        }
+        memcpy(run_buffer.contents, g_text_run_dynamic_scratch, run_bytes);
 
         TextInstancedUniforms uniforms;
         uniforms.viewport[0] = canvas_width;
@@ -372,7 +353,7 @@ AfferentResult afferent_text_render_batch(
         [renderer->currentEncoder setFragmentSamplerState:renderer->textSampler atIndex:0];
 
         [renderer->currentEncoder setVertexBuffer:entry->static_glyph_buffer offset:0 atIndex:0];
-        [renderer->currentEncoder setVertexBuffer:entry->run_buffer offset:0 atIndex:1];
+        [renderer->currentEncoder setVertexBuffer:run_buffer offset:0 atIndex:1];
         [renderer->currentEncoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:2];
 
         [renderer->currentEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
