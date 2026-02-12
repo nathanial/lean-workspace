@@ -358,7 +358,6 @@ test "listBox selection after scroll uses scrolled hit target" := do
     inputs.fireScroll {
       scroll := { x := 20, y := 20, deltaX := 0, deltaY := -3.2, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := initialMeasured.widget
       layouts := initialLayouts
       componentMap := initialComponentMap
     }
@@ -371,7 +370,7 @@ test "listBox selection after scroll uses scrolled hit target" := do
     let scrolledOffsetY := match findScrollState scrolledMeasured.widget with
       | some scrollState => scrollState.offsetY
       | none => panic! "Expected scrolled listBox to expose scroll state"
-    ensure (scrolledOffsetY > 0)
+    ensure (scrolledOffsetY > 0.0)
       s!"Expected listBox offset after wheel scroll to be positive, got {scrolledOffsetY}"
     let (scrolledScrollWidgetId, _) := match findScrollWidget scrolledMeasured.widget with
       | some found => found
@@ -385,7 +384,6 @@ test "listBox selection after scroll uses scrolled hit target" := do
     inputs.fireClick {
       click := { button := 0, x := clickX, y := clickY, modifiers := (0 : UInt16) }
       hitPath := clickPath
-      widget := scrolledMeasured.widget
       layouts := scrolledLayouts
       componentMap := scrolledHitIndex.componentMap
     }

@@ -214,10 +214,7 @@ private def layoutForName (data : ClickData) (name : ComponentId)
     : Option Trellis.ComputedLayout :=
   match data.componentMap.get? name with
   | some wid => data.layouts.get wid
-  | none =>
-      match findWidgetIdByName data.widget name with
-      | some wid => data.layouts.get wid
-      | none => none
+  | none => none
 
 private def clickLocalPoint (data : ClickData) (name : ComponentId) : Option Arbor.Point := do
   let layout ← layoutForName data name

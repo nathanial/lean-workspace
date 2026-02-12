@@ -103,9 +103,9 @@ def alphaFromPosition (rect : Trellis.LayoutRect) (y : Float) : Float :=
   clamp01 (1.0 - (y - rect.y) / rect.height)
 
 /-- Check if a point is within a widget's bounds. -/
-def isInWidget (widget : Widget) (layouts : Trellis.LayoutResult)
+def isInWidget (componentMap : Std.HashMap ComponentId WidgetId) (layouts : Trellis.LayoutResult)
     (widgetName : ComponentId) (x y : Float) : Bool :=
-  match findWidgetIdByName widget widgetName with
+  match componentMap.get? widgetName with
   | some wid =>
     match layouts.get wid with
     | some layout =>
@@ -116,9 +116,9 @@ def isInWidget (widget : Widget) (layouts : Trellis.LayoutResult)
   | none => false
 
 /-- Get rect for a named widget. -/
-def getWidgetRect (widget : Widget) (layouts : Trellis.LayoutResult)
+def getWidgetRect (componentMap : Std.HashMap ComponentId WidgetId) (layouts : Trellis.LayoutResult)
     (widgetName : ComponentId) : Option Trellis.LayoutRect :=
-  match findWidgetIdByName widget widgetName with
+  match componentMap.get? widgetName with
   | some wid =>
     match layouts.get wid with
     | some layout => some layout.contentRect
@@ -374,26 +374,26 @@ def colorPicker (initialColor : Color := Color.red) (config : ColorPickerConfig 
       | .click clickData =>
         let x := clickData.click.x
         let y := clickData.click.y
-        let widget := clickData.widget
         let layouts := clickData.layouts
+        let componentMap := clickData.componentMap
 
         -- Check which component was clicked
-        if ColorPicker.isInWidget widget layouts svName x y then
-          match ColorPicker.getWidgetRect widget layouts svName with
+        if ColorPicker.isInWidget componentMap layouts svName x y then
+          match ColorPicker.getWidgetRect componentMap layouts svName with
           | some rect =>
             let (s, v) := ColorPicker.svFromPosition rect x y
             let newHSV := { state.hsv with s, v }
             pure { state with hsv := newHSV, dragTarget := .svSquare }
           | none => pure state
-        else if ColorPicker.isInWidget widget layouts hueName x y then
-          match ColorPicker.getWidgetRect widget layouts hueName with
+        else if ColorPicker.isInWidget componentMap layouts hueName x y then
+          match ColorPicker.getWidgetRect componentMap layouts hueName with
           | some rect =>
             let h := ColorPicker.hueFromPosition rect y
             let newHSV := { state.hsv with h }
             pure { state with hsv := newHSV, dragTarget := .hueBar }
           | none => pure state
-        else if config.alphaBarWidth > 0 && ColorPicker.isInWidget widget layouts alphaName x y then
-          match ColorPicker.getWidgetRect widget layouts alphaName with
+        else if config.alphaBarWidth > 0 && ColorPicker.isInWidget componentMap layouts alphaName x y then
+          match ColorPicker.getWidgetRect componentMap layouts alphaName with
           | some rect =>
             let a := ColorPicker.alphaFromPosition rect y
             pure { state with alpha := a, dragTarget := .alphaBar }
@@ -407,26 +407,26 @@ def colorPicker (initialColor : Color := Color.red) (config : ColorPickerConfig 
         else
           let x := hoverData.x
           let y := hoverData.y
-          let widget := hoverData.widget
           let layouts := hoverData.layouts
+          let componentMap := hoverData.componentMap
 
           match state.dragTarget with
           | .svSquare =>
-            match ColorPicker.getWidgetRect widget layouts svName with
+            match ColorPicker.getWidgetRect componentMap layouts svName with
             | some rect =>
               let (s, v) := ColorPicker.svFromPosition rect x y
               let newHSV := { state.hsv with s, v }
               pure { state with hsv := newHSV }
             | none => pure state
           | .hueBar =>
-            match ColorPicker.getWidgetRect widget layouts hueName with
+            match ColorPicker.getWidgetRect componentMap layouts hueName with
             | some rect =>
               let h := ColorPicker.hueFromPosition rect y
               let newHSV := { state.hsv with h }
               pure { state with hsv := newHSV }
             | none => pure state
           | .alphaBar =>
-            match ColorPicker.getWidgetRect widget layouts alphaName with
+            match ColorPicker.getWidgetRect componentMap layouts alphaName with
             | some rect =>
               let a := ColorPicker.alphaFromPosition rect y
               pure { state with alpha := a }

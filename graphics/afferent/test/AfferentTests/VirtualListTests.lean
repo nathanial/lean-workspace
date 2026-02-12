@@ -54,6 +54,7 @@ test "virtualList preserves scroll offset across dynWidget rebuild when keyed" :
     let initialWidget := Afferent.Arbor.build initialBuilder
     let initialMeasured := Afferent.Arbor.measureWidget (M := Id) initialWidget 320 220
     let initialLayouts := Trellis.layout initialMeasured.node 320 220
+    let initialHitIndex := Afferent.Arbor.buildHitTestIndex initialMeasured.widget initialLayouts
 
     let listWidgetId :=
       match findFirstScrollId initialMeasured.widget with
@@ -63,8 +64,8 @@ test "virtualList preserves scroll offset across dynWidget rebuild when keyed" :
     inputs.fireScroll {
       scroll := { x := 40, y := 40, deltaX := 0, deltaY := -4.0, modifiers := {} }
       hitPath := #[listWidgetId]
-      widget := initialMeasured.widget
       layouts := initialLayouts
+      componentMap := initialHitIndex.componentMap
     }
 
     let beforeRebuild ← match ← SpiderM.liftIO scrollDynRef.get with

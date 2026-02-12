@@ -601,25 +601,22 @@ test "mouseUp ends drag" := do
 /-! ## FRP Network Tests - Full Event Flow -/
 
 /-- Helper to create test ClickData for scrollbar clicks. -/
-def mkClickData (x y : Float) (layouts : LayoutResult) (widget : Widget) : ClickData :=
+def mkClickData (x y : Float) (layouts : LayoutResult) : ClickData :=
   { click := { x, y, button := 0, modifiers := 0 }
   , hitPath := #[]
-  , widget
   , layouts }
 
 /-- Helper to create test HoverData. -/
-def mkHoverData (x y : Float) (layouts : LayoutResult) (widget : Widget) : HoverData :=
+def mkHoverData (x y : Float) (layouts : LayoutResult) : HoverData :=
   { x, y
   , hitPath := #[]
-  , widget
   , layouts }
 
 /-- Helper to create test MouseButtonData. -/
-def mkMouseButtonData (x y : Float) (layouts : LayoutResult) (widget : Widget) : MouseButtonData :=
+def mkMouseButtonData (x y : Float) (layouts : LayoutResult) : MouseButtonData :=
   { x, y
   , button := 0
   , hitPath := #[]
-  , widget
   , layouts }
 
 /-- Create a minimal widget for testing. -/
@@ -683,7 +680,7 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
     -- scrollContainer registers its own scroll component first, so its ComponentId is 0.
     let scrollComponentId : ComponentId := 0
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId scrollComponentId {}
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId scrollComponentId {}
         {} 300 600 {} testWidget
 
     -- Fire a scroll event:
@@ -694,7 +691,6 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
     let scrollData : ScrollData := {
       scroll := { x := 150, y := 100, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 300 200
       componentMap := ({}
         : Std.HashMap ComponentId WidgetId).insert scrollComponentId scrollWidgetId
@@ -934,7 +930,7 @@ test "FRP: click events are received by scrollContainer" := do
       clickReceivedRef.set true
 
     -- Fire a click event
-    let clickData := mkClickData 295 100 (mkScrollLayout 0 0 0 300 200) testWidget
+    let clickData := mkClickData 295 100 (mkScrollLayout 0 0 0 300 200)
     inputs.fireClick clickData
 
     SpiderM.liftIO clickReceivedRef.get
@@ -954,7 +950,7 @@ test "FRP: hover events are received by scrollContainer" := do
       hoverReceivedRef.set true
 
     -- Fire a hover event
-    let hoverData := mkHoverData 150 100 (mkScrollLayout 0 0 0 300 200) testWidget
+    let hoverData := mkHoverData 150 100 (mkScrollLayout 0 0 0 300 200)
     inputs.fireHover hoverData
 
     SpiderM.liftIO hoverReceivedRef.get
@@ -975,7 +971,6 @@ test "FRP: useHover updates via hover fan registry" := do
       x := 50
       y := 50
       hitPath := #[wid]
-      widget := testWidget
       layouts := mkScrollLayout wid 0 0 100 100
       componentMap := componentMap
     }
@@ -1001,7 +996,7 @@ test "FRP: mouseUp events are received" := do
       mouseUpReceivedRef.set true
 
     -- Fire a mouseUp event
-    let mouseUpData := mkMouseButtonData 295 100 (mkScrollLayout 0 0 0 300 200) testWidget
+    let mouseUpData := mkMouseButtonData 295 100 (mkScrollLayout 0 0 0 300 200)
     inputs.fireMouseUp mouseUpData
 
     SpiderM.liftIO mouseUpReceivedRef.get
@@ -1026,7 +1021,6 @@ test "FRP: foldDynM accumulates scroll events correctly" := do
     let scrollData1 : ScrollData := {
       scroll := { x := 150, y := 100, deltaX := 0, deltaY := 1.0, modifiers := {} }
       hitPath := #[]
-      widget := testWidget
       layouts := mkScrollLayout 0 0 0 300 200
     }
     SpiderM.liftIO (fireScroll scrollData1)
@@ -1034,7 +1028,6 @@ test "FRP: foldDynM accumulates scroll events correctly" := do
     let scrollData2 : ScrollData := {
       scroll := { x := 150, y := 100, deltaX := 0, deltaY := 2.0, modifiers := {} }
       hitPath := #[]
-      widget := testWidget
       layouts := mkScrollLayout 0 0 0 300 200
     }
     SpiderM.liftIO (fireScroll scrollData2)

@@ -59,9 +59,9 @@ def clampRatio (ratio : Float) (available : Float) (config : SplitPaneConfig) : 
     max minRatio (min maxRatio clamped)
 
 /-- Get the content rect for a named widget. -/
-def getWidgetRect (widget : Widget) (layouts : Trellis.LayoutResult)
+def getWidgetRect (componentMap : Std.HashMap ComponentId WidgetId) (layouts : Trellis.LayoutResult)
     (name : ComponentId) : Option Trellis.LayoutRect :=
-  match findWidgetIdByName widget name with
+  match componentMap.get? name with
   | some wid =>
     match layouts.get wid with
     | some layout => some layout.contentRect
@@ -231,7 +231,7 @@ def splitPane (config : SplitPaneConfig) (first : WidgetM α) (second : WidgetM 
           let pos := match config.orientation with
             | .horizontal => clickData.click.x
             | .vertical => clickData.click.y
-          match SplitPane.getWidgetRect clickData.widget clickData.layouts containerName with
+          match SplitPane.getWidgetRect clickData.componentMap clickData.layouts containerName with
           | some rect =>
             let newRatio := SplitPane.ratioFromPosition config.orientation config rect pos
             pure { ratio := newRatio, isDragging := true }
@@ -245,7 +245,7 @@ def splitPane (config : SplitPaneConfig) (first : WidgetM α) (second : WidgetM 
           let pos := match config.orientation with
             | .horizontal => hoverData.x
             | .vertical => hoverData.y
-          match SplitPane.getWidgetRect hoverData.widget hoverData.layouts containerName with
+          match SplitPane.getWidgetRect hoverData.componentMap hoverData.layouts containerName with
           | some rect =>
             let newRatio := SplitPane.ratioFromPosition config.orientation config rect pos
             pure { state with ratio := newRatio }

@@ -368,34 +368,32 @@ where
     w.children.foldl (fun m child => go child m) acc
 
 /-- Check if a component widget is in the hit path. -/
-def hitPathHasNamedWidget (widget : Afferent.Arbor.Widget)
-    (hitPath : Array Afferent.Arbor.WidgetId) (componentId : Afferent.Arbor.ComponentId)
+def hitPathHasNamedWidget (hitPath : Array Afferent.Arbor.WidgetId)
+    (componentId : Afferent.Arbor.ComponentId)
     (componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId) : Bool :=
   match componentMap[componentId]? with
   | some wid => hitPath.any (· == wid)
-  | none =>
-      match findWidgetIdByName widget componentId with
-      | some wid => hitPath.any (· == wid)
-      | none => false
+  | none => false
 
 /-- Check if a component is in the hit path (for ClickData). -/
 def hitWidget (data : ClickData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
+  hitPathHasNamedWidget data.hitPath componentId data.componentMap
 
 /-- Check if a component is in the hit path (for HoverData). -/
 def hitWidgetHover (data : HoverData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
+  hitPathHasNamedWidget data.hitPath componentId data.componentMap
 
 /-- Check if a component is in the hit path (for ScrollData). -/
 def hitWidgetScroll (data : ScrollData) (componentId : Afferent.Arbor.ComponentId) : Bool :=
-  hitPathHasNamedWidget data.widget data.hitPath componentId data.componentMap
+  hitPathHasNamedWidget data.hitPath componentId data.componentMap
 
 /-- Calculate slider value from click position given the slider's layout.
     `trackWidth` is the width of the slider track in pixels. -/
 def calculateSliderValue (clickX : Float) (layouts : Trellis.LayoutResult)
-    (widget : Afferent.Arbor.Widget) (sliderComponentId : Afferent.Arbor.ComponentId)
+    (componentMap : Std.HashMap Afferent.Arbor.ComponentId Afferent.Arbor.WidgetId)
+    (sliderComponentId : Afferent.Arbor.ComponentId)
     (trackWidth : Float) : Option Float :=
-  match findWidgetIdByName widget sliderComponentId with
+  match componentMap.get? sliderComponentId with
   | some wid =>
       match layouts.get wid with
       | some layout =>

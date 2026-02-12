@@ -190,7 +190,7 @@ def menuBar (menus : Array MenuBarMenu)
     for i in [:triggerNames.size] do
       let name := triggerNames.getD i 0
       if hitWidgetHover data name then
-        match findWidgetIdByName data.widget name with
+        match data.componentMap.get? name with
         | some widgetId =>
           match data.layouts.get widgetId with
           | some layout =>

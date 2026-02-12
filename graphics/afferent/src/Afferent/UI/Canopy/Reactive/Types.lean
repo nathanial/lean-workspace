@@ -15,8 +15,6 @@ structure ClickData where
   click : Afferent.FFI.ClickEvent
   /-- Path from root to clicked widget (for bubbling/filtering). -/
   hitPath : Array Afferent.Arbor.WidgetId
-  /-- The root widget tree (for name-based lookups). -/
-  widget : Afferent.Arbor.Widget
   /-- Computed layouts for all widgets (for position-based calculations). -/
   layouts : Trellis.LayoutResult
   /-- Optional component->widget map for fast lookups (defaults to empty). -/
@@ -30,8 +28,6 @@ structure HoverData where
   y : Float
   /-- Path from root to hovered widget. -/
   hitPath : Array Afferent.Arbor.WidgetId
-  /-- The root widget tree. -/
-  widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
   /-- Optional component->widget map for fast lookups (defaults to empty). -/
@@ -56,8 +52,6 @@ structure ScrollData where
   scroll : Afferent.Arbor.ScrollEvent
   /-- Path from root to widget under mouse during scroll. -/
   hitPath : Array Afferent.Arbor.WidgetId
-  /-- The root widget tree. -/
-  widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
   /-- Optional component->widget map for fast lookups (defaults to empty). -/
@@ -73,8 +67,6 @@ structure MouseButtonData where
   button : UInt8
   /-- Path from root to widget under mouse. -/
   hitPath : Array Afferent.Arbor.WidgetId
-  /-- The root widget tree. -/
-  widget : Afferent.Arbor.Widget
   /-- Computed layouts. -/
   layouts : Trellis.LayoutResult
   /-- Optional component->widget map for fast lookups (defaults to empty). -/

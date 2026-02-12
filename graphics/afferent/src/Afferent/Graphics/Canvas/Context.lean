@@ -10,7 +10,6 @@ import Afferent.Graphics.Canvas.State
 import Afferent.Graphics.Render.Dynamic
 import Afferent.Graphics.Text.Font
 import Afferent.Runtime.FFI
-import Afferent.Draw.Runtime
 import Afferent.Runtime.Shader
 import Std.Data.HashMap
 
@@ -525,8 +524,6 @@ structure Canvas where
   meshInstanceBuffer : Option FFI.FloatBuffer := none
   /-- Capacity of mesh instance FloatBuffer (in floats). -/
   meshInstanceBufferCapacity : Nat := 0
-  /-- Draw-layer runtime state (render-command cache, etc.). -/
-  drawRuntime : Afferent.Draw.Runtime
   /-- Cache of compiled fragment pipelines by hash.
       Fragment definitions are looked up from the global registry. -/
   fragmentCache : IO.Ref Shader.FragmentCache
@@ -536,16 +533,14 @@ namespace Canvas
 /-- Create a new canvas with a window. -/
 def create (width height : UInt32) (title : String) : IO Canvas := do
   let ctx ← DrawContext.create width height title
-  let drawRuntime ← Afferent.Draw.Runtime.create
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, drawRuntime, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, fragmentCache }
 
 /-- Create a new canvas with a window and explicit screen scale factor. -/
 def createWithScale (width height : UInt32) (title : String) (screenScale : Float) : IO Canvas := do
   let ctx ← DrawContext.create width height title
-  let drawRuntime ← Afferent.Draw.Runtime.create
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, screenScale, drawRuntime, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, screenScale, fragmentCache }
 
 /-- Get the current state. -/
 def state (c : Canvas) : CanvasState :=
@@ -594,13 +589,15 @@ def resetStateAndScissor (c : Canvas) : IO Canvas := do
 
 /-! ## Draw Cache Diagnostics -/
 
-/-- Get the number of cached draw-command entries. -/
-def getRenderCacheSize (c : Canvas) : IO Nat :=
-  Afferent.Draw.Runtime.getRenderCacheSize c.drawRuntime
+/-- Get the number of cached draw-command entries.
+    Render-command caching is disabled, so this is always zero. -/
+def getRenderCacheSize (_c : Canvas) : IO Nat :=
+  pure 0
 
-/-- Clear draw-command cache entries. -/
-def clearRenderCache (c : Canvas) : IO Unit :=
-  Afferent.Draw.Runtime.clearRenderCache c.drawRuntime
+/-- Clear draw-command cache entries.
+    Render-command caching is disabled, so this is a no-op. -/
+def clearRenderCache (_c : Canvas) : IO Unit :=
+  pure ()
 
 /-! ## Style operations -/
 

@@ -152,12 +152,12 @@ def slider (label : Option String) (initialValue : Float := 0.5)
         if !hitWidget data name || data.click.button != 0 then
           pure state
         else
-          match calculateSliderValue data.click.x data.layouts data.widget name trackWidth with
+          match calculateSliderValue data.click.x data.layouts data.componentMap name trackWidth with
           | some v => pure { state with value := v, pressed := true }
           | none => pure state
       | .hover data =>
         if state.pressed then
-          match calculateSliderValue data.x data.layouts data.widget name trackWidth with
+          match calculateSliderValue data.x data.layouts data.componentMap name trackWidth with
           | some v => pure { state with value := v }
           | none => pure state
         else

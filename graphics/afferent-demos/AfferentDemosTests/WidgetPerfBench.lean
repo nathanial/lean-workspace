@@ -212,11 +212,6 @@ private def initBenchApp (assets : BenchAssets) (selected : WidgetType) : IO Ben
   spiderEnv.postBuildTrigger ()
   pure { render, inputs, registry := componentRegistry, spiderEnv, shutdown := spiderEnv.currentScope.dispose }
 
-private structure BenchFrameCache where
-  widget : Widget
-  layouts : Trellis.LayoutResult
-  hitIndex : HitTestIndex
-
 private def collectCentersByComponents (index : HitTestIndex)
     (componentIds : Array ComponentId) : Array (Float × Float) := Id.run do
   let mut widgetIds : Std.HashSet WidgetId := {}
@@ -225,7 +220,7 @@ private def collectCentersByComponents (index : HitTestIndex)
     | some widgetId => widgetIds := widgetIds.insert widgetId
     | none => pure ()
   index.items.foldl (init := #[]) fun acc item =>
-    if widgetIds.contains item.widget.id then
+    if widgetIds.contains item.layout.nodeId then
       let center := Linalg.AABB2D.center item.screenBounds
       acc.push (center.x, center.y)
     else
@@ -234,9 +229,7 @@ private def collectCentersByComponents (index : HitTestIndex)
 private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     (registry : FontRegistry) (componentRegistry : ComponentRegistry)
     (config : BenchConfig) : IO BenchResult := do
-  let renderCache ← IO.mkRef RenderCache.empty
   let totalFrames := config.warmupFrames + config.sampleFrames
-  let mut cache : Option BenchFrameCache := none
   let mut hoverPoints : Array (Float × Float) := #[]
   let mut targetCount : Nat := 0
   let mut widgetCount : Nat := 0
@@ -246,31 +239,6 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
   for frameIdx in [0:totalFrames] do
     let mut hitTestMs := 0.0
     let mut hoverMs := 0.0
-    if config.withHover then
-      match cache with
-      | some cached =>
-          let fallback := (config.screenW / 2.0, config.screenH / 2.0)
-          let point :=
-            if hoverPoints.isEmpty then fallback
-            else hoverPoints.getD (frameIdx % hoverPoints.size) fallback
-          let (x, y) := point
-          let tHit0 ← IO.monoNanosNow
-          let hitPath := Afferent.Arbor.hitTestPathIndexed cached.hitIndex x y
-          let tHit1 ← IO.monoNanosNow
-          let hoverData : HoverData := {
-            x := x
-            y := y
-            hitPath := hitPath
-            widget := cached.widget
-            layouts := cached.layouts
-            componentMap := cached.hitIndex.componentMap
-          }
-          let tHover0 ← IO.monoNanosNow
-          inputs.fireHover hoverData
-          let tHover1 ← IO.monoNanosNow
-          hitTestMs := deltaMs tHit0 tHit1
-          hoverMs := deltaMs tHover0 tHover1
-      | none => pure ()
 
     let tUpdate0 ← IO.monoNanosNow
     inputs.fireAnimationFrame config.dt
@@ -296,17 +264,37 @@ private def runBench (render : ComponentRender) (inputs : ReactiveInputs)
     let hitIndex := Afferent.Arbor.buildHitTestIndex measureResult.widget layouts
     let tHitIndex1 ← IO.monoNanosNow
 
-    let tCollect0 ← IO.monoNanosNow
-    let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
-      measureResult.widget layouts
-    let tCollect1 ← IO.monoNanosNow
-
-    cache := some { widget := measureResult.widget, layouts := layouts, hitIndex := hitIndex }
-
     if hoverPoints.isEmpty then
       let componentIds ← componentRegistry.interactiveIds.get
       hoverPoints := collectCentersByComponents hitIndex componentIds
       targetCount := hoverPoints.size
+
+    if config.withHover then
+      let fallback := (config.screenW / 2.0, config.screenH / 2.0)
+      let point :=
+        if hoverPoints.isEmpty then fallback
+        else hoverPoints.getD (frameIdx % hoverPoints.size) fallback
+      let (x, y) := point
+      let tHit0 ← IO.monoNanosNow
+      let hitPath := Afferent.Arbor.hitTestPathIndexed hitIndex x y
+      let tHit1 ← IO.monoNanosNow
+      let hoverData : HoverData := {
+        x := x
+        y := y
+        hitPath := hitPath
+        layouts := layouts
+        componentMap := hitIndex.componentMap
+      }
+      let tHover0 ← IO.monoNanosNow
+      inputs.fireHover hoverData
+      let tHover1 ← IO.monoNanosNow
+      hitTestMs := deltaMs tHit0 tHit1
+      hoverMs := deltaMs tHover0 tHover1
+
+    let tCollect0 ← IO.monoNanosNow
+    let _ := Afferent.Arbor.collectCommands measureResult.widget layouts
+    let tCollect1 ← IO.monoNanosNow
+
     if widgetCount == 0 then
       widgetCount := measureResult.widget.widgetCount
     if layoutNodeCount == 0 then

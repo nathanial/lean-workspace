@@ -165,7 +165,7 @@ def rangeSlider (initialLow : Float := 0.25) (initialHigh : Float := 0.75)
         if !hitWidget clickData name || clickData.click.button != 0 then
           pure state
         else
-          match calculateSliderValue clickData.click.x clickData.layouts clickData.widget name dims.trackWidth with
+          match calculateSliderValue clickData.click.x clickData.layouts clickData.componentMap name dims.trackWidth with
           | some value =>
             let (l, h) := RangeSlider.clampRange state.low state.high
             let distLow := (value - l).abs
@@ -178,7 +178,7 @@ def rangeSlider (initialLow : Float := 0.25) (initialHigh : Float := 0.75)
         if state.dragTarget == .none then
           pure state
         else
-          match calculateSliderValue hoverData.x hoverData.layouts hoverData.widget name dims.trackWidth with
+          match calculateSliderValue hoverData.x hoverData.layouts hoverData.componentMap name dims.trackWidth with
           | some value =>
             let (newLow, newHigh) := RangeSlider.applyDrag state.dragTarget value state.low state.high
             pure { state with low := newLow, high := newHigh }

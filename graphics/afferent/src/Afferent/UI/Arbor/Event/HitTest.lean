@@ -58,8 +58,8 @@ def orderChildrenForHit (children : Array Widget) : Array Widget := Id.run do
 
 /-- Spatial hit test index item. -/
 structure HitTestIndexItem where
-  widget : Widget
   layout : Trellis.ComputedLayout
+  hitTest : Option (Trellis.ComputedLayout → Point → Bool)
   path : Array WidgetId
   transform : HitTransform
   screenBounds : Linalg.AABB2D
@@ -99,13 +99,11 @@ private def childTransformFor (w : Widget) (_layout : Trellis.ComputedLayout)
     transform.addScroll scrollState.offsetX scrollState.offsetY
   | _ => transform
 
-private def isPointInsideWidget (w : Widget) (layout : Trellis.ComputedLayout) (adjX adjY : Float) : Bool :=
-  match w with
-  | .custom _ _ _ spec =>
-      match spec.hitTest with
-      | some hit => hit layout ⟨adjX, adjY⟩
-      | none => layout.borderRect.contains adjX adjY
-  | _ => layout.borderRect.contains adjX adjY
+private def isPointInsideWidget (hit : Option (Trellis.ComputedLayout → Point → Bool))
+    (layout : Trellis.ComputedLayout) (adjX adjY : Float) : Bool :=
+  match hit with
+  | some f => f layout ⟨adjX, adjY⟩
+  | none => layout.borderRect.contains adjX adjY
 
 private structure HitTestBuildState where
   items : Array HitTestIndexItem := #[]
@@ -140,8 +138,10 @@ partial def buildHitTestIndex (root : Widget) (layouts : Trellis.LayoutResult) :
           | none => screenBounds
         let state ← get
         let item := {
-          widget := w
           layout := layout
+          hitTest := match w with
+            | .custom _ _ _ spec _ => spec.hitTest
+            | _ => none
           path := path.push w.id
           transform := transform
           screenBounds := bounds
@@ -189,7 +189,7 @@ def hitTestPathIndexed (index : HitTestIndex) (x y : Float) : Array WidgetId := 
     | some item =>
         if item.screenBounds.containsPoint p then
           let (adjX, adjY) := item.transform.transformPoint x y
-          if isPointInsideWidget item.widget item.layout adjX adjY then
+          if isPointInsideWidget item.hitTest item.layout adjX adjY then
             match best with
             | none => best := some item
             | some current =>

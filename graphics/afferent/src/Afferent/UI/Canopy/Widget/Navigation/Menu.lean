@@ -391,7 +391,7 @@ def menu (items : Array MenuItem)
   -- Update trigger dimensions when hovering
   let _ ← performEvent_ (← Event.mapM (fun data => do
     if hitWidgetHover data triggerName then
-      match findWidgetIdByName data.widget triggerName with
+      match data.componentMap.get? triggerName with
       | some widgetId =>
         match data.layouts.get widgetId with
         | some layout =>

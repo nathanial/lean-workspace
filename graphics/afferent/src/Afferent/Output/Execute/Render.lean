@@ -80,17 +80,14 @@ private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
 
 private def collectCommands (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand) := do
-  let canvas ← CanvasM.getCanvas
-  Afferent.Arbor.collectCommandsCached canvas.drawRuntime.renderCache measuredWidget layouts
+  pure (Afferent.Arbor.collectCommands measuredWidget layouts)
 
 private def collectCommandsWithStats (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand × Nat × Nat × Float) := do
-  let canvas ← CanvasM.getCanvas
   let t0 ← IO.monoNanosNow
-  let (commands, hits, misses) ←
-    Afferent.Arbor.collectCommandsCachedWithStats canvas.drawRuntime.renderCache measuredWidget layouts
+  let commands := Afferent.Arbor.collectCommands measuredWidget layouts
   let t1 ← IO.monoNanosNow
-  pure (commands, hits, misses, (t1 - t0).toFloat / 1000000.0)
+  pure (commands, 0, 0, (t1 - t0).toFloat / 1000000.0)
 
 private def executeWithOffset (reg : FontRegistry)
     (commands : Array Afferent.Arbor.RenderCommand)
@@ -169,7 +166,7 @@ private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Wi
       renderCustomWidgets prepared.measuredWidget prepared.layouts
       CanvasM.restore
 
-/-- Render an Arbor widget tree using CanvasM with automatic render command caching.
+/-- Render an Arbor widget tree using CanvasM.
     This is the main entry point for rendering Arbor widgets with Afferent's Metal backend. -/
 def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM Unit := do

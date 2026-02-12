@@ -135,78 +135,90 @@ def unifiedDemo : IO Unit := do
             let keyCode ← c.getKeyCode
             let click ← FFI.Window.getClick c.ctx.window
             let (mouseX, mouseY) ← FFI.Window.getMousePos c.ctx.window
+            let (screenW, screenH) ← c.ctx.getCurrentSize
+            if screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF then
+              rs := { rs with assets := {
+                rs.assets with
+                physWidthF := screenW
+                physHeightF := screenH
+                physWidth := screenW.toUInt32
+                physHeight := screenH.toUInt32
+              } }
 
-            match rs.frameCache with
-            | some cache =>
-                let componentMap := cache.hitIndex.componentMap
-                let mut hoverPathOpt : Option (Array Afferent.Arbor.WidgetId) := none
+            let mut hoverPathOpt : Option (Array Afferent.Arbor.WidgetId) := none
+            let mouseMoved := mouseX != rs.lastMouseX || mouseY != rs.lastMouseY
+            match rs.inputSnapshot with
+            | some snapshot =>
+                let componentMap := snapshot.hitIndex.componentMap
                 match click with
                 | some ce =>
-                    let hitPath := Afferent.Arbor.hitTestPathIndexed cache.hitIndex ce.x ce.y
+                    let hitPath := Afferent.Arbor.hitTestPathIndexed snapshot.hitIndex ce.x ce.y
                     let clickData : Afferent.Canopy.Reactive.ClickData := {
                       click := ce
                       hitPath := hitPath
-                      widget := cache.measuredWidget
-                      layouts := cache.layouts
+                      layouts := snapshot.layouts
                       componentMap := componentMap
                     }
                     rs.inputs.fireClick clickData
                 | none => pure ()
 
-                let mouseMoved := mouseX != rs.lastMouseX || mouseY != rs.lastMouseY
                 if mouseMoved then
-                  let hoverPath := Afferent.Arbor.hitTestPathIndexed cache.hitIndex mouseX mouseY
+                  let hoverPath := Afferent.Arbor.hitTestPathIndexed snapshot.hitIndex mouseX mouseY
                   hoverPathOpt := some hoverPath
                   let hoverData : Afferent.Canopy.Reactive.HoverData := {
                     x := mouseX
                     y := mouseY
                     hitPath := hoverPath
-                    widget := cache.measuredWidget
-                    layouts := cache.layouts
+                    layouts := snapshot.layouts
                     componentMap := componentMap
                   }
                   rs.inputs.fireHover hoverData
                   rs := { rs with lastMouseX := mouseX, lastMouseY := mouseY }
+            | none =>
+                if mouseMoved then
+                  rs := { rs with lastMouseX := mouseX, lastMouseY := mouseY }
 
-                let hasKey ← FFI.Window.hasKeyPressed c.ctx.window
-                if hasKey then
-                  let modifiers ← FFI.Window.getModifiers c.ctx.window
-                  let keyEvent : Afferent.Arbor.KeyEvent := {
-                    key := Afferent.Arbor.Key.fromKeyCode keyCode
-                    modifiers := Afferent.Arbor.Modifiers.fromBitmask modifiers
-                    isPress := true
-                  }
-                  let keyData : Afferent.Canopy.Reactive.KeyData := {
-                    event := keyEvent
-                    focusedWidget := none
-                  }
-                  rs.inputs.fireKey keyData
-                  rs := { rs with keysDown := rs.keysDown.insert keyCode true }
-                  c.clearKey
+            let hasKey ← FFI.Window.hasKeyPressed c.ctx.window
+            if hasKey then
+              let modifiers ← FFI.Window.getModifiers c.ctx.window
+              let keyEvent : Afferent.Arbor.KeyEvent := {
+                key := Afferent.Arbor.Key.fromKeyCode keyCode
+                modifiers := Afferent.Arbor.Modifiers.fromBitmask modifiers
+                isPress := true
+              }
+              let keyData : Afferent.Canopy.Reactive.KeyData := {
+                event := keyEvent
+                focusedWidget := none
+              }
+              rs.inputs.fireKey keyData
+              rs := { rs with keysDown := rs.keysDown.insert keyCode true }
+              c.clearKey
 
-                let mut releasedKeys : Array UInt16 := #[]
-                for (code, _) in rs.keysDown.toList do
-                  let down ← FFI.Window.isKeyDown c.ctx.window code
-                  if !down then
-                    releasedKeys := releasedKeys.push code
+            let mut releasedKeys : Array UInt16 := #[]
+            for (code, _) in rs.keysDown.toList do
+              let down ← FFI.Window.isKeyDown c.ctx.window code
+              if !down then
+                releasedKeys := releasedKeys.push code
 
-                if !releasedKeys.isEmpty then
-                  let modifiers ← FFI.Window.getModifiers c.ctx.window
-                  for code in releasedKeys do
-                    let keyEvent : Afferent.Arbor.KeyEvent := {
-                      key := Afferent.Arbor.Key.fromKeyCode code
-                      modifiers := Afferent.Arbor.Modifiers.fromBitmask modifiers
-                      isPress := false
-                    }
-                    let keyData : Afferent.Canopy.Reactive.KeyData := {
-                      event := keyEvent
-                      focusedWidget := none
-                    }
-                    rs.inputs.fireKey keyData
-                    rs := { rs with keysDown := rs.keysDown.erase code }
+            if !releasedKeys.isEmpty then
+              let modifiers ← FFI.Window.getModifiers c.ctx.window
+              for code in releasedKeys do
+                let keyEvent : Afferent.Arbor.KeyEvent := {
+                  key := Afferent.Arbor.Key.fromKeyCode code
+                  modifiers := Afferent.Arbor.Modifiers.fromBitmask modifiers
+                  isPress := false
+                }
+                let keyData : Afferent.Canopy.Reactive.KeyData := {
+                  event := keyEvent
+                  focusedWidget := none
+                }
+                rs.inputs.fireKey keyData
+                rs := { rs with keysDown := rs.keysDown.erase code }
 
-                let (scrollX, scrollY) ← FFI.Window.getScrollDelta c.ctx.window
-                if scrollX != 0.0 || scrollY != 0.0 then
+            let (scrollX, scrollY) ← FFI.Window.getScrollDelta c.ctx.window
+            if scrollX != 0.0 || scrollY != 0.0 then
+              match rs.inputSnapshot with
+              | some snapshot =>
                   let modifiers ← FFI.Window.getModifiers c.ctx.window
                   let scrollEvent : Afferent.Arbor.ScrollEvent := {
                     x := mouseX
@@ -217,41 +229,39 @@ def unifiedDemo : IO Unit := do
                   }
                   let scrollPath := match hoverPathOpt with
                     | some path => path
-                    | none => Afferent.Arbor.hitTestPathIndexed cache.hitIndex mouseX mouseY
+                    | none => Afferent.Arbor.hitTestPathIndexed snapshot.hitIndex mouseX mouseY
                   let scrollData : Afferent.Canopy.Reactive.ScrollData := {
                     scroll := scrollEvent
                     hitPath := scrollPath
-                    widget := cache.measuredWidget
-                    layouts := cache.layouts
-                    componentMap := componentMap
+                    layouts := snapshot.layouts
+                    componentMap := snapshot.hitIndex.componentMap
                   }
                   rs.inputs.fireScroll scrollData
-                  FFI.Window.clearScroll c.ctx.window
+              | none => pure ()
+              FFI.Window.clearScroll c.ctx.window
 
-                let (mouseDx, mouseDy) ← FFI.Window.getMouseDelta c.ctx.window
-                rs.inputs.fireMouseDelta { dx := mouseDx, dy := mouseDy }
+            let (mouseDx, mouseDy) ← FFI.Window.getMouseDelta c.ctx.window
+            rs.inputs.fireMouseDelta { dx := mouseDx, dy := mouseDy }
 
-                let buttons ← FFI.Window.getMouseButtons c.ctx.window
-                let leftDown := (buttons &&& (1 : UInt8)) != (0 : UInt8)
-                if !leftDown && rs.prevLeftDown then
+            let buttons ← FFI.Window.getMouseButtons c.ctx.window
+            let leftDown := (buttons &&& (1 : UInt8)) != (0 : UInt8)
+            if !leftDown && rs.prevLeftDown then
+              match rs.inputSnapshot with
+              | some snapshot =>
                   let mouseUpPath := match hoverPathOpt with
                     | some path => path
-                    | none => Afferent.Arbor.hitTestPathIndexed cache.hitIndex mouseX mouseY
+                    | none => Afferent.Arbor.hitTestPathIndexed snapshot.hitIndex mouseX mouseY
                   let mouseUpData : Afferent.Canopy.Reactive.MouseButtonData := {
                     x := mouseX
                     y := mouseY
                     button := 0
                     hitPath := mouseUpPath
-                    widget := cache.measuredWidget
-                    layouts := cache.layouts
-                    componentMap := componentMap
+                    layouts := snapshot.layouts
+                    componentMap := snapshot.hitIndex.componentMap
                   }
                   rs.inputs.fireMouseUp mouseUpData
-                rs := { rs with prevLeftDown := leftDown }
-            | none =>
-                let buttons ← FFI.Window.getMouseButtons c.ctx.window
-                let leftDown := (buttons &&& (1 : UInt8)) != (0 : UInt8)
-                rs := { rs with prevLeftDown := leftDown }
+              | none => pure ()
+            rs := { rs with prevLeftDown := leftDown }
 
             if click.isSome then
               FFI.Window.clearClick c.ctx.window
@@ -264,16 +274,6 @@ def unifiedDemo : IO Unit := do
             rs := { rs with cachedWidget := widgetBuilder }
             let reactiveEnd ← IO.monoNanosNow
 
-            let (screenW, screenH) ← c.ctx.getCurrentSize
-            if screenW != rs.assets.physWidthF || screenH != rs.assets.physHeightF then
-              rs := { rs with assets := {
-                rs.assets with
-                physWidthF := screenW
-                physHeightF := screenH
-                physWidth := screenW.toUInt32
-                physHeight := screenH.toUInt32
-              } }
-
             let rootWidget := Afferent.Arbor.build widgetBuilder
             let layoutStart ← IO.monoNanosNow
             let measureResult ← runWithFonts rs.assets.fontPack.registry
@@ -283,19 +283,16 @@ def unifiedDemo : IO Unit := do
             let layoutEnd ← IO.monoNanosNow
             let indexStart := layoutEnd
             let hitIndex := Afferent.Arbor.buildHitTestIndex measuredWidget layouts
-            rs := { rs with frameCache := some {
-              measuredWidget := measuredWidget
-              layouts := layouts
-              hitIndex := hitIndex
-            } }
+            rs := { rs with inputSnapshot := some { layouts := layouts, hitIndex := hitIndex } }
             let interactiveIds :=
               hitIndex.componentMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
             rs.events.registry.interactiveIds.set interactiveIds
             let indexEnd ← IO.monoNanosNow
 
             let collectStart ← IO.monoNanosNow
-            let (commands, cacheHits, cacheMisses) ←
-              Afferent.Arbor.collectCommandsCachedWithStats c.drawRuntime.renderCache measuredWidget layouts
+            let commands := Afferent.Arbor.collectCommands measuredWidget layouts
+            let cacheHits := 0
+            let cacheMisses := 0
             let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
             let (batchStats, c') ← CanvasM.run c do

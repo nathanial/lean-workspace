@@ -73,7 +73,7 @@ def mathView2DInteractive (config : MathView2D.Config := {})
   let scrollEvents ← useScroll name
   let scrollUpdates ← Event.mapM (fun data =>
     fun (s : MathView2DState) =>
-      match findWidgetIdByName data.widget name with
+      match data.componentMap.get? name with
       | some widgetId =>
           match data.layouts.get widgetId with
           | some layout =>

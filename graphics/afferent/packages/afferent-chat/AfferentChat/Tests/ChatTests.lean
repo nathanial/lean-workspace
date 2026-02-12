@@ -574,13 +574,13 @@ test "FRP: useScroll filters events by component id" := do
 
     -- Fire a scroll event for the correct component id (should pass filter)
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
 
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert name scrollWidgetId
     }
     inputs.fireScroll scrollData
 
@@ -625,13 +625,13 @@ test "FRP DEBUG: trace scroll event flow through messageList pipeline (SpiderM)"
 
     -- Step 7: Fire a scroll event for the correct component id
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId name {} {} 400 600 {} testWidget
 
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert name scrollWidgetId
     }
     inputs.fireScroll scrollData
 
@@ -685,12 +685,12 @@ test "FRP DEBUG: trace scroll event flow in WidgetM" := do
 
     -- Fire scroll event
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {} {} 400 600 {} testWidget
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {} {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert 0 scrollWidgetId
     }
     inputs.fireScroll scrollData
 
@@ -735,15 +735,15 @@ test "FRP: messageList responds to scroll wheel events" := do
 
     -- Create a scroll widget with the registered component id (0)
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
         {} 400 600 {} testWidget
 
     -- Fire a scroll event
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -3.0, modifiers := {} }
       hitPath := #[scrollWidgetId]
-      widget := scrollWidget
       layouts := mkScrollLayout scrollWidgetId 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert 0 scrollWidgetId
     }
     inputs.fireScroll scrollData
 
@@ -789,7 +789,7 @@ test "FRP: multiple scroll events accumulate" := do
       { children := #[] } |>.run events
 
     let scrollWidgetId : WidgetId := 42
-    let scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
+    let _scrollWidget : Widget := Widget.scrollC scrollWidgetId 0 {}
         {} 400 900 {} testWidget
 
     -- Fire multiple scroll events
@@ -797,8 +797,8 @@ test "FRP: multiple scroll events accumulate" := do
       let scrollData : ScrollData := {
         scroll := { x := 200, y := 150, deltaX := 0, deltaY := -2.0, modifiers := {} }
         hitPath := #[scrollWidgetId]
-        widget := scrollWidget
         layouts := mkScrollLayout scrollWidgetId 0 0 400 300
+        componentMap := ({} : Std.HashMap ComponentId WidgetId).insert 0 scrollWidgetId
       }
       inputs.fireScroll scrollData
 
@@ -819,13 +819,13 @@ test "FRP: messageList scroll events are filtered by component id" := do
       { children := #[] } |>.run events
 
     -- Fire scroll for a different component id (should be ignored)
-    let scrollWidget : Widget := Widget.scrollC 99 999 {}
+    let _scrollWidget : Widget := Widget.scrollC 99 999 {}
         {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -5.0, modifiers := {} }
       hitPath := #[99]
-      widget := scrollWidget
       layouts := mkScrollLayout 99 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert 999 99
     }
     inputs.fireScroll scrollData
 
@@ -846,13 +846,13 @@ test "FRP: scroll events ignored when not in hitPath" := do
       { children := #[] } |>.run events
 
     -- Fire scroll with widget ID not in hitPath (empty hitPath)
-    let scrollWidget : Widget := Widget.scrollC 99 999 {}
+    let _scrollWidget : Widget := Widget.scrollC 99 999 {}
         {} 400 600 {} testWidget
     let scrollData : ScrollData := {
       scroll := { x := 200, y := 150, deltaX := 0, deltaY := -5.0, modifiers := {} }
       hitPath := #[]  -- Empty hitPath - scroll doesn't hit our widget
-      widget := scrollWidget
       layouts := mkScrollLayout 99 0 0 400 300
+      componentMap := ({} : Std.HashMap ComponentId WidgetId).insert 999 99
     }
     inputs.fireScroll scrollData
 

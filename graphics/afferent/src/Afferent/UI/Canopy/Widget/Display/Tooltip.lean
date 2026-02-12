@@ -143,7 +143,7 @@ def tooltip (config : TooltipConfig) (target : WidgetM α) : WidgetM (α × Tool
   -- Update target dimensions when hovering
   let _ ← performEvent_ (← Event.mapM (fun data => do
     if hitWidgetHover data name then
-      match findWidgetIdByName data.widget name with
+      match data.componentMap.get? name with
       | some widgetId =>
         match data.layouts.get widgetId with
         | some layout =>

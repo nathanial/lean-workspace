@@ -124,9 +124,10 @@ def virtualListItemRow (name : ComponentId) (config : VirtualListConfig)
   let c ← child
   pure (Widget.flexC wid name props style #[c])
 
-private def viewportFromLayout? (name : ComponentId) (widget : Widget)
+private def viewportFromLayout? (name : ComponentId)
+    (componentMap : Std.HashMap ComponentId WidgetId)
     (layouts : Trellis.LayoutResult) : Option (Float × Float) := do
-  let widgetId ← findWidgetIdByName widget name
+  let widgetId ← componentMap.get? name
   let layout ← layouts.get widgetId
   let rect := layout.contentRect
   some (rect.width, rect.height)
@@ -188,7 +189,7 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
       match event with
       | .wheel scrollData =>
         let (viewportW, viewportH) :=
-          match viewportFromLayout? name scrollData.widget scrollData.layouts with
+          match viewportFromLayout? name scrollData.componentMap scrollData.layouts with
           | some (w, h) => (w, h)
           | none => (fallbackW, fallbackH)
         let dy :=
@@ -205,7 +206,7 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
         }
 
       | .click clickData =>
-        match findWidgetIdByName clickData.widget name with
+        match clickData.componentMap.get? name with
         | some widgetId =>
           let x := clickData.click.x
           let y := clickData.click.y
@@ -237,7 +238,7 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
 
       | .hover hoverData =>
         if state.drag.isDragging then
-          match findWidgetIdByName hoverData.widget name with
+          match hoverData.componentMap.get? name with
           | some widgetId =>
             match hoverData.layouts.get widgetId with
             | some layout =>

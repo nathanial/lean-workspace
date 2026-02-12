@@ -72,8 +72,7 @@ structure LoadedAssets where
   layoutOffsetY : Float
   layoutScale : Float
 
-structure FrameCache where
-  measuredWidget : Afferent.Arbor.Widget
+structure InputSnapshot where
   layouts : Trellis.LayoutResult
   hitIndex : Afferent.Arbor.HitTestIndex
 
@@ -85,7 +84,7 @@ structure RunningState where
   spiderEnv : Reactive.Host.SpiderEnv
   shutdown : IO Unit
   cachedWidget : Afferent.Arbor.WidgetBuilder
-  frameCache : Option FrameCache := none
+  inputSnapshot : Option InputSnapshot := none
   lastMouseX : Float := 0.0
   lastMouseY : Float := 0.0
   prevLeftDown : Bool := false

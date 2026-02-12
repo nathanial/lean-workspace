@@ -146,9 +146,10 @@ def isInVerticalScrollbar (config : ScrollContainerConfig)
       none
 
 /-- Find this scroll container's computed layout by registered name. -/
-def findWidgetLayoutByName (widget : Widget) (layouts : Trellis.LayoutResult)
+def findWidgetLayoutByName (componentMap : Std.HashMap ComponentId WidgetId)
+    (layouts : Trellis.LayoutResult)
     (name : ComponentId) : Option Trellis.ComputedLayout := do
-  let widgetId ← findWidgetIdByName widget name
+  let widgetId ← componentMap.get? name
   layouts.get widgetId
 
 /-- Calculate scroll offset from a relative Y position in the scrollbar track. -/
@@ -256,7 +257,7 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
       | .wheel scrollData =>
         -- Handle scroll wheel
         let (viewportW, viewportH) :=
-          match findWidgetLayoutByName scrollData.widget scrollData.layouts name with
+          match findWidgetLayoutByName scrollData.componentMap scrollData.layouts name with
           | some layout => (layout.contentRect.width, layout.contentRect.height)
           | none => (config.width, config.height)
         let baseScroll := state.scroll.clamp viewportW viewportH contentW contentH
@@ -268,7 +269,7 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
       | .click clickData =>
         -- Check if click is in scrollbar area of this scroll container
         -- Find our widget ID by name from the actual widget tree
-        match findWidgetIdByName clickData.widget name with
+        match clickData.componentMap.get? name with
         | some widgetId =>
           let x := clickData.click.x
           let y := clickData.click.y
@@ -297,7 +298,7 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
         -- Update scroll position while dragging
         if state.drag.isDragging then
           -- Find our widget ID by name from the actual widget tree
-          match findWidgetIdByName hoverData.widget name with
+          match hoverData.componentMap.get? name with
           | some widgetId =>
             let y := hoverData.y
             let layouts := hoverData.layouts

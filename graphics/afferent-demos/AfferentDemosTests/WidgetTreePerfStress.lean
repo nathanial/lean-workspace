@@ -265,7 +265,6 @@ private def fanoutDynamicRender : ReactiveM ComponentRender := do
 private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
     (fontRegistry : FontRegistry) (componentRegistry : ComponentRegistry)
     (config : StressConfig) : IO StressResult := do
-  let renderCache ← IO.mkRef RenderCache.empty
   let totalFrames := config.warmupFrames + config.sampleFrames
   let mut widgetCount : Nat := 0
   let mut layoutNodeCount : Nat := 0
@@ -297,8 +296,7 @@ private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
     let tHitIndex1 ← IO.monoNanosNow
 
     let tCollect0 ← IO.monoNanosNow
-    let _ ← Afferent.Arbor.collectCommandsCachedWithStats renderCache
-      measureResult.widget layouts
+    let _ := Afferent.Arbor.collectCommands measureResult.widget layouts
     let tCollect1 ← IO.monoNanosNow
 
     if widgetCount == 0 then
