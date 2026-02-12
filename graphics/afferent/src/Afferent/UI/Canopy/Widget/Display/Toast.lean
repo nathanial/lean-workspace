@@ -232,18 +232,18 @@ def toastManager (defaultDuration : Float := 3.0) : WidgetM ToastManagerResult :
   let showToast (msg : String) (variant : ToastVariant) : IO Unit :=
     fireShow (msg, variant)
 
-  -- Use dynWidget for efficient change-driven rebuilds
-  let _ ← dynWidget toasts fun currentToasts => do
-    emit do
-      if currentToasts.isEmpty then
-        pure (spacer 0 0)
-      else
-        pure do
-          let mut toastWidgets : Array Widget := #[]
-          for toast in currentToasts do
-            let widget ← toastVisual none toast.message toast.variant theme
-            toastWidgets := toastWidgets.push widget
-          toastContainerVisual containerName toastWidgets
+  -- Use keyed incremental dynWidget so unchanged toasts reuse their subtree.
+  let combineToasts : Array WidgetBuilder → WidgetBuilder := fun toastBuilders => do
+    let mut toastWidgets : Array Widget := #[]
+    for toastBuilder in toastBuilders do
+      toastWidgets := toastWidgets.push (← toastBuilder)
+    toastContainerVisual containerName toastWidgets
+
+  let _ ← dynWidgetKeyedList toasts (fun toast => toast.id)
+      (fun toast => do
+        emit (pure (toastVisual none toast.message toast.variant theme))
+        pure toast.id)
+      (combine := combineToasts)
 
   pure {
     showInfo := fun msg => showToast msg .info

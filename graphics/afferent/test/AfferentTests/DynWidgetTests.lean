@@ -701,6 +701,202 @@ test "nested tree preserves structure with updated inner text" := do
   ).run spiderEnv
   pure ()
 
+/-! ## Keyed Incremental Rebuild Tests -/
+
+test "dynWidgetKeyedList reuses unchanged keys and rebuilds only changed keys" := do
+  let spiderEnv ← SpiderEnv.new defaultErrorHandler
+  let _ ← (do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let (itemsTrigger, fireItems) ← newTriggerEvent (t := Spider) (a := Array (Nat × Nat))
+    let itemsDyn ← holdDyn #[(1, 10), (2, 20)] itemsTrigger
+    let key1Builds ← SpiderM.liftIO (IO.mkRef 0)
+    let key2Builds ← SpiderM.liftIO (IO.mkRef 0)
+
+    let (_, render) ← ReactiveM.run events do
+      runWidget do
+        let _ ← dynWidgetKeyedList itemsDyn (fun item => item.1) fun item => do
+          if item.1 == 1 then
+            SpiderM.liftIO (key1Builds.modify (· + 1))
+          else if item.1 == 2 then
+            SpiderM.liftIO (key2Builds.modify (· + 1))
+          emit (pure (spacer 10 10))
+          pure item.2
+        pure ()
+
+    let _ ← render
+    let k1a ← SpiderM.liftIO key1Builds.get
+    let k2a ← SpiderM.liftIO key2Builds.get
+    ensure (k1a == 1) s!"Key 1 initial builds should be 1, got {k1a}"
+    ensure (k2a == 1) s!"Key 2 initial builds should be 1, got {k2a}"
+
+    -- No value change: no key should rebuild.
+    fireItems #[(1, 10), (2, 20)]
+    let k1b ← SpiderM.liftIO key1Builds.get
+    let k2b ← SpiderM.liftIO key2Builds.get
+    ensure (k1b == 1) s!"Key 1 should not rebuild for unchanged value, got {k1b}"
+    ensure (k2b == 1) s!"Key 2 should not rebuild for unchanged value, got {k2b}"
+
+    -- Change key 2 only.
+    fireItems #[(1, 10), (2, 25)]
+    let k1c ← SpiderM.liftIO key1Builds.get
+    let k2c ← SpiderM.liftIO key2Builds.get
+    ensure (k1c == 1) s!"Key 1 should remain at 1 build, got {k1c}"
+    ensure (k2c == 2) s!"Key 2 should rebuild once, got {k2c}"
+  ).run spiderEnv
+  pure ()
+
+test "dynWidgetKeyedList disposes removed keys and rebuilt keys" := do
+  let spiderEnv ← SpiderEnv.new defaultErrorHandler
+  let _ ← (do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let (itemsTrigger, fireItems) ← newTriggerEvent (t := Spider) (a := Array (Nat × Nat))
+    let itemsDyn ← holdDyn #[(1, 10), (2, 20)] itemsTrigger
+    let cleanup1 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup2 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup3 ← SpiderM.liftIO (IO.mkRef 0)
+
+    let (_, render) ← ReactiveM.run events do
+      runWidget do
+        let _ ← dynWidgetKeyedList itemsDyn (fun item => item.1) fun item => do
+          let scope ← SpiderM.getScope
+          let cleanupAction :=
+            if item.1 == 1 then cleanup1.modify (· + 1)
+            else if item.1 == 2 then cleanup2.modify (· + 1)
+            else cleanup3.modify (· + 1)
+          SpiderM.liftIO <| scope.register cleanupAction
+          emit (pure (spacer 10 10))
+          pure item.2
+        pure ()
+
+    let _ ← render
+    -- Remove key 2.
+    fireItems #[(1, 10)]
+    let c1a ← SpiderM.liftIO cleanup1.get
+    let c2a ← SpiderM.liftIO cleanup2.get
+    ensure (c1a == 0) s!"Key 1 cleanup should still be 0, got {c1a}"
+    ensure (c2a == 1) s!"Key 2 cleanup should be 1 after removal, got {c2a}"
+
+    -- Re-add key 2 with different value and key 3.
+    fireItems #[(1, 10), (2, 30), (3, 40)]
+    let c2b ← SpiderM.liftIO cleanup2.get
+    ensure (c2b == 1) s!"Key 2 should not clean again on add, got {c2b}"
+
+    -- Rebuild key 2 and remove key 1.
+    fireItems #[(2, 31), (3, 40)]
+    let c1b ← SpiderM.liftIO cleanup1.get
+    let c2c ← SpiderM.liftIO cleanup2.get
+    let c3b ← SpiderM.liftIO cleanup3.get
+    ensure (c1b == 1) s!"Key 1 cleanup should be 1 after removal, got {c1b}"
+    ensure (c2c == 2) s!"Key 2 cleanup should be 2 after one rebuild, got {c2c}"
+    ensure (c3b == 0) s!"Key 3 should remain active with no cleanup, got {c3b}"
+  ).run spiderEnv
+  pure ()
+
+test "dynWidgetKeyedList preserves order and skips rebuild on pure reorder" := do
+  let spiderEnv ← SpiderEnv.new defaultErrorHandler
+  let _ ← (do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let (itemsTrigger, fireItems) ← newTriggerEvent (t := Spider) (a := Array (Nat × Nat))
+    let itemsDyn ← holdDyn #[(1, 10), (2, 20), (3, 30)] itemsTrigger
+    let key1Builds ← SpiderM.liftIO (IO.mkRef 0)
+    let key2Builds ← SpiderM.liftIO (IO.mkRef 0)
+    let key3Builds ← SpiderM.liftIO (IO.mkRef 0)
+
+    let (resultDyn, render) ← ReactiveM.run events do
+      runWidget do
+        let resultDyn ← dynWidgetKeyedList itemsDyn (fun item => item.1) fun item => do
+          if item.1 == 1 then
+            SpiderM.liftIO (key1Builds.modify (· + 1))
+          else if item.1 == 2 then
+            SpiderM.liftIO (key2Builds.modify (· + 1))
+          else
+            SpiderM.liftIO (key3Builds.modify (· + 1))
+          emit (pure (spacer 10 10))
+          pure item.2
+        pure resultDyn
+
+    let _ ← render
+    let initialOrder ← SpiderM.liftIO resultDyn.sample
+    ensure (initialOrder == #[10, 20, 30]) s!"Initial order mismatch: {initialOrder}"
+
+    fireItems #[(3, 30), (1, 10), (2, 20)]
+    let reordered ← SpiderM.liftIO resultDyn.sample
+    ensure (reordered == #[30, 10, 20]) s!"Reordered result mismatch: {reordered}"
+
+    let k1 ← SpiderM.liftIO key1Builds.get
+    let k2 ← SpiderM.liftIO key2Builds.get
+    let k3 ← SpiderM.liftIO key3Builds.get
+    ensure (k1 == 1) s!"Key 1 should not rebuild on reorder, got {k1}"
+    ensure (k2 == 1) s!"Key 2 should not rebuild on reorder, got {k2}"
+    ensure (k3 == 1) s!"Key 3 should not rebuild on reorder, got {k3}"
+  ).run spiderEnv
+  pure ()
+
+test "dynWidgetKeyedList handles mixed add/remove/update in one frame" := do
+  let spiderEnv ← SpiderEnv.new defaultErrorHandler
+  let _ ← (do
+    let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
+    let (itemsTrigger, fireItems) ← newTriggerEvent (t := Spider) (a := Array (Nat × Nat))
+    let itemsDyn ← holdDyn #[(1, 10), (2, 20), (3, 30)] itemsTrigger
+
+    let builds1 ← SpiderM.liftIO (IO.mkRef 0)
+    let builds2 ← SpiderM.liftIO (IO.mkRef 0)
+    let builds3 ← SpiderM.liftIO (IO.mkRef 0)
+    let builds4 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup1 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup2 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup3 ← SpiderM.liftIO (IO.mkRef 0)
+    let cleanup4 ← SpiderM.liftIO (IO.mkRef 0)
+
+    let (_, render) ← ReactiveM.run events do
+      runWidget do
+        let _ ← dynWidgetKeyedList itemsDyn (fun item => item.1) fun item => do
+          if item.1 == 1 then
+            SpiderM.liftIO (builds1.modify (· + 1))
+          else if item.1 == 2 then
+            SpiderM.liftIO (builds2.modify (· + 1))
+          else if item.1 == 3 then
+            SpiderM.liftIO (builds3.modify (· + 1))
+          else
+            SpiderM.liftIO (builds4.modify (· + 1))
+
+          let scope ← SpiderM.getScope
+          let cleanupAction :=
+            if item.1 == 1 then cleanup1.modify (· + 1)
+            else if item.1 == 2 then cleanup2.modify (· + 1)
+            else if item.1 == 3 then cleanup3.modify (· + 1)
+            else cleanup4.modify (· + 1)
+          SpiderM.liftIO <| scope.register cleanupAction
+
+          emit (pure (spacer 10 10))
+          pure item.2
+        pure ()
+
+    let _ ← render
+    -- Remove key 1, update key 2, keep key 3, add key 4.
+    fireItems #[(2, 25), (3, 30), (4, 40)]
+
+    let b1 ← SpiderM.liftIO builds1.get
+    let b2 ← SpiderM.liftIO builds2.get
+    let b3 ← SpiderM.liftIO builds3.get
+    let b4 ← SpiderM.liftIO builds4.get
+    let c1 ← SpiderM.liftIO cleanup1.get
+    let c2 ← SpiderM.liftIO cleanup2.get
+    let c3 ← SpiderM.liftIO cleanup3.get
+    let c4 ← SpiderM.liftIO cleanup4.get
+
+    ensure (b1 == 1) s!"Key 1 should only build initially, got {b1}"
+    ensure (b2 == 2) s!"Key 2 should rebuild once for value update, got {b2}"
+    ensure (b3 == 1) s!"Key 3 should be reused, got {b3}"
+    ensure (b4 == 1) s!"Key 4 should build once as new key, got {b4}"
+
+    ensure (c1 == 1) s!"Key 1 should cleanup once after removal, got {c1}"
+    ensure (c2 == 1) s!"Key 2 should cleanup once for rebuild, got {c2}"
+    ensure (c3 == 0) s!"Key 3 should not cleanup when reused, got {c3}"
+    ensure (c4 == 0) s!"Key 4 should not cleanup immediately after add, got {c4}"
+  ).run spiderEnv
+  pure ()
+
 /-! ## Subscription Cleanup Tests -/
 
 test "dynWidget disposes child scope on rebuild" := do

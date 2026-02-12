@@ -114,15 +114,35 @@ let _ ← dynWidget renderState fun (hovered, anim) => do
 - Requires combining multiple Dynamics with `zipWithM`
 - More efficient for widgets that are often idle
 
+### Pattern 3: `dynWidgetKeyedList`
+
+```lean
+let _ ← dynWidgetKeyedList itemsDyn (fun item => item.id) (fun item => do
+  renderItem item
+  pure item.id)
+```
+
+**How it works:**
+- Uses stable keys to track child subtrees across updates
+- Reuses unchanged keyed children (scope + renders + result)
+- Rebuilds only added/removed/changed keys
+
+**Characteristics:**
+- Best for large dynamic lists where a subset changes each update
+- Preserves per-key cache generation for unchanged children
+- Requires stable keys (key churn defeats incremental reuse)
+- Place it at the main update boundary; wrapping it inside a fast-changing parent `dynWidget` can reset keyed state and erase reuse gains
+
 ## Comparison: When to Use Each
 
 ### Performance Characteristics
 
-| Widget State | `emit` + `sample` | `dynWidget` |
-|--------------|-------------------|-------------|
-| Idle (no interaction) | Rebuilds every frame | No rebuilds |
-| Animating | Rebuilds every frame | Rebuilds every frame |
-| Hover state change | Rebuilds every frame | Rebuilds on change |
+| Widget State | `emit` + `sample` | `dynWidget` | `dynWidgetKeyedList` |
+|--------------|-------------------|-------------|----------------------|
+| Idle (no interaction) | Rebuilds every frame | No rebuilds | No rebuilds |
+| Animating | Rebuilds every frame | Rebuilds every frame | Rebuilds changed keys |
+| Partial list update | Rebuilds full list | Rebuilds full subtree | Rebuilds only changed keys |
+| Pure reorder | Rebuilds full list | Rebuilds full subtree | Reorders without rebuilding keys |
 
 ### Decision Guide
 
@@ -130,6 +150,7 @@ let _ ← dynWidget renderState fun (hovered, anim) => do
 |---------|----------|
 | `emit` + `sample` | Continuously animated widgets (particles, live graphs), rapid prototyping |
 | `dynWidget` | Discrete-state widgets (buttons, checkboxes), production UIs with many widgets |
+| `dynWidgetKeyedList` | Large dynamic lists/grids/trees with stable keys and partial updates |
 
 ### Scaling Considerations
 
@@ -141,6 +162,11 @@ With `dynWidget`:
 - Idle widgets have zero rebuild cost
 - Only actively changing widgets rebuild
 - Better for UIs with many widgets where most are idle
+
+With `dynWidgetKeyedList`:
+- Unchanged keyed children are reused across updates
+- Rebuild cost scales with changed subset, not total list size
+- Especially useful for list-like UI where adds/removes/updates are sparse
 
 ## Example: Refactoring Switch to Use `dynWidget`
 

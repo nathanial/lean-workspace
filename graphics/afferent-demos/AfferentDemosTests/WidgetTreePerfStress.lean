@@ -190,7 +190,19 @@ private def dynamicSwapRender : ReactiveM ComponentRender := do
   let (_, render) ← runWidget do
     let frames ← useAnimationFrame
     let tickDyn ← Reactive.foldDyn (fun (_ : Float) n => n + 1) (0 : Nat) frames
-    let phaseDyn ← Dynamic.mapM (fun n => n % 2) tickDyn
+    let sectionStateDyn ← Dynamic.mapM (fun n =>
+      Id.run do
+        let activeSection := n % 8
+        let activeBucket := n % 4
+        let phaseTick := (n / 4) % 2
+        let modeTick := (n / 4) % 3
+        let mut sections : Array (Nat × Nat × Nat) := #[]
+        for secIdx in [:8] do
+          let phase := if secIdx == activeSection then phaseTick else secIdx % 2
+          let localMode := if secIdx % 4 == activeBucket then (modeTick + secIdx) % 3 else secIdx % 3
+          sections := sections.push (secIdx, phase, localMode)
+        sections
+    ) tickDyn
 
     let rootStyle : BoxStyle := {
       backgroundColor := some (Color.gray 0.08)
@@ -201,22 +213,26 @@ private def dynamicSwapRender : ReactiveM ComponentRender := do
     }
     column' (gap := 8) (style := rootStyle) do
       heading1' "Widget Tree Stress: Dynamic Subtree Swap"
-      caption' "Nested dynWidget network that swaps large branches every frame."
-      let _ ← dynWidget phaseDyn fun phase => do
-        let contentStyle : BoxStyle := {
-          flexItem := some (FlexItem.growing 1)
-          width := .percent 1.0
-          height := .percent 1.0
-        }
-        column' (gap := 8) (style := contentStyle) do
-          for secIdx in [:8] do
-            let localModeDyn ← Dynamic.mapM (fun n => (n + secIdx) % 3) tickDyn
-            let _ ← dynWidget localModeDyn fun localMode => do
-              if phase == 0 then
-                sectionVariantA secIdx localMode
-              else
-                sectionVariantB secIdx localMode
-            pure ()
+      caption' "Keyed incremental sections with sparse per-frame churn."
+      let contentStyle : BoxStyle := {
+        flexItem := some (FlexItem.growing 1)
+        width := .percent 1.0
+        height := .percent 1.0
+      }
+      column' (gap := 8) (style := contentStyle) do
+        let sectionCombine : Array WidgetBuilder → WidgetBuilder :=
+          fun builders => Afferent.Arbor.column (gap := 8) (style := { width := .percent 1.0 }) builders
+        let sectionKey : (Nat × Nat × Nat) → Nat := fun item => item.1
+        let sectionBuilder : (Nat × Nat × Nat) → WidgetM Unit := fun item => do
+          let secIdx := item.1
+          let phase := item.2.1
+          let localMode := item.2.2
+          if phase == 0 then
+            sectionVariantA secIdx localMode
+          else
+            sectionVariantB secIdx localMode
+        let _ ← dynWidgetKeyedList sectionStateDyn sectionKey sectionBuilder (combine := sectionCombine)
+        pure ()
       pure ()
   pure render
 

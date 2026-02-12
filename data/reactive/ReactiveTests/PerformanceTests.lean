@@ -39,6 +39,135 @@ def fireNTimes (trigger : Nat → IO Unit) (n : Nat) : IO Unit := do
   for i in [:n] do
     trigger i
 
+/-- Install one synthetic "widget leaf" subscription used in dynWidget-style
+    subtree rebuild benchmarks. -/
+def installDynWidgetStyleLeaf
+    (sourceEvent0 : Event Spider Float)
+    (sourceEvent1 : Event Spider Float)
+    (sourceEvent2 : Event Spider Float)
+    (sourceEvent3 : Event Spider Float)
+    (updateCountRef : IO.Ref Nat)
+    (leafIdx : Nat) : SpiderM Unit := do
+  let sourceEvent :=
+    match leafIdx % 4 with
+    | 0 => sourceEvent0
+    | 1 => sourceEvent1
+    | 2 => sourceEvent2
+    | _ => sourceEvent3
+  let localState ← SpiderM.liftIO <| IO.mkRef (0.0 : Float)
+  let unsub ← sourceEvent.subscribe fun value => do
+    let phase := (leafIdx % 97).toFloat / 97.0
+    localState.set (value + phase)
+    updateCountRef.modify (· + 1)
+  let scope ← SpiderM.getScope
+  SpiderM.liftIO <| scope.register unsub
+
+/-- Build a flat 20k-widget subtree. -/
+def buildDynWidgetStyleFlat20k
+    (sourceEvent0 : Event Spider Float)
+    (sourceEvent1 : Event Spider Float)
+    (sourceEvent2 : Event Spider Float)
+    (sourceEvent3 : Event Spider Float)
+    (updateCountRef : IO.Ref Nat) : SpiderM Nat := do
+  for i in [:20000] do
+    installDynWidgetStyleLeaf sourceEvent0 sourceEvent1 sourceEvent2 sourceEvent3 updateCountRef i
+  pure 20000
+
+/-- Build a 20k-widget subtree with 3 nesting levels: 40 x 25 x 20. -/
+def buildDynWidgetStyleNested3
+    (sourceEvent0 : Event Spider Float)
+    (sourceEvent1 : Event Spider Float)
+    (sourceEvent2 : Event Spider Float)
+    (sourceEvent3 : Event Spider Float)
+    (updateCountRef : IO.Ref Nat) : SpiderM Nat := do
+  let mut leafIdx := 0
+  for _ in [:40] do
+    for _ in [:25] do
+      for _ in [:20] do
+        installDynWidgetStyleLeaf sourceEvent0 sourceEvent1 sourceEvent2 sourceEvent3 updateCountRef leafIdx
+        leafIdx := leafIdx + 1
+  pure leafIdx
+
+/-- Build a 20k-widget subtree with 5 nesting levels: 5 x 5 x 5 x 8 x 20. -/
+def buildDynWidgetStyleNested5
+    (sourceEvent0 : Event Spider Float)
+    (sourceEvent1 : Event Spider Float)
+    (sourceEvent2 : Event Spider Float)
+    (sourceEvent3 : Event Spider Float)
+    (updateCountRef : IO.Ref Nat) : SpiderM Nat := do
+  let mut leafIdx := 0
+  for _ in [:5] do
+    for _ in [:5] do
+      for _ in [:5] do
+        for _ in [:8] do
+          for _ in [:20] do
+            installDynWidgetStyleLeaf sourceEvent0 sourceEvent1 sourceEvent2 sourceEvent3 updateCountRef leafIdx
+            leafIdx := leafIdx + 1
+  pure leafIdx
+
+/-- Benchmark dynWidget-style subtree replacement with runWithReplaceM. -/
+def runDynWidgetStyleTreeBenchmark
+    (expectedWidgets : Nat)
+    (rebuildCycles : Nat)
+    (steadyFrames : Nat)
+    (buildTreeFn :
+      Event Spider Float →
+      Event Spider Float →
+      Event Spider Float →
+      Event Spider Float →
+      IO.Ref Nat →
+      SpiderM Nat)
+    : IO (Nat × Nat × Nat × Nat × Nat × Chronos.Duration × Chronos.Duration) := do
+  runSpider do
+    -- Split 20k leaves across 4 source events to stay under
+    -- Spider's per-frame propagation cap (10k events).
+    let (sourceEvent0, fireSource0) ← newTriggerEvent (t := Spider) (a := Float)
+    let (sourceEvent1, fireSource1) ← newTriggerEvent (t := Spider) (a := Float)
+    let (sourceEvent2, fireSource2) ← newTriggerEvent (t := Spider) (a := Float)
+    let (sourceEvent3, fireSource3) ← newTriggerEvent (t := Spider) (a := Float)
+    let updateCountRef ← SpiderM.liftIO <| IO.mkRef (0 : Nat)
+    let rebuildCountRef ← SpiderM.liftIO <| IO.mkRef (0 : Nat)
+
+    let buildTree : SpiderM Nat := do
+      buildTreeFn sourceEvent0 sourceEvent1 sourceEvent2 sourceEvent3 updateCountRef
+
+    let (replaceEvent, fireReplace) ← newTriggerEvent (t := Spider) (a := SpiderM Nat)
+    let (initialCount, rebuiltEvent) ← SpiderM.runWithReplaceM buildTree replaceEvent
+
+    let _ ← rebuiltEvent.subscribe fun _ =>
+      rebuildCountRef.modify (· + 1)
+
+    -- Warm up the initial tree once (all source partitions).
+    fireSource0 0.0
+    fireSource1 0.001
+    fireSource2 0.002
+    fireSource3 0.003
+
+    let rebuildStart ← SpiderM.liftIO Chronos.MonotonicTime.now
+    for i in [:rebuildCycles] do
+      fireReplace buildTree
+      fireSource0 (i.toFloat + 0.0)
+      fireSource1 (i.toFloat + 0.1)
+      fireSource2 (i.toFloat + 0.2)
+      fireSource3 (i.toFloat + 0.3)
+    let rebuildElapsed ← SpiderM.liftIO rebuildStart.elapsed
+
+    -- Measure propagation on the final rebuilt tree only.
+    SpiderM.liftIO <| updateCountRef.set 0
+    let steadyStart ← SpiderM.liftIO Chronos.MonotonicTime.now
+    for frame in [:steadyFrames] do
+      let t := 10.0 + frame.toFloat / 60.0
+      fireSource0 (t + 0.0)
+      fireSource1 (t + 0.1)
+      fireSource2 (t + 0.2)
+      fireSource3 (t + 0.3)
+    let steadyElapsed ← SpiderM.liftIO steadyStart.elapsed
+
+    let rebuilds ← SpiderM.liftIO rebuildCountRef.get
+    let updates ← SpiderM.liftIO updateCountRef.get
+    let expectedUpdates := expectedWidgets * steadyFrames
+    pure (expectedWidgets, initialCount, rebuilds, updates, expectedUpdates, rebuildElapsed, steadyElapsed)
+
 /-! ## Wide Fan-Out Tests (Many Subscribers) -/
 
 test "perf: wide fan-out with 1000 subscribers, 100 fires" := do
@@ -755,6 +884,53 @@ test "perf: single subscription fan-out approach (baseline comparison)" := do
 
   shouldBe result.1 60000
   IO.println s!"  [single-subscription fan-out x 60 fires: {result.2}]"
+
+/-! ## DynWidget-Style Tree Rebuild Tests (20k Widgets) -/
+
+test "perf: dynWidget-style subtree rebuild (20k widgets, flat)" := do
+  let rebuildCycles := 3
+  let steadyFrames := 6
+
+  let (widgets, initialCount, rebuilds, updates, expectedUpdates, rebuildElapsed, steadyElapsed) ←
+    runDynWidgetStyleTreeBenchmark 20000 rebuildCycles steadyFrames buildDynWidgetStyleFlat20k
+
+  shouldBe widgets 20000
+  shouldBe initialCount 20000
+  shouldBe rebuilds rebuildCycles
+  shouldBe updates expectedUpdates
+
+  IO.println s!"  [dynWidget-style 20k flat rebuild x {rebuildCycles}: {rebuildElapsed}]"
+  IO.println s!"  [dynWidget-style 20k flat steady x {steadyFrames} frames (4 shard fires/frame): {steadyElapsed}]"
+
+test "perf: dynWidget-style subtree rebuild (20k widgets, 3-level nesting)" := do
+  let rebuildCycles := 3
+  let steadyFrames := 6
+
+  let (widgets, initialCount, rebuilds, updates, expectedUpdates, rebuildElapsed, steadyElapsed) ←
+    runDynWidgetStyleTreeBenchmark 20000 rebuildCycles steadyFrames buildDynWidgetStyleNested3
+
+  shouldBe widgets 20000
+  shouldBe initialCount 20000
+  shouldBe rebuilds rebuildCycles
+  shouldBe updates expectedUpdates
+
+  IO.println s!"  [dynWidget-style 20k nested(40x25x20) rebuild x {rebuildCycles}: {rebuildElapsed}]"
+  IO.println s!"  [dynWidget-style 20k nested(40x25x20) steady x {steadyFrames} frames (4 shard fires/frame): {steadyElapsed}]"
+
+test "perf: dynWidget-style subtree rebuild (20k widgets, 5-level nesting)" := do
+  let rebuildCycles := 3
+  let steadyFrames := 6
+
+  let (widgets, initialCount, rebuilds, updates, expectedUpdates, rebuildElapsed, steadyElapsed) ←
+    runDynWidgetStyleTreeBenchmark 20000 rebuildCycles steadyFrames buildDynWidgetStyleNested5
+
+  shouldBe widgets 20000
+  shouldBe initialCount 20000
+  shouldBe rebuilds rebuildCycles
+  shouldBe updates expectedUpdates
+
+  IO.println s!"  [dynWidget-style 20k nested(5x5x5x8x20) rebuild x {rebuildCycles}: {rebuildElapsed}]"
+  IO.println s!"  [dynWidget-style 20k nested(5x5x5x8x20) steady x {steadyFrames} frames (4 shard fires/frame): {steadyElapsed}]"
 
 /-! ## FRP Layer Micro-Benchmarks (Isolating Overhead) -/
 

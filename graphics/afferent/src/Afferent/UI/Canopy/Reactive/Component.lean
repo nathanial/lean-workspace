@@ -722,6 +722,192 @@ instance (priority := low) : DynWidgetResult b where
     pure (dyn, fire)
   maybeFire fire val := fire val
 
+/-- Internal keyed dynWidget entry.
+    Stores per-key scope/result/renders so unchanged keys can be reused across updates. -/
+private structure KeyedDynEntry (k a b : Type) where
+  key : k
+  item : a
+  scope : Reactive.SubscriptionScope
+  renders : Array ComponentRender
+  result : b
+  generation : Nat
+
+/-- Keyed incremental dynWidget for arrays.
+    Reuses unchanged keyed children and only rebuilds added/changed keys.
+
+    - `keyOf`: stable identity key for each item
+    - `shouldRebuild`: true when an existing key should be rebuilt
+    - `combine`: how child builders are wrapped into a single builder
+-/
+def dynWidgetKeyedListWith [BEq k] [Hashable k]
+    (dynItems : Dynamic Spider (Array a))
+    (keyOf : a → k)
+    (shouldRebuild : a → a → Bool)
+    (builder : a → WidgetM b)
+    (combine : Array Afferent.Arbor.WidgetBuilder → Afferent.Arbor.WidgetBuilder :=
+      fun builders => Afferent.Arbor.column (gap := 0) (style := {}) builders)
+    : WidgetM (Dynamic Spider (Array b)) := do
+  let events ← getEventsW
+
+  -- Build initial keyed entries.
+  let (initialResults, entriesRef, orderRef) ← (⟨fun env => do
+    let initialItems ← dynItems.sample
+    let mut entries : Std.HashMap k (KeyedDynEntry k a b) := {}
+    let mut order : Array k := #[]
+    let mut results : Array b := #[]
+    let mut seen : Std.HashMap k Unit := {}
+
+    for item in initialItems do
+      let key := keyOf item
+      if seen.contains key then
+        pure ()
+      else
+        seen := seen.insert key ()
+        let childScope ← env.currentScope.child
+        let widgetM := runWidgetChildren (builder item)
+        let reactiveM := widgetM.run { children := #[] }
+        let spiderM := reactiveM.run events
+        let ((result, renders), _) ← spiderM.run { env with currentScope := childScope }
+        let entry : KeyedDynEntry k a b := {
+          key := key
+          item := item
+          scope := childScope
+          renders := renders
+          result := result
+          generation := 0
+        }
+        entries := entries.insert key entry
+        order := order.push key
+        results := results.push result
+
+    let entriesRef ← IO.mkRef entries
+    let orderRef ← IO.mkRef order
+    pure (results, entriesRef, orderRef)
+  ⟩ : SpiderM
+      (Array b ×
+       IO.Ref (Std.HashMap k (KeyedDynEntry k a b)) ×
+       IO.Ref (Array k)))
+
+  let (resultEvent, fireResults) ← Reactive.newTriggerEvent (t := Spider) (a := Array b)
+  let resultDyn ← Reactive.holdDyn initialResults resultEvent
+
+  -- Subscribe to keyed updates.
+  let subscribeAction : SpiderM Unit := ⟨fun env => do
+    let buildEntry := fun (item : a) (generation : Nat) => do
+      let childScope ← env.currentScope.child
+      let widgetM := runWidgetChildren (builder item)
+      let reactiveM := widgetM.run { children := #[] }
+      let spiderM := reactiveM.run events
+      let ((result, renders), _) ← spiderM.run { env with currentScope := childScope }
+      pure ({
+        key := keyOf item
+        item := item
+        scope := childScope
+        renders := renders
+        result := result
+        generation := generation
+      } : KeyedDynEntry k a b)
+
+    let unsub ← Reactive.Event.subscribe dynItems.updated fun newItems => do
+      let applyUpdate := do
+        let oldEntries ← entriesRef.get
+        let oldOrder ← orderRef.get
+
+        let mut nextEntries : Std.HashMap k (KeyedDynEntry k a b) := {}
+        let mut nextOrder : Array k := #[]
+        let mut nextResults : Array b := #[]
+        let mut seen : Std.HashMap k Unit := {}
+        let mut anyEntryRebuilt := false
+
+        -- Rebuild or reuse per key in new order.
+        for item in newItems do
+          let key := keyOf item
+          if seen.contains key then
+            pure ()
+          else
+            seen := seen.insert key ()
+            match oldEntries[key]? with
+            | some oldEntry =>
+                if shouldRebuild oldEntry.item item then
+                  oldEntry.scope.dispose
+                  let rebuilt ← buildEntry item (oldEntry.generation + 1)
+                  nextEntries := nextEntries.insert key rebuilt
+                  nextOrder := nextOrder.push key
+                  nextResults := nextResults.push rebuilt.result
+                  anyEntryRebuilt := true
+                else
+                  nextEntries := nextEntries.insert key oldEntry
+                  nextOrder := nextOrder.push key
+                  nextResults := nextResults.push oldEntry.result
+            | none =>
+                let freshEntry ← buildEntry item 0
+                nextEntries := nextEntries.insert key freshEntry
+                nextOrder := nextOrder.push key
+                nextResults := nextResults.push freshEntry.result
+                anyEntryRebuilt := true
+
+        -- Dispose keys that disappeared.
+        for (oldKey, oldEntry) in oldEntries.toList do
+          if !nextEntries.contains oldKey then
+            oldEntry.scope.dispose
+            anyEntryRebuilt := true
+
+        let orderChanged := oldOrder != nextOrder
+        entriesRef.set nextEntries
+        orderRef.set nextOrder
+
+        if anyEntryRebuilt || orderChanged then
+          fireResults nextResults
+
+      match ← dynWidgetMetricsRef.get with
+      | none => applyUpdate
+      | some metrics => do
+          let t0 ← IO.monoNanosNow
+          applyUpdate
+          let t1 ← IO.monoNanosNow
+          metrics.rebuildNanos.modify (· + (t1 - t0))
+          metrics.rebuildCount.modify (· + 1)
+
+    env.currentScope.register unsub⟩
+  subscribeAction
+
+  -- Emit render with per-entry generation stamping so unchanged keys retain cache generation.
+  emit do
+    let entries ← entriesRef.get
+    let order ← orderRef.get
+    let mut builders : Array Afferent.Arbor.WidgetBuilder := #[]
+
+    for key in order do
+      match entries[key]? with
+      | some entry =>
+          for render in entry.renders do
+            let baseBuilder ← render
+            let gen := entry.generation
+            let wrapped : Afferent.Arbor.WidgetBuilder := do
+              modify fun s => { s with cacheGeneration := gen }
+              baseBuilder
+            builders := builders.push wrapped
+      | none => pure ()
+
+    if builders.isEmpty then
+      pure (Afferent.Arbor.spacer 0 0)
+    else if builders.size == 1 then
+      pure builders[0]!
+    else
+      pure (combine builders)
+
+  pure resultDyn
+
+/-- Convenience keyed dynWidget list: rebuilds an item only when its keyed value changes by `!=`. -/
+def dynWidgetKeyedList [BEq k] [Hashable k] [BEq a]
+    (dynItems : Dynamic Spider (Array a))
+    (keyOf : a → k)
+    (builder : a → WidgetM b)
+    (combine : Array Afferent.Arbor.WidgetBuilder → Afferent.Arbor.WidgetBuilder :=
+      fun builders => Afferent.Arbor.column (gap := 0) (style := {}) builders)
+    : WidgetM (Dynamic Spider (Array b)) :=
+  dynWidgetKeyedListWith dynItems keyOf (· != ·) builder combine
+
 /-- Run a dynamic widget computation. When the input Dynamic changes, the widget
     builder is re-run with the new value, rebuilding the subtree with fresh
     reactive subscriptions.
