@@ -270,7 +270,8 @@ def category : RenderCommand → CommandCategory
   | .strokeRect .. | .strokeRectBatch .. => .strokeRect
   | .fillCircle .. | .fillCircleBatch .. => .fillCircle
   | .strokeCircle .. => .strokeCircle
-  | .strokeLine .. | .strokeLineBatch .. => .strokeLine
+  | .strokeLine .. | .strokeLineBatch .. | .strokePolygon .. | .strokePath .. => .strokeLine
+  | .fillPolygon .. | .fillPath .. | .fillPathStyle .. => .fillRect
   | .fillText .. | .fillTextBlock .. => .fillText
   | .fillPolygonInstanced .. => .fillPolygonInstanced
   | .strokeArcInstanced .. => .strokeArcInstanced
