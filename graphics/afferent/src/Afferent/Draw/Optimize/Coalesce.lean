@@ -375,7 +375,7 @@ def computeBoundedCommands (cmds : Array RenderCommand) : Array BoundedCommand :
 
     After transform flattening, simple geometry (rects, circles) is in
     absolute coordinates and doesn't depend on transform state.
-    Text captures its transform during batching (TextBatchEntry.transform). -/
+    Text captures its transform during batching (TextBatchEntry.{ta..tty}). -/
 def coalesceByCategory (bounded : Array BoundedCommand) : Array RenderCommand := Id.run do
   if bounded.isEmpty then return #[]
 

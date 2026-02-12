@@ -1,6 +1,56 @@
 #include "lean_bridge_internal.h"
+#include <stdlib.h>
 
 // ============== Font/Text FFI ==============
+
+// Reusable scratch buffers for text batch marshaling.
+// Rendering runs on a single thread in the demo runner, so process-global reuse is sufficient.
+static const char** g_text_batch_texts = NULL;
+static size_t g_text_batch_texts_cap = 0;
+static float* g_text_batch_positions = NULL;
+static size_t g_text_batch_positions_cap = 0;
+static float* g_text_batch_colors = NULL;
+static size_t g_text_batch_colors_cap = 0;
+static float* g_text_batch_transforms = NULL;
+static size_t g_text_batch_transforms_cap = 0;
+
+static int ensure_text_batch_capacity(uint32_t count) {
+    size_t text_need = (size_t)count;
+    size_t pos_need = (size_t)count * 2;
+    size_t color_need = (size_t)count * 4;
+    size_t transform_need = (size_t)count * 6;
+
+    if (text_need > g_text_batch_texts_cap) {
+        size_t new_cap = text_need * 2;
+        const char** resized = realloc((void*)g_text_batch_texts, new_cap * sizeof(char*));
+        if (!resized) return 0;
+        g_text_batch_texts = resized;
+        g_text_batch_texts_cap = new_cap;
+    }
+    if (pos_need > g_text_batch_positions_cap) {
+        size_t new_cap = pos_need * 2;
+        float* resized = realloc(g_text_batch_positions, new_cap * sizeof(float));
+        if (!resized) return 0;
+        g_text_batch_positions = resized;
+        g_text_batch_positions_cap = new_cap;
+    }
+    if (color_need > g_text_batch_colors_cap) {
+        size_t new_cap = color_need * 2;
+        float* resized = realloc(g_text_batch_colors, new_cap * sizeof(float));
+        if (!resized) return 0;
+        g_text_batch_colors = resized;
+        g_text_batch_colors_cap = new_cap;
+    }
+    if (transform_need > g_text_batch_transforms_cap) {
+        size_t new_cap = transform_need * 2;
+        float* resized = realloc(g_text_batch_transforms, new_cap * sizeof(float));
+        if (!resized) return 0;
+        g_text_batch_transforms = resized;
+        g_text_batch_transforms_cap = new_cap;
+    }
+
+    return 1;
+}
 
 // Load a font from file
 LEAN_EXPORT lean_obj_res lean_afferent_font_load(
@@ -135,61 +185,67 @@ LEAN_EXPORT lean_obj_res lean_afferent_text_render_batch(
         return lean_io_result_mk_ok(lean_box(0));
     }
 
-    // Extract text strings
-    const char** texts = malloc(count * sizeof(char*));
-    if (!texts) {
+    if (!ensure_text_batch_capacity(count)) {
         return lean_io_result_mk_error(lean_mk_io_user_error(
-            lean_mk_string("Failed to allocate text array")));
+            lean_mk_string("Failed to allocate text batch buffers")));
     }
+
+    // Extract text strings
     for (uint32_t i = 0; i < count; i++) {
-        texts[i] = lean_string_cstr(lean_array_get_core(texts_arr, i));
+        g_text_batch_texts[i] = lean_string_cstr(lean_array_get_core(texts_arr, i));
     }
 
-    // Extract positions array (2 floats per entry)
+    // Extract positions array (2 floats per entry). Default to (0, 0) when missing.
     size_t pos_size = lean_array_size(positions_arr);
-    float* positions = NULL;
-    if (pos_size >= count * 2) {
-        positions = malloc(count * 2 * sizeof(float));
-        if (positions) {
-            for (size_t i = 0; i < count * 2; i++) {
-                positions[i] = (float)lean_unbox_float(lean_array_get_core(positions_arr, i));
-            }
+    if (pos_size >= (size_t)count * 2) {
+        for (size_t i = 0; i < (size_t)count * 2; i++) {
+            g_text_batch_positions[i] = (float)lean_unbox_float(lean_array_get_core(positions_arr, i));
+        }
+    } else {
+        for (size_t i = 0; i < (size_t)count * 2; i++) {
+            g_text_batch_positions[i] = 0.0f;
         }
     }
 
-    // Extract colors array (4 floats per entry)
+    // Extract colors array (4 floats per entry). Default to white when missing.
     size_t color_size = lean_array_size(colors_arr);
-    float* colors = NULL;
-    if (color_size >= count * 4) {
-        colors = malloc(count * 4 * sizeof(float));
-        if (colors) {
-            for (size_t i = 0; i < count * 4; i++) {
-                colors[i] = (float)lean_unbox_float(lean_array_get_core(colors_arr, i));
-            }
+    if (color_size >= (size_t)count * 4) {
+        for (size_t i = 0; i < (size_t)count * 4; i++) {
+            g_text_batch_colors[i] = (float)lean_unbox_float(lean_array_get_core(colors_arr, i));
+        }
+    } else {
+        for (uint32_t i = 0; i < count; i++) {
+            size_t base = (size_t)i * 4;
+            g_text_batch_colors[base + 0] = 1.0f;
+            g_text_batch_colors[base + 1] = 1.0f;
+            g_text_batch_colors[base + 2] = 1.0f;
+            g_text_batch_colors[base + 3] = 1.0f;
         }
     }
 
-    // Extract transforms array (6 floats per entry)
+    // Extract transforms array (6 floats per entry). Default to identity when missing.
     size_t transform_size = lean_array_size(transforms_arr);
-    float* transforms = NULL;
-    if (transform_size >= count * 6) {
-        transforms = malloc(count * 6 * sizeof(float));
-        if (transforms) {
-            for (size_t i = 0; i < count * 6; i++) {
-                transforms[i] = (float)lean_unbox_float(lean_array_get_core(transforms_arr, i));
-            }
+    if (transform_size >= (size_t)count * 6) {
+        for (size_t i = 0; i < (size_t)count * 6; i++) {
+            g_text_batch_transforms[i] = (float)lean_unbox_float(lean_array_get_core(transforms_arr, i));
+        }
+    } else {
+        for (uint32_t i = 0; i < count; i++) {
+            size_t base = (size_t)i * 6;
+            g_text_batch_transforms[base + 0] = 1.0f;
+            g_text_batch_transforms[base + 1] = 0.0f;
+            g_text_batch_transforms[base + 2] = 0.0f;
+            g_text_batch_transforms[base + 3] = 1.0f;
+            g_text_batch_transforms[base + 4] = 0.0f;
+            g_text_batch_transforms[base + 5] = 0.0f;
         }
     }
 
     AfferentResult result = afferent_text_render_batch(
-        renderer, font, texts, positions, colors, transforms, count,
+        renderer, font, g_text_batch_texts, g_text_batch_positions, g_text_batch_colors,
+        g_text_batch_transforms, count,
         (float)canvas_width, (float)canvas_height
     );
-
-    free(texts);
-    free(positions);
-    free(colors);
-    free(transforms);
 
     if (result != AFFERENT_OK) {
         return lean_io_result_mk_error(lean_mk_io_user_error(

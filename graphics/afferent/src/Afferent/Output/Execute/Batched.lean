@@ -39,6 +39,8 @@ private structure BatchState where
   currentFragmentHash : Option UInt64
   stats : BatchStats
   drawCallTimeNs : Nat
+  textPackTimeNs : Nat
+  textFFITimeNs : Nat
 
 private def initBatchState (totalCommands : Nat) (textFillCommands : Nat) : BatchState :=
   { rectBatch := #[]
@@ -52,7 +54,9 @@ private def initBatchState (totalCommands : Nat) (textFillCommands : Nat) : Batc
     fragmentParamsBatch := #[]
     currentFragmentHash := none
     stats := { totalCommands := totalCommands, textFillCommands := textFillCommands }
-    drawCallTimeNs := 0 }
+    drawCallTimeNs := 0
+    textPackTimeNs := 0
+    textFFITimeNs := 0 }
 
 private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
   let cmds := coalesceByCategoryWithClip bounded
@@ -165,7 +169,7 @@ private def flushTexts (reg : FontRegistry) (state : BatchState) : CanvasM Batch
       match reg.get fontId with
       | some font =>
         let t0 ← IO.monoNanosNow
-        executeTextBatch font state.textBatch
+        let (textPackNs, textFfiNs) ← executeTextBatch font state.textBatch
         let t1 ← IO.monoNanosNow
         let stats := { state.stats with
           batchedCalls := state.stats.batchedCalls + 1
@@ -175,7 +179,9 @@ private def flushTexts (reg : FontRegistry) (state : BatchState) : CanvasM Batch
           textBatch := #[]
           currentTextFontId := none
           stats := stats
-          drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
+          drawCallTimeNs := state.drawCallTimeNs + (t1 - t0)
+          textPackTimeNs := state.textPackTimeNs + textPackNs
+          textFFITimeNs := state.textFFITimeNs + textFfiNs }
       | none =>
         pure { state with textBatch := #[], currentTextFontId := none }
     | none =>
@@ -380,13 +386,14 @@ private def handleFillText (reg : FontRegistry) (state : BatchState) (text : Str
   let state ← flushForFillText state
   let canvas ← CanvasM.getCanvas
   let transform := canvas.state.transform
-  let transformArr := transform.toArray
   let (sx, sy) := snapTextPosition x y transform
   if state.textBatch.isEmpty || state.currentTextFontId == some fontId then
     let entry : TextBatchEntry := {
       text, x := sx, y := sy
       r := color.r, g := color.g, b := color.b, a := color.a
-      transform := transformArr
+      ta := transform.a, tb := transform.b
+      tc := transform.c, td := transform.d
+      ttx := transform.tx, tty := transform.ty
     }
     pure { state with
       textBatch := state.textBatch.push entry
@@ -396,7 +403,9 @@ private def handleFillText (reg : FontRegistry) (state : BatchState) (text : Str
     let entry : TextBatchEntry := {
       text, x := sx, y := sy
       r := color.r, g := color.g, b := color.b, a := color.a
-      transform := transformArr
+      ta := transform.a, tb := transform.b
+      tc := transform.c, td := transform.d
+      ttx := transform.tx, tty := transform.ty
     }
     pure { state with
       textBatch := #[entry]
@@ -531,12 +540,16 @@ def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.
   let timeCoalesceMs := (tCoalesce1 - tCoalesce0).toFloat / 1000000.0
   let timeBatchLoopMs := (tLoop1 - tLoop0).toFloat / 1000000.0
   let timeDrawCallsMs := state.drawCallTimeNs.toFloat / 1000000.0
+  let timeTextPackMs := state.textPackTimeNs.toFloat / 1000000.0
+  let timeTextFFIMs := state.textFFITimeNs.toFloat / 1000000.0
 
   return { state.stats with
     timeFlattenMs := timeFlattenMs
     timeCoalesceMs := timeCoalesceMs
     timeBatchLoopMs := timeBatchLoopMs
     timeDrawCallsMs := timeDrawCallsMs
+    timeTextPackMs := timeTextPackMs
+    timeTextFFIMs := timeTextFFIMs
   }
 
 /-- Execute an array of RenderCommands using CanvasM with batching optimization.

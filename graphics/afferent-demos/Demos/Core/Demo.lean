@@ -50,6 +50,8 @@ structure RunnerStats where
   coalesceMs : Float := 0.0
   batchLoopMs : Float := 0.0
   drawCallMs : Float := 0.0
+  textPackMs : Float := 0.0
+  textFfiMs : Float := 0.0
   cacheHits : Nat := 0
   cacheMisses : Nat := 0
   widgetCount : Nat := 0

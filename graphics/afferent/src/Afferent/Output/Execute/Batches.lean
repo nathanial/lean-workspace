@@ -44,6 +44,10 @@ structure BatchStats where
   timeBatchLoopMs : Float := 0.0
   /-- Time spent executing draw calls (FFI to native) in ms. -/
   timeDrawCallsMs : Float := 0.0
+  /-- Time spent packing text batch arrays on the Lean side in ms. -/
+  timeTextPackMs : Float := 0.0
+  /-- Time spent in text batch FFI calls in ms. -/
+  timeTextFFIMs : Float := 0.0
   deriving Repr, Inhabited
 
 /-- Entry for a batched rectangle. -/
@@ -113,8 +117,18 @@ structure TextBatchEntry where
   g : Float
   b : Float
   a : Float
-  /-- 2D affine transform: [a, b, c, d, tx, ty] -/
-  transform : Array Float
+  /-- 2D affine transform component `a`. -/
+  ta : Float
+  /-- 2D affine transform component `b`. -/
+  tb : Float
+  /-- 2D affine transform component `c`. -/
+  tc : Float
+  /-- 2D affine transform component `d`. -/
+  td : Float
+  /-- 2D affine transform component `tx`. -/
+  ttx : Float
+  /-- 2D affine transform component `ty`. -/
+  tty : Float
 
 /-- Ensure a FloatBuffer has at least the required capacity, reusing or growing as needed. -/
 private def ensureBufferCapacity (bufOpt : Option FFI.FloatBuffer) (currentCap : Nat) (required : Nat)
@@ -278,17 +292,28 @@ def executeLineCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Na
   return count
 
 /-- Execute a batch of fillText commands with the same font in a single draw call. -/
-def executeTextBatch (font : Font) (entries : Array TextBatchEntry) : CanvasM Unit := do
-  if entries.isEmpty then return
+def executeTextBatch (font : Font) (entries : Array TextBatchEntry) : CanvasM (Nat × Nat) := do
+  if entries.isEmpty then return (0, 0)
   let canvas ← CanvasM.getCanvas
   let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
-  -- Pack into parallel arrays for FFI
-  let texts := entries.map (·.text)
-  let positions := entries.foldl (init := #[]) fun acc e => acc.push e.x |>.push e.y
-  let colors := entries.foldl (init := #[]) fun acc e =>
-    acc.push e.r |>.push e.g |>.push e.b |>.push e.a
-  let transforms := entries.foldl (init := #[]) fun acc e => acc ++ e.transform
+  let tPack0 ← IO.monoNanosNow
+  -- Pack into parallel arrays for FFI with preallocated capacity.
+  let count := entries.size
+  let mut texts : Array String := Array.mkEmpty count
+  let mut positions : Array Float := Array.mkEmpty (count * 2)
+  let mut colors : Array Float := Array.mkEmpty (count * 4)
+  let mut transforms : Array Float := Array.mkEmpty (count * 6)
+  for e in entries do
+    texts := texts.push e.text
+    positions := positions.push e.x |>.push e.y
+    colors := colors.push e.r |>.push e.g |>.push e.b |>.push e.a
+    transforms := transforms.push e.ta |>.push e.tb |>.push e.tc
+      |>.push e.td |>.push e.ttx |>.push e.tty
+  let tPack1 ← IO.monoNanosNow
+  let tFfi0 := tPack1
   FFI.Text.renderBatch canvas.ctx.renderer font.handle texts positions colors transforms
     canvasWidth canvasHeight
+  let tFfi1 ← IO.monoNanosNow
+  pure (tPack1 - tPack0, tFfi1 - tFfi0)
 
 end Afferent.Widget
