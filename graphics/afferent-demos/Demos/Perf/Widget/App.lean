@@ -448,13 +448,18 @@ def renderWidget (wtype : WidgetType) (index : Nat) : WidgetM Unit := do
     -- Mixed is handled at the grid level, not individual widget level
     caption' s!"Mixed {index}"
 
+/-- Create a custom grid container that collects children's renders. -/
+def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle := {})
+    (children : WidgetM α) : WidgetM α := do
+  let (result, childRenders) ← runWidgetChildren children
+  emit do
+    let widgets ← childRenders.mapM id
+    pure (Afferent.Arbor.gridCustom props style widgets)
+  pure result
+
 /-- Render a mixed grid with 10 instances of each widget type, interleaved. -/
 def renderMixedGrid : WidgetM Unit := do
-  let gridStyle : BoxStyle := {
-    flexItem := some (FlexItem.growing 1)
-    width := .percent 1.0
-  }
-  let rowStyle : BoxStyle := {
+  let containerStyle : BoxStyle := {
     flexItem := some (FlexItem.growing 1)
     width := .percent 1.0
   }
@@ -462,10 +467,17 @@ def renderMixedGrid : WidgetM Unit := do
   let totalWidgets := numTypes * 10  -- 10 of each type
   let numCols := 47  -- One of each type per row
   let numRows := 10  -- 10 instances of each
-  column' (gap := 6) (style := gridStyle) do
+  let rowTemplate := Array.replicate numRows Trellis.TrackSize.auto
+  let colTemplate := Array.replicate numCols (Trellis.TrackSize.fr 1)
+  let gridProps := Trellis.GridContainer.withTemplate rowTemplate colTemplate 6
+  column' (gap := 6) (style := containerStyle) do
     heading3' s!"Mixed Grid ({numTypes} types × 10 = {totalWidgets} instances)"
-    for row in [:numRows] do
-      row' (gap := 6) (style := rowStyle) do
+    let gridStyle : BoxStyle := {
+      flexItem := some (FlexItem.growing 1)
+      width := .percent 1.0
+    }
+    gridCustom' gridProps gridStyle do
+      for row in [:numRows] do
         for col in [:numCols] do
           let wtype := renderableWidgetTypes.getD col .label
           let index := row * numCols + col
@@ -476,18 +488,21 @@ def renderWidgetGrid (wtype : WidgetType) : WidgetM Unit := do
   if wtype == .mixed then
     renderMixedGrid
   else
-    let gridStyle : BoxStyle := {
+    let containerStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
       width := .percent 1.0
     }
-    let rowStyle : BoxStyle := {
-      flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
-    }
-    column' (gap := 6) (style := gridStyle) do
+    let rowTemplate := Array.replicate widgetGridRows Trellis.TrackSize.auto
+    let colTemplate := Array.replicate widgetGridColumns (Trellis.TrackSize.fr 1)
+    let gridProps := Trellis.GridContainer.withTemplate rowTemplate colTemplate 6
+    column' (gap := 6) (style := containerStyle) do
       heading3' s!"Grid of {wtype.name} ({widgetInstanceCount} instances)"
-      for row in [0:widgetGridRows] do
-        row' (gap := 6) (style := rowStyle) do
+      let gridStyle : BoxStyle := {
+        flexItem := some (FlexItem.growing 1)
+        width := .percent 1.0
+      }
+      gridCustom' gridProps gridStyle do
+        for row in [0:widgetGridRows] do
           for col in [0:widgetGridColumns] do
             let index := row * widgetGridColumns + col
             renderWidget wtype index
