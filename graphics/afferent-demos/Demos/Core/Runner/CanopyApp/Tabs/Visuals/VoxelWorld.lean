@@ -67,10 +67,12 @@ def voxelWorldTabContent (env : DemoEnv) : WidgetM Unit := do
     (t := Spider) (a := PoolCommand VoxelMeshJobId Demos.VoxelWorldParams)
 
   let poolConfig : WorkerPoolConfig := { workerCount := 2 }
-  let (poolOutput, _poolHandle) ← WorkerPool.fromCommandsWithShutdown
+  let (poolOutput, poolHandle) ← WorkerPool.fromCommandsWithShutdown
     poolConfig
     (fun params => pure (Demos.buildVoxelWorldMesh params))
     meshCommands
+  let scope ← SpiderM.getScope
+  SpiderM.liftIO <| scope.register poolHandle.shutdown
 
   let _ ← poolOutput.completed.subscribe fun (_, params, mesh) => do
     fireStateUpdate (fun s =>
