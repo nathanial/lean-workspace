@@ -312,7 +312,7 @@ def menuBar (menus : Array MenuBarMenu)
   let renderState2 ← Dynamic.zipWithM (fun (o, p) h => (o, p, h)) renderState hoveredPathWithMenu
   let renderState3 ← Dynamic.zipWithM (fun (o, p, h) t => (o, p, h, t)) renderState2 hoveredTrigger
   let _ ← dynWidget renderState3 fun (openIdx, openPath, hoveredWithMenu, hovTrigger) => do
-    emit do
+    emitDynamic do
       let widths ← triggerWidthsRef.get
       -- Extract hovered path only if it's in the currently open menu
       let hoveredPath : Option MenuPath := match openIdx, hoveredWithMenu with

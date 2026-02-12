@@ -449,7 +449,7 @@ def colorPicker (initialColor : Color := Color.red) (config : ColorPickerConfig 
 
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget combinedState fun s => do
-    emit do pure (colorPickerVisual pickerName svName hueName alphaName config s theme)
+    emitM do pure (colorPickerVisual pickerName svName hueName alphaName config s theme)
 
   pure { onChange, color := colorDyn, hsv := hsvDyn, alpha := alphaDyn }
 

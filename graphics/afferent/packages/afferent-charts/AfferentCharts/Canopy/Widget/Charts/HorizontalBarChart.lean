@@ -308,7 +308,7 @@ def horizontalBarChart (data : Dyn (Array Float)) (labels : Array String := #[])
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (horizontalBarChartVisual name currentData labels variant theme dims)
+    emitM do pure (horizontalBarChartVisual name currentData labels variant theme dims)
 
   pure { data }
 
@@ -328,7 +328,7 @@ def multiColorHorizontalBarChart (data : Dyn (Array HorizontalBarChart.DataPoint
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (multiColorHorizontalBarChartVisual name currentData theme dims)
+    emitM do pure (multiColorHorizontalBarChartVisual name currentData theme dims)
 
   pure { data }
 

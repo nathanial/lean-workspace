@@ -59,18 +59,18 @@ open Afferent.Canopy.Reactive
 def separator' (orientation : SeparatorOrientation)
     (thickness : Float := 1.0) (margin : Float := 8.0) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (separator orientation theme thickness margin))
+  emit (separator orientation theme thickness margin)
 
 /-- Emit a horizontal separator. -/
 def hseparator' (thickness : Float := 1.0)
     (margin : Float := 8.0) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (hseparator theme thickness margin))
+  emit (hseparator theme thickness margin)
 
 /-- Emit a vertical separator. -/
 def vseparator' (thickness : Float := 1.0)
     (margin : Float := 8.0) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (vseparator theme thickness margin))
+  emit (vseparator theme thickness margin)
 
 end Afferent.Canopy

@@ -1167,12 +1167,12 @@ def nodeEditor (initialModel : NodeEditorModel)
   let cameraDyn ← Dynamic.mapM (fun s => s.camera) stateDyn
 
   let _ ← dynWidget stateDyn fun state => do
-    emit do
+    emitDynamic do
       let mut bodyWidgetsByNode : Array (Array WidgetBuilder) :=
         Array.replicate bodyRenders.size #[]
       for i in [:bodyRenders.size] do
         let renders := bodyRenders.getD i #[]
-        let widgets ← renders.mapM id
+        let widgets ← ComponentRender.materializeAll renders
         bodyWidgetsByNode := bodyWidgetsByNode.set! i widgets
       pure (NodeEditor.nodeEditorVisual rootName canvasName nodeNameFn state theme config
         bodyWidgetsByNode bodyMinHeights)

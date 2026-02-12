@@ -244,6 +244,22 @@ AfferentResult create_pipelines(struct AfferentRenderer* renderer) {
     MTLRenderPipelineDescriptor *textPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
     textPipelineDesc.vertexFunction = textVertexFunction;
     textPipelineDesc.fragmentFunction = textFragmentFunction;
+    // Compatibility descriptor: the current instanced text shader ignores vertex attributes,
+    // but stale cached shader blobs may still declare attribute-based TextVertexIn.
+    // Providing this descriptor avoids hard startup failure in that cached state.
+    MTLVertexDescriptor *textVertexDescriptor = [[MTLVertexDescriptor alloc] init];
+    textVertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;  // position
+    textVertexDescriptor.attributes[0].offset = 0;
+    textVertexDescriptor.attributes[0].bufferIndex = 0;
+    textVertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;  // uv
+    textVertexDescriptor.attributes[1].offset = sizeof(float) * 2;
+    textVertexDescriptor.attributes[1].bufferIndex = 0;
+    textVertexDescriptor.attributes[2].format = MTLVertexFormatFloat4;  // color
+    textVertexDescriptor.attributes[2].offset = sizeof(float) * 4;
+    textVertexDescriptor.attributes[2].bufferIndex = 0;
+    textVertexDescriptor.layouts[0].stride = sizeof(float) * 8;
+    textVertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    textPipelineDesc.vertexDescriptor = textVertexDescriptor;
     textPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     apply_alpha_blend(textPipelineDesc.colorAttachments[0]);
 

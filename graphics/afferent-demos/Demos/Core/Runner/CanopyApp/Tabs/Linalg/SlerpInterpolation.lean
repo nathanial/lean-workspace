@@ -78,9 +78,9 @@ def slerpInterpolationTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn slerpName 0 containerStyle #[
+    emit (namedColumn slerpName 0 containerStyle #[
       Demos.Linalg.slerpInterpolationWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

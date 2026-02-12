@@ -235,7 +235,7 @@ def stackedBarChart (data : Dyn StackedBarChart.Data)
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (stackedBarChartVisual name currentData theme dims)
+    emitM do pure (stackedBarChartVisual name currentData theme dims)
 
   pure { data }
 

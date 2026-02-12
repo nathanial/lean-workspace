@@ -93,7 +93,7 @@ def mathView2DInteractive (config : MathView2D.Config := {})
   let configDyn ← Dynamic.mapM (fun s => s.config) state
 
   let _ ← dynWidget configDyn fun cfg => do
-    emit do
+    emitM do
       pure (MathView2D.mathView2DVisual (some name) cfg font drawContent)
 
   pure { config := configDyn }
@@ -161,7 +161,7 @@ def mathView3DInteractive (config : MathView3D.Config := {})
   let configDyn ← Dynamic.mapM (fun s => s.config) state
 
   let _ ← dynWidget configDyn fun cfg => do
-    emit do
+    emitM do
       pure (MathView3D.mathView3DVisual (some name) cfg font drawContent)
 
   pure { config := configDyn }

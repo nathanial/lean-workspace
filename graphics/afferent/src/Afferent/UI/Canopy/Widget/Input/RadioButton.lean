@@ -118,7 +118,7 @@ def radioGroup (options : Array RadioOption) (initialSelection : String)
       let isSelected := selectedValue == opt.value
       let state : WidgetState := { hovered := isHovered, pressed := false, focused := false }
       builders := builders.push (radioButtonVisual name opt.label theme isSelected state)
-    emit do pure (column (gap := 8) (style := {}) builders)
+    emitM do pure (column (gap := 8) (style := {}) builders)
 
   pure { onSelect, selected }
 

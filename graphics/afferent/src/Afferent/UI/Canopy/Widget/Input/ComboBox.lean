@@ -477,7 +477,7 @@ def comboBox (options : Array String) (placeholder : String := "Type to search..
     let isFoc := focused == some inputName
     let stateWithFocus := { state with focused := isFoc }
     let filteredOptions := ComboBox.filterOptions options state.inputText config.caseSensitive
-    emit do pure (comboBoxVisual containerName inputName optionNameFn
+    emitM do pure (comboBoxVisual containerName inputName optionNameFn
         filteredOptions stateWithFocus theme placeholder config)
 
   pure { onChange, onSelect, value, isOpen }

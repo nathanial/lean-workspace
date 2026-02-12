@@ -329,7 +329,7 @@ def virtualList (itemCount : Nat) (itemBuilder : Nat → WidgetBuilder)
     }
     let scrollbarConfig := buildScrollbarConfig scrollConfig theme
     let scrollW := if config.fillWidth && viewportW > 0 then viewportW else contentW
-    emit (pure (namedScroll name scrollStyle scrollW contentH state.scroll scrollbarConfig listBuilder))
+    emit (namedScroll name scrollStyle scrollW contentH state.scroll scrollbarConfig listBuilder)
 
   pure { scrollState, visibleRange, onItemClick := itemClickTrigger }
 

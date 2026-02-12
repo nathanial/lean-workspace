@@ -374,7 +374,7 @@ def timePicker (initialValue : TimeValue := {}) (config : TimePickerConfig := {}
   let renderState ← Dynamic.zipWithM (fun v h => (v, h)) valueDyn hoverAll
 
   let _ ← dynWidget renderState fun (time, ((((hu, hd), (mu, md)), (su, sd)), ap)) => do
-    emit do pure (timePickerVisual containerName
+    emitM do pure (timePickerVisual containerName
       hoursUpName hoursDownName minutesUpName minutesDownName
       secondsUpName secondsDownName ampmName
       time hu hd mu md su sd ap theme config)

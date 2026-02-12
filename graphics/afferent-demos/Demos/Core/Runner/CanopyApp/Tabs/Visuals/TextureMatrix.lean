@@ -20,8 +20,8 @@ namespace Demos
 def textureMatrixTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun t => do
-    emit (pure (textureMatrixWidget t env.screenScale env.windowWidthF env.windowHeightF
-      env.fontMedium env.fontSmall env.spriteTexture))
+    emit (textureMatrixWidget t env.screenScale env.windowWidthF env.windowHeightF
+      env.fontMedium env.fontSmall env.spriteTexture)
   pure ()
 
 end Demos

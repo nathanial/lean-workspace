@@ -247,7 +247,7 @@ private def buttonWithVisual (render : ComponentId → Theme → WidgetState →
   let renderState ← Dynamic.zipWithM (fun hovered pressed => (hovered, pressed)) isHovered isPressed
   let _ ← dynWidget renderState fun (hovered, pressed) => do
     let state : WidgetState := { hovered, pressed, focused := false }
-    emit do pure (render name theme state)
+    emitM do pure (render name theme state)
 
   pure onClick
 
@@ -366,7 +366,7 @@ def toggleButton (label : String) (variant : ButtonVariant := .secondary)
 
   let _ ← dynWidget renderState fun (hovered, on, pressed) => do
     let state : WidgetState := { hovered, pressed := (on || pressed), focused := false }
-    emit do pure (buttonVisual name label theme variant state)
+    emitM do pure (buttonVisual name label theme variant state)
 
   pure { onToggle, isOn }
 
@@ -424,7 +424,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
     row' (gap := 0) (style := containerStyle) do
       for i in [:labelsRef.size] do
         if i > 0 then
-          emit do
+          emitM do
             let dividerStyle : BoxStyle := {
               backgroundColor := some (theme.panel.border.withAlpha 0.6)
               width := .length 1.0
@@ -455,7 +455,7 @@ def toggleGroup (labels : Array String) (initialSelection : Nat := 0)
           minHeight := some 32
         }
 
-        emit do
+        emitM do
           pure (namedCenter name (style := style) do
             text' label theme.font fgColor .center)
 
@@ -527,7 +527,7 @@ def splitButton (label : String) (variant : ButtonVariant := .primary)
   let _ ← dynWidget renderState fun (h1, h2, p1, p2) => do
     let primaryState : WidgetState := { hovered := h1, pressed := p1, focused := false }
     let menuState : WidgetState := { hovered := h2, pressed := p2, focused := false }
-    emit do pure (splitButtonVisual primaryName menuName label theme variant primaryState menuState)
+    emitM do pure (splitButtonVisual primaryName menuName label theme variant primaryState menuState)
 
   pure { onPrimary, onMenu }
 
@@ -573,7 +573,7 @@ def loadingButton (label : String) (isLoading : Reactive.Dynamic Spider Bool)
       padding := Trellis.EdgeInsets.symmetric theme.padding loadingPadding
     }
 
-    emit do
+    emitM do
       if loading then
         pure (namedCenter name (style := style) do
           text' "..." theme.font fgColor .center)
@@ -753,7 +753,7 @@ def rippleButton (label : String) (variant : ButtonVariant := .primary)
           else
             #[overlayWidget (rippleOverlaySpec progress r.center (colors.foreground.withAlpha 0.9))]
       | none => #[]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := rippleLayer))
@@ -780,7 +780,7 @@ def pulseButton (label : String) (variant : ButtonVariant := .primary)
     let wave := (Float.sin (t * 2.0) + 1.0) * 0.5
     let intensity := 0.12 * wave
     let overlay := #[overlayWidget (pulseOverlaySpec intensity (colors.foreground.withAlpha 0.6))]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))
@@ -810,7 +810,7 @@ def glowOnHoverButton (label : String) (variant : ButtonVariant := .primary)
     let progress := hoverProgress anim t 0.2
     let overlay := if progress <= 0.0 then #[] else
       #[overlayWidget (glowOverlaySpec progress colors.border theme.cornerRadius)]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))
@@ -843,7 +843,7 @@ def borderTraceButton (label : String) (variant : ButtonVariant := .primary)
     else 0.0
     let overlay := if progress <= 0.0 then #[] else
       #[overlayWidget (borderTraceSpec progress colors.border)]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))
@@ -870,7 +870,7 @@ def shimmerLoadingButton (label : String) (variant : ButtonVariant := .primary)
     let cycle := 1.4
     let phase := floatMod t cycle / cycle
     let overlay := #[overlayWidget (shimmerOverlaySpec phase (colors.foreground.withAlpha 0.8))]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))
@@ -912,7 +912,7 @@ def bounceButton (label : String) (variant : ButtonVariant := .primary)
         let oscillation := Float.sin (dt * 16.0)
         clamp (1.0 + 0.08 * oscillation * decay) 0.9 1.1
       else 1.0
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         (theme.padding * bounce) (theme.padding * 0.6 * bounce) theme.cornerRadius)
 
@@ -954,7 +954,7 @@ def jellyButton (label : String) (variant : ButtonVariant := .primary)
       else 0.0
     let scaleX := if pressed then 1.08 else 1.0 + 0.06 * wobble
     let scaleY := if pressed then 0.92 else 1.0 - 0.06 * wobble
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         (theme.padding * scaleX) (theme.padding * 0.6 * scaleY) theme.cornerRadius)
 
@@ -996,7 +996,7 @@ def typewriterButton (label : String) (variant : ButtonVariant := .primary)
         false
     let cursor := if blinkOn && typed.length < total then "|" else ""
     let typedLabel := typed ++ cursor
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name typedLabel none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius)
 
@@ -1025,7 +1025,7 @@ def slideRevealButton (label : String) (variant : ButtonVariant := .primary)
     let progress := hoverProgress anim t 0.18
     let overlay := if progress <= 0.0 then #[] else
       #[overlayWidget (slideRevealSpec progress colors.backgroundHover)]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))
@@ -1056,7 +1056,7 @@ def heartbeatButton (label : String) (variant : ButtonVariant := .primary)
       Float.sin ((phase - 0.3) / 0.16 * pi) else 0.0
     let intensity := clamp (pulse1 * 0.35 + pulse2 * 0.25) 0.0 0.4
     let overlay := #[overlayWidget (heartbeatOverlaySpec intensity (colors.foreground.withAlpha 0.7))]
-    emit do
+    emitM do
       pure (Button.buttonVisualLayered name label none .leading theme variant state
         theme.padding (theme.padding * 0.6) theme.cornerRadius
         (layers := overlay))

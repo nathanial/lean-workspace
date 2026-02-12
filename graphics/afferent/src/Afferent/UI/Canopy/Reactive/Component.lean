@@ -205,10 +205,168 @@ def disableDynWidgetMetrics : IO Unit :=
 @[deprecated "Use automatic monad lifting instead of explicit liftSpider" (since := "2026-02-05")]
 def liftSpider (m : SpiderM α) : ReactiveM α := fun _ => m
 
-/-! ## Type Aliases -/
+/-! ## Render Cells -/
 
-/-- A component's render function - samples its internal dynamics and produces a widget. -/
-abbrev ComponentRender := IO Afferent.Arbor.WidgetBuilder
+/-- A component render cell.
+    `materialize` builds the current widget builder value.
+    `version` changes only when this render's observable output changes. -/
+structure ComponentRender where
+  materialize : IO Afferent.Arbor.WidgetBuilder
+  version : IO Nat
+  alwaysDynamic : Bool := false
+
+instance : Inhabited ComponentRender where
+  default := {
+    materialize := pure (Afferent.Arbor.spacer 0 0)
+    version := pure 0
+  }
+
+instance : CoeFun ComponentRender (fun _ => IO Afferent.Arbor.WidgetBuilder) where
+  coe r := r.materialize
+
+namespace ComponentRender
+
+/-- Static render cell for immutable widget builders. -/
+def static (builder : Afferent.Arbor.WidgetBuilder) : ComponentRender := {
+  materialize := pure builder
+  version := pure 0
+  alwaysDynamic := false
+}
+
+/-- Volatile render cell for closures that may change on every render pass. -/
+def volatile (render : IO Afferent.Arbor.WidgetBuilder) : ComponentRender := {
+  materialize := render
+  version := IO.monoNanosNow
+  alwaysDynamic := true
+}
+
+/-- Materialize all component render cells in order. -/
+def materializeAll (renders : Array ComponentRender) : IO (Array Afferent.Arbor.WidgetBuilder) :=
+  renders.mapM (fun r => r.materialize)
+
+/-- Build a memoized render cell from child render cells.
+    The parent version tracks child versions plus an optional external stamp. -/
+def memoizedChildren
+    (childrenIO : IO (Array ComponentRender))
+    (combine : Array Afferent.Arbor.WidgetBuilder → Afferent.Arbor.WidgetBuilder)
+    (stamp : IO Nat := pure 0) : IO ComponentRender := do
+  let seenStampRef ← IO.mkRef (0 : Nat)
+  let seenVersionsRef ← IO.mkRef (#[ ] : Array Nat)
+  let currentChildrenRef ← IO.mkRef (#[ ] : Array ComponentRender)
+  let materializedVersionsRef ← IO.mkRef (#[ ] : Array Nat)
+  let materializedBuildersRef ← IO.mkRef (#[ ] : Array Afferent.Arbor.WidgetBuilder)
+  let combinedRef ← IO.mkRef (none : Option Afferent.Arbor.WidgetBuilder)
+  let hasDynamicRef ← IO.mkRef false
+  let allDynamicRef ← IO.mkRef false
+  let dirtyRef ← IO.mkRef true
+  let versionRef ← IO.mkRef (0 : Nat)
+
+  let refresh := fun (forVersion : Bool) => do
+    let children ← childrenIO
+    let hasDynamic := children.any (fun r => r.alwaysDynamic)
+    let allDynamic := hasDynamic && children.all (fun r => r.alwaysDynamic)
+    hasDynamicRef.set hasDynamic
+    allDynamicRef.set allDynamic
+    if hasDynamic then
+      currentChildrenRef.set children
+      dirtyRef.set true
+      if forVersion then
+        versionRef.modify (· + 1)
+    else
+      let childVersions ← children.mapM (fun r => r.version)
+      let stampNow ← stamp
+      let seenStamp ← seenStampRef.get
+      let seenVersions ← seenVersionsRef.get
+      if stampNow != seenStamp || childVersions != seenVersions then
+        seenStampRef.set stampNow
+        seenVersionsRef.set childVersions
+        currentChildrenRef.set children
+        dirtyRef.set true
+        versionRef.modify (· + 1)
+
+  let readVersion : IO Nat := do
+    refresh true
+    versionRef.get
+
+  let materialize : IO Afferent.Arbor.WidgetBuilder := do
+    refresh false
+    let hasDynamic ← hasDynamicRef.get
+    let allDynamic ← allDynamicRef.get
+    if allDynamic then
+      let children ← currentChildrenRef.get
+      let builders ← materializeAll children
+      pure (combine builders)
+    else if hasDynamic then
+      let children ← currentChildrenRef.get
+      let oldVersions ← materializedVersionsRef.get
+      let oldBuilders ← materializedBuildersRef.get
+      let mut builders : Array Afferent.Arbor.WidgetBuilder := Array.mkEmpty children.size
+      let mut nextVersions : Array Nat := Array.mkEmpty children.size
+      for i in [:children.size] do
+        let child := children[i]!
+        if child.alwaysDynamic then
+          let builder ← child.materialize
+          builders := builders.push builder
+          nextVersions := nextVersions.push 0
+        else
+          let currentVersion ← child.version
+          nextVersions := nextVersions.push currentVersion
+          if i < oldVersions.size && i < oldBuilders.size && oldVersions[i]! == currentVersion then
+            builders := builders.push oldBuilders[i]!
+          else
+            let builder ← child.materialize
+            builders := builders.push builder
+      let combined := combine builders
+      materializedVersionsRef.set nextVersions
+      materializedBuildersRef.set builders
+      combinedRef.set (some combined)
+      pure combined
+    else
+      let dirty ← dirtyRef.get
+      match (dirty, ← combinedRef.get) with
+      | (false, some combined) => pure combined
+      | _ =>
+          let children ← currentChildrenRef.get
+          let currentVersions ← seenVersionsRef.get
+          let oldVersions ← materializedVersionsRef.get
+          let oldBuilders ← materializedBuildersRef.get
+          let mut builders : Array Afferent.Arbor.WidgetBuilder := Array.mkEmpty children.size
+          for i in [:children.size] do
+            let currentVersion := currentVersions.getD i 0
+            if i < oldVersions.size && i < oldBuilders.size && oldVersions[i]! == currentVersion then
+              builders := builders.push oldBuilders[i]!
+            else
+              let builder ← children[i]!.materialize
+              builders := builders.push builder
+          let combined := combine builders
+          materializedVersionsRef.set currentVersions
+          materializedBuildersRef.set builders
+          combinedRef.set (some combined)
+          dirtyRef.set false
+          pure combined
+
+  pure {
+    materialize := materialize
+    version := readVersion
+    alwaysDynamic := false
+  }
+
+end ComponentRender
+
+private def stampWithGeneration (gen : Nat) (builder : Afferent.Arbor.WidgetBuilder)
+    : Afferent.Arbor.WidgetBuilder := do
+  modify fun s => { s with cacheGeneration := gen }
+  builder
+
+private def withGenerationRender (generation : Nat) (render : ComponentRender) : ComponentRender := {
+  materialize := do
+    let baseBuilder ← render.materialize
+    pure (stampWithGeneration generation baseBuilder)
+  version := do
+    let baseVersion ← render.version
+    pure (baseVersion + generation * 1315423911 + 1)
+  alwaysDynamic := render.alwaysDynamic
+}
 
 /-! ## The WidgetM Monad
 
@@ -280,10 +438,29 @@ def withTheme (theme : Theme) (m : WidgetM α) : WidgetM α := do
 
 /-! ## WidgetM Core Helpers -/
 
-/-- Emit a widget render function into the current container's children.
-    This is the primary way components contribute their visual representation. -/
-def emit (render : ComponentRender) : WidgetM Unit := do
+/-- Emit a component render cell into the current container's children. -/
+def emitRender (render : ComponentRender) : WidgetM Unit := do
   modify fun s => { s with children := s.children.push render }
+
+/-- Emit a static widget builder into the current container. -/
+def emit (builder : Afferent.Arbor.WidgetBuilder) : WidgetM Unit :=
+  emitRender (ComponentRender.static builder)
+
+/-- Emit a nested builder computation (`emitM do ...`) that returns a widget builder. -/
+syntax "emitM" " do " doSeq : term
+macro_rules
+  | `(emitM do $seq) =>
+      `(emit (do
+        let b ← ((do $seq : StateM Afferent.Arbor.BuilderState Afferent.Arbor.WidgetBuilder))
+        b))
+
+/-- Alias for explicit static emission. -/
+def emitStatic (builder : Afferent.Arbor.WidgetBuilder) : WidgetM Unit :=
+  emit builder
+
+/-- Emit a volatile render closure into the current container. -/
+def emitDynamic (render : IO Afferent.Arbor.WidgetBuilder) : WidgetM Unit :=
+  emitRender (ComponentRender.volatile render)
 
 /-- Run a WidgetM computation and extract both the result and collected child renders.
     Used by container combinators to gather children's render functions. -/
@@ -299,14 +476,15 @@ def runWidgetChildren (m : WidgetM α) : WidgetM (α × Array ComponentRender) :
     This is used at the top level to get a single ComponentRender from WidgetM. -/
 def runWidget (m : WidgetM α) : ReactiveM (α × ComponentRender) := do
   let (result, state) ← m.run { children := #[] }
-  let render : ComponentRender := do
-    if state.children.isEmpty then
-      pure (Afferent.Arbor.spacer 0 0)
-    else if h : state.children.size = 1 then
-      state.children[0]
-    else
-      let widgets ← state.children.mapM id
-      pure (Afferent.Arbor.column (gap := 0) (style := {}) widgets)
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := pure state.children)
+    (combine := fun widgets =>
+      if widgets.isEmpty then
+        Afferent.Arbor.spacer 0 0
+      else if widgets.size = 1 then
+        widgets[0]!
+      else
+        Afferent.Arbor.column (gap := 0) (style := {}) widgets)
   pure (result, render)
 
 /-- Get the events from WidgetM context. -/
@@ -551,14 +729,21 @@ These combinators run child WidgetM computations and wrap their renders
 in container widgets. They enable declarative nesting like Reflex-DOM.
 -/
 
+private def emitCombinedChildren
+    (childRenders : Array ComponentRender)
+    (combine : Array Afferent.Arbor.WidgetBuilder → Afferent.Arbor.WidgetBuilder) : WidgetM Unit := do
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := pure childRenders)
+    (combine := combine)
+  emitRender render
+
 /-- Create a column container that collects children's renders.
     Children are laid out vertically with the specified gap. -/
 def column' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.column (gap := gap) (style := style) widgets)
+  emitCombinedChildren childRenders
+    (fun widgets => Afferent.Arbor.column (gap := gap) (style := style) widgets)
   pure result
 
 /-- Create a row container that collects children's renders.
@@ -566,9 +751,8 @@ def column' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
 def row' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.row (gap := gap) (style := style) widgets)
+  emitCombinedChildren childRenders
+    (fun widgets => Afferent.Arbor.row (gap := gap) (style := style) widgets)
   pure result
 
 /-- Create a static-flow column container that collects children's renders.
@@ -576,27 +760,24 @@ def row' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
 def staticColumn' (gap : Float := 0) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.staticColumn (gap := gap) (style := style) widgets)
+  emitCombinedChildren childRenders
+    (fun widgets => Afferent.Arbor.staticColumn (gap := gap) (style := style) widgets)
   pure result
 
 /-- Create a flex row with custom properties. -/
 def flexRow' (props : Trellis.FlexContainer) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.flexRow props (style := style) widgets)
+  emitCombinedChildren childRenders
+    (fun widgets => Afferent.Arbor.flexRow props (style := style) widgets)
   pure result
 
 /-- Create a flex column with custom properties. -/
 def flexColumn' (props : Trellis.FlexContainer) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.flexColumn props (style := style) widgets)
+  emitCombinedChildren childRenders
+    (fun widgets => Afferent.Arbor.flexColumn props (style := style) widgets)
   pure result
 
 /-- Create a titled panel container. -/
@@ -604,10 +785,9 @@ def titledPanel' (title : String) (variant : PanelVariant)
     (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitCombinedChildren childRenders (fun widgets =>
     let content := Afferent.Arbor.column (gap := 0) (style := {}) widgets
-    pure (titledPanel title variant theme content)
+    titledPanel title variant theme content)
   pure result
 
 /-- Create an elevated panel container. -/
@@ -615,10 +795,9 @@ def elevatedPanel' (padding : Float := 16)
     (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitCombinedChildren childRenders (fun widgets =>
     let content := Afferent.Arbor.column (gap := 0) (style := {}) widgets
-    pure (elevatedPanel theme padding content)
+    elevatedPanel theme padding content)
   pure result
 
 /-- Create an outlined panel container. -/
@@ -626,10 +805,9 @@ def outlinedPanel' (padding : Float := 16)
     (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitCombinedChildren childRenders (fun widgets =>
     let content := Afferent.Arbor.column (gap := 0) (style := {}) widgets
-    pure (outlinedPanel theme padding content)
+    outlinedPanel theme padding content)
   pure result
 
 /-- Create a filled panel container. -/
@@ -637,10 +815,9 @@ def filledPanel' (padding : Float := 16)
     (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitCombinedChildren childRenders (fun widgets =>
     let content := Afferent.Arbor.column (gap := 0) (style := {}) widgets
-    pure (filledPanel theme padding content)
+    filledPanel theme padding content)
   pure result
 
 /-! ## WidgetM Static Widget Emitters
@@ -651,41 +828,41 @@ These emit visual-only widgets without returning events or dynamics.
 /-- Emit a heading1 label. -/
 def heading1' (text : String) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (heading1 text theme))
+  emitStatic (heading1 text theme)
 
 /-- Emit a heading2 label. -/
 def heading2' (text : String) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (heading2 text theme))
+  emitStatic (heading2 text theme)
 
 /-- Emit a heading3 label. -/
 def heading3' (text : String) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (heading3 text theme))
+  emitStatic (heading3 text theme)
 
 /-- Emit body text. -/
 def bodyText' (text : String) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (bodyText text theme))
+  emitStatic (bodyText text theme)
 
 /-- Emit caption text. -/
 def caption' (text : String) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (caption text theme))
+  emitStatic (caption text theme)
 
 /-- Emit a spacer. -/
 def spacer' (width height : Float) : WidgetM Unit := do
-  emit (pure (Afferent.Arbor.spacer width height))
+  emitStatic (Afferent.Arbor.spacer width height)
 
 /-! ## WidgetM Conditional Rendering -/
 
 /-- Emit a widget only when condition is true (sampled at render time). -/
 def when' (condition : Dynamic Spider Bool) (content : WidgetM Unit) : WidgetM Unit := do
   let (_, childRenders) ← runWidgetChildren content
-  emit do
+  emitDynamic do
     let visible ← condition.sample
     if visible then
-      let widgets ← childRenders.mapM id
+      let widgets ← ComponentRender.materializeAll childRenders
       pure (Afferent.Arbor.column (gap := 0) (style := {}) widgets)
     else
       pure (Afferent.Arbor.spacer 0 0)
@@ -788,6 +965,7 @@ def dynWidgetKeyedListWith [BEq k] [Hashable k]
 
   let (resultEvent, fireResults) ← Reactive.newTriggerEvent (t := Spider) (a := Array b)
   let resultDyn ← Reactive.holdDyn initialResults resultEvent
+  let renderStampRef ← SpiderM.liftIO (IO.mkRef (0 : Nat))
 
   -- Subscribe to keyed updates.
   let subscribeAction : SpiderM Unit := ⟨fun env => do
@@ -855,6 +1033,7 @@ def dynWidgetKeyedListWith [BEq k] [Hashable k]
         orderRef.set nextOrder
 
         if anyEntryRebuilt || orderChanged then
+          renderStampRef.modify (· + 1)
           fireResults nextResults
 
       match ← dynWidgetMetricsRef.get with
@@ -870,29 +1049,27 @@ def dynWidgetKeyedListWith [BEq k] [Hashable k]
   subscribeAction
 
   -- Emit render with per-entry generation stamping so unchanged keys retain cache generation.
-  emit do
-    let entries ← entriesRef.get
-    let order ← orderRef.get
-    let mut builders : Array Afferent.Arbor.WidgetBuilder := #[]
-
-    for key in order do
-      match entries[key]? with
-      | some entry =>
-          for render in entry.renders do
-            let baseBuilder ← render
-            let gen := entry.generation
-            let wrapped : Afferent.Arbor.WidgetBuilder := do
-              modify fun s => { s with cacheGeneration := gen }
-              baseBuilder
-            builders := builders.push wrapped
-      | none => pure ()
-
-    if builders.isEmpty then
-      pure (Afferent.Arbor.spacer 0 0)
-    else if builders.size == 1 then
-      pure builders[0]!
-    else
-      pure (combine builders)
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := do
+      let entries ← entriesRef.get
+      let order ← orderRef.get
+      let mut renders : Array ComponentRender := #[]
+      for key in order do
+        match entries[key]? with
+        | some entry =>
+            for baseRender in entry.renders do
+              renders := renders.push (withGenerationRender entry.generation baseRender)
+        | none => pure ()
+      pure renders)
+    (stamp := renderStampRef.get)
+    (combine := fun builders =>
+      if builders.isEmpty then
+        Afferent.Arbor.spacer 0 0
+      else if builders.size = 1 then
+        builders[0]!
+      else
+        combine builders)
+  emitRender render
 
   pure resultDyn
 
@@ -1007,22 +1184,22 @@ def dynWidget [DynWidgetResult b] (dynValue : Dynamic Spider a) (builder : a →
     env.currentScope.register unsub⟩
   subscribeAction  -- Lift SpiderM to WidgetM via MonadLift
 
-  -- Emit render that uses current renders with proper cache generation
-  emit do
-    let renders ← rendersRef.get
-    let gen ← generationRef.get
-    -- Helper to wrap a builder with the current cache generation
-    let withGen (b : Afferent.Arbor.WidgetBuilder) : Afferent.Arbor.WidgetBuilder := do
-      modify fun s => { s with cacheGeneration := gen }
-      b
-    if renders.isEmpty then
-      pure (Afferent.Arbor.spacer 0 0)
-    else if h : renders.size = 1 then
-      let builder ← renders[0]
-      pure (withGen builder)
-    else
-      let builders ← renders.mapM id
-      pure (withGen (Afferent.Arbor.column (gap := 0) (style := {}) builders))
+  -- Emit render that uses current renders with proper cache generation.
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := do
+      let renders ← rendersRef.get
+      let gen ← generationRef.get
+      pure (renders.map (withGenerationRender gen))
+    )
+    (stamp := generationRef.get)
+    (combine := fun builders =>
+      if builders.isEmpty then
+        Afferent.Arbor.spacer 0 0
+      else if builders.size = 1 then
+        builders[0]!
+      else
+        Afferent.Arbor.column (gap := 0) (style := {}) builders)
+  emitRender render
 
   pure resultDyn
 

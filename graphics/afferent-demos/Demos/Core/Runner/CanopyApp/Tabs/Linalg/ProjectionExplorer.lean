@@ -103,9 +103,9 @@ def projectionExplorerTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn projName 0 containerStyle #[
+    emit (namedColumn projName 0 containerStyle #[
       Demos.Linalg.projectionExplorerWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

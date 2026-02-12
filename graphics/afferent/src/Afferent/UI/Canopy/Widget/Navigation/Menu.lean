@@ -479,10 +479,9 @@ def menu (items : Array MenuItem)
   let renderState ← Dynamic.zipWithM (fun o h => (o, h)) isOpen hoveredPath
   let renderState2 ← Dynamic.zipWithM (fun (o, h) p => (o, h, p)) renderState openSubmenuPath
   let _ ← dynWidget renderState2 fun (open_, hoverPath, openPath) => do
-    emit do
+    emitDynamic do
       let (_, triggerHeight) ← triggerDimsRef.get
-      -- Get trigger widget builders (ComponentRender = IO WidgetBuilder)
-      let triggerBuilders ← triggerRenders.mapM id
+      let triggerBuilders ← ComponentRender.materializeAll triggerRenders
       pure (menuVisual containerNameFn triggerName itemNameFn items open_ openPath hoverPath theme config triggerHeight triggerBuilders)
 
   pure (triggerResult, { onSelect, isOpen })

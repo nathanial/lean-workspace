@@ -241,7 +241,7 @@ def groupedBarChart (data : Dyn GroupedBarChart.Data)
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (groupedBarChartVisual name currentData theme dims)
+    emitM do pure (groupedBarChartVisual name currentData theme dims)
 
   pure { data }
 

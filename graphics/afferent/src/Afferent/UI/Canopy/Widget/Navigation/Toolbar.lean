@@ -122,7 +122,7 @@ def toolbar (actions : Array ToolbarAction)
         let name := buttonNamesRef[i]!
         let isHovered := hoveredIdx == some i
         let state : WidgetState := { hovered := isHovered, pressed := false, focused := false }
-        emit do pure (toolbarButtonVisual name action theme state)
+        emitM do pure (toolbarButtonVisual name action theme state)
 
   pure { onAction := actionClicks }
 

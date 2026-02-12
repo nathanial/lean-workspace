@@ -109,7 +109,7 @@ def spinner (config : Spinner.Config := {}) : WidgetM Unit := do
   let _ ← dynWidget elapsedTime fun t => do
     let offsetT := t + timeOffset
     let animTime := if useRawTime then offsetT * config.speed else floatMod offsetT cycleDuration / cycleDuration
-    emit do pure (spinnerVisual name animTime config theme)
+    emitM do pure (spinnerVisual name animTime config theme)
 
 /-- Convenience function: Create a default ring spinner. -/
 def spinnerRing (color : Option Color := none) (size : Float := 40.0) : WidgetM Unit :=

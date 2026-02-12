@@ -84,6 +84,7 @@ structure RunningState where
   spiderEnv : Reactive.Host.SpiderEnv
   shutdown : IO Unit
   cachedWidget : Afferent.Arbor.WidgetBuilder
+  cachedRenderVersion : Nat := 0
   inputSnapshot : Option InputSnapshot := none
   lastMouseX : Float := 0.0
   lastMouseY : Float := 0.0

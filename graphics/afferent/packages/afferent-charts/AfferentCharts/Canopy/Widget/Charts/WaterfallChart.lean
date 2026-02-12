@@ -285,7 +285,7 @@ def waterfallChart (data : Dyn WaterfallChart.Data)
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (waterfallChartVisual name currentData theme colors dims)
+    emitM do pure (waterfallChartVisual name currentData theme colors dims)
 
   pure { data }
 

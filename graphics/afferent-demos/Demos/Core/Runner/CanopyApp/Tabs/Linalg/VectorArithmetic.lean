@@ -101,9 +101,9 @@ def vectorArithmeticTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn arithName 0 containerStyle #[
+    emit (namedColumn arithName 0 containerStyle #[
       Demos.Linalg.vectorArithmeticWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

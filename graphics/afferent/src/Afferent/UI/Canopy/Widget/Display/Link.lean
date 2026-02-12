@@ -39,7 +39,7 @@ def link (linkText : String) (color : Option Color := none)
   let linkColor := color.getD theme.primary.background
 
   let _ ← dynWidget isHovered fun hovered => do
-    emit (pure (linkVisual name linkText theme linkColor hovered))
+    emit (linkVisual name linkText theme linkColor hovered)
 
   pure onClick
 
@@ -59,11 +59,11 @@ def linkWithIcon (linkText : String) (icon : String)
 
   let _ ← dynWidget isHovered fun hovered => do
     let displayColor := if hovered then linkColor.lighten 0.2 else linkColor
-    emit (pure (
+    emit (
       namedRow name (gap := 4) (style := {}) #[
         text' icon theme.font displayColor .left,
         text' linkText theme.font displayColor .left
-      ]))
+      ])
 
   pure onClick
 

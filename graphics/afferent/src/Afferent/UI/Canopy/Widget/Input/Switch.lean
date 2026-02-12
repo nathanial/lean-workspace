@@ -219,7 +219,7 @@ def switch (label : Option String) (initialOn : Bool := false)
   -- Only rebuild widget when hover or animation state actually changes
   let _ ← dynWidget renderState fun (hovered, anim) => do
     let state : WidgetState := { hovered, pressed := false, focused := false }
-    emit do pure (animatedSwitchVisual name label theme anim state)
+    emitM do pure (animatedSwitchVisual name label theme anim state)
 
   pure { onToggle, isOn, animProgress }
 

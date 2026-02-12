@@ -407,7 +407,7 @@ def sankeyDiagram (data : Dyn SankeyDiagram.Data)
   -- dynWidget rebuilds visual only when cached layout changes
   let _ ← dynWidget (← Dynamic.zipWithM (·, ·) data layoutDyn) fun (currentData, cached) => do
     let name ← registerComponentW (isInteractive := false)
-    emit (pure (sankeyDiagramVisualCached name cached currentData theme dims))
+    emit (sankeyDiagramVisualCached name cached currentData theme dims)
 
   pure { data }
 

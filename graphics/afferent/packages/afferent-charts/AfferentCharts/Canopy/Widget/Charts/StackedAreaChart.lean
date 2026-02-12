@@ -319,7 +319,7 @@ def stackedAreaChart (data : Dyn StackedAreaChart.Data)
   -- Use dynWidget to rebuild the chart when data changes
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do
+    emitM do
       pure (stackedAreaChartVisual name currentData theme dims)
 
   pure { data }

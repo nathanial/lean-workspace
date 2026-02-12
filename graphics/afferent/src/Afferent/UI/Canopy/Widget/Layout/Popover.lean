@@ -230,11 +230,11 @@ def popover (config : PopoverConfig := {}) (anchor : WidgetM α)
 
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget isOpen fun open_ => do
-    emit do
-      let anchorWidgets ← anchorRenders.mapM id
+    emitDynamic do
+      let anchorWidgets ← ComponentRender.materializeAll anchorRenders
       let anchorBuilder := namedColumn anchorName (gap := 0) (style := {}) anchorWidgets
 
-      let contentWidgets ← contentRenders.mapM id
+      let contentWidgets ← ComponentRender.materializeAll contentRenders
       let contentBuilder := column (gap := 0) (style := {}) contentWidgets
 
       pure (popoverVisual containerName panelName anchorName theme config open_

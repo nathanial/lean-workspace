@@ -294,7 +294,7 @@ def scatterPlot (points : Dyn (Array ScatterPlot.DataPoint))
   let theme ← getThemeW
   let _ ← dynWidget points fun currentPoints => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (scatterPlotVisual name currentPoints theme dims)
+    emitM do pure (scatterPlotVisual name currentPoints theme dims)
 
   pure { points }
 
@@ -314,7 +314,7 @@ def multiSeriesScatterPlot (series : Dyn (Array ScatterPlot.Series))
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (multiSeriesScatterPlotVisual name currentSeries theme dims)
+    emitM do pure (multiSeriesScatterPlotVisual name currentSeries theme dims)
 
   pure { series }
 

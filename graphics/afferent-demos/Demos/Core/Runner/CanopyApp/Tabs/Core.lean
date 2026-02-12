@@ -41,7 +41,7 @@ def overviewTabContent (env : DemoEnv) : WidgetM Unit := do
   let demoFonts := demoFontsFromEnv env
   let cubes := spinningCubesInitialState
   let _ ← dynWidget elapsedTime fun t => do
-    emit (pure (demoGridWidget env.screenScale t demoFonts cubes env.windowWidthF env.windowHeightF))
+    emit (demoGridWidget env.screenScale t demoFonts cubes env.windowWidthF env.windowHeightF)
   pure ()
 
 def circlesTabContent (env : DemoEnv) : WidgetM Unit := do
@@ -57,7 +57,7 @@ def circlesTabContent (env : DemoEnv) : WidgetM Unit := do
     elapsedTime.updated
   let _ ← dynWidget particleState fun (particles, _) => do
     let t ← elapsedTime.sample
-    emit (pure (circlesPerfWidget t env.fontMedium particles env.circleRadius))
+    emit (circlesPerfWidget t env.fontMedium particles env.circleRadius)
   pure ()
 
 def spritesTabContent (env : DemoEnv) : WidgetM Unit := do
@@ -72,38 +72,38 @@ def spritesTabContent (env : DemoEnv) : WidgetM Unit := do
     (initialParticles, 0.0)
     elapsedTime.updated
   let _ ← dynWidget particleState fun (particles, _) => do
-    emit (pure (spritesPerfWidget env.screenScale env.fontMedium env.spriteTexture particles env.spriteHalfSize))
+    emit (spritesPerfWidget env.screenScale env.fontMedium env.spriteTexture particles env.spriteHalfSize)
   pure ()
 
 def linesPerfTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun t => do
-    emit (pure (linesPerfWidget t env.lineBuffer env.lineCount env.lineWidth
-      env.fontMedium env.windowWidthF env.windowHeightF))
+    emit (linesPerfWidget t env.lineBuffer env.lineCount env.lineWidth
+      env.fontMedium env.windowWidthF env.windowHeightF)
   pure ()
 
 def layoutTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun _ => do
-    emit (pure (layoutWidgetFlex env.fontMediumId env.fontSmallId env.screenScale))
+    emit (layoutWidgetFlex env.fontMediumId env.fontSmallId env.screenScale)
   pure ()
 
 def cssGridTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun _ => do
-    emit (pure (cssGridWidget env.fontMediumId env.fontSmallId env.screenScale))
+    emit (cssGridWidget env.fontMediumId env.fontSmallId env.screenScale)
   pure ()
 
 def reactiveShowcaseTabContent (appState : ReactiveShowcase.AppState) : WidgetM Unit := do
-  emit appState.render
+  emitRender appState.render
 
 def widgetPerfTabContent (appState : WidgetPerf.AppState) : WidgetM Unit := do
-  emit appState.render
+  emitRender appState.render
 
 def fontShowcaseTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun _ => do
-    emit (pure (fontShowcaseWidget env.showcaseFonts env.fontMediumId env.screenScale))
+    emit (fontShowcaseWidget env.showcaseFonts env.fontMediumId env.screenScale)
   pure ()
 
 end Demos

@@ -49,7 +49,7 @@ def worleyCellularNoiseTabContent (env : DemoEnv) : WidgetM Unit := do
   row' (gap := 0) (style := rootStyle) do
     column' (gap := 0) (style := plotStyle) do
       let _ ← dynWidget state fun s => do
-        emit (pure (Demos.Linalg.worleyCellularNoiseWidget env s))
+        emit (Demos.Linalg.worleyCellularNoiseWidget env s)
       pure ()
 
     column' (gap := 8.0 * env.screenScale) (style := panelStyle) do

@@ -102,9 +102,9 @@ def seascapeTabContent (env : DemoEnv) : WidgetM Unit := do
       height := .percent 1.0
     }
     let seascapeState : SeascapeState := { camera := s.camera, locked := s.locked }
-    emit (pure (namedColumn seascapeName 0 containerStyle #[
+    emit (namedColumn seascapeName 0 containerStyle #[
       seascapeWidget s.lastTime env.screenScale windowW windowH env.fontMedium env.fontSmall seascapeState
-    ]))
+    ])
   pure ()
 
 end Demos

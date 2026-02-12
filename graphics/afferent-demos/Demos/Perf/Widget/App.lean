@@ -452,9 +452,10 @@ def renderWidget (wtype : WidgetType) (index : Nat) : WidgetM Unit := do
 def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle := {})
     (children : WidgetM α) : WidgetM α := do
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
-    pure (Afferent.Arbor.gridCustom props style widgets)
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := pure childRenders)
+    (combine := fun widgets => Afferent.Arbor.gridCustom props style widgets)
+  emitRender render
   pure result
 
 /-- Render a mixed grid with 10 instances of each widget type, interleaved. -/

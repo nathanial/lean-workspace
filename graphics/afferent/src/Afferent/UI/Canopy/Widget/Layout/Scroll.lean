@@ -226,6 +226,9 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
 
   -- Run children to get their renders
   let (result, childRenders) ← runWidgetChildren children
+  let hashVersions := fun (versions : Array Nat) =>
+    versions.foldl (init := 2166136261) fun acc v =>
+      acc * 16777619 + v + 1
 
   -- Track content size via ref (updated each render)
   -- Initialize with large content height to allow scrolling before first render
@@ -333,66 +336,72 @@ def scrollContainer (config : ScrollContainerConfig) (children : WidgetM α)
 
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget combinedState fun state => do
-    emit do
-      let widgets ← childRenders.mapM id
-      -- Build the child stack (fill width for vertical-only scroll).
-      -- Use static flow defaults so children keep intrinsic size unless explicitly overridden.
-      let childStyle : BoxStyle := if config.horizontalScroll then {} else { width := .percent 1.0 }
-      let childBuilder := staticColumn (gap := 0) (style := childStyle) widgets
-      -- Build a temporary widget tree and measure true content size.
-      let (builtChild, _builderState) ← childBuilder.run {}
-      let measureW := config.width
-      let measureAt := fun (availableH : Float) => do
-        let measured ← Afferent.runWithFonts fontRegistry
-          (Afferent.Arbor.measureWidget builtChild measureW availableH)
-        let layouts := Trellis.layout measured.node measureW availableH
-        let rootLayout := layouts.get measured.node.id
-        let rootW := rootLayout.map (·.borderRect.width) |>.getD config.width
-        let rootH := rootLayout.map (·.borderRect.height) |>.getD config.height
-        let childIds := measured.node.children.flatMap Trellis.LayoutNode.allIds
-        let (measuredW, measuredH) :=
-          if childIds.isEmpty then
-            (rootW, rootH)
-          else
-            let initMinX := rootLayout.map (·.borderRect.x) |>.getD 0
-            let initMinY := rootLayout.map (·.borderRect.y) |>.getD 0
-            let initMaxX := rootLayout.map (fun l => l.borderRect.x + l.borderRect.width) |>.getD rootW
-            let initMaxY := rootLayout.map (fun l => l.borderRect.y + l.borderRect.height) |>.getD rootH
-            let (minX, minY, maxX, maxY, foundAny) := childIds.foldl
-              (fun (acc : Float × Float × Float × Float × Bool) id =>
-                let (currMinX, currMinY, currMaxX, currMaxY, found) := acc
-                match layouts.get id with
-                | none => acc
-                | some cl =>
-                  let rect := cl.borderRect
-                  let rMaxX := rect.x + rect.width
-                  let rMaxY := rect.y + rect.height
-                  if found then
-                    (min currMinX rect.x, min currMinY rect.y, max currMaxX rMaxX, max currMaxY rMaxY, true)
-                  else
-                    (rect.x, rect.y, rMaxX, rMaxY, true)
-              )
-              (initMinX, initMinY, initMaxX, initMaxY, false)
-            if foundAny then
-              (max 0 (maxX - minX), max 0 (maxY - minY))
-            else
+    let render : ComponentRender := {
+      materialize := do
+        let widgets ← ComponentRender.materializeAll childRenders
+        -- Build the child stack (fill width for vertical-only scroll).
+        -- Use static flow defaults so children keep intrinsic size unless explicitly overridden.
+        let childStyle : BoxStyle := if config.horizontalScroll then {} else { width := .percent 1.0 }
+        let childBuilder := staticColumn (gap := 0) (style := childStyle) widgets
+        -- Build a temporary widget tree and measure true content size.
+        let (builtChild, _builderState) ← childBuilder.run {}
+        let measureW := config.width
+        let measureAt := fun (availableH : Float) => do
+          let measured ← Afferent.runWithFonts fontRegistry
+            (Afferent.Arbor.measureWidget builtChild measureW availableH)
+          let layouts := Trellis.layout measured.node measureW availableH
+          let rootLayout := layouts.get measured.node.id
+          let rootW := rootLayout.map (·.borderRect.width) |>.getD config.width
+          let rootH := rootLayout.map (·.borderRect.height) |>.getD config.height
+          let childIds := measured.node.children.flatMap Trellis.LayoutNode.allIds
+          let (measuredW, measuredH) :=
+            if childIds.isEmpty then
               (rootW, rootH)
-        pure (measuredW, measuredH)
-      -- First pass uses a large height probe to capture naturally tall content.
-      -- If the content resolves to nearly the probe itself (e.g., percent-height/grow feedback),
-      -- fall back to viewport-constrained measurement to avoid runaway scroll ranges.
-      let probeH : Float := 1000000
-      let (probeW, probeContentH) ← measureAt probeH
-      let (measuredContentW, measuredContentH) ←
-        if probeContentH >= probeH * 0.9 then
-          measureAt config.height
-        else
-          pure (probeW, probeContentH)
-      let contentW := if config.horizontalScroll then max config.width measuredContentW else config.width
-      let contentH := if config.verticalScroll then max config.height measuredContentH else config.height
-      contentSizeRef.set (contentW, contentH)
-      -- Pass the builder (not the built widget) so IDs are fresh
-      pure (scrollContainerVisual name config theme state.scroll contentW contentH childBuilder)
+            else
+              let initMinX := rootLayout.map (·.borderRect.x) |>.getD 0
+              let initMinY := rootLayout.map (·.borderRect.y) |>.getD 0
+              let initMaxX := rootLayout.map (fun l => l.borderRect.x + l.borderRect.width) |>.getD rootW
+              let initMaxY := rootLayout.map (fun l => l.borderRect.y + l.borderRect.height) |>.getD rootH
+              let (minX, minY, maxX, maxY, foundAny) := childIds.foldl
+                (fun (acc : Float × Float × Float × Float × Bool) id =>
+                  let (currMinX, currMinY, currMaxX, currMaxY, found) := acc
+                  match layouts.get id with
+                  | none => acc
+                  | some cl =>
+                    let rect := cl.borderRect
+                    let rMaxX := rect.x + rect.width
+                    let rMaxY := rect.y + rect.height
+                    if found then
+                      (min currMinX rect.x, min currMinY rect.y, max currMaxX rMaxX, max currMaxY rMaxY, true)
+                    else
+                      (rect.x, rect.y, rMaxX, rMaxY, true)
+                )
+                (initMinX, initMinY, initMaxX, initMaxY, false)
+              if foundAny then
+                (max 0 (maxX - minX), max 0 (maxY - minY))
+              else
+                (rootW, rootH)
+          pure (measuredW, measuredH)
+        -- First pass uses a large height probe to capture naturally tall content.
+        -- If the content resolves to nearly the probe itself (e.g., percent-height/grow feedback),
+        -- fall back to viewport-constrained measurement to avoid runaway scroll ranges.
+        let probeH : Float := 1000000
+        let (probeW, probeContentH) ← measureAt probeH
+        let (measuredContentW, measuredContentH) ←
+          if probeContentH >= probeH * 0.9 then
+            measureAt config.height
+          else
+            pure (probeW, probeContentH)
+        let contentW := if config.horizontalScroll then max config.width measuredContentW else config.width
+        let contentH := if config.verticalScroll then max config.height measuredContentH else config.height
+        contentSizeRef.set (contentW, contentH)
+        -- Pass the builder (not the built widget) so IDs are fresh
+        pure (scrollContainerVisual name config theme state.scroll contentW contentH childBuilder)
+      version := do
+        let childVersions ← childRenders.mapM (fun r => r.version)
+        pure (hashVersions childVersions)
+    }
+    emitRender render
 
   pure (result, { scrollState })
 

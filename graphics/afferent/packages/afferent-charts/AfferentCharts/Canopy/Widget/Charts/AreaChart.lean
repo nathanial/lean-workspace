@@ -323,7 +323,7 @@ def areaChart (data : Dyn (Array Float)) (labels : Array String := #[])
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (areaChartVisual name currentData labels variant theme dims)
+    emitM do pure (areaChartVisual name currentData labels variant theme dims)
 
   pure { data }
 
@@ -345,7 +345,7 @@ def multiSeriesAreaChart (series : Dyn (Array AreaChart.Series))
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (multiSeriesAreaChartVisual name currentSeries labels theme dims)
+    emitM do pure (multiSeriesAreaChartVisual name currentSeries labels theme dims)
 
   pure { series }
 

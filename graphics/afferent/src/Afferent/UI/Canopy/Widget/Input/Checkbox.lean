@@ -112,7 +112,7 @@ def checkbox (label : String) (initialChecked : Bool := false)
   let renderState ← Dynamic.zipWithM (fun h c => (h, c)) isHovered isChecked
   let _ ← dynWidget renderState fun (hovered, checked) => do
     let state : WidgetState := { hovered, pressed := false, focused := false }
-    emit do pure (checkboxVisual name label theme checked state)
+    emitM do pure (checkboxVisual name label theme checked state)
 
   pure { onToggle, isChecked }
 

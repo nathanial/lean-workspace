@@ -185,7 +185,7 @@ def passwordInput (placeholder : String) (initialValue : String := "") : WidgetM
   let _ ← dynWidget renderState2 fun (state, focused, toggleH) => do
     let isFoc := focused == some name
     let displayState : TextInputState := { state.text with focused := isFoc }
-    emit do pure (passwordInputVisual name toggleName theme displayState state.revealed toggleH placeholder)
+    emitM do pure (passwordInputVisual name toggleName theme displayState state.revealed toggleH placeholder)
 
   pure { onChange, onFocus, onBlur, text, isFocused }
 

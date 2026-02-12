@@ -99,13 +99,13 @@ def avatar' (initials : String)
     (size : AvatarSize := .medium)
     (backgroundColor : Option Color := none) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (avatar initials theme size backgroundColor))
+  emit (avatar initials theme size backgroundColor)
 
 /-- WidgetM wrapper for avatarWithLabel. -/
 def avatarWithLabel' (initials : String) (label : String)
     (size : AvatarSize := .medium)
     (backgroundColor : Option Color := none) : WidgetM Unit := do
   let theme ← getThemeW
-  emit (pure (avatarWithLabel initials label theme size backgroundColor))
+  emit (avatarWithLabel initials label theme size backgroundColor)
 
 end Afferent.Canopy

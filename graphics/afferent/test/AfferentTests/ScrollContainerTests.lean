@@ -231,9 +231,9 @@ test "runWidgetChildren collects emitted children" := do
   let result ← runSpider do
     let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
     let ((_, childRenders), _) ← (runWidgetChildren do
-      emit (pure (text' "Item 1" testFont))
-      emit (pure (text' "Item 2" testFont))
-      emit (pure (text' "Item 3" testFont))
+      emit (text' "Item 1" testFont)
+      emit (text' "Item 2" testFont)
+      emit (text' "Item 3" testFont)
       pure ()
     ).run { children := #[] } |>.run events
     pure childRenders.size
@@ -244,7 +244,7 @@ test "runWidgetChildren collects children from for loop" := do
     let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
     let ((_, childRenders), _) ← (runWidgetChildren do
       for i in [1:11] do
-        emit (pure (text' s!"Item {i}" testFont))
+        emit (text' s!"Item {i}" testFont)
       pure ()
     ).run { children := #[] } |>.run events
     pure childRenders.size
@@ -255,9 +255,9 @@ test "column' collects children and emits single render" := do
     let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
     let (_, state) ← (do
       column' (gap := 4) (style := {}) do
-        emit (pure (text' "Item 1" testFont))
-        emit (pure (text' "Item 2" testFont))
-        emit (pure (text' "Item 3" testFont))
+        emit (text' "Item 1" testFont)
+        emit (text' "Item 2" testFont)
+        emit (text' "Item 3" testFont)
         pure ()
     ).run { children := #[] } |>.run events
     -- column' should emit exactly 1 render (the column itself)
@@ -269,9 +269,9 @@ test "column' render produces widget with correct child count" := do
     let (events, _) ← createInputs Afferent.FontRegistry.empty testTheme
     let (_, state) ← (do
       column' (gap := 4) (style := {}) do
-        emit (pure (text' "Item 1" testFont))
-        emit (pure (text' "Item 2" testFont))
-        emit (pure (text' "Item 3" testFont))
+        emit (text' "Item 1" testFont)
+        emit (text' "Item 2" testFont)
+        emit (text' "Item 3" testFont)
         pure ()
     ).run { children := #[] } |>.run events
     -- Run the emitted render to get the WidgetBuilder
@@ -289,7 +289,7 @@ test "nested column' in runWidgetChildren preserves children" := do
     let ((_, outerChildRenders), _) ← (runWidgetChildren do
       column' (gap := 4) (style := {}) do
         for i in [1:6] do
-          emit (pure (text' s!"Item {i}" testFont))
+          emit (text' s!"Item {i}" testFont)
         pure ()
     ).run { children := #[] } |>.run events
     -- Should have 1 render (the column)
@@ -309,7 +309,7 @@ test "scroll container child collection - simulated" := do
     let ((_, childRenders), _) ← (runWidgetChildren do
       column' (gap := 4) (style := {}) do
         for i in [1:21] do
-          emit (pure (text' s!"Item {i}" testFont))
+          emit (text' s!"Item {i}" testFont)
         pure ()
     ).run { children := #[] } |>.run events
 
@@ -668,8 +668,8 @@ test "FRP: scrollContainer responds to scroll wheel events" := do
     -- Run scrollContainer to set up FRP network
     let ((_, scrollResult), _) ← (do
       scrollContainer config do
-        emit (pure (text' "Item 1" testFont))
-        emit (pure (text' "Item 2" testFont))
+        emit (text' "Item 1" testFont)
+        emit (text' "Item 2" testFont)
         pure ()
     ).run { children := #[] } |>.run events
 
@@ -716,7 +716,7 @@ test "FRP: scrollContainer measures actual content height" := do
 
     let (_, state) ← (do
       let _ ← scrollContainer config do
-        emit (pure (coloredBox Tincture.Color.red 280 600))
+        emit (coloredBox Tincture.Color.red 280 600)
         pure ()
       pure ()
     ).run { children := #[] } |>.run events
@@ -749,7 +749,7 @@ test "FRP: scrollContainer measurement avoids runaway percent-height content" :=
     let (_, state) ← (do
       let _ ← scrollContainer config do
         -- A percent-height child should not expand to an arbitrary probe height.
-        emit (pure (box { height := .percent 1.0 }))
+        emit (box { height := .percent 1.0 })
         pure ()
       pure ()
     ).run { children := #[] } |>.run events

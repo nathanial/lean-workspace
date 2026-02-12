@@ -329,7 +329,7 @@ def dropdown (options : Array String) (initialSelection : Nat := 0)
   let renderState3 ← Dynamic.zipWithM (fun (h, o, s) hOpt => (h, o, s, hOpt)) renderState2 hoveredOption
   let _ ← dynWidget renderState3 fun (triggerHovered, open_, sel, hoverOpt) => do
     let triggerState : WidgetState := { hovered := triggerHovered, pressed := false, focused := false }
-    emit do pure (dropdownVisual containerName triggerName optionNameFn options sel open_ hoverOpt theme triggerState)
+    emitM do pure (dropdownVisual containerName triggerName optionNameFn options sel open_ hoverOpt theme triggerState)
 
   pure { onSelect, selection, isOpen }
 

@@ -185,8 +185,8 @@ def tooltip (config : TooltipConfig) (target : WidgetM α) : WidgetM (α × Tool
 
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget isVisible fun visible => do
-    emit do
-      let widgets ← targetRenders.mapM id
+    emitDynamic do
+      let widgets ← ComponentRender.materializeAll targetRenders
       let (targetWidth, targetHeight) ← targetDimsRef.get
 
       -- Build target with the registered name for hover detection

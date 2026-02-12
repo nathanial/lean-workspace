@@ -20,7 +20,7 @@ namespace Demos
 def lineCapsTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun _ => do
-    emit (pure (lineCapsWidget env.screenScale env.fontSmall env.fontMedium))
+    emit (lineCapsWidget env.screenScale env.fontSmall env.fontMedium)
   pure ()
 
 end Demos

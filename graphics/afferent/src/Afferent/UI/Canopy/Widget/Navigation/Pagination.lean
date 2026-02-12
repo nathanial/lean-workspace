@@ -282,7 +282,7 @@ def pagination (totalPages : Nat) (initialPage : Nat := 0)
   let renderState ← Dynamic.zipWithM (fun p h => (p, h)) currentPageDyn hoveredButton
   let _ ← dynWidget renderState fun (currentPage, hoveredIdx) => do
     let buttons := Pagination.calculatePageButtons currentPage totalPagesRef configRef
-    emit do pure (paginationVisual containerName buttonNameFn buttons currentPage totalPagesRef hoveredIdx theme configRef)
+    emitM do pure (paginationVisual containerName buttonNameFn buttons currentPage totalPagesRef hoveredIdx theme configRef)
 
   pure { onPageChange, currentPage := currentPageDyn }
 

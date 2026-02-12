@@ -109,7 +109,7 @@ def sidebar (config : SidebarConfig)
         if config.showToggle then
           flexRow' { Trellis.FlexContainer.row 0 with justifyContent := .flexEnd }
               (style := { padding := Trellis.EdgeInsets.uniform 8 }) do
-            emit do pure (toggleButtonVisual toggleName theme collapsed hovered)
+            emitM do pure (toggleButtonVisual toggleName theme collapsed hovered)
 
           hseparator' 1 0
 
@@ -128,7 +128,7 @@ def sidebar (config : SidebarConfig)
       -- Main content area
       column' (gap := 0) (style := mainStyle) do
         for render in mainRenders do
-          emit render
+          emitRender render
 
   -- Get the sidebar result (should have been set during initial build)
   let sidebarResult ← SpiderM.liftIO do

@@ -205,7 +205,7 @@ def progressBar (initialValue : Float := 0.0) (variant : ProgressVariant := .pri
   -- Create a constant dynamic
   let value ← Dynamic.pureM initialValue
 
-  emit do
+  emitM do
     pure (progressBarVisual name initialValue variant theme label showPercentage)
 
   pure { value }
@@ -228,7 +228,7 @@ def progressBarIndeterminate (variant : ProgressVariant := .primary)
   let cycleDuration : Float := 2.0
   let _ ← dynWidget elapsedTime fun t => do
     let progress := floatMod t cycleDuration / cycleDuration
-    emit do pure (progressBarIndeterminateVisual name progress variant theme label)
+    emitM do pure (progressBarIndeterminateVisual name progress variant theme label)
 
 /-- Create a progress bar that updates based on an external event stream.
     Useful for showing download progress, file processing, etc.
@@ -249,7 +249,7 @@ def progressBarWithEvents (valueUpdates : Reactive.Event Spider Float)
 
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget value fun v => do
-    emit do pure (progressBarVisual name v variant theme label showPercentage)
+    emitM do pure (progressBarVisual name v variant theme label showPercentage)
 
   pure { value }
 

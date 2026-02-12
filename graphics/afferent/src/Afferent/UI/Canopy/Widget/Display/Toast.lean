@@ -241,7 +241,7 @@ def toastManager (defaultDuration : Float := 3.0) : WidgetM ToastManagerResult :
 
   let _ ← dynWidgetKeyedList toasts (fun toast => toast.id)
       (fun toast => do
-        emit (pure (toastVisual none toast.message toast.variant theme))
+        emit (toastVisual none toast.message toast.variant theme)
         pure toast.id)
       (combine := combineToasts)
 

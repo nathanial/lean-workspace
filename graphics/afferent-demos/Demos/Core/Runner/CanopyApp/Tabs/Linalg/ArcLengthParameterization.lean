@@ -137,9 +137,9 @@ def arcLengthParameterizationTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn arcName 0 containerStyle #[
+    emit (namedColumn arcName 0 containerStyle #[
       Demos.Linalg.arcLengthParameterizationWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

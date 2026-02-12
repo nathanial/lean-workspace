@@ -295,7 +295,7 @@ def barChart (data : Dyn (Array Float)) (labels : Array String := #[])
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (barChartVisual name currentData labels variant theme dims)
+    emitM do pure (barChartVisual name currentData labels variant theme dims)
 
   pure { data }
 
@@ -315,7 +315,7 @@ def multiColorBarChart (data : Dyn (Array BarChart.DataPoint))
   let theme ← getThemeW
   let _ ← dynWidget data fun currentData => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (multiColorBarChartVisual name currentData theme dims)
+    emitM do pure (multiColorBarChartVisual name currentData theme dims)
 
   pure { data }
 

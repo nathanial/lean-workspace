@@ -433,7 +433,7 @@ def boxPlot (summaries : Dyn (Array BoxPlot.Summary))
   let theme ← getThemeW
   let _ ← dynWidget summaries fun currentSummaries => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (boxPlotVisual name currentSummaries theme dims)
+    emitM do pure (boxPlotVisual name currentSummaries theme dims)
 
   pure { summaries }
 
@@ -469,7 +469,7 @@ def horizontalBoxPlot (summaries : Dyn (Array BoxPlot.Summary))
   let theme ← getThemeW
   let _ ← dynWidget summaries fun currentSummaries => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (horizontalBoxPlotVisual name currentSummaries theme dims)
+    emitM do pure (horizontalBoxPlotVisual name currentSummaries theme dims)
 
   pure { summaries }
 

@@ -103,11 +103,11 @@ def chip (label : String)
     let onRemove ← useClick removeName
 
     let _ ← dynWidget isRemoveHovered fun hovered => do
-      emit do pure (chipVisual name label theme variant true (some removeName) hovered)
+      emitM do pure (chipVisual name label theme variant true (some removeName) hovered)
 
     pure { onRemove := some onRemove }
   else
-    emit do pure (chipVisual name label theme variant false none false)
+    emitM do pure (chipVisual name label theme variant false none false)
     pure { onRemove := none }
 
 /-- Create a simple non-removable chip. -/

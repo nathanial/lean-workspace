@@ -86,9 +86,9 @@ def frustumCullingDemoTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn frustumName 0 containerStyle #[
+    emit (namedColumn frustumName 0 containerStyle #[
       Demos.Linalg.frustumCullingDemoWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

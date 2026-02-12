@@ -53,7 +53,7 @@ def clickCounterPanel : WidgetM Unit := do
     let _ ← dynWidget combined fun (count, hovered) => do
       let state : WidgetState := { hovered, pressed := false, focused := false }
       let label := if count == 0 then "Click me!" else s!"Clicked {count} times"
-      emit (pure (buttonVisual name label theme .primary state))
+      emit (buttonVisual name label theme .primary state)
 
 /-- Checkboxes panel - demonstrates checkbox toggle behavior. -/
 def checkboxesPanel : WidgetM Unit :=

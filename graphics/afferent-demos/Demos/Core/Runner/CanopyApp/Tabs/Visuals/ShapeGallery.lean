@@ -51,7 +51,7 @@ def shapeGalleryTabContent (env : DemoEnv) : WidgetM Unit := do
   let state ← foldDyn (fun f s => f s) ({} : ShapeGalleryState) allUpdates
 
   let _ ← dynWidget state fun s => do
-    emit (pure (shapeGalleryWidget s.index env.screenScale env.fontLarge env.fontSmall env.fontMedium))
+    emit (shapeGalleryWidget s.index env.screenScale env.fontLarge env.fontSmall env.fontMedium)
   pure ()
 
 end Demos

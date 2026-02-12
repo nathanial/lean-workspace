@@ -479,7 +479,7 @@ test "single child emits directly without wrapper" := do
     let (_, render) ← ReactiveM.run events do
       runWidget do
         let _ ← dynWidget valueDyn fun _ => do
-          emit (pure (spacer 50 50))
+          emit (spacer 50 50)
         pure ()
 
     let builder ← render
@@ -501,8 +501,8 @@ test "multiple children wrapped in column" := do
     let (_, render) ← ReactiveM.run events do
       runWidget do
         let _ ← dynWidget valueDyn fun _ => do
-          emit (pure (spacer 10 10))
-          emit (pure (spacer 20 20))
+          emit (spacer 10 10)
+          emit (spacer 20 20)
         pure ()
 
     let builder ← render
@@ -612,7 +612,7 @@ test "inner dynWidget update produces correct tree text" := do
       runWidget do
         let _ ← dynWidget outerDyn fun _ => do
           let _ ← dynWidget innerDyn fun count => do
-            emit (pure (text' s!"Count: {count}" testFont))
+            emit (text' s!"Count: {count}" testFont)
           pure ()
         pure ()
 
@@ -659,9 +659,9 @@ test "nested tree preserves structure with updated inner text" := do
         let _ ← dynWidget outerDyn fun _ => do
           SpiderM.liftIO (outerRebuildCount.modify (· + 1))
           -- Outer emits: fixed label + dynamic counter
-          emit (pure (text' "Label:" testFont))
+          emit (text' "Label:" testFont)
           let _ ← dynWidget innerDyn fun count => do
-            emit (pure (text' s!"Value is {count}" testFont))
+            emit (text' s!"Value is {count}" testFont)
           pure ()
         pure ()
 
@@ -719,7 +719,7 @@ test "dynWidgetKeyedList reuses unchanged keys and rebuilds only changed keys" :
             SpiderM.liftIO (key1Builds.modify (· + 1))
           else if item.1 == 2 then
             SpiderM.liftIO (key2Builds.modify (· + 1))
-          emit (pure (spacer 10 10))
+          emit (spacer 10 10)
           pure item.2
         pure ()
 
@@ -764,7 +764,7 @@ test "dynWidgetKeyedList disposes removed keys and rebuilt keys" := do
             else if item.1 == 2 then cleanup2.modify (· + 1)
             else cleanup3.modify (· + 1)
           SpiderM.liftIO <| scope.register cleanupAction
-          emit (pure (spacer 10 10))
+          emit (spacer 10 10)
           pure item.2
         pure ()
 
@@ -811,7 +811,7 @@ test "dynWidgetKeyedList preserves order and skips rebuild on pure reorder" := d
             SpiderM.liftIO (key2Builds.modify (· + 1))
           else
             SpiderM.liftIO (key3Builds.modify (· + 1))
-          emit (pure (spacer 10 10))
+          emit (spacer 10 10)
           pure item.2
         pure resultDyn
 
@@ -868,7 +868,7 @@ test "dynWidgetKeyedList handles mixed add/remove/update in one frame" := do
             else cleanup4.modify (· + 1)
           SpiderM.liftIO <| scope.register cleanupAction
 
-          emit (pure (spacer 10 10))
+          emit (spacer 10 10)
           pure item.2
         pure ()
 
@@ -917,7 +917,7 @@ test "dynWidget disposes child scope on rebuild" := do
             env.currentScope.register (cleanupCount.modify (· + 1))
           ⟩
           registerCleanup
-          emit (pure (spacer 10 10))
+          emit (spacer 10 10)
         pure ()
 
     let _ ← render

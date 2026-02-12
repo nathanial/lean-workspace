@@ -261,7 +261,7 @@ def textInput (placeholder : String) (initialValue : String := "") : WidgetM Tex
   let renderState ← Dynamic.zipWithM (fun s f => (s, f)) textState focusedInput
   let _ ← dynWidget renderState fun (state, focused) => do
     let isFoc := focused == some name
-    emit do pure (textInputVisual name theme { state with focused := isFoc } placeholder)
+    emitM do pure (textInputVisual name theme { state with focused := isFoc } placeholder)
 
   pure { onChange, onFocus, onBlur, text, isFocused }
 

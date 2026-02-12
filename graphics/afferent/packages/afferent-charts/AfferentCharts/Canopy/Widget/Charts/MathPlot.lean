@@ -279,7 +279,7 @@ def mathPlot (series : Dyn (Array MathPlot.Series))
   let theme ← getThemeW
   let _ ← dynWidget series fun currentSeries => do
     let name ← registerComponentW (isInteractive := false)
-    emit do pure (mathPlotVisual name currentSeries theme dims config)
+    emitM do pure (mathPlotVisual name currentSeries theme dims config)
   pure { series }
 
 end Afferent.Canopy

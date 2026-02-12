@@ -514,7 +514,7 @@ def textArea (placeholder : String) (initialState : TextAreaState)
   let renderState ← Dynamic.zipWithM (fun s f => (s, f)) textState focusedInput
   let _ ← dynWidget renderState fun (state, focused) => do
     let isFoc := focused == some name
-    emit do pure (textAreaVisual name theme { state with focused := isFoc } placeholder width height)
+    emitM do pure (textAreaVisual name theme { state with focused := isFoc } placeholder width height)
 
   pure { onChange, onFocus, onBlur, text, isFocused }
 

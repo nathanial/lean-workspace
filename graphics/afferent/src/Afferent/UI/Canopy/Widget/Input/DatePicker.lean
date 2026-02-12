@@ -387,7 +387,7 @@ def datePicker (initialDate : DatePickerDate) (config : DatePickerConfig := {})
   let renderState1 ← Dynamic.zipWithM (fun s p => (s, p)) combinedState prevHover
   let renderState2 ← Dynamic.zipWithM (fun (s, p) n => (s, p, n)) renderState1 nextHover
   let _ ← dynWidget renderState2 fun (state, prevH, nextH) => do
-    emit do pure (datePickerVisual containerName prevName nextName cellNameFn
+    emitM do pure (datePickerVisual containerName prevName nextName cellNameFn
       state.viewYear state.viewMonth state.selected state.hovered prevH nextH theme config)
 
   pure { onSelect, selected := selectedDyn }

@@ -148,7 +148,7 @@ def stepper (initialValue : Int := 0) (config : StepperConfig := {})
   let hoverState ← Dynamic.zipWithM (fun d i => (d, i)) decHovered incHovered
   let renderState ← Dynamic.zipWithM (fun v h => (v, h)) valueDyn hoverState
   let _ ← dynWidget renderState fun (value, (decH, incH)) => do
-    emit do pure (stepperVisual decName incName value decH incH theme config)
+    emitM do pure (stepperVisual decName incName value decH incH theme config)
 
   pure { onChange, value := valueDyn }
 

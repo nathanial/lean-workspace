@@ -464,7 +464,7 @@ def messageList (messages : Reactive.Dynamic Spider (Array ChatMessage)) (config
       then { scroll with offsetY := maxScroll }
       else scroll
 
-    emit do pure (messageListVisual name msgs config effectiveScroll contentH theme)
+    emitM do pure (messageListVisual name msgs config effectiveScroll contentH theme)
 
   pure { scrollState := justScroll }
 
@@ -474,7 +474,7 @@ def messageListSimple (messages : Array ChatMessage) (config : MessageListConfig
     (_theme : Theme) : WidgetM Unit := do
   -- Build message bubbles
   for msg in messages do
-    emit do pure (messageBubbleVisual msg config.bubbleConfig)
+    emitM do pure (messageBubbleVisual msg config.bubbleConfig)
 
 open Afferent.Canopy
 

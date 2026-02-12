@@ -116,7 +116,8 @@ def unifiedDemo : IO Unit := do
                   pure (appState, events, inputs)
                 ).run spiderEnv
                 spiderEnv.postBuildTrigger ()
-                let initialWidget ← appState.render
+                let initialRenderVersion ← appState.render.version
+                let initialWidget ← appState.render.materialize
                 state := .running {
                   assets := assets
                   render := appState.render
@@ -125,6 +126,7 @@ def unifiedDemo : IO Unit := do
                   spiderEnv := spiderEnv
                   shutdown := appState.shutdown
                   cachedWidget := initialWidget
+                  cachedRenderVersion := initialRenderVersion
                 }
             | none =>
                 state := .loading ls
@@ -270,8 +272,18 @@ def unifiedDemo : IO Unit := do
             let reactiveStart := inputEnd
             rs.inputs.fireAnimationFrame dt
             let reactivePropagateEnd ← IO.monoNanosNow
-            let widgetBuilder ← rs.render
-            rs := { rs with cachedWidget := widgetBuilder }
+            let currentRenderVersion ← rs.render.version
+            let (widgetBuilder, rsNext) ←
+              if currentRenderVersion == rs.cachedRenderVersion then
+                pure (rs.cachedWidget, rs)
+              else
+                let rebuiltWidget ← rs.render.materialize
+                pure (rebuiltWidget, {
+                  rs with
+                  cachedWidget := rebuiltWidget
+                  cachedRenderVersion := currentRenderVersion
+                })
+            rs := rsNext
             let reactiveEnd ← IO.monoNanosNow
 
             let rootWidget := Afferent.Arbor.build widgetBuilder

@@ -20,8 +20,8 @@ namespace Demos
 def orbitalInstancedTabContent (env : DemoEnv) : WidgetM Unit := do
   let elapsedTime ← useElapsedTime
   let _ ← dynWidget elapsedTime fun t => do
-    emit (pure (orbitalInstancedWidget t env.screenScale env.windowWidthF env.windowHeightF
-      env.fontMedium env.orbitalCount env.orbitalParams env.orbitalBuffer))
+    emit (orbitalInstancedWidget t env.screenScale env.windowWidthF env.windowHeightF
+      env.fontMedium env.orbitalCount env.orbitalParams env.orbitalBuffer)
   pure ()
 
 end Demos

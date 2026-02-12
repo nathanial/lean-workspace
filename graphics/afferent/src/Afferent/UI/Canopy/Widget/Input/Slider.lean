@@ -177,7 +177,7 @@ def slider (label : Option String) (initialValue : Float := 0.5)
   let renderState ← Dynamic.zipWithM (fun h s => (h, s)) isHovered combinedState
   let _ ← dynWidget renderState fun (hovered, s) => do
     let state : WidgetState := { hovered, pressed := s.pressed, focused := false }
-    emit do pure (sliderVisual name label theme s.value state)
+    emitM do pure (sliderVisual name label theme s.value state)
 
   pure { onChange, value := valueDyn }
 

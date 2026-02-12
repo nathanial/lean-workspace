@@ -302,9 +302,9 @@ def modal (title : String) (content : WidgetM Unit) : WidgetM ModalResult := do
   -- Use dynWidget for efficient change-driven rebuilds
   let _ ← dynWidget isOpen fun open_ => do
     let _ ← dynWidget isCloseHovered fun closeHovered => do
-      emit do
+      emitDynamic do
         if open_ then
-          let contentWidgets ← contentRenders.mapM id
+          let contentWidgets ← ComponentRender.materializeAll contentRenders
           let contentWidget := column (gap := 0) (style := {}) contentWidgets
           pure (modalVisual containerName backdropName closeName title true theme closeHovered {} contentWidget)
         else

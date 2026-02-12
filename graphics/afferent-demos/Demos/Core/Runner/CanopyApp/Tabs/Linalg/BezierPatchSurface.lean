@@ -137,9 +137,9 @@ def bezierPatchSurfaceTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn patchName 0 containerStyle #[
+    emit (namedColumn patchName 0 containerStyle #[
       Demos.Linalg.bezierPatchSurfaceWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos

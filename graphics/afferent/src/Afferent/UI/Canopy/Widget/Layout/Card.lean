@@ -188,8 +188,8 @@ open Afferent.Canopy.Reactive
 def elevatedCard' (padding : Float := 16.0) (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitDynamic do
+    let widgets ← ComponentRender.materializeAll childRenders
     let content := column (gap := 0) (style := {}) widgets
     pure (elevatedCard theme padding content)
   pure result
@@ -198,8 +198,8 @@ def elevatedCard' (padding : Float := 16.0) (children : WidgetM α) : WidgetM α
 def outlinedCard' (padding : Float := 16.0) (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitDynamic do
+    let widgets ← ComponentRender.materializeAll childRenders
     let content := column (gap := 0) (style := {}) widgets
     pure (outlinedCard theme padding content)
   pure result
@@ -208,8 +208,8 @@ def outlinedCard' (padding : Float := 16.0) (children : WidgetM α) : WidgetM α
 def filledCard' (padding : Float := 16.0) (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitDynamic do
+    let widgets ← ComponentRender.materializeAll childRenders
     let content := column (gap := 0) (style := {}) widgets
     pure (filledCard theme padding content)
   pure result
@@ -219,8 +219,8 @@ def cardWithHeader' (title : String) (variant : CardVariant := .elevated)
     (children : WidgetM α) : WidgetM α := do
   let theme ← getThemeW
   let (result, childRenders) ← runWidgetChildren children
-  emit do
-    let widgets ← childRenders.mapM id
+  emitDynamic do
+    let widgets ← ComponentRender.materializeAll childRenders
     let content := column (gap := 8) (style := {}) widgets
     pure (cardWithHeader title variant theme content)
   pure result

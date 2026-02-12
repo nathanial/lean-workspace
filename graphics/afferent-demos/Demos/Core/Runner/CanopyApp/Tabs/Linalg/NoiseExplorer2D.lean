@@ -50,7 +50,7 @@ def noiseExplorer2DTabContent (env : DemoEnv) : WidgetM Unit := do
   row' (gap := 0) (style := rootStyle) do
     column' (gap := 0) (style := plotStyle) do
       let _ ← dynWidget state fun s => do
-        emit (pure (Demos.Linalg.noiseExplorer2DWidget env s))
+        emit (Demos.Linalg.noiseExplorer2DWidget env s)
       pure ()
 
     column' (gap := 8.0 * env.screenScale) (style := panelStyle) do

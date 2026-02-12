@@ -304,7 +304,7 @@ def dataGrid (columns : Array DataGridColumn) (rows : Array (Array String))
   -- Use dynWidget for efficient change-driven rebuilds
   let renderState ← Dynamic.zipWithM (fun s f => (s, f)) combinedState isFocused
   let _ ← dynWidget renderState fun (state, focused) => do
-    emit do pure (dataGridVisual gridName headerCellNameFn cellNameFn columns state.rows
+    emitM do pure (dataGridVisual gridName headerCellNameFn cellNameFn columns state.rows
       state.selected state.hovered state.editing state.editor focused theme config)
 
   pure { onSelect := selectTrigger, onEdit := editTrigger, data := dataDyn, selected := selectedDyn }

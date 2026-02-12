@@ -363,7 +363,7 @@ def treeView (nodes : Array TreeNode)
     let renderState2 ← Dynamic.zipWithM (fun (e, s) h => (e, s, h)) renderState hoveredNode
     let _ ← dynWidget renderState2 fun (expanded, selected, hovered) => do
       let flatItems := TreeView.flattenVisible nodes expanded
-      emit do pure (treeViewItemsVisual itemNameFn toggleNameFn flatItems expanded selected hovered theme config)
+      emitM do pure (treeViewItemsVisual itemNameFn toggleNameFn flatItems expanded selected hovered theme config)
     pure ()
 
   pure { onNodeSelect := selectTrigger, onNodeToggle := toggleTrigger, expandedNodes, selectedNode }
@@ -456,7 +456,7 @@ def treeViewWithExpanded (nodes : Array TreeNode) (initialExpanded : Array TreeP
     let renderState2 ← Dynamic.zipWithM (fun (e, s) h => (e, s, h)) renderState hoveredNode
     let _ ← dynWidget renderState2 fun (expanded, selected, hovered) => do
       let flatItems := TreeView.flattenVisible nodes expanded
-      emit do pure (treeViewItemsVisual itemNameFn toggleNameFn flatItems expanded selected hovered theme config)
+      emitM do pure (treeViewItemsVisual itemNameFn toggleNameFn flatItems expanded selected hovered theme config)
     pure ()
 
   pure { onNodeSelect := selectTrigger, onNodeToggle := toggleTrigger, expandedNodes, selectedNode }

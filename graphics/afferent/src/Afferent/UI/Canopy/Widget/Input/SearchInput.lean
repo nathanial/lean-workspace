@@ -278,7 +278,7 @@ def searchInput (placeholder : String := "Search...") (initialValue : String := 
   let renderState ← Dynamic.zipWith3M (fun s f ch => (s, f, ch)) textState focusedInput clearHovered
   let _ ← dynWidget renderState fun (state, focused, clearHov) => do
     let isFoc := focused == some name
-    emit do pure (searchInputVisual name clearName theme { state with focused := isFoc }
+    emitM do pure (searchInputVisual name clearName theme { state with focused := isFoc }
         placeholder clearHov)
 
   pure { onChange, onSearch, onClear, onFocus, onBlur, text, isFocused }

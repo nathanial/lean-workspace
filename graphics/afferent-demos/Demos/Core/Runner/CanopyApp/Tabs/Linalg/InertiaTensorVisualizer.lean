@@ -169,9 +169,9 @@ def inertiaTensorVisualizerTabContent (env : DemoEnv) : WidgetM Unit := do
       width := .percent 1.0
       height := .percent 1.0
     }
-    emit (pure (namedColumn demoName 0 containerStyle #[
+    emit (namedColumn demoName 0 containerStyle #[
       Demos.Linalg.inertiaTensorVisualizerWidget env s
-    ]))
+    ])
   pure ()
 
 end Demos
