@@ -42,6 +42,8 @@ structure RunnerStats where
   rectsBatched : Nat := 0
   circlesBatched : Nat := 0
   strokeRectsBatched : Nat := 0
+  strokeRectDirectRuns : Nat := 0
+  strokeRectDirectRects : Nat := 0
   linesBatched : Nat := 0
   textsBatched : Nat := 0
   textFillCommands : Nat := 0

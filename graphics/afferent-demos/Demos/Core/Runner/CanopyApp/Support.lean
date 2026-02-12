@@ -59,16 +59,17 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line7 := s!"widgets {stats.widgetCount} • layouts {stats.layoutCount} • draws {stats.drawCalls}"
   let line8 := s!"draw calls batched {stats.batchedCalls} • single {stats.individualCalls} • batched rate {formatPercent batchCallRate}"
   let line9 := s!"batched rects {stats.rectsBatched} • strokeRects {stats.strokeRectsBatched} • circles {stats.circlesBatched} • lines {stats.linesBatched} • texts {stats.textsBatched}"
-  let line10 := s!"text cmds {stats.textFillCommands} • text flushes {stats.textBatchFlushes} • avg/flush {formatFloat avgTextsPerFlush 1}"
-  let line11 := s!"exec split batch {formatFloat stats.executeBatchMs}ms • custom {formatFloat stats.executeCustomMs}ms • overhead {formatFloat stats.executeOverheadMs}ms"
-  let line12 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • residual {formatFloat stats.batchResidualMs}ms • draw {formatFloat stats.drawCallMs}ms"
-  let line13 := s!"text batch pack {formatFloat stats.textPackMs}ms • ffi {formatFloat stats.textFfiMs}ms"
-  let line14 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14]
+  let line10 := s!"stroke direct runs {stats.strokeRectDirectRuns} • rects {stats.strokeRectDirectRects}"
+  let line11 := s!"text cmds {stats.textFillCommands} • text flushes {stats.textBatchFlushes} • avg/flush {formatFloat avgTextsPerFlush 1}"
+  let line12 := s!"exec split batch {formatFloat stats.executeBatchMs}ms • custom {formatFloat stats.executeCustomMs}ms • overhead {formatFloat stats.executeOverheadMs}ms"
+  let line13 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • residual {formatFloat stats.batchResidualMs}ms • draw {formatFloat stats.drawCallMs}ms"
+  let line14 := s!"text batch pack {formatFloat stats.textPackMs}ms • ffi {formatFloat stats.textFfiMs}ms"
+  let line15 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do
-  let footerHeight := 296.0 * env.screenScale
+  let footerHeight := 318.0 * env.screenScale
   let footerStyle : BoxStyle := {
     backgroundColor := some (Color.gray 0.08)
     padding := EdgeInsets.symmetric (6.0 * env.screenScale) (4.0 * env.screenScale)

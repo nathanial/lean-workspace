@@ -28,6 +28,10 @@ structure BatchStats where
   circlesBatched : Nat := 0
   /-- Number of stroke rects batched. -/
   strokeRectsBatched : Nat := 0
+  /-- Number of direct stroke-rect runs consumed by the fast path. -/
+  strokeRectDirectRuns : Nat := 0
+  /-- Number of strokeRect commands consumed by direct runs. -/
+  strokeRectDirectRects : Nat := 0
   /-- Number of lines batched. -/
   linesBatched : Nat := 0
   /-- Number of texts batched. -/
@@ -289,6 +293,46 @@ def executeLineCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Na
     i := i + 1
   if count > 0 then
     canvas.ctx.renderer.drawLineBatch data count.toUInt32 lineWidth canvasWidth canvasHeight
+  return count
+
+/-- Execute consecutive strokeRect commands directly from RenderCommand array,
+    avoiding intermediate `StrokeRectBatchEntry` allocations. -/
+def executeStrokeRectCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Nat) : CanvasM Nat := do
+  if startIdx >= endIdx then return 0
+  let mut i := startIdx
+  let mut lineWidth : Float := 0.0
+  let mut count : Nat := 0
+  if let some (.strokeRect _ _ lw _) := cmds[startIdx]? then
+    lineWidth := lw
+  else
+    return 0
+  while i < endIdx do
+    match cmds[i]? with
+    | some (.strokeRect _ _ lw _) =>
+      if lw == lineWidth then
+        count := count + 1
+        i := i + 1
+      else
+        break
+    | _ => break
+  if count == 0 then return 0
+  let canvas ← CanvasM.getCanvas
+  let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
+  let requiredFloats := count * 9
+  let (buf, newCap) ← ensureBufferCapacity
+    canvas.strokeRectBuffer canvas.strokeRectBufferCapacity requiredFloats
+  CanvasM.setCanvas { canvas with strokeRectBuffer := some buf, strokeRectBufferCapacity := newCap }
+  let mut bufIdx : USize := 0
+  i := startIdx
+  let endI := startIdx + count
+  while i < endI do
+    if let some (.strokeRect rect color _ cornerRadius) := cmds[i]? then
+      buf.setVec9 bufIdx rect.origin.x rect.origin.y rect.size.width rect.size.height
+        color.r color.g color.b color.a cornerRadius
+      bufIdx := bufIdx + 9
+    i := i + 1
+  canvas.ctx.renderer.drawBatchBuffer 2 buf count.toUInt32 lineWidth 0.0
+    canvasWidth canvasHeight
   return count
 
 /-- Execute a batch of fillText commands with the same font in a single draw call. -/

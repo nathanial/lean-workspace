@@ -454,13 +454,49 @@ private def handleCommand (reg : FontRegistry) (state : BatchState)
   | _ =>
     handleNonBatchable reg state cmd
 
+private def handleStrokeRectRunDirect (reg : FontRegistry) (state : BatchState)
+    (cmds : Array RenderCommand) (startIdx : Nat) : CanvasM (BatchState × Nat) := do
+  -- Keep command ordering semantics: flush incompatible batches, then emit one direct draw call.
+  let state ← flushForStrokeRect reg state
+  let state ← flushStrokeRects state
+  let t0 ← IO.monoNanosNow
+  let consumed ← executeStrokeRectCommandsDirect cmds startIdx cmds.size
+  let t1 ← IO.monoNanosNow
+  if consumed == 0 then
+    match cmds[startIdx]? with
+    | some cmd =>
+      let state ← handleCommand reg state cmd
+      pure (state, 1)
+    | none =>
+      pure (state, 1)
+  else
+    let stats := { state.stats with
+      batchedCalls := state.stats.batchedCalls + 1
+      strokeRectsBatched := state.stats.strokeRectsBatched + consumed
+      strokeRectDirectRuns := state.stats.strokeRectDirectRuns + 1
+      strokeRectDirectRects := state.stats.strokeRectDirectRects + consumed }
+    pure ({ state with
+      strokeRectBatch := #[]
+      stats := stats
+      drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }, consumed)
+
 private def processCommands (reg : FontRegistry) (cmds : Array RenderCommand)
     (state : BatchState) : CanvasM BatchState := do
   let mut state := state
   let mut i := 0
-  while h : i < cmds.size do
-    state ← handleCommand reg state cmds[i]
-    i := i + 1
+  while i < cmds.size do
+    match cmds[i]? with
+    | some cmd =>
+      match cmd with
+      | .strokeRect .. =>
+        let (nextState, consumed) ← handleStrokeRectRunDirect reg state cmds i
+        state := nextState
+        i := i + (if consumed == 0 then 1 else consumed)
+      | _ =>
+        state ← handleCommand reg state cmd
+        i := i + 1
+    | none =>
+      i := cmds.size
   flushAll reg state
 
 private def drawLines (state : BatchState) (lineCmds : Array RenderCommand) (lineCount : Nat)

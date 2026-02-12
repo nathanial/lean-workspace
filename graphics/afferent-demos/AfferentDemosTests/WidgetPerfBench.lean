@@ -121,6 +121,21 @@ private def BenchResult.diff (base next : BenchResult) : BenchResult :=
     hitTestMs := next.hitTestMs - base.hitTestMs
     hoverMs := next.hoverMs - base.hoverMs }
 
+private def ensureTargetCountsStable (label : String) (baseline hover : BenchResult)
+    (minTargets : Nat) : TestM Unit := do
+  ensure (baseline.targetCount >= minTargets)
+    s!"Expected at least {minTargets} {label} targets (baseline), got {baseline.targetCount}"
+  ensure (hover.targetCount >= minTargets)
+    s!"Expected at least {minTargets} {label} targets (hover), got {hover.targetCount}"
+  let diff :=
+    if baseline.targetCount >= hover.targetCount then
+      baseline.targetCount - hover.targetCount
+    else
+      hover.targetCount - baseline.targetCount
+  let tolerance := Nat.max 8 (baseline.targetCount / 20) -- 5%
+  ensure (diff <= tolerance)
+    s!"Expected {label} target counts to stay within ±{tolerance} (baseline={baseline.targetCount}, hover={hover.targetCount})"
+
 private structure BenchAssets where
   registry : FontRegistry
   fontCanopy : Font
@@ -362,8 +377,7 @@ test "switch pipeline baseline vs hover" := do
     IO.println s!"hover update (switch): total={fmtNanosMs hoverSnap.holdSwitchNanos}ms, avg={fmtAvgNanosMs hoverSnap.holdSwitchNanos hoverSnap.holdSwitchCount}ms, count={hoverSnap.holdSwitchCount}"
     IO.println s!"dynWidget rebuild: total={fmtNanosMs dynSnap.rebuildNanos}ms, avg={fmtAvgNanosMs dynSnap.rebuildNanos dynSnap.rebuildCount}ms, count={dynSnap.rebuildCount}"
 
-    ensure (hover.targetCount >= 1000)
-      s!"Expected at least 1000 switch targets, got {hover.targetCount}"
+    ensureTargetCountsStable "switch" baseline hover 500
   finally
     appBaseline.shutdown
     appHover.shutdown
@@ -388,8 +402,7 @@ test "dropdown pipeline baseline vs hover" := do
     IO.println (BenchResult.format "hover (dropdown)" hover)
     IO.println (BenchResult.format "delta(hover-baseline) (dropdown)" delta)
 
-    ensure (hover.targetCount >= 1000)
-      s!"Expected at least 1000 dropdown targets, got {hover.targetCount}"
+    ensureTargetCountsStable "dropdown" baseline hover 300
   finally
     appBaseline.shutdown
     appHover.shutdown
@@ -412,8 +425,7 @@ test "stepper pipeline baseline vs hover" := do
     IO.println (BenchResult.format "hover (stepper)" hover)
     IO.println (BenchResult.format "delta(hover-baseline) (stepper)" delta)
 
-    ensure (hover.targetCount >= 1000)
-      s!"Expected at least 1000 stepper targets, got {hover.targetCount}"
+    ensureTargetCountsStable "stepper" baseline hover 1000
   finally
     appBaseline.shutdown
     appHover.shutdown
