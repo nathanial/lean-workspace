@@ -27,6 +27,9 @@ structure RunnerStats where
   indexRegistrySetMs : Float := 0.0
   collectMs : Float := 0.0
   executeMs : Float := 0.0
+  executeBatchMs : Float := 0.0
+  executeCustomMs : Float := 0.0
+  executeOverheadMs : Float := 0.0
   endFrameMs : Float := 0.0
   accountedMs : Float := 0.0
   unaccountedMs : Float := 0.0

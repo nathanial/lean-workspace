@@ -289,11 +289,8 @@ def unifiedDemo : IO Unit := do
             rs := { rs with inputSnapshot := some { layouts := layouts, hitIndex := hitIndex } }
             let indexSnapshotStoreEnd ← IO.monoNanosNow
             let indexInteractiveIdsStart := indexSnapshotStoreEnd
-            let interactiveIds :=
-              hitIndex.componentMap.toList.foldl (fun acc entry => acc.push entry.1) #[]
             let indexInteractiveIdsEnd ← IO.monoNanosNow
             let indexRegistrySetStart := indexInteractiveIdsEnd
-            rs.events.registry.interactiveIds.set interactiveIds
             let indexRegistrySetEnd ← IO.monoNanosNow
             let indexEnd := indexRegistrySetEnd
 
@@ -303,10 +300,14 @@ def unifiedDemo : IO Unit := do
             let cacheMisses := 0
             let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
-            let (batchStats, c') ← CanvasM.run c do
+            let ((batchStats, executeBatchNs, executeCustomNs), c') ← CanvasM.run c do
+              let executeBatchStart ← IO.monoNanosNow
               let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
+              let executeBatchEnd ← IO.monoNanosNow
+              let executeCustomStart := executeBatchEnd
               Afferent.Widget.renderCustomWidgets measuredWidget layouts
-              pure batchStats
+              let executeCustomEnd ← IO.monoNanosNow
+              pure (batchStats, executeBatchEnd - executeBatchStart, executeCustomEnd - executeCustomStart)
             let executeEnd ← IO.monoNanosNow
             c := c'
             let endFrameStart ← IO.monoNanosNow
@@ -326,6 +327,9 @@ def unifiedDemo : IO Unit := do
             let indexRegistrySetMs := (indexRegistrySetEnd - indexRegistrySetStart).toFloat / 1000000.0
             let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
+            let executeBatchMs := executeBatchNs.toFloat / 1000000.0
+            let executeCustomMs := executeCustomNs.toFloat / 1000000.0
+            let executeOverheadMs := max 0.0 (executeMs - executeBatchMs - executeCustomMs)
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
             let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
@@ -351,6 +355,9 @@ def unifiedDemo : IO Unit := do
               indexRegistrySetMs := indexRegistrySetMs
               collectMs := collectMs
               executeMs := executeMs
+              executeBatchMs := executeBatchMs
+              executeCustomMs := executeCustomMs
+              executeOverheadMs := executeOverheadMs
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
