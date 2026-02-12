@@ -289,9 +289,18 @@ void afferent_text_measure(
     float* height
 );
 
-// Render text - generates vertices for textured quads
-// Returns vertex data (pos.x, pos.y, uv.x, uv.y, color.r, color.g, color.b, color.a)
-// and index data for rendering. Caller must free the returned arrays.
+// Instanced text glyph static data (per glyph).
+// localPos/size are in pixel space relative to run origin.
+// uvMin/uvMax are atlas coordinates in [0, 1].
+typedef struct __attribute__((packed)) {
+    float localPos[2];
+    float size[2];
+    float uvMin[2];
+    float uvMax[2];
+    uint32_t runIndex;
+} AfferentTextGlyphInstanceStatic;
+
+// Render text using the active backend text pipeline.
 // Transform is a 6-component affine matrix: [a, b, c, d, tx, ty]
 // where: x' = a*x + c*y + tx, y' = b*x + d*y + ty
 // canvas_width/height are the logical canvas dimensions used for NDC conversion
@@ -310,7 +319,7 @@ AfferentResult afferent_text_render(
     float canvas_height
 );
 
-// Batch text rendering - render multiple strings with the same font in one draw call
+// Batch text rendering - render multiple strings with the same font in one draw call.
 // texts: array of C strings
 // positions: [x0, y0, x1, y1, ...] (2 floats per entry)
 // colors: [r0, g0, b0, a0, ...] (4 floats per entry)

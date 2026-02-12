@@ -56,16 +56,24 @@ typedef struct {
     uint32_t count;
 } GlyphTable;
 
-// Cached geometry for a full text string in local baseline coordinates.
-// Vertex format: [x, y, u, v] (4 floats per vertex).
+typedef struct {
+    float local_x;
+    float local_y;
+    float width;
+    float height;
+    float u0;
+    float v0;
+    float u1;
+    float v1;
+} GlyphQuad;
+
+// Cached glyph quads for a full text string in local baseline coordinates.
 typedef struct {
     uint64_t hash;
     char* text;
     uint32_t text_len;
-    float* vertices;
-    uint32_t* indices;
-    uint32_t vertex_count;
-    uint32_t index_count;
+    GlyphQuad* glyphs;
+    uint32_t glyph_count;
     uint32_t atlas_version;
     uint8_t valid;
 } TextGeometryEntry;
@@ -104,12 +112,10 @@ struct AfferentFont {
     void* metal_texture;
 };
 
-// Reusable scratch buffers for generated text draw data.
+// Reusable scratch buffers for generated text instance data.
 // Text rendering is driven on one thread in the demo runner, so process-global reuse is sufficient.
-static float* g_text_vertex_float_scratch = NULL;
-static size_t g_text_vertex_float_scratch_cap = 0;  // Number of floats
-static uint32_t* g_text_index_scratch = NULL;
-static size_t g_text_index_scratch_cap = 0;         // Number of indices
+static AfferentTextGlyphInstanceStatic* g_text_instance_scratch = NULL;
+static size_t g_text_instance_scratch_cap = 0;      // Number of glyph instances
 static TextGeometryEntry** g_text_geometry_ptr_scratch = NULL;
 static size_t g_text_geometry_ptr_scratch_cap = 0;  // Number of entries
 
@@ -138,30 +144,19 @@ static uint64_t text_hash(const char* s, uint32_t len) {
     return h;
 }
 
-static int ensure_text_output_capacity(uint32_t vertex_count, uint32_t index_count) {
-    size_t vertex_need = (size_t)vertex_count * 8;  // 8 floats per output vertex
-    size_t index_need = (size_t)index_count;
-
-    if (vertex_need > g_text_vertex_float_scratch_cap) {
-        size_t new_cap = vertex_need + (vertex_need >> 1) + 64;
-        float* resized = realloc(g_text_vertex_float_scratch, new_cap * sizeof(float));
-        if (!resized) {
-            return 0;
-        }
-        g_text_vertex_float_scratch = resized;
-        g_text_vertex_float_scratch_cap = new_cap;
+static int ensure_text_instance_capacity(uint32_t instance_count) {
+    size_t need = (size_t)instance_count;
+    if (need <= g_text_instance_scratch_cap) {
+        return 1;
     }
-
-    if (index_need > g_text_index_scratch_cap) {
-        size_t new_cap = index_need + (index_need >> 1) + 64;
-        uint32_t* resized = realloc(g_text_index_scratch, new_cap * sizeof(uint32_t));
-        if (!resized) {
-            return 0;
-        }
-        g_text_index_scratch = resized;
-        g_text_index_scratch_cap = new_cap;
+    size_t new_cap = need + (need >> 1) + 64;
+    AfferentTextGlyphInstanceStatic* resized =
+        realloc(g_text_instance_scratch, new_cap * sizeof(AfferentTextGlyphInstanceStatic));
+    if (!resized) {
+        return 0;
     }
-
+    g_text_instance_scratch = resized;
+    g_text_instance_scratch_cap = new_cap;
     return 1;
 }
 
@@ -207,14 +202,11 @@ static void glyph_table_destroy(GlyphTable* table) {
 static void text_geometry_entry_release(TextGeometryEntry* entry) {
     if (!entry) return;
     free(entry->text);
-    free(entry->vertices);
-    free(entry->indices);
+    free(entry->glyphs);
     entry->text = NULL;
-    entry->vertices = NULL;
-    entry->indices = NULL;
+    entry->glyphs = NULL;
     entry->text_len = 0;
-    entry->vertex_count = 0;
-    entry->index_count = 0;
+    entry->glyph_count = 0;
     entry->atlas_version = 0;
     entry->hash = 0;
     entry->valid = 0;
@@ -553,12 +545,9 @@ void afferent_text_shutdown(void) {
         }
     }
     if (g_ft_init_count == 0) {
-        free(g_text_vertex_float_scratch);
-        g_text_vertex_float_scratch = NULL;
-        g_text_vertex_float_scratch_cap = 0;
-        free(g_text_index_scratch);
-        g_text_index_scratch = NULL;
-        g_text_index_scratch_cap = 0;
+        free(g_text_instance_scratch);
+        g_text_instance_scratch = NULL;
+        g_text_instance_scratch_cap = 0;
         free(g_text_geometry_ptr_scratch);
         g_text_geometry_ptr_scratch = NULL;
         g_text_geometry_ptr_scratch_cap = 0;
@@ -816,43 +805,35 @@ static int text_geometry_rebuild(AfferentFontRef font, TextGeometryEntry* entry)
         return 0;
     }
 
-    free(entry->vertices);
-    free(entry->indices);
-    entry->vertices = NULL;
-    entry->indices = NULL;
-    entry->vertex_count = 0;
-    entry->index_count = 0;
+    free(entry->glyphs);
+    entry->glyphs = NULL;
+    entry->glyph_count = 0;
 
     // First pass: ensure glyphs are cached and count visible quads.
-    uint32_t quad_count = 0;
+    uint32_t glyph_count = 0;
     const char* p = entry->text;
     while (*p) {
         uint32_t codepoint = utf8_next(&p);
         if (codepoint == 0) break;
         GlyphInfo* glyph = cache_glyph(font, codepoint);
         if (glyph && glyph->width > 0 && glyph->height > 0) {
-            quad_count++;
+            glyph_count++;
         }
     }
 
-    if (quad_count == 0) {
+    if (glyph_count == 0) {
         entry->atlas_version = font->atlas_version;
         return 1;
     }
 
-    uint32_t vertex_count = quad_count * 4;
-    uint32_t index_count = quad_count * 6;
-    float* vertices = malloc((size_t)vertex_count * 4 * sizeof(float));
-    uint32_t* indices = malloc((size_t)index_count * sizeof(uint32_t));
-    if (!vertices || !indices) {
-        free(vertices);
-        free(indices);
+    GlyphQuad* glyphs = malloc((size_t)glyph_count * sizeof(GlyphQuad));
+    if (!glyphs) {
         return 0;
     }
 
     float cursor_x = 0.0f;
     float cursor_y = 0.0f;
-    uint32_t quad_idx = 0;
+    uint32_t glyph_idx = 0;
     p = entry->text;
     while (*p) {
         uint32_t codepoint = utf8_next(&p);
@@ -865,37 +846,20 @@ static int text_geometry_rebuild(AfferentFontRef font, TextGeometryEntry* entry)
             float gw = glyph->width;
             float gh = glyph->height;
 
-            float x0 = gx;
-            float y0 = gy;
-            float x1 = gx + gw;
-            float y1 = gy;
-            float x2 = gx + gw;
-            float y2 = gy + gh;
-            float x3 = gx;
-            float y3 = gy + gh;
-
             float u0 = (float)glyph->atlas_x / font->atlas_width;
             float v0 = (float)glyph->atlas_y / font->atlas_height;
             float u1 = (float)(glyph->atlas_x + glyph->width) / font->atlas_width;
             float v1 = (float)(glyph->atlas_y + glyph->height) / font->atlas_height;
 
-            uint32_t base_vertex = quad_idx * 4;
-            size_t vi = (size_t)base_vertex * 4;
-
-            vertices[vi++] = x0; vertices[vi++] = y0; vertices[vi++] = u0; vertices[vi++] = v0;
-            vertices[vi++] = x1; vertices[vi++] = y1; vertices[vi++] = u1; vertices[vi++] = v0;
-            vertices[vi++] = x2; vertices[vi++] = y2; vertices[vi++] = u1; vertices[vi++] = v1;
-            vertices[vi++] = x3; vertices[vi++] = y3; vertices[vi++] = u0; vertices[vi++] = v1;
-
-            uint32_t base_index = quad_idx * 6;
-            indices[base_index + 0] = base_vertex + 0;
-            indices[base_index + 1] = base_vertex + 1;
-            indices[base_index + 2] = base_vertex + 2;
-            indices[base_index + 3] = base_vertex + 0;
-            indices[base_index + 4] = base_vertex + 2;
-            indices[base_index + 5] = base_vertex + 3;
-
-            quad_idx++;
+            glyphs[glyph_idx].local_x = gx;
+            glyphs[glyph_idx].local_y = gy;
+            glyphs[glyph_idx].width = gw;
+            glyphs[glyph_idx].height = gh;
+            glyphs[glyph_idx].u0 = u0;
+            glyphs[glyph_idx].v0 = v0;
+            glyphs[glyph_idx].u1 = u1;
+            glyphs[glyph_idx].v1 = v1;
+            glyph_idx++;
         }
 
         if (glyph) {
@@ -903,10 +867,8 @@ static int text_geometry_rebuild(AfferentFontRef font, TextGeometryEntry* entry)
         }
     }
 
-    entry->vertices = vertices;
-    entry->indices = indices;
-    entry->vertex_count = vertex_count;
-    entry->index_count = index_count;
+    entry->glyphs = glyphs;
+    entry->glyph_count = glyph_count;
     entry->atlas_version = font->atlas_version;
     return 1;
 }
@@ -1029,110 +991,24 @@ void afferent_font_atlas_clear_dirty(AfferentFontRef font) {
     }
 }
 
-// Helper to apply 2D affine transform to a point
-// Transform is [a, b, c, d, tx, ty] where: x' = a*x + c*y + tx, y' = b*x + d*y + ty
-static inline void apply_transform(float px, float py, const float* t,
-                                   float* out_x, float* out_y) {
-    *out_x = t[0] * px + t[2] * py + t[4];
-    *out_y = t[1] * px + t[3] * py + t[5];
+uint32_t afferent_font_get_atlas_version(AfferentFontRef font) {
+    return font ? font->atlas_version : 0;
 }
 
-// Generate vertex data for rendering text with transform support
-// Vertex format: pos.x, pos.y, uv.x, uv.y, r, g, b, a (8 floats per vertex)
-// Transform is [a, b, c, d, tx, ty] (6 floats), or NULL for identity
-// Returns number of vertices generated
-int afferent_text_generate_vertices(
+int afferent_text_generate_glyph_instances_batch(
     AfferentFontRef font,
-    const char* text,
-    float x,
-    float y,
-    float r, float g, float b, float a,
-    float screen_width,
-    float screen_height,
-    const float* transform,
-    float** out_vertices,
-    uint32_t** out_indices,
-    uint32_t* out_vertex_count,
-    uint32_t* out_index_count
-) {
-    if (!font || !text || !out_vertices || !out_indices) {
-        return 0;
-    }
-
-    // Default to identity transform if none provided
-    float identity[6] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-    if (!transform) {
-        transform = identity;
-    }
-
-    TextGeometryEntry* geom = get_or_build_text_geometry(font, text);
-    if (!geom || geom->vertex_count == 0 || geom->index_count == 0) {
-        *out_vertices = NULL;
-        *out_indices = NULL;
-        *out_vertex_count = 0;
-        *out_index_count = 0;
-        return geom ? 1 : 0;
-    }
-
-    if (!ensure_text_output_capacity(geom->vertex_count, geom->index_count)) {
-        return 0;
-    }
-    float* vertices = g_text_vertex_float_scratch;
-    uint32_t* indices = g_text_index_scratch;
-
-    for (uint32_t i = 0; i < geom->vertex_count; i++) {
-        size_t src = (size_t)i * 4;
-        float px = geom->vertices[src + 0] + x;
-        float py = geom->vertices[src + 1] + y;
-        float u = geom->vertices[src + 2];
-        float v = geom->vertices[src + 3];
-
-        float tx, ty;
-        apply_transform(px, py, transform, &tx, &ty);
-
-        size_t dst = (size_t)i * 8;
-        vertices[dst + 0] = (tx / screen_width) * 2.0f - 1.0f;
-        vertices[dst + 1] = 1.0f - (ty / screen_height) * 2.0f;
-        vertices[dst + 2] = u;
-        vertices[dst + 3] = v;
-        vertices[dst + 4] = r;
-        vertices[dst + 5] = g;
-        vertices[dst + 6] = b;
-        vertices[dst + 7] = a;
-    }
-    for (uint32_t i = 0; i < geom->index_count; i++) {
-        indices[i] = geom->indices[i];
-    }
-
-    *out_vertices = vertices;
-    *out_indices = indices;
-    *out_vertex_count = geom->vertex_count;
-    *out_index_count = geom->index_count;
-
-    return 1;
-}
-
-// Generate vertices for multiple text strings into one buffer
-// Each string has its own position, color, and transform
-int afferent_text_generate_vertices_batch(
-    AfferentFontRef font,
-    const char** texts,           // Array of strings
-    const float* positions,       // [x0, y0, x1, y1, ...]
-    const float* colors,          // [r0, g0, b0, a0, ...]
-    const float* transforms,      // [a0, b0, c0, d0, tx0, ty0, ...] (6 per entry)
+    const char** texts,
     uint32_t count,
-    float screen_width,
-    float screen_height,
-    float** out_vertices,
-    uint32_t** out_indices,
-    uint32_t* out_vertex_count,
-    uint32_t* out_index_count
+    AfferentTextGlyphInstanceStatic** out_instances,
+    uint32_t* out_instance_count
 ) {
-    if (!font || !texts || count == 0 || !out_vertices || !out_indices) {
-        if (out_vertices) *out_vertices = NULL;
-        if (out_indices) *out_indices = NULL;
-        if (out_vertex_count) *out_vertex_count = 0;
-        if (out_index_count) *out_index_count = 0;
+    if (!out_instances || !out_instance_count) {
+        return 0;
+    }
+    *out_instances = NULL;
+    *out_instance_count = 0;
+
+    if (!font || !texts || count == 0) {
         return count == 0 ? 1 : 0;
     }
 
@@ -1141,8 +1017,7 @@ int afferent_text_generate_vertices_batch(
     }
     TextGeometryEntry** geometries = g_text_geometry_ptr_scratch;
 
-    uint32_t total_vertices = 0;
-    uint32_t total_indices = 0;
+    uint32_t total_instances = 0;
     for (uint32_t i = 0; i < count; i++) {
         const char* text = texts[i];
         if (!text || !*text) {
@@ -1154,76 +1029,36 @@ int afferent_text_generate_vertices_batch(
             return 0;
         }
         geometries[i] = geom;
-        total_vertices += geom->vertex_count;
-        total_indices += geom->index_count;
+        total_instances += geom->glyph_count;
     }
 
-    if (total_vertices == 0 || total_indices == 0) {
-        *out_vertices = NULL;
-        *out_indices = NULL;
-        *out_vertex_count = 0;
-        *out_index_count = 0;
+    if (total_instances == 0) {
         return 1;
     }
-
-    if (!ensure_text_output_capacity(total_vertices, total_indices)) {
+    if (!ensure_text_instance_capacity(total_instances)) {
         return 0;
     }
-    float* vertices = g_text_vertex_float_scratch;
-    uint32_t* indices = g_text_index_scratch;
 
-    // Default identity transform
-    float identity[6] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-
-    uint32_t vertex_count = 0;
-    uint32_t index_count = 0;
-
-    // Process each text instance using cached local geometry.
-    for (uint32_t text_idx = 0; text_idx < count; text_idx++) {
-        const TextGeometryEntry* geom = geometries[text_idx];
-        if (!geom || geom->vertex_count == 0 || geom->index_count == 0) continue;
-
-        float x = positions ? positions[text_idx * 2] : 0.0f;
-        float y = positions ? positions[text_idx * 2 + 1] : 0.0f;
-        float r = colors ? colors[text_idx * 4] : 1.0f;
-        float g = colors ? colors[text_idx * 4 + 1] : 1.0f;
-        float b = colors ? colors[text_idx * 4 + 2] : 1.0f;
-        float a = colors ? colors[text_idx * 4 + 3] : 1.0f;
-        const float* transform = transforms ? &transforms[text_idx * 6] : identity;
-
-        for (uint32_t i = 0; i < geom->vertex_count; i++) {
-            size_t src = (size_t)i * 4;
-            float px = geom->vertices[src + 0] + x;
-            float py = geom->vertices[src + 1] + y;
-            float u = geom->vertices[src + 2];
-            float v = geom->vertices[src + 3];
-
-            float tx, ty;
-            apply_transform(px, py, transform, &tx, &ty);
-
-            size_t dst = (size_t)(vertex_count + i) * 8;
-            vertices[dst + 0] = (tx / screen_width) * 2.0f - 1.0f;
-            vertices[dst + 1] = 1.0f - (ty / screen_height) * 2.0f;
-            vertices[dst + 2] = u;
-            vertices[dst + 3] = v;
-            vertices[dst + 4] = r;
-            vertices[dst + 5] = g;
-            vertices[dst + 6] = b;
-            vertices[dst + 7] = a;
+    uint32_t out_idx = 0;
+    for (uint32_t run_idx = 0; run_idx < count; run_idx++) {
+        TextGeometryEntry* geom = geometries[run_idx];
+        if (!geom || geom->glyph_count == 0) continue;
+        for (uint32_t g = 0; g < geom->glyph_count; g++) {
+            GlyphQuad* glyph = &geom->glyphs[g];
+            AfferentTextGlyphInstanceStatic* out = &g_text_instance_scratch[out_idx++];
+            out->localPos[0] = glyph->local_x;
+            out->localPos[1] = glyph->local_y;
+            out->size[0] = glyph->width;
+            out->size[1] = glyph->height;
+            out->uvMin[0] = glyph->u0;
+            out->uvMin[1] = glyph->v0;
+            out->uvMax[0] = glyph->u1;
+            out->uvMax[1] = glyph->v1;
+            out->runIndex = run_idx;
         }
-
-        for (uint32_t i = 0; i < geom->index_count; i++) {
-            indices[index_count + i] = vertex_count + geom->indices[i];
-        }
-
-        vertex_count += geom->vertex_count;
-        index_count += geom->index_count;
     }
 
-    *out_vertices = vertices;
-    *out_indices = indices;
-    *out_vertex_count = vertex_count;
-    *out_index_count = index_count;
-
+    *out_instances = g_text_instance_scratch;
+    *out_instance_count = total_instances;
     return 1;
 }

@@ -4,10 +4,6 @@
 // Global buffer pool instance
 BufferPool g_buffer_pool = {0};
 
-// Staging buffer for text vertex conversion (reused across frames)
-TextVertex* g_text_vertex_staging = NULL;
-size_t g_text_vertex_staging_capacity = 0;
-
 // Get a wrapper struct from the pool (or allocate if pool is empty)
 struct AfferentBuffer* pool_acquire_wrapper(void) {
     if (g_buffer_pool.wrapper_pool_used < g_buffer_pool.wrapper_pool_count) {

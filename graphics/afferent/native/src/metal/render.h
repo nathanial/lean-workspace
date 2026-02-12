@@ -17,6 +17,7 @@ extern CAMetalLayer* afferent_window_get_metal_layer(AfferentWindowRef window);
 // External declarations from text_render.c for atlas dirty tracking
 extern int afferent_font_atlas_dirty(AfferentFontRef font);
 extern void afferent_font_atlas_clear_dirty(AfferentFontRef font);
+extern uint32_t afferent_font_get_atlas_version(AfferentFontRef font);
 
 // External declarations from text_render.c
 extern uint8_t* afferent_font_get_atlas_data(AfferentFontRef font);
@@ -24,30 +25,12 @@ extern uint32_t afferent_font_get_atlas_width(AfferentFontRef font);
 extern uint32_t afferent_font_get_atlas_height(AfferentFontRef font);
 extern void* afferent_font_get_metal_texture(AfferentFontRef font);
 extern void afferent_font_set_metal_texture(AfferentFontRef font, void* texture);
-extern int afferent_text_generate_vertices(
-    AfferentFontRef font,
-    const char* text,
-    float x, float y,
-    float r, float g, float b, float a,
-    float screen_width, float screen_height,
-    const float* transform,
-    float** out_vertices,
-    uint32_t** out_indices,
-    uint32_t* out_vertex_count,
-    uint32_t* out_index_count
-);
-extern int afferent_text_generate_vertices_batch(
+extern int afferent_text_generate_glyph_instances_batch(
     AfferentFontRef font,
     const char** texts,
-    const float* positions,
-    const float* colors,
-    const float* transforms,
     uint32_t count,
-    float screen_width, float screen_height,
-    float** out_vertices,
-    uint32_t** out_indices,
-    uint32_t* out_vertex_count,
-    uint32_t* out_index_count
+    TextGlyphInstanceStatic** out_instances,
+    uint32_t* out_instance_count
 );
 
 // External declarations from texture.c
@@ -151,10 +134,6 @@ typedef struct {
 
 // Global buffer pool
 extern BufferPool g_buffer_pool;
-
-// Staging buffer for text vertex conversion (reused across frames)
-extern TextVertex* g_text_vertex_staging;
-extern size_t g_text_vertex_staging_capacity;
 
 // Buffer pool functions (buffer_pool.m)
 struct AfferentBuffer* pool_acquire_wrapper(void);

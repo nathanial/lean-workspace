@@ -240,33 +240,10 @@ AfferentResult create_pipelines(struct AfferentRenderer* renderer) {
         return AFFERENT_ERROR_PIPELINE_FAILED;
     }
 
-    // Create text vertex descriptor
-    MTLVertexDescriptor *textVertexDescriptor = [[MTLVertexDescriptor alloc] init];
-
-    // Position: 2 floats at offset 0
-    textVertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
-    textVertexDescriptor.attributes[0].offset = offsetof(TextVertex, position);
-    textVertexDescriptor.attributes[0].bufferIndex = 0;
-
-    // TexCoord: 2 floats at offset 8
-    textVertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
-    textVertexDescriptor.attributes[1].offset = offsetof(TextVertex, texCoord);
-    textVertexDescriptor.attributes[1].bufferIndex = 0;
-
-    // Color: 4 floats at offset 16
-    textVertexDescriptor.attributes[2].format = MTLVertexFormatFloat4;
-    textVertexDescriptor.attributes[2].offset = offsetof(TextVertex, color);
-    textVertexDescriptor.attributes[2].bufferIndex = 0;
-
-    // Layout
-    textVertexDescriptor.layouts[0].stride = sizeof(TextVertex);
-    textVertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-
     // Create text pipeline state
     MTLRenderPipelineDescriptor *textPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
     textPipelineDesc.vertexFunction = textVertexFunction;
     textPipelineDesc.fragmentFunction = textFragmentFunction;
-    textPipelineDesc.vertexDescriptor = textVertexDescriptor;
     textPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     apply_alpha_blend(textPipelineDesc.colorAttachments[0]);
 

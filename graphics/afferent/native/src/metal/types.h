@@ -4,12 +4,20 @@
 
 #include <stdint.h>
 
-// Text vertex structure (different layout than AfferentVertex)
-typedef struct {
-    float position[2];
-    float texCoord[2];
+typedef AfferentTextGlyphInstanceStatic TextGlyphInstanceStatic;
+
+// Instanced text run dynamic data (per text run)
+// affine0 = [a, b, c, d], affine1 = [tx, ty], origin = [x, y]
+typedef struct __attribute__((packed)) {
+    float affine0[4];
+    float affine1[2];
+    float origin[2];
     float color[4];
-} TextVertex;
+} TextRunDynamic;
+
+typedef struct __attribute__((packed)) {
+    float viewport[2];
+} TextInstancedUniforms;
 
 // Instance data structure (matches shader) - 32 bytes packed
 typedef struct __attribute__((packed)) {
