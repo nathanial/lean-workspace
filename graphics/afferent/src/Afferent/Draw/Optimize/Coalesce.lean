@@ -491,47 +491,6 @@ def coalesceByCategory (bounded : Array BoundedCommand) : Array RenderCommand :=
   for cmd in bucket6 do out := out.push cmd
   out
 
-/-- Compress stroke-rect commands into `strokeRectBatch` commands per contiguous lineWidth run. -/
-private def packStrokeRectCommands (cmds : Array RenderCommand) : Array RenderCommand := Id.run do
-  if cmds.isEmpty then return #[]
-  let mut out : Array RenderCommand := Array.mkEmpty cmds.size
-  let mut runData : Array Float := #[]
-  let mut runCount : Nat := 0
-  let mut runLineWidth : Float := 0.0
-
-  let flushRun := fun (out : Array RenderCommand) (runData : Array Float)
-      (runCount : Nat) (runLineWidth : Float) =>
-    if runCount == 0 then out
-    else out.push (.strokeRectBatch runData runCount runLineWidth)
-
-  for cmd in cmds do
-    match cmd with
-    | .strokeRect rect color lw cornerRadius =>
-      if runCount == 0 then
-        runLineWidth := lw
-      else if runLineWidth != lw then
-        out := flushRun out runData runCount runLineWidth
-        runData := #[]
-        runCount := 0
-        runLineWidth := lw
-      runData := runData.push rect.origin.x |>.push rect.origin.y
-        |>.push rect.size.width |>.push rect.size.height
-        |>.push color.r |>.push color.g |>.push color.b |>.push color.a
-        |>.push cornerRadius
-      runCount := runCount + 1
-    | .strokeRectBatch _ _ _ =>
-      out := flushRun out runData runCount runLineWidth
-      runData := #[]
-      runCount := 0
-      out := out.push cmd
-    | _ =>
-      out := flushRun out runData runCount runLineWidth
-      runData := #[]
-      runCount := 0
-      out := out.push cmd
-  out := flushRun out runData runCount runLineWidth
-  out
-
 /-- Coalesce commands by category while preserving stateful command order.
     Splits at any non-batchable ("other") command so transforms/clips apply.
     Uses bucket sort within each segment for O(N) performance. -/
@@ -558,7 +517,7 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
       -- Flush accumulated buckets before the "other" command
       for cmd in bucket0 do out := out.push cmd
       for cmd in bucket1 do out := out.push cmd
-      for cmd in packStrokeRectCommands bucket2 do out := out.push cmd
+      for cmd in bucket2 do out := out.push cmd
       for cmd in bucket3 do out := out.push cmd
       for cmd in bucket4 do out := out.push cmd
       for cmd in bucket5 do out := out.push cmd
@@ -584,7 +543,7 @@ def coalesceByCategoryWithClip (bounded : Array BoundedCommand) : Array RenderCo
   -- Flush any remaining commands
   for cmd in bucket0 do out := out.push cmd
   for cmd in bucket1 do out := out.push cmd
-  for cmd in packStrokeRectCommands bucket2 do out := out.push cmd
+  for cmd in bucket2 do out := out.push cmd
   for cmd in bucket3 do out := out.push cmd
   for cmd in bucket4 do out := out.push cmd
   for cmd in bucket5 do out := out.push cmd

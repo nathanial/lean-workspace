@@ -24,8 +24,6 @@ private structure RenderOptions where
 
 structure ArborRenderStats where
   batch : BatchStats := {}
-  cacheHits : Nat := 0
-  cacheMisses : Nat := 0
   timeCollectMs : Float := 0.0
   timeExecuteMs : Float := 0.0
   timeCustomMs : Float := 0.0
@@ -83,11 +81,11 @@ private def collectCommands (measuredWidget : Afferent.Arbor.Widget)
   pure (Afferent.Arbor.collectCommands measuredWidget layouts)
 
 private def collectCommandsWithStats (measuredWidget : Afferent.Arbor.Widget)
-    (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand × Nat × Nat × Float) := do
+    (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand × Float) := do
   let t0 ← IO.monoNanosNow
   let commands := Afferent.Arbor.collectCommands measuredWidget layouts
   let t1 ← IO.monoNanosNow
-  pure (commands, 0, 0, (t1 - t0).toFloat / 1000000.0)
+  pure (commands, (t1 - t0).toFloat / 1000000.0)
 
 private def executeWithOffset (reg : FontRegistry)
     (commands : Array Afferent.Arbor.RenderCommand)
@@ -179,7 +177,7 @@ def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
 def renderArborWidgetWithCustomAndStats (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM ArborRenderStats := do
   let prepared ← prepareRender reg widget availWidth availHeight false
-  let (commands, hits, misses, timeCollectMs) ←
+  let (commands, timeCollectMs) ←
     collectCommandsWithStats prepared.measuredWidget prepared.layouts
   let (batchStats, timeExecuteMs) ←
     executeWithOffsetAndStats reg commands prepared.offsetX prepared.offsetY
@@ -187,8 +185,6 @@ def renderArborWidgetWithCustomAndStats (reg : FontRegistry) (widget : Afferent.
     renderCustomWithOffset prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
   pure {
     batch := batchStats
-    cacheHits := hits
-    cacheMisses := misses
     timeCollectMs
     timeExecuteMs
     timeCustomMs

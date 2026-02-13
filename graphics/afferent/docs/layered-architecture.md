@@ -82,15 +82,15 @@ Disallowed:
 - Owns widget model, measure/layout preparation, event model, and Canopy composition.
 
 3. Draw
-- Owns backend-agnostic render command IR (`RenderCommand`), command collection, caching, and optimization.
+- Owns backend-agnostic render command IR (`RenderCommand`), command collection, and optimization.
 
 4. Output
 - Owns concrete canvas/FFI execution of draw commands to the renderer.
 
 ## Runtime ownership
 
-- Draw cache state is owned by `Afferent.Draw.Runtime`.
-- `Canvas` owns a `drawRuntime` value rather than owning Arbor cache internals directly.
+- Render command collection is stateless; there is no `Afferent.Draw.Runtime`.
+- `Canvas` does not own render-command cache state.
 
 ## Frame-flow contract (single measurement pass)
 

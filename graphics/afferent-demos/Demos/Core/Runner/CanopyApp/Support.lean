@@ -33,10 +33,6 @@ private def formatPercent (v : Float) : String :=
   s!"{formatFloat (v * 100.0) 1}%"
 
 private def formatStatsLines (stats : RunnerStats) : Array String :=
-  let cacheTotal := stats.cacheHits + stats.cacheMisses
-  let cacheHitRate :=
-    if cacheTotal == 0 then 0.0
-    else stats.cacheHits.toFloat / cacheTotal.toFloat
   let drawOps := stats.batchedCalls + stats.individualCalls
   let batchCallRate :=
     if drawOps == 0 then 0.0
@@ -64,8 +60,7 @@ private def formatStatsLines (stats : RunnerStats) : Array String :=
   let line12 := s!"exec split batch {formatFloat stats.executeBatchMs}ms • custom {formatFloat stats.executeCustomMs}ms • overhead {formatFloat stats.executeOverheadMs}ms"
   let line13 := s!"batch timings flatten {formatFloat stats.flattenMs}ms • coalesce {formatFloat stats.coalesceMs}ms • loop {formatFloat stats.batchLoopMs}ms • residual {formatFloat stats.batchResidualMs}ms • draw {formatFloat stats.drawCallMs}ms"
   let line14 := s!"text batch pack {formatFloat stats.textPackMs}ms • ffi {formatFloat stats.textFfiMs}ms"
-  let line15 := s!"cache hits {stats.cacheHits} • misses {stats.cacheMisses} • hit rate {formatPercent cacheHitRate}"
-  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14, line15]
+  #[line1, line2, line3, line4, line5, line6, line7, line8, line9, line10, line11, line12, line13, line14]
 
 /-- Show frame stats under the tab content. -/
 def statsFooter (env : DemoEnv) (elapsedTime : Dynamic Spider Float) : WidgetM Unit := do

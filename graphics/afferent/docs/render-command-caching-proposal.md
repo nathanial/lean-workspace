@@ -1,5 +1,7 @@
 # Render Command Caching Proposal
 
+> Status: archival proposal. Render-command caching has been removed from the active codebase, and APIs in this document (for example `collectCommandsCached`) are no longer current.
+
 ## The Problem
 
 Every frame, `collectCommands` walks the widget tree and calls `spec.collect` for every `CustomSpec` widget:

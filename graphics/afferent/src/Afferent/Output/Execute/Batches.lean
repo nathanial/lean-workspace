@@ -99,18 +99,6 @@ structure StrokeRectBatchEntry where
   a : Float
   cornerRadius : Float
 
-/-- Entry for a batched line segment.
-    Format: [x1, y1, x2, y2, r, g, b, a, padding] (9 floats) -/
-structure LineBatchEntry where
-  x1 : Float
-  y1 : Float
-  x2 : Float
-  y2 : Float
-  r : Float
-  g : Float
-  b : Float
-  a : Float
-
 /-- Entry for batched text rendering.
     Includes per-entry transform for rotated/scaled text. -/
 structure TextBatchEntry where
@@ -238,62 +226,6 @@ def executeStrokeCircleBatch (circles : Array StrokeCircleBatchEntry) (lineWidth
   -- kind 4 = strokeCircle, param0 = lineWidth
   canvas.ctx.renderer.drawBatchBuffer 4 buf circles.size.toUInt32 lineWidth 0.0
     canvasWidth canvasHeight
-
-/-- Execute a batch of strokeLine commands in a single draw call. -/
-def executeLineBatch (lines : Array LineBatchEntry) (lineWidth : Float) : CanvasM Unit := do
-  if lines.isEmpty then return
-  let canvas ← CanvasM.getCanvas
-  let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
-  -- Pack into Float array: [x1, y1, x2, y2, r, g, b, a, padding] per line
-  let data := lines.foldl (init := #[]) fun acc entry =>
-    acc.push entry.x1 |>.push entry.y1 |>.push entry.x2 |>.push entry.y2
-       |>.push entry.r |>.push entry.g |>.push entry.b |>.push entry.a
-       |>.push 0.0
-  canvas.ctx.renderer.drawLineBatch data lines.size.toUInt32 lineWidth
-    canvasWidth canvasHeight
-
-/-- Execute line batch from FloatBuffer (high-performance path). -/
-def executeLineBatchFromBuffer (buf : FFI.FloatBuffer) (count : Nat) (lineWidth : Float) : CanvasM Unit := do
-  if count == 0 then return
-  let canvas ← CanvasM.getCanvas
-  let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
-  canvas.ctx.renderer.drawLineBatchBuffer buf count.toUInt32 lineWidth canvasWidth canvasHeight
-
-/-- Execute strokeLine commands directly from RenderCommand array, avoiding intermediate structures. -/
-def executeLineCommandsDirect (cmds : Array RenderCommand) (startIdx endIdx : Nat) : CanvasM Nat := do
-  if startIdx >= endIdx then return 0
-  let canvas ← CanvasM.getCanvas
-  let (canvasWidth, canvasHeight) ← canvas.ctx.getCurrentSize
-  -- First pass: find all lines with same lineWidth and count them
-  let mut i := startIdx
-  let mut lineWidth : Float := 0.0
-  let mut count : Nat := 0
-  -- Get lineWidth from first command
-  if let some (.strokeLine _ _ _ lw) := cmds[startIdx]? then
-    lineWidth := lw
-  -- Count consecutive lines with same lineWidth
-  while i < endIdx do
-    if let some (.strokeLine _ _ _ lw) := cmds[i]? then
-      if count == 0 || lw == lineWidth then
-        count := count + 1
-        i := i + 1
-      else
-        break
-    else
-      break
-  -- Build Float array directly (9 floats per line)
-  let mut data : Array Float := Array.mkEmpty (count * 9)
-  i := startIdx
-  let endI := startIdx + count
-  while i < endI do
-    if let some (.strokeLine p1 p2 color _) := cmds[i]? then
-      data := data.push p1.x |>.push p1.y |>.push p2.x |>.push p2.y
-              |>.push color.r |>.push color.g |>.push color.b |>.push color.a
-              |>.push 0.0
-    i := i + 1
-  if count > 0 then
-    canvas.ctx.renderer.drawLineBatch data count.toUInt32 lineWidth canvasWidth canvasHeight
-  return count
 
 /-- Execute consecutive strokeRect commands directly from RenderCommand array,
     avoiding intermediate `StrokeRectBatchEntry` allocations. -/

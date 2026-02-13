@@ -308,8 +308,6 @@ def unifiedDemo : IO Unit := do
 
             let collectStart ← IO.monoNanosNow
             let commands := Afferent.Arbor.collectCommands measuredWidget layouts
-            let cacheHits := 0
-            let cacheMisses := 0
             let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
             let ((batchStats, executeBatchNs, executeCustomNs), c') ← CanvasM.run c do
@@ -396,8 +394,6 @@ def unifiedDemo : IO Unit := do
               drawCallMs := batchStats.timeDrawCallsMs
               textPackMs := batchStats.timeTextPackMs
               textFfiMs := batchStats.timeTextFFIMs
-              cacheHits := cacheHits
-              cacheMisses := cacheMisses
               widgetCount := widgetCount
               layoutCount := layoutCount
             }

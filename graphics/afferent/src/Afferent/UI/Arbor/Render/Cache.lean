@@ -1,5 +1,4 @@
 /-
   Compatibility module.
-  Canonical draw-command cache lives at `Afferent.Draw.Cache`.
+  Render-command caching has been removed.
 -/
-import Afferent.Draw.Cache

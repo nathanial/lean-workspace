@@ -54,8 +54,6 @@ structure RunnerStats where
   drawCallMs : Float := 0.0
   textPackMs : Float := 0.0
   textFfiMs : Float := 0.0
-  cacheHits : Nat := 0
-  cacheMisses : Nat := 0
   widgetCount : Nat := 0
   layoutCount : Nat := 0
   deriving Inhabited

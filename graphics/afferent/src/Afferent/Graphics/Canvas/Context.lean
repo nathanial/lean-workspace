@@ -587,18 +587,6 @@ def resetStateAndScissor (c : Canvas) : IO Canvas := do
   c.ctx.resetScissor
   pure { c with stateStack := StateStack.new }
 
-/-! ## Draw Cache Diagnostics -/
-
-/-- Get the number of cached draw-command entries.
-    Render-command caching is disabled, so this is always zero. -/
-def getRenderCacheSize (_c : Canvas) : IO Nat :=
-  pure 0
-
-/-- Clear draw-command cache entries.
-    Render-command caching is disabled, so this is a no-op. -/
-def clearRenderCache (_c : Canvas) : IO Unit :=
-  pure ()
-
 /-! ## Style operations -/
 
 def setFillColor (color : Color) (c : Canvas) : Canvas :=

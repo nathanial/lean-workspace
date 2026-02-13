@@ -64,42 +64,6 @@ private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array Re
   let cmds := mergeInstancedArcs cmds
   cmds
 
-private def computeLineMeta (lineCmds : Array RenderCommand) : (Nat × Float) :=
-  Id.run do
-    let mut lineCount : Nat := 0
-    let mut uniformLineWidth : Float := 1.0
-    for cmd in lineCmds do
-      match cmd with
-      | .strokeLine _ _ _ lw =>
-        if lineCount == 0 then uniformLineWidth := lw
-        lineCount := lineCount + 1
-      | .strokeLineBatch _ count lw =>
-        if lineCount == 0 then uniformLineWidth := lw
-        lineCount := lineCount + count
-      | _ => pure ()
-    return (lineCount, uniformLineWidth)
-
-private def ensureLineBuffer (lineCount : Nat) : CanvasM (Option FFI.FloatBuffer) := do
-  if lineCount == 0 then
-    pure none
-  else
-    let requiredFloats := lineCount * 9
-    let canvas ← CanvasM.getCanvas
-    let canvas ←
-      match canvas.floatBuffer with
-      | some buf =>
-        if canvas.floatBufferCapacity >= requiredFloats then
-          pure canvas
-        else
-          FFI.FloatBuffer.destroy buf
-          let newBuf ← FFI.FloatBuffer.create requiredFloats.toUSize
-          pure { canvas with floatBuffer := some newBuf, floatBufferCapacity := requiredFloats }
-      | none =>
-        let newBuf ← FFI.FloatBuffer.create requiredFloats.toUSize
-        pure { canvas with floatBuffer := some newBuf, floatBufferCapacity := requiredFloats }
-    CanvasM.setCanvas canvas
-    pure canvas.floatBuffer
-
 private def flushRects (state : BatchState) : CanvasM BatchState := do
   if state.rectBatch.isEmpty then
     pure state
@@ -517,48 +481,6 @@ private def processCommands (reg : FontRegistry) (cmds : Array RenderCommand)
     | none =>
       i := cmds.size
   flushAll reg state
-
-private def drawLines (state : BatchState) (lineCmds : Array RenderCommand) (lineCount : Nat)
-    (uniformLineWidth : Float) (lineBuffer : Option FFI.FloatBuffer)
-    (canvasWidth canvasHeight : Float) : CanvasM BatchState := do
-  if lineCount == 0 then
-    pure state
-  else
-    match lineBuffer with
-    | some buf =>
-      let mut bufIdx : USize := 0
-      for cmd in lineCmds do
-        match cmd with
-        | .strokeLine p1 p2 color _ =>
-          buf.setVec9 bufIdx p1.x p1.y p2.x p2.y color.r color.g color.b color.a 0.0
-          bufIdx := bufIdx + 9
-        | .strokeLineBatch data count _ =>
-          if count > 0 then
-            for j in [:count] do
-              let base := j * 9
-              let x1 := data[base]!
-              let y1 := data[base + 1]!
-              let x2 := data[base + 2]!
-              let y2 := data[base + 3]!
-              let r := data[base + 4]!
-              let g := data[base + 5]!
-              let b := data[base + 6]!
-              let a := data[base + 7]!
-              let pad := data[base + 8]!
-              buf.setVec9 bufIdx x1 y1 x2 y2 r g b a pad
-              bufIdx := bufIdx + 9
-        | _ => pure ()
-      let canvas ← CanvasM.getCanvas
-      let t0 ← IO.monoNanosNow
-      canvas.ctx.renderer.drawLineBatchBuffer buf lineCount.toUInt32 uniformLineWidth canvasWidth canvasHeight
-      let t1 ← IO.monoNanosNow
-      let stats := { state.stats with
-        linesBatched := lineCount
-        batchedCalls := state.stats.batchedCalls + 1 }
-      pure { state with
-        stats := stats
-        drawCallTimeNs := state.drawCallTimeNs + (t1 - t0) }
-    | none => pure state
 
 /-- Execute an array of RenderCommands using CanvasM with batching optimization.
     First coalesces commands within scopes to maximize batching opportunities, then
