@@ -535,9 +535,4 @@ def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.
 def executeCommandsBatched (reg : FontRegistry) (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM Unit := do
   let _ ← executeCommandsBatchedWithStats reg cmds
 
-/-- Execute an array of RenderCommands using CanvasM (unbatched, for compatibility). -/
-def executeCommands (reg : FontRegistry) (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM Unit := do
-  for cmd in cmds do
-    executeCommand reg cmd
-
 end Afferent.Widget

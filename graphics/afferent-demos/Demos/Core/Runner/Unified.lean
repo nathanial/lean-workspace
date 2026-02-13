@@ -384,7 +384,6 @@ def unifiedDemo : IO Unit := do
               strokeRectsBatched := batchStats.strokeRectsBatched
               strokeRectDirectRuns := batchStats.strokeRectDirectRuns
               strokeRectDirectRects := batchStats.strokeRectDirectRects
-              linesBatched := batchStats.linesBatched
               textsBatched := batchStats.textsBatched
               textFillCommands := batchStats.textFillCommands
               textBatchFlushes := batchStats.textBatchFlushes

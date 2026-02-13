@@ -32,8 +32,6 @@ structure BatchStats where
   strokeRectDirectRuns : Nat := 0
   /-- Number of strokeRect commands consumed by direct runs. -/
   strokeRectDirectRects : Nat := 0
-  /-- Number of lines batched. -/
-  linesBatched : Nat := 0
   /-- Number of texts batched. -/
   textsBatched : Nat := 0
   /-- Number of `fillText` commands seen in the coalesced stream. -/

@@ -87,30 +87,27 @@ private def collectCommandsWithStats (measuredWidget : Afferent.Arbor.Widget)
   let t1 ← IO.monoNanosNow
   pure (commands, (t1 - t0).toFloat / 1000000.0)
 
-private def executeWithOffset (reg : FontRegistry)
-    (commands : Array Afferent.Arbor.RenderCommand)
-    (offsetX offsetY : Float) : CanvasM Unit := do
+/-- Run an action under a temporary translation offset. -/
+private def withOffset (offsetX offsetY : Float) (action : CanvasM α) : CanvasM α := do
   if offsetX == 0.0 && offsetY == 0.0 then
-    executeCommandsBatched reg commands
+    action
   else
     CanvasM.save
     CanvasM.translate offsetX offsetY
-    executeCommandsBatched reg commands
+    let result ← action
     CanvasM.restore
+    pure result
+
+private def executeWithOffset (reg : FontRegistry)
+    (commands : Array Afferent.Arbor.RenderCommand)
+    (offsetX offsetY : Float) : CanvasM Unit := do
+  withOffset offsetX offsetY (executeCommandsBatched reg commands)
 
 private def executeWithOffsetAndStats (reg : FontRegistry)
     (commands : Array Afferent.Arbor.RenderCommand)
     (offsetX offsetY : Float) : CanvasM (BatchStats × Float) := do
   let t0 ← IO.monoNanosNow
-  let batchStats ←
-    if offsetX == 0.0 && offsetY == 0.0 then
-      executeCommandsBatchedWithStats reg commands
-    else
-      CanvasM.save
-      CanvasM.translate offsetX offsetY
-      let stats ← executeCommandsBatchedWithStats reg commands
-      CanvasM.restore
-      pure stats
+  let batchStats ← withOffset offsetX offsetY (executeCommandsBatchedWithStats reg commands)
   let t1 ← IO.monoNanosNow
   pure (batchStats, (t1 - t0).toFloat / 1000000.0)
 
@@ -118,13 +115,7 @@ private def renderCustomWithOffset (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult)
     (offsetX offsetY : Float) : CanvasM Float := do
   let t0 ← IO.monoNanosNow
-  if offsetX == 0.0 && offsetY == 0.0 then
-    renderCustomWidgets measuredWidget layouts
-  else
-    CanvasM.save
-    CanvasM.translate offsetX offsetY
-    renderCustomWidgets measuredWidget layouts
-    CanvasM.restore
+  withOffset offsetX offsetY (renderCustomWidgets measuredWidget layouts)
   let t1 ← IO.monoNanosNow
   pure ((t1 - t0).toFloat / 1000000.0)
 
@@ -142,13 +133,7 @@ def renderMeasuredArborWidget (reg : FontRegistry) (measuredWidget : Afferent.Ar
 def renderMeasuredArborWidgetWithCustom (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM Unit := do
   renderMeasuredArborWidget reg measuredWidget layouts offsetX offsetY
-  if offsetX == 0.0 && offsetY == 0.0 then
-    renderCustomWidgets measuredWidget layouts
-  else
-    CanvasM.save
-    CanvasM.translate offsetX offsetY
-    renderCustomWidgets measuredWidget layouts
-    CanvasM.restore
+  withOffset offsetX offsetY (renderCustomWidgets measuredWidget layouts)
 
 private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) (opts : RenderOptions) : CanvasM Unit := do
@@ -156,13 +141,8 @@ private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Wi
   renderMeasuredArborWidget reg prepared.measuredWidget prepared.layouts
     prepared.offsetX prepared.offsetY
   if opts.renderCustom then
-    if prepared.offsetX == 0.0 && prepared.offsetY == 0.0 then
-      renderCustomWidgets prepared.measuredWidget prepared.layouts
-    else
-      CanvasM.save
-      CanvasM.translate prepared.offsetX prepared.offsetY
-      renderCustomWidgets prepared.measuredWidget prepared.layouts
-      CanvasM.restore
+    withOffset prepared.offsetX prepared.offsetY
+      (renderCustomWidgets prepared.measuredWidget prepared.layouts)
 
 /-- Render an Arbor widget tree using CanvasM.
     This is the main entry point for rendering Arbor widgets with Afferent's Metal backend. -/

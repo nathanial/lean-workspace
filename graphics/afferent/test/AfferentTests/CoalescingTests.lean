@@ -112,23 +112,26 @@ def fillRectsConsecutiveFrom (cmds : Array RenderCommand) (startIdx : Nat) (coun
     | none => return false
   return true
 
+def coalesceRuntime (cmds : Array RenderCommand) : Array RenderCommand :=
+  coalesceByCategoryWithClip (computeBoundedCommands cmds)
+
 testSuite "Command Coalescing Tests"
 
 /-! ## Basic Coalescing -/
 
 test "empty array returns empty" := do
-  let result := coalesceCommands #[]
+  let result := coalesceRuntime #[]
   ensure (result.size == 0) "Expected empty array"
 
 test "single fillRect unchanged" := do
   let cmds := #[mkFillRect 0 0 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 1) "Expected 1 command"
   ensure (countFillRects result == 1) "Expected 1 fillRect"
 
 test "consecutive fillRects stay together" := do
   let cmds := #[mkFillRect 0 0 10 10, mkFillRect 20 20 10 10, mkFillRect 40 40 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   ensure (countFillRects result == 3) "Expected 3 fillRects"
 
@@ -138,7 +141,7 @@ test "fillRects coalesced when interleaved with text" := do
   -- Input: fillRect, fillText, fillRect
   -- Expected: fillRect, fillRect, fillText
   let cmds := #[mkFillRect 0 0 10 10, mkFillText "hello", mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   ensure (countFillRects result == 2) "Expected 2 fillRects"
   ensure (countFillTexts result == 1) "Expected 1 text"
@@ -146,18 +149,19 @@ test "fillRects coalesced when interleaved with text" := do
 
 test "fillRects coalesced when interleaved with paths" := do
   -- Input: fillRect, fillPath, fillRect, strokePath, fillRect
-  -- Expected: fillRect×3, fillPath, strokePath
+  -- `.other` commands split coalescing segments, so only intra-segment reordering applies.
   let cmds := #[mkFillRect 0 0 10 10, mkFillPath, mkFillRect 20 20 10 10, mkStrokePath, mkFillRect 40 40 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 5) "Expected 5 commands"
   ensure (countFillRects result == 3) "Expected 3 fillRects"
-  ensure (fillRectsConsecutiveFrom result 0 3) "First 3 commands should be fillRects"
+  ensure (countFillPaths result == 1) "Expected 1 fillPath"
+  ensure (countStrokePaths result == 1) "Expected 1 strokePath"
 
 test "stroke rects grouped after fill rects" := do
   -- Input: strokeRect, fillRect, strokeRect, fillRect
   -- Expected: fillRect×2, strokeRect×2
   let cmds := #[mkStrokeRect 0 0 10 10, mkFillRect 20 20 10 10, mkStrokeRect 40 40 10 10, mkFillRect 60 60 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 4) "Expected 4 commands"
   ensure (countFillRects result == 2) "Expected 2 fillRects"
   ensure (countStrokeRects result == 2) "Expected 2 strokeRects"
@@ -168,7 +172,7 @@ test "text always comes last in scope" := do
   -- Input: fillText, fillRect, strokeRect, fillPath
   -- Expected: fillRect, strokeRect, fillPath, fillText
   let cmds := #[mkFillText "first", mkFillRect 0 0 10 10, mkStrokeRect 20 20 10 10, mkFillPath]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 4) "Expected 4 commands"
   ensure (fillRectsBeforeTexts result) "fillRects should come before texts"
 
@@ -177,7 +181,7 @@ test "text always comes last in scope" := do
 test "save command creates scope boundary" := do
   -- fillRects in different scopes should NOT be coalesced together
   let cmds := #[mkFillRect 0 0 10 10, .save, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   -- save should be in the middle
   match result[0]?, result[1]?, result[2]? with
@@ -189,7 +193,7 @@ test "save command creates scope boundary" := do
 
 test "restore command creates scope boundary" := do
   let cmds := #[mkFillRect 0 0 10 10, .restore, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   match result[1]? with
   | some c1 => ensure (isRestore c1) "Second should be restore"
@@ -197,7 +201,7 @@ test "restore command creates scope boundary" := do
 
 test "pushClip command creates scope boundary" := do
   let cmds := #[mkFillRect 0 0 10 10, .pushClip ⟨⟨0, 0⟩, ⟨100, 100⟩⟩, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   match result[1]? with
   | some c1 => ensure (isPushClip c1) "Second should be pushClip"
@@ -205,7 +209,7 @@ test "pushClip command creates scope boundary" := do
 
 test "popClip command creates scope boundary" := do
   let cmds := #[mkFillRect 0 0 10 10, .popClip, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   match result[1]? with
   | some c1 => ensure (isPopClip c1) "Second should be popClip"
@@ -213,12 +217,12 @@ test "popClip command creates scope boundary" := do
 
 test "pushTranslate command creates scope boundary" := do
   let cmds := #[mkFillRect 0 0 10 10, .pushTranslate 10 20, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
 
 test "popTransform command creates scope boundary" := do
   let cmds := #[mkFillRect 0 0 10 10, .popTransform, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
 
 /-! ## Complex Scenarios -/
@@ -236,11 +240,11 @@ test "chart-like pattern: grid, shapes, text, axes" := do
     mkFillRect 0 299 400 1,          -- x-axis
     mkFillRect 0 0 1 300             -- y-axis
   ]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 9) "Expected 9 commands"
-  -- All 5 fillRects should be first
+  -- Path commands are `.other` and split segments, so rect coalescing is segment-local.
   ensure (countFillRects result == 5) "Expected 5 fillRects"
-  ensure (fillRectsConsecutiveFrom result 0 5) "First 5 commands should be fillRects"
+  ensure (fillRectsConsecutiveFrom result 0 3) "First 3 commands should be fillRects"
   -- Then path operations (2)
   ensure (countFillPaths result == 1) "Expected 1 fillPath"
   ensure (countStrokePaths result == 1) "Expected 1 strokePath"
@@ -256,7 +260,7 @@ test "heatmap-like pattern: interleaved rects and text" := do
     mkFillRect 100 0 50 50, mkFillText "3",
     mkFillRect 0 50 50 50,  mkFillText "4"
   ]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 8) "Expected 8 commands"
   -- All 4 fillRects should be first
   ensure (countFillRects result == 4) "Expected 4 fillRects"
@@ -268,7 +272,7 @@ test "heatmap-like pattern: interleaved rects and text" := do
 test "nested scopes preserve structure" := do
   -- save, fillRect, fillText, restore - text should come after rect within scope
   let cmds := #[.save, mkFillRect 0 0 10 10, mkFillText "inner", .restore, mkFillRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 5) "Expected 5 commands"
   match result[0]?, result[1]?, result[2]?, result[3]?, result[4]? with
   | some c0, some c1, some c2, some c3, some c4 =>
@@ -290,7 +294,7 @@ test "fillRect order preserved within type" := do
     mkFillText "break2",
     mkFillRectColor 40 40 10 10 0 0 1  -- blue
   ]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 5) "Expected 5 commands"
   -- Check that the three fillRects come first and are in original order
   match result[0]?, result[1]?, result[2]? with
@@ -303,41 +307,6 @@ test "fillRect order preserved within type" := do
       shouldBeNear c3.b 1.0
     | _, _, _ => ensure false "Expected first 3 to be fillRects"
   | _, _, _ => ensure false "Expected at least 3 commands"
-
-/-! ## isStateChanging Tests -/
-
-test "isStateChanging identifies save" := do
-  ensure (isStateChanging .save) "save should be state-changing"
-
-test "isStateChanging identifies restore" := do
-  ensure (isStateChanging .restore) "restore should be state-changing"
-
-test "isStateChanging identifies pushClip" := do
-  ensure (isStateChanging (.pushClip ⟨⟨0, 0⟩, ⟨10, 10⟩⟩)) "pushClip should be state-changing"
-
-test "isStateChanging identifies popClip" := do
-  ensure (isStateChanging .popClip) "popClip should be state-changing"
-
-test "isStateChanging identifies pushTranslate" := do
-  ensure (isStateChanging (.pushTranslate 10 20)) "pushTranslate should be state-changing"
-
-test "isStateChanging identifies pushRotate" := do
-  ensure (isStateChanging (.pushRotate 0.5)) "pushRotate should be state-changing"
-
-test "isStateChanging identifies pushScale" := do
-  ensure (isStateChanging (.pushScale 2 2)) "pushScale should be state-changing"
-
-test "isStateChanging identifies popTransform" := do
-  ensure (isStateChanging .popTransform) "popTransform should be state-changing"
-
-test "isStateChanging returns false for fillRect" := do
-  ensure (!isStateChanging (mkFillRect 0 0 10 10)) "fillRect should not be state-changing"
-
-test "isStateChanging returns false for fillText" := do
-  ensure (!isStateChanging (mkFillText "hello")) "fillText should not be state-changing"
-
-test "isStateChanging returns false for fillPath" := do
-  ensure (!isStateChanging mkFillPath) "fillPath should not be state-changing"
 
 /-! ## Circle Coalescing Tests -/
 
@@ -372,7 +341,7 @@ test "fillCircles coalesced when interleaved with text" := do
   -- Input: fillCircle, fillText, fillCircle
   -- Expected: fillCircle, fillCircle, fillText (circles grouped first)
   let cmds := #[mkFillCircle 50 50 10, mkFillText "label", mkFillCircle 100 100 15]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   ensure (countFillCircles result == 2) "Expected 2 fillCircles"
   ensure (fillCirclesConsecutiveFrom result 0 2) "First 2 commands should be fillCircles"
@@ -381,7 +350,7 @@ test "fillCircles grouped with fillRects" := do
   -- Input: fillRect, fillCircle, fillRect, fillCircle
   -- Expected: fillRect×2, fillCircle×2 (rects before circles in coalescing order)
   let cmds := #[mkFillRect 0 0 10 10, mkFillCircle 50 50 10, mkFillRect 20 20 10 10, mkFillCircle 100 100 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 4) "Expected 4 commands"
   ensure (countFillRects result == 2) "Expected 2 fillRects"
   ensure (countFillCircles result == 2) "Expected 2 fillCircles"
@@ -394,7 +363,7 @@ test "strokeCircles grouped after fillCircles" := do
   -- Input: strokeCircle, fillCircle, strokeCircle, fillCircle
   -- Expected: fillCircle×2, strokeCircle×2
   let cmds := #[mkStrokeCircle 0 0 10, mkFillCircle 50 50 10, mkStrokeCircle 100 100 10, mkFillCircle 150 150 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 4) "Expected 4 commands"
   ensure (countFillCircles result == 2) "Expected 2 fillCircles"
   ensure (countStrokeCircles result == 2) "Expected 2 strokeCircles"
@@ -417,7 +386,7 @@ test "strokeRects coalesced when interleaved with text" := do
   -- Input: strokeRect, fillText, strokeRect
   -- Expected: strokeRect×2, fillText
   let cmds := #[mkStrokeRect 0 0 10 10, mkFillText "label", mkStrokeRect 20 20 10 10]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 3) "Expected 3 commands"
   ensure (countStrokeRects result == 2) "Expected 2 strokeRects"
   ensure (strokeRectsConsecutiveFrom result 0 2) "First 2 should be strokeRects"
@@ -430,18 +399,10 @@ test "strokeRects with same params stay consecutive" := do
     mkStrokeRectParams 20 20 10 10 2.0 4.0,
     mkStrokeRectParams 40 40 10 10 2.0 4.0
   ]
-  let result := coalesceCommands cmds
+  let result := coalesceRuntime cmds
   ensure (result.size == 4) "Expected 4 commands"
   ensure (countStrokeRects result == 3) "Expected 3 strokeRects"
   -- All 3 strokeRects should be consecutive at start
   ensure (strokeRectsConsecutiveFrom result 0 3) "First 3 should be strokeRects"
-
-/-! ## isStateChanging for New Commands -/
-
-test "isStateChanging returns false for fillCircle" := do
-  ensure (!isStateChanging (mkFillCircle 50 50 10)) "fillCircle should not be state-changing"
-
-test "isStateChanging returns false for strokeCircle" := do
-  ensure (!isStateChanging (mkStrokeCircle 50 50 10)) "strokeCircle should not be state-changing"
 
 end AfferentTests.CoalescingTests
