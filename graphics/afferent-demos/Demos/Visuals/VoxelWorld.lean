@@ -246,36 +246,48 @@ def buildVoxelWorldMesh (params : VoxelWorldParams) : Afferent.Widget.VoxelMesh 
   let minZ : Int := minX
   let maxYNat := safeChunkHeight - 1
   let terrace := Nat.max 1 params.terraceStep
+  let fbmConfig : Linalg.Noise.FractalConfig := {
+    octaves := 5
+    lacunarity := 2.0
+    persistence := 0.5
+  }
+  let mut heightMap : Array Nat := Array.replicate (worldSpan * worldSpan) 0
 
-  let heightAt : Int → Int → Nat := fun x z =>
-    let xf := intToFloat x * params.frequency
-    let zf := intToFloat z * params.frequency
-    let wave := (Float.sin xf + Float.cos zf + Float.sin (xf * 0.7 + zf * 1.1)) / 3.0
-    let normalized := Linalg.Float.clamp ((wave + 1.0) * 0.5) 0.0 1.0
-    let rawHeight := params.baseHeight.toFloat + normalized * params.heightRange.toFloat
-    let base := rawHeight.floor.toUInt64.toNat
-    let terraced := if terrace <= 1 then base else (base / terrace) * terrace
-    Nat.min maxYNat terraced
+  for zi in [:worldSpan] do
+    let wz := minZ + Int.ofNat zi
+    for xi in [:worldSpan] do
+      let wx := minX + Int.ofNat xi
+      let xf := intToFloat wx * params.frequency
+      let zf := intToFloat wz * params.frequency
+      let noise := Linalg.Noise.fbm2D xf zf fbmConfig
+      let normalized := Linalg.Float.clamp ((noise + 1.0) * 0.5) 0.0 1.0
+      let rawHeight := params.baseHeight.toFloat + normalized * params.heightRange.toFloat
+      let base := rawHeight.floor.toUInt64.toNat
+      let terraced := if terrace <= 1 then base else (base / terrace) * terrace
+      let clampedHeight := Nat.min maxYNat terraced
+      let idx := zi * worldSpan + xi
+      heightMap := heightMap.set! idx clampedHeight
+
+  let heightAtLocal : Nat → Nat → Nat := fun lx lz =>
+    heightMap.getD (lz * worldSpan + lx) 0
 
   let sampled : Linalg.Voxel.SampledChunk TerrainVoxel := {
     sizeX := worldSpan
     sizeY := safeChunkHeight
     sizeZ := worldSpan
     sample := fun lx ly lz =>
-      let wx := minX + lx
-      let wz := minZ + lz
+      let lxNat := lx.toNat
+      let lzNat := lz.toNat
       let yNat := ly.toNat
-      let surface := heightAt wx wz
+      let surface := heightAtLocal lxNat lzNat
       if yNat <= surface then
-        let relX := lx.toNat
-        let relZ := lz.toNat
-        let chunkX := relX / safeChunkSize
-        let chunkZ := relZ / safeChunkSize
+        let chunkX := lxNat / safeChunkSize
+        let chunkZ := lzNat / safeChunkSize
         let baseColor := paletteColor params.palette chunkX chunkZ yNat surface maxYNat
         let color :=
           if params.showChunkBoundaries && yNat + 1 >= surface then
-            let localX := relX % safeChunkSize
-            let localZ := relZ % safeChunkSize
+            let localX := lxNat % safeChunkSize
+            let localZ := lzNat % safeChunkSize
             let onBoundary :=
               localX == 0 || localZ == 0 ||
               localX + 1 == safeChunkSize || localZ + 1 == safeChunkSize

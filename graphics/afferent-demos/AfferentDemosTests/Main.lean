@@ -9,6 +9,7 @@ import AfferentDemosTests.RegistryTests
 import AfferentDemosTests.WidgetPerfBench
 import AfferentDemosTests.WidgetPerfGridLayout
 import AfferentDemosTests.WidgetTreePerfStress
+import AfferentDemosTests.VoxelTerrainPerfBench
 import Wisp
 
 def main : IO UInt32 := do
