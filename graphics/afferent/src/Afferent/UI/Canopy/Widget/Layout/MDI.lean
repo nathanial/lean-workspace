@@ -189,6 +189,14 @@ def widgetRectFromLayouts (componentId : ComponentId)
   let layout ← layouts.get wid
   pure (MDIRect.ofLayoutRect layout.contentRect)
 
+/-- Convert an absolute host rect to host-local coordinates (origin at 0,0). -/
+def hostRectLocal (host : MDIRect) : MDIRect :=
+  { x := 0, y := 0, width := host.width, height := host.height }
+
+/-- Convert absolute pointer coordinates into host-local coordinates. -/
+def pointInHostLocal (host : MDIRect) (x y : Float) : Float × Float :=
+  (x - host.x, y - host.y)
+
 /-- Clamp a rectangle so it remains entirely inside host bounds. -/
 def clampRectToHost (rect host : MDIRect) : MDIRect :=
   let width := min rect.width host.width
@@ -479,7 +487,7 @@ private def MDIState.renderEntries (state : MDIState) (config : MDIConfig) : Arr
     if config.showSnapPreview then
       match state.snapPreview, state.hostRect with
       | some (_, target), some host =>
-          entries := entries.push (.preview (MDI.snapRect host target))
+          entries := entries.push (.preview (MDI.snapRect (MDI.hostRectLocal host) target))
       | _, _ =>
           pure ()
     pure entries
@@ -660,9 +668,13 @@ def mdi (config : MDIConfig := {}) (windowSpecs : Array MDIWindowSpec) : WidgetM
             let state' := state.activateWindow windowId
             match MDI.windowById? state'.windows windowId with
             | some window =>
+              let (clickX, clickY) :=
+                match state'.hostRect with
+                | some host => MDI.pointInHostLocal host data.click.x data.click.y
+                | none => (data.click.x, data.click.y)
               let handle? :=
                 if window.resizable then
-                  MDI.resizeHandleAtPoint? window.rect data.click.x data.click.y config
+                  MDI.resizeHandleAtPoint? window.rect clickX clickY config
                 else
                   none
               match handle? with
@@ -715,9 +727,10 @@ def mdi (config : MDIConfig := {}) (windowSpecs : Array MDIWindowSpec) : WidgetM
           | none =>
               pure { state with dragMode := .none, snapPreview := none }
           | some window =>
+              let hostLocal? := state.hostRect.map MDI.hostRectLocal
               let moved := MDI.moveRectForDrag
                 drag.startRect drag.startX drag.startY data.x data.y
-                state.hostRect config.clampToHost
+                hostLocal? config.clampToHost
               if moved != window.rect then
                 SpiderM.liftIO (fireMove (drag.windowId, moved))
               let windows := MDI.updateWindowById state.windows drag.windowId (fun w => { w with rect := moved })
@@ -740,8 +753,9 @@ def mdi (config : MDIConfig := {}) (windowSpecs : Array MDIWindowSpec) : WidgetM
           | some window =>
               let minW := max config.minWindowWidth window.minWidth
               let minH := max config.minWindowHeight window.minHeight
+              let hostLocal? := state.hostRect.map MDI.hostRectLocal
               let resized := MDI.resizeRectForDrag drag.handle drag.startRect drag.startX drag.startY
-                data.x data.y minW minH state.hostRect config.clampToHost
+                data.x data.y minW minH hostLocal? config.clampToHost
               if resized != window.rect then
                 SpiderM.liftIO (fireResize (drag.windowId, resized))
               let windows := MDI.updateWindowById state.windows drag.windowId (fun w => { w with rect := resized })
@@ -766,8 +780,9 @@ def mdi (config : MDIConfig := {}) (windowSpecs : Array MDIWindowSpec) : WidgetM
               | none => none
             match snapTarget?, state.hostRect, MDI.windowById? state.windows drag.windowId with
             | some target, some host, some window =>
+                let hostLocal := MDI.hostRectLocal host
                 let (nextRect, nextSaved) := MDI.commitSnapRelease
-                  drag.windowId window.rect host target state.savedMaxRects
+                  drag.windowId window.rect hostLocal target state.savedMaxRects
                 SpiderM.liftIO (fireSnap (drag.windowId, target))
                 SpiderM.liftIO (fireMove (drag.windowId, nextRect))
                 let windows := MDI.updateWindowById state.windows drag.windowId (fun w => { w with rect := nextRect })

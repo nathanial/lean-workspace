@@ -70,6 +70,20 @@ test "moveRectForDrag clamps to host when enabled" := do
   shouldBeNear moved.width 240.0
   shouldBeNear moved.height 180.0
 
+test "hostRectLocal resets origin but preserves host size" := do
+  let host : MDIRect := { x := 32, y := 184, width := 680, height := 420 }
+  let hostLocal := MDI.hostRectLocal host
+  shouldBeNear hostLocal.x 0.0
+  shouldBeNear hostLocal.y 0.0
+  shouldBeNear hostLocal.width 680.0
+  shouldBeNear hostLocal.height 420.0
+
+test "pointInHostLocal converts absolute pointer coordinates to host-local" := do
+  let host : MDIRect := { x := 40, y := 200, width := 640, height := 360 }
+  let (lx, ly) := MDI.pointInHostLocal host 58 224
+  shouldBeNear lx 18.0
+  shouldBeNear ly 24.0
+
 test "resizeHandleAtPoint detects corner handles first" := do
   let config : MDIConfig := { edgeHandleSize := 6, cornerHandleSize := 12 }
   let rect : MDIRect := { x := 100, y := 100, width := 300, height := 200 }
