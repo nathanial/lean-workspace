@@ -407,6 +407,19 @@ private def consumePacket (reg : FontRegistry) (sink : SinkFoldState) (packet : 
     drawCallNs := sink.drawCallNs + ns
   }
 
+private def statsFromRun
+    (packetState : PacketTransducerState)
+    (timeTotalMs timeDrawCallsMs : Float)
+    : BatchStats :=
+  let timePipelineMs := max 0.0 (timeTotalMs - timeDrawCallsMs)
+  { packetState.stats with
+    timeFlattenMs := 0.0
+    timeCoalesceMs := 0.0
+    timeBatchLoopMs := timePipelineMs
+    timeDrawCallsMs := timeDrawCallsMs
+    timeTextPackMs := 0.0
+    timeTextFFIMs := 0.0 }
+
 /-- Execute a first-class render stream and return stats plus stage trace.
     Production path: coalescing transducer >>> packetization transducer >>> sink execution. -/
 def executeRenderStreamWithStatsAndTrace (reg : FontRegistry)
@@ -432,13 +445,7 @@ def executeRenderStreamWithStatsAndTrace (reg : FontRegistry)
   let timePipelineMs := max 0.0 (timeTotalMs - timeDrawCallsMs)
   let timeSinkMs := timeDrawCallsMs
 
-  let stats := { packetState.stats with
-    timeFlattenMs := 0.0
-    timeCoalesceMs := 0.0
-    timeBatchLoopMs := timePipelineMs
-    timeDrawCallsMs := timeDrawCallsMs
-    timeTextPackMs := 0.0
-    timeTextFFIMs := 0.0 }
+  let stats := statsFromRun packetState timeTotalMs timeDrawCallsMs
 
   let coalescedCount := coalesceState.coalescedCommands + coalesceState.emittedBarriers
 
@@ -461,14 +468,13 @@ def executeRenderStreamWithStats (reg : FontRegistry)
   let (stats, _) ← executeRenderStreamWithStatsAndTrace reg stream
   pure stats
 
-/-- Execute an array of RenderCommands using the render stream pipeline.
-    This is the primary production execution entrypoint for Arbor output. -/
-def executeCommandsBatchedWithStats (reg : FontRegistry)
-    (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM BatchStats := do
+/-- Execute a streamed RenderCommand producer using the transducer pipeline.
+    The producer can emit commands incrementally without materializing an array. -/
+def executeCommandProducerWithStats (reg : FontRegistry)
+    (produce : (RenderCommand → CanvasM Unit) → CanvasM Unit) : CanvasM BatchStats := do
   let pipeline := Afferent.Render.Transducer.compose coalesceTransducer packetTransducer
-
-  let mut transducerState := pipeline.init
-  let mut sinkState : SinkFoldState := {}
+  let transducerRef ← IO.mkRef pipeline.init
+  let sinkRef ← IO.mkRef ({} : SinkFoldState)
 
   let stepEvent
       (state : CoalesceTransducerState × PacketTransducerState)
@@ -481,33 +487,43 @@ def executeCommandsBatchedWithStats (reg : FontRegistry)
       sink ← consumePacket reg sink packet
     pure (next, sink)
 
+  let stepEventRef (ev : Afferent.Render.RenderEvent) : CanvasM Unit := do
+    let state ← transducerRef.get
+    let sink ← sinkRef.get
+    let (nextState, nextSink) ← stepEvent state sink ev
+    transducerRef.set nextState
+    sinkRef.set nextSink
+
   let tRun0 ← IO.monoNanosNow
-  let (s0, k0) ← stepEvent transducerState sinkState (.frameStart 0)
-  transducerState := s0
-  sinkState := k0
-  for cmd in cmds do
-    let (s, k) ← stepEvent transducerState sinkState (Afferent.Render.eventOfCommand cmd)
-    transducerState := s
-    sinkState := k
-  let (s1, k1) ← stepEvent transducerState sinkState (.frameEnd 0)
-  transducerState := s1
-  sinkState := k1
+  stepEventRef (.frameStart 0)
+  produce (fun cmd => do
+    stepEventRef (Afferent.Render.eventOfCommand cmd))
+  stepEventRef (.frameEnd 0)
+  let transducerState ← transducerRef.get
+  let mut sinkState ← sinkRef.get
   for packet in pipeline.done transducerState do
     sinkState ← consumePacket reg sinkState packet
+  sinkRef.set sinkState
   let tRun1 ← IO.monoNanosNow
 
   let (_coalesceState, packetState) := transducerState
   let timeTotalMs := (tRun1 - tRun0).toFloat / 1000000.0
   let timeDrawCallsMs := sinkState.drawCallNs.toFloat / 1000000.0
-  let timePipelineMs := max 0.0 (timeTotalMs - timeDrawCallsMs)
+  pure (statsFromRun packetState timeTotalMs timeDrawCallsMs)
 
-  pure { packetState.stats with
-    timeFlattenMs := 0.0
-    timeCoalesceMs := 0.0
-    timeBatchLoopMs := timePipelineMs
-    timeDrawCallsMs := timeDrawCallsMs
-    timeTextPackMs := 0.0
-    timeTextFFIMs := 0.0 }
+/-- Execute a streamed RenderCommand producer using the transducer pipeline. -/
+def executeCommandProducer (reg : FontRegistry)
+    (produce : (RenderCommand → CanvasM Unit) → CanvasM Unit) : CanvasM Unit := do
+  let _ ← executeCommandProducerWithStats reg produce
+  pure ()
+
+/-- Execute an array of RenderCommands using the render stream pipeline.
+    This is the primary production execution entrypoint for Arbor output. -/
+def executeCommandsBatchedWithStats (reg : FontRegistry)
+    (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM BatchStats := do
+  executeCommandProducerWithStats reg (fun emit => do
+    for cmd in cmds do
+      emit cmd)
 
 /-- Execute an array of RenderCommands using the render stream pipeline. -/
 def executeCommandsBatched (reg : FontRegistry)

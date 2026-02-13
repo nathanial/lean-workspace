@@ -16,6 +16,29 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
+/-- Clip stack operation represented by render commands.
+    Kept explicit to test clip semantics independent of draw execution. -/
+inductive ClipStackAction where
+  | push (rect : Rect)
+  | pop
+deriving Repr, BEq, Inhabited
+
+namespace ClipStackAction
+
+/-- Apply a clip stack action to pure canvas state. -/
+def applyToState (action : ClipStackAction) (state : CanvasState) : CanvasState :=
+  match action with
+  | .push rect => state.pushClip rect
+  | .pop => state.popClip
+
+end ClipStackAction
+
+/-- Extract clip stack action for clip-related render commands. -/
+def clipStackAction? : RenderCommand → Option ClipStackAction
+  | .pushClip rect => some (.push rect)
+  | .popClip => some .pop
+  | _ => none
+
 /-- Convert a polygon (array of points) to a closed path. -/
 private def polygonToPath (points : Array Point) : Path :=
   Id.run do

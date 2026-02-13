@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical render interpreter lives at `Afferent.Render.Sink.Interpreter`.
+  Canonical sink execution lives at `Afferent.Render.Sink.Execute`.
 -/
-import Afferent.Render.Sink.Interpreter
+import Afferent.Render.Sink.Execute
