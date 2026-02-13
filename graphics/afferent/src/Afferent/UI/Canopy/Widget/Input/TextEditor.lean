@@ -102,6 +102,7 @@ structure TextEditorConfig where
   width : Float := 720
   height : Float := 420
   padding : Float := 10
+  scrollSpeed : Float := 20
   gutterWidth : Float := 52
   showLineNumbers : Bool := true
   showStatusBar : Bool := true
@@ -141,6 +142,20 @@ def logicalLineCount (text : String) : Nat :=
     (fun acc ch => if ch == '\n' then acc + 1 else acc)
     1
   max 1 lineCount
+
+/-- Total rendered content height in pixels. -/
+def contentHeight (state : TextAreaState) : Float :=
+  state.renderState.wrappedLines.size.toFloat * state.renderState.lineHeight
+
+/-- Clamp scroll offset into valid content range for current viewport height. -/
+def clampScrollOffset (state : TextAreaState) (viewportH : Float) : TextAreaState :=
+  let maxScroll := max 0 (contentHeight state - viewportH)
+  let clamped := min maxScroll (max 0 state.scrollOffsetY)
+  { state with scrollOffsetY := clamped }
+
+/-- Scroll vertically by a pixel delta while respecting content bounds. -/
+def scrollBy (state : TextAreaState) (viewportH : Float) (dy : Float) : TextAreaState :=
+  clampScrollOffset { state with scrollOffsetY := state.scrollOffsetY + dy } viewportH
 
 private def logicalLineNumberAt (text : String) (idx : Nat) : Nat :=
   (lineColFromTextPrefix (text.take idx)).line
@@ -188,10 +203,8 @@ def editorVisual (name : ComponentId) (theme : Theme) (state : TextAreaState)
     borderColor := some focusedBorder
     borderWidth := if state.focused then 2 else 1
     cornerRadius := theme.cornerRadius
-    minWidth := some config.width
-    maxWidth := some config.width
-    minHeight := some config.height
-    maxHeight := some config.height
+    width := .length config.width
+    height := .length config.height
   }
 
   let contentStyle : BoxStyle := {
@@ -271,6 +284,10 @@ structure TextEditorResult where
   lineCount : Reactive.Dynamic Spider Nat
   isFocused : Reactive.Dynamic Spider Bool
 
+private inductive TextEditorInputEvent where
+  | key (data : KeyData)
+  | wheel (data : ScrollData)
+
 /-- Reactive text editor component (plain text mode currently). -/
 def textEditor (placeholder : String := "Start typing...")
     (initialText : String := "") (config : TextEditorConfig := {}) : WidgetM TextEditorResult := do
@@ -283,6 +300,7 @@ def textEditor (placeholder : String := "Start typing...")
 
   let clicks ← useClick name
   let keyEvents ← useKeyboard
+  let scrollEvents ← useScroll name
 
   let isFocused ← Dynamic.mapM (· == some name) focusedInput
 
@@ -310,15 +328,23 @@ def textEditor (placeholder : String := "Start typing...")
   }
   let initialState ← SpiderM.liftIO do
     let rendered ← TextArea.computeRenderState font rawInitialState viewportW config.padding
-    pure (TextArea.scrollToCursor rendered viewportH)
+    pure (TextEditor.clampScrollOffset (TextArea.scrollToCursor rendered viewportH) viewportH)
 
   let gatedKeys ← Event.gateM isFocused.current keyEvents
+  let keyInputEvents ← Event.mapM TextEditorInputEvent.key gatedKeys
+  let wheelInputEvents ← Event.mapM TextEditorInputEvent.wheel scrollEvents
+  let allInputEvents ← Event.leftmostM [keyInputEvents, wheelInputEvents]
   let textState ← Reactive.foldDynM
-    (fun keyData state => do
-      let updated := TextArea.handleKeyPress keyData.event state config.maxLen
-      let rendered ← SpiderM.liftIO (TextArea.computeRenderState font updated viewportW config.padding)
-      pure (TextArea.scrollToCursor rendered viewportH))
-    initialState gatedKeys
+    (fun input state => do
+      match input with
+      | .key keyData =>
+          let updated := TextArea.handleKeyPress keyData.event state config.maxLen
+          let rendered ← SpiderM.liftIO (TextArea.computeRenderState font updated viewportW config.padding)
+          pure (TextEditor.clampScrollOffset (TextArea.scrollToCursor rendered viewportH) viewportH)
+      | .wheel scrollData =>
+          let dy := -scrollData.scroll.deltaY * config.scrollSpeed
+          pure (TextEditor.scrollBy state viewportH dy))
+    initialState allInputEvents
 
   let textChanges ← Dynamic.changesM textState
   let valueChanges ← Event.mapMaybeM
