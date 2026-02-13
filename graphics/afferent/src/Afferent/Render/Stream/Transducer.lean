@@ -64,6 +64,35 @@ def compose
       out := out ++ bOut
     pure (out ++ b.done nextB)
 
+/-- Run a transducer and fold outputs online in a monadic consumer.
+    This avoids materializing an intermediate output array. -/
+def runFoldWithStateM [Monad m]
+    (t : Transducer α β σ)
+    (input : Array α)
+    (initAcc : τ)
+    (f : τ → β → m τ)
+    : m (σ × τ) := do
+  let mut st := t.init
+  let mut acc := initAcc
+  for x in input do
+    let (next, ys) := t.step st x
+    st := next
+    for y in ys do
+      acc ← f acc y
+  for y in t.done st do
+    acc ← f acc y
+  pure (st, acc)
+
+/-- Run a transducer and fold outputs online in a monadic consumer. -/
+def runFoldM [Monad m]
+    (t : Transducer α β σ)
+    (input : Array α)
+    (initAcc : τ)
+    (f : τ → β → m τ)
+    : m τ := do
+  let (_, acc) ← runFoldWithStateM t input initAcc f
+  pure acc
+
 end Transducer
 
 end Afferent.Render

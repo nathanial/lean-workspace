@@ -40,7 +40,7 @@ Pipeline stages:
 
 1. **Normalize**: command array -> stream events with barriers.
 2. **Coalesce**: flatten + category coalescing + instanced merge within safe scope boundaries.
-3. **Batch Plan**: build `DrawPacket` stream (rect/circle batches + fallback command packets).
+3. **Batch Plan**: build explicit `DrawPacket` stream (batched packets + explicit non-batch packet variants).
 4. **Trace**: stage-level counts and timings.
 
 Core types:
@@ -79,8 +79,9 @@ Responsibilities:
 
 1. Barrier semantics are preserved.
 2. Coalescing does not reorder across barriers.
-3. Batch flushes occur before fallback command execution.
+3. Batch flushes occur before direct non-batched packet execution.
 4. Sink remains the only layer invoking FFI draw calls.
+5. Packet execution does not route through a generic `RenderCommand` fallback packet.
 
 ## Acceptance Criteria
 

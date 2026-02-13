@@ -18,35 +18,98 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
-private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
-  let cmds := coalesceByCategoryWithClip bounded
-  let cmds := mergeInstancedPolygons cmds
-  let cmds := mergeInstancedArcs cmds
-  cmds
+private structure CoalesceBuckets where
+  bucket0 : Array RenderCommand := #[]  -- fillRect
+  bucket1 : Array RenderCommand := #[]  -- fillCircle
+  bucket2 : Array RenderCommand := #[]  -- strokeRect
+  bucket3 : Array RenderCommand := #[]  -- strokeCircle
+  bucket4 : Array RenderCommand := #[]  -- strokeLine
+  bucket5 : Array RenderCommand := #[]  -- strokeArcInstanced
+  bucket6 : Array RenderCommand := #[]  -- drawFragment
+  bucket7 : Array RenderCommand := #[]  -- fillText
+  bucket8 : Array RenderCommand := #[]  -- fillPolygonInstanced
+  bucket9 : Array RenderCommand := #[]  -- fillTessellatedBatch
+
+private def updateTransformStackForCommand
+    (stack : Array Transform) (cmd : RenderCommand) : Array Transform :=
+  let current := stack.back?.getD Transform.identity
+  match cmd with
+  | .pushTranslate dx dy =>
+    stack.push (current.translated dx dy)
+  | .pushScale sx sy =>
+    stack.push (current.scaled sx sy)
+  | .pushRotate angle =>
+    stack.push (current.rotated angle)
+  | .popTransform =>
+    if stack.size > 1 then stack.pop else stack
+  | .save =>
+    stack.push current
+  | .restore =>
+    if stack.size > 1 then stack.pop else stack
+  | _ =>
+    stack
+
+private def bucketPush (b : CoalesceBuckets) (cmd : RenderCommand) : CoalesceBuckets :=
+  match cmd.category.sortPriority with
+  | 0 => { b with bucket0 := b.bucket0.push cmd }
+  | 1 => { b with bucket1 := b.bucket1.push cmd }
+  | 2 => { b with bucket2 := b.bucket2.push cmd }
+  | 3 => { b with bucket3 := b.bucket3.push cmd }
+  | 4 => { b with bucket4 := b.bucket4.push cmd }
+  | 5 => { b with bucket5 := b.bucket5.push cmd }
+  | 6 => { b with bucket6 := b.bucket6.push cmd }
+  | 7 => { b with bucket7 := b.bucket7.push cmd }
+  | 8 => { b with bucket8 := b.bucket8.push cmd }
+  | _ => { b with bucket9 := b.bucket9.push cmd }
+
+private def bucketCount (b : CoalesceBuckets) : Nat :=
+  b.bucket0.size + b.bucket1.size + b.bucket2.size + b.bucket3.size + b.bucket4.size +
+  b.bucket5.size + b.bucket6.size + b.bucket7.size + b.bucket8.size + b.bucket9.size
+
+private def bucketsToEvents (b : CoalesceBuckets) : Array Afferent.Render.RenderEvent :=
+  let cmds :=
+    b.bucket0 ++ b.bucket1 ++ b.bucket2 ++ b.bucket3 ++ b.bucket4 ++
+    b.bucket5 ++ b.bucket6 ++ b.bucket7 ++ b.bucket8 ++ b.bucket9
+  cmds.map Afferent.Render.eventOfCommand
 
 private structure CoalesceTransducerState where
-  pending : Array RenderCommand := #[]
+  transformStack : Array Transform := #[Transform.identity]
+  buckets : CoalesceBuckets := {}
   boundedCommands : Nat := 0
   coalescedCommands : Nat := 0
   emittedBarriers : Nat := 0
 
-private def flushCoalescePending (state : CoalesceTransducerState)
+private def flushCoalesceBuckets (state : CoalesceTransducerState)
     : CoalesceTransducerState × Array Afferent.Render.RenderEvent :=
-  if state.pending.isEmpty then
+  let count := bucketCount state.buckets
+  if count == 0 then
     (state, #[])
   else
-    let bounded := computeBoundedCommands state.pending
-    let coalesced := coalesceCommandsWithClip bounded
-    let out := coalesced.map Afferent.Render.eventOfCommand
+    let out := bucketsToEvents state.buckets
     let barrierCount := out.foldl (init := 0) fun acc ev =>
       match ev with
       | .barrier _ => acc + 1
       | _ => acc
     ({ state with
-      pending := #[]
-      boundedCommands := state.boundedCommands + bounded.size
-      coalescedCommands := state.coalescedCommands + coalesced.size
+      buckets := {}
+      coalescedCommands := state.coalescedCommands + count
       emittedBarriers := state.emittedBarriers + barrierCount }, out)
+
+private def coalesceStepCommand (state : CoalesceTransducerState) (cmd : RenderCommand)
+    : CoalesceTransducerState × Array Afferent.Render.RenderEvent :=
+  let transform := state.transformStack.back?.getD Transform.identity
+  let (flatCmd, _bounds) := flattenCommand cmd transform
+  let transformStack := updateTransformStackForCommand state.transformStack cmd
+  let state := { state with transformStack := transformStack, boundedCommands := state.boundedCommands + 1 }
+  if flatCmd.category == .other then
+    let (state, out0) := flushCoalesceBuckets state
+    let ev := Afferent.Render.eventOfCommand flatCmd
+    let barrierInc := match ev with | .barrier _ => 1 | _ => 0
+    ({ state with
+      coalescedCommands := state.coalescedCommands + 1
+      emittedBarriers := state.emittedBarriers + barrierInc }, out0.push ev)
+  else
+    ({ state with buckets := bucketPush state.buckets flatCmd }, #[])
 
 private def coalesceTransducer
     : Afferent.Render.Transducer Afferent.Render.RenderEvent Afferent.Render.RenderEvent CoalesceTransducerState where
@@ -54,21 +117,21 @@ private def coalesceTransducer
   step state ev :=
     match ev with
     | .cmd cmd =>
-      ({ state with pending := state.pending.push cmd }, #[])
+      coalesceStepCommand state cmd
     | .barrier kind =>
       match Afferent.Render.barrierToCommand? kind with
       | some cmd =>
-        ({ state with pending := state.pending.push cmd }, #[])
+        coalesceStepCommand state cmd
       | none =>
-        let (state, out) := flushCoalescePending state
-        (state, out.push (.barrier kind))
+        let (state, out0) := flushCoalesceBuckets state
+        ({ state with emittedBarriers := state.emittedBarriers + 1 }, out0.push (.barrier kind))
     | .frameStart frameId =>
-      let (state, out) := flushCoalescePending state
+      let (state, out) := flushCoalesceBuckets state
       (state, out.push (.frameStart frameId))
     | .frameEnd frameId =>
-      let (state, out) := flushCoalescePending state
+      let (state, out) := flushCoalesceBuckets state
       (state, out.push (.frameEnd frameId))
-  done state := (flushCoalescePending state).2
+  done state := (flushCoalesceBuckets state).2
 
 private structure PacketTransducerState where
   rectBatch : Array RectBatchEntry := #[]
@@ -332,6 +395,18 @@ private def packetTransducer
         (state, out0 ++ out1)
   done state := (flushAllT state).2
 
+private structure SinkFoldState where
+  packets : Nat := 0
+  drawCallNs : Nat := 0
+
+private def consumePacket (reg : FontRegistry) (sink : SinkFoldState) (packet : DrawPacket)
+    : CanvasM SinkFoldState := do
+  let ns ← executeDrawPacket reg packet
+  pure {
+    packets := sink.packets + 1
+    drawCallNs := sink.drawCallNs + ns
+  }
+
 /-- Execute a first-class render stream and return stats plus stage trace.
     Production path: coalescing transducer >>> packetization transducer >>> sink execution. -/
 def executeRenderStreamWithStatsAndTrace (reg : FontRegistry)
@@ -346,20 +421,16 @@ def executeRenderStreamWithStatsAndTrace (reg : FontRegistry)
 
   let pipeline := Afferent.Render.Transducer.compose coalesceTransducer packetTransducer
 
-  let tPipeline0 ← IO.monoNanosNow
-  let ((coalesceState, packetState), packets) :=
-    Afferent.Render.Transducer.runArrayWithState pipeline stream
-  let tPipeline1 ← IO.monoNanosNow
+  let tRun0 ← IO.monoNanosNow
+  let ((coalesceState, packetState), sinkState) ←
+    Afferent.Render.Transducer.runFoldWithStateM pipeline stream ({} : SinkFoldState)
+      (consumePacket reg)
+  let tRun1 ← IO.monoNanosNow
 
-  let tSink0 ← IO.monoNanosNow
-  let mut drawCallNs : Nat := 0
-  for packet in packets do
-    drawCallNs := drawCallNs + (← executeDrawPacket reg packet)
-  let tSink1 ← IO.monoNanosNow
-
-  let timePipelineMs := (tPipeline1 - tPipeline0).toFloat / 1000000.0
-  let timeSinkMs := (tSink1 - tSink0).toFloat / 1000000.0
-  let timeDrawCallsMs := drawCallNs.toFloat / 1000000.0
+  let timeTotalMs := (tRun1 - tRun0).toFloat / 1000000.0
+  let timeDrawCallsMs := sinkState.drawCallNs.toFloat / 1000000.0
+  let timePipelineMs := max 0.0 (timeTotalMs - timeDrawCallsMs)
+  let timeSinkMs := timeDrawCallsMs
 
   let stats := { packetState.stats with
     timeFlattenMs := 0.0
@@ -375,10 +446,10 @@ def executeRenderStreamWithStatsAndTrace (reg : FontRegistry)
     frameId := frameId
     normalizedEvents := stream.size
     coalescedCommands := coalescedCount
-    packets := packets.size
+    packets := sinkState.packets
     stages := #[
-      { name := "stream-pipeline", inputCount := stream.size, outputCount := packets.size, elapsedMs := timePipelineMs },
-      { name := "sink", inputCount := packets.size, outputCount := packets.size, elapsedMs := timeSinkMs }
+      { name := "stream-pipeline", inputCount := stream.size, outputCount := sinkState.packets, elapsedMs := timePipelineMs },
+      { name := "sink", inputCount := sinkState.packets, outputCount := sinkState.packets, elapsedMs := timeSinkMs }
     ]
   }
 
@@ -394,8 +465,49 @@ def executeRenderStreamWithStats (reg : FontRegistry)
     This is the primary production execution entrypoint for Arbor output. -/
 def executeCommandsBatchedWithStats (reg : FontRegistry)
     (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM BatchStats := do
-  let stream := Afferent.Render.streamFromCommands cmds
-  executeRenderStreamWithStats reg stream
+  let pipeline := Afferent.Render.Transducer.compose coalesceTransducer packetTransducer
+
+  let mut transducerState := pipeline.init
+  let mut sinkState : SinkFoldState := {}
+
+  let stepEvent
+      (state : CoalesceTransducerState × PacketTransducerState)
+      (sink : SinkFoldState)
+      (ev : Afferent.Render.RenderEvent)
+      : CanvasM ((CoalesceTransducerState × PacketTransducerState) × SinkFoldState) := do
+    let (next, packets) := pipeline.step state ev
+    let mut sink := sink
+    for packet in packets do
+      sink ← consumePacket reg sink packet
+    pure (next, sink)
+
+  let tRun0 ← IO.monoNanosNow
+  let (s0, k0) ← stepEvent transducerState sinkState (.frameStart 0)
+  transducerState := s0
+  sinkState := k0
+  for cmd in cmds do
+    let (s, k) ← stepEvent transducerState sinkState (Afferent.Render.eventOfCommand cmd)
+    transducerState := s
+    sinkState := k
+  let (s1, k1) ← stepEvent transducerState sinkState (.frameEnd 0)
+  transducerState := s1
+  sinkState := k1
+  for packet in pipeline.done transducerState do
+    sinkState ← consumePacket reg sinkState packet
+  let tRun1 ← IO.monoNanosNow
+
+  let (_coalesceState, packetState) := transducerState
+  let timeTotalMs := (tRun1 - tRun0).toFloat / 1000000.0
+  let timeDrawCallsMs := sinkState.drawCallNs.toFloat / 1000000.0
+  let timePipelineMs := max 0.0 (timeTotalMs - timeDrawCallsMs)
+
+  pure { packetState.stats with
+    timeFlattenMs := 0.0
+    timeCoalesceMs := 0.0
+    timeBatchLoopMs := timePipelineMs
+    timeDrawCallsMs := timeDrawCallsMs
+    timeTextPackMs := 0.0
+    timeTextFFIMs := 0.0 }
 
 /-- Execute an array of RenderCommands using the render stream pipeline. -/
 def executeCommandsBatched (reg : FontRegistry)
