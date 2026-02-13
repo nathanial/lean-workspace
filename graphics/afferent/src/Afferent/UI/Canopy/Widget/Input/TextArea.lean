@@ -135,7 +135,8 @@ def lineColToCursor (lineIdx : Nat) (col : Nat) (lines : Array WrappedLine) : Na
       0
   else
     let line := lines[lineIdx]!
-    let maxCol := line.endIdx - line.startIdx
+    -- Clamp to visible text width, not raw span (which can include trailing newline).
+    let maxCol := line.text.length
     line.startIdx + min col maxCol
 
 /-- Move cursor up one line. -/
@@ -353,6 +354,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
     (viewportWidth, viewportHeight)
   collect := fun layout =>
     let rect := layout.contentRect
+    let viewportH := rect.height
     let lineHeight := renderState.lineHeight
     let lines := renderState.wrappedLines
 
@@ -361,7 +363,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
 
     RenderM.build do
       -- Clip to viewport
-      let clipRect := Arbor.Rect.mk' rect.x rect.y rect.width viewportHeight
+      let clipRect := Arbor.Rect.mk' rect.x rect.y rect.width viewportH
       RenderM.pushClip clipRect
 
       if showPlaceholder then
@@ -375,7 +377,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
           | some line =>
             let lineY := rect.y + i.toFloat * lineHeight - scrollOffsetY
             -- Only render if line is visible
-            if lineY + lineHeight >= rect.y && lineY < rect.y + viewportHeight then
+            if lineY + lineHeight >= rect.y && lineY < rect.y + viewportH then
               let textY := lineY + ascender  -- Baseline position from actual font metrics
               RenderM.fillText line.text rect.x textY theme.font theme.text
           | none => pure ()
@@ -385,7 +387,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
         let cursorScreenX := rect.x + renderState.cursorPixelX
         let cursorScreenY := rect.y + renderState.cursorPixelY - scrollOffsetY
         -- Only render cursor if visible
-        if cursorScreenY + lineHeight >= rect.y && cursorScreenY < rect.y + viewportHeight then
+        if cursorScreenY + lineHeight >= rect.y && cursorScreenY < rect.y + viewportH then
           let cursorRect := Arbor.Rect.mk' cursorScreenX cursorScreenY 2 lineHeight
           RenderM.fillRect cursorRect theme.focusRing 0
 
