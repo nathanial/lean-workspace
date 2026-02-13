@@ -252,6 +252,12 @@ static void afferent_renderer_draw_mesh_3d_internal(
         // Configure encoder for 3D rendering
         [renderer->currentEncoder setRenderPipelineState:renderer->pipeline3D];
         [renderer->currentEncoder setDepthStencilState:renderer->depthState];
+        // Cull backfaces for solid meshes; keep wireframe unculled so all edges remain visible.
+        if (fill_mode == MTLTriangleFillModeFill) {
+            [renderer->currentEncoder setCullMode:MTLCullModeBack];
+        } else {
+            [renderer->currentEncoder setCullMode:MTLCullModeNone];
+        }
         [renderer->currentEncoder setTriangleFillMode:fill_mode];
         [renderer->currentEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
         [renderer->currentEncoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:1];
@@ -264,6 +270,7 @@ static void afferent_renderer_draw_mesh_3d_internal(
                                             indexBuffer:indexBuffer
                                       indexBufferOffset:0];
 
+        [renderer->currentEncoder setCullMode:MTLCullModeNone];
         [renderer->currentEncoder setTriangleFillMode:MTLTriangleFillModeFill];
 
         // Restore default pipeline

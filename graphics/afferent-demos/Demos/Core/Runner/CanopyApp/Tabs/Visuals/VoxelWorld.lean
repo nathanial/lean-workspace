@@ -173,6 +173,21 @@ def voxelWorldTabContent (env : DemoEnv) : WidgetM Unit := do
       ) paletteButton
       performEvent_ paletteActions
 
+      let _ ← dynWidget state fun s =>
+        caption' s!"Mesher: {Demos.voxelWorldMesherLabel s.params.mesher}"
+      let mesherButton ← button "Cycle Mesher" .secondary
+      let mesherActions ← Event.mapM (fun _ => do
+        let s ← state.sample
+        let params' := { s.params with mesher := Demos.voxelWorldNextMesher s.params.mesher }
+        if params' == s.params then
+          pure ()
+        else
+          fireStateUpdate (fun st =>
+            { st with params := params', meshPending := true, meshError := none }
+          ) *> fireMeshCommand (.resubmit .terrain params' 0)
+      ) mesherButton
+      performEvent_ mesherActions
+
       let fogSwitch ← switch (some "Fog") initial.params.fogEnabled
       let fogActions ← Event.mapM (fun on =>
         fireStateUpdate (updateParams (fun p => { p with fogEnabled := on }))

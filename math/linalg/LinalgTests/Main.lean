@@ -34,6 +34,7 @@ import LinalgTests.PhysicsTests
 import LinalgTests.DelaunayTests
 import LinalgTests.VoronoiTests
 import LinalgTests.SDFTests
+import LinalgTests.VoxelTests
 import Crucible
 
 open Crucible

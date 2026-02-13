@@ -98,5 +98,8 @@ import Linalg.Spatial.MeshBVH
 import Linalg.Spatial.DynamicAABBTree
 import Linalg.Spatial.SweepAndPrune
 
+-- Voxel chunking and meshing
+import Linalg.Voxel
+
 -- Physics helpers
 import Linalg.Physics
