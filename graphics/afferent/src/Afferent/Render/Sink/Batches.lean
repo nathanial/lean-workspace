@@ -63,6 +63,7 @@ structure RectBatchEntry where
   b : Float
   a : Float
   cornerRadius : Float
+deriving Repr
 
 /-- Entry for a batched circle.
     Format: [centerX, centerY, radius, padding, r, g, b, a, padding] (9 floats) -/
@@ -74,6 +75,7 @@ structure CircleBatchEntry where
   g : Float
   b : Float
   a : Float
+deriving Repr
 
 structure StrokeCircleBatchEntry where
   centerX : Float
@@ -83,6 +85,7 @@ structure StrokeCircleBatchEntry where
   g : Float
   b : Float
   a : Float
+deriving Repr
 
 /-- Entry for a batched stroked rectangle.
     Format: [x, y, width, height, r, g, b, a, cornerRadius] (9 floats) -/
@@ -96,6 +99,7 @@ structure StrokeRectBatchEntry where
   b : Float
   a : Float
   cornerRadius : Float
+deriving Repr
 
 /-- Entry for batched text rendering.
     Includes per-entry transform for rotated/scaled text. -/
@@ -119,6 +123,7 @@ structure TextBatchEntry where
   ttx : Float
   /-- 2D affine transform component `ty`. -/
   tty : Float
+deriving Repr
 
 /-- Ensure a FloatBuffer has at least the required capacity, reusing or growing as needed. -/
 private def ensureBufferCapacity (bufOpt : Option FFI.FloatBuffer) (currentCap : Nat) (required : Nat)

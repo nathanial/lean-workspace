@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical Arbor output rendering lives at `Afferent.Output.Execute.Render`.
+  Canonical Arbor rendering lives at `Afferent.Render.Arbor`.
 -/
-import Afferent.Output.Execute.Render
+import Afferent.Render.Arbor

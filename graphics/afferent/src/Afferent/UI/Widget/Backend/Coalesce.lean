@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical command coalescing lives at `Afferent.Output.Execute.Coalesce`.
+  Canonical command coalescing lives at `Afferent.Draw.Optimize.Coalesce`.
 -/
-import Afferent.Output.Execute.Coalesce
+import Afferent.Draw.Optimize.Coalesce

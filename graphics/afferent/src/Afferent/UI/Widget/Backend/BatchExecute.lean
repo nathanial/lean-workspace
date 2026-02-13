@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical batched execution lives at `Afferent.Output.Execute.Batched`.
+  Canonical batched execution lives at `Afferent.Render.Plan.Pipeline`.
 -/
-import Afferent.Output.Execute.Batched
+import Afferent.Render.Plan.Pipeline

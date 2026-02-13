@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical output interpreter lives at `Afferent.Output.Execute.Interpreter`.
+  Canonical render interpreter lives at `Afferent.Render.Sink.Interpreter`.
 -/
-import Afferent.Output.Execute.Interpreter
+import Afferent.Render.Sink.Interpreter

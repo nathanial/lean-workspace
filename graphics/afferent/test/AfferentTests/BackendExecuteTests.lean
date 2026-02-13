@@ -3,7 +3,7 @@
   Regression tests for clip stack command semantics.
 -/
 import AfferentTests.Framework
-import Afferent.Output.Execute.Interpreter
+import Afferent.Render.Sink.Interpreter
 
 namespace AfferentTests.BackendExecuteTests
 

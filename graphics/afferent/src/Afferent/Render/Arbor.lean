@@ -1,11 +1,11 @@
 /-
-  Afferent Widget Backend Arbor Rendering
+  Afferent Render Arbor Integration
 -/
 import Afferent.Output.Canvas
 import Afferent.Graphics.Text.Font
 import Afferent.Graphics.Text.Measurer
 import Afferent.UI.Arbor
-import Afferent.Output.Execute.Batched
+import Afferent.Render.Plan.Pipeline
 
 namespace Afferent.Widget
 

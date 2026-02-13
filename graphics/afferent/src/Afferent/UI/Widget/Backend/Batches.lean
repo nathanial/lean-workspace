@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical output batching helpers live at `Afferent.Output.Execute.Batches`.
+  Canonical render batching helpers live at `Afferent.Render.Sink.Batches`.
 -/
-import Afferent.Output.Execute.Batches
+import Afferent.Render.Sink.Batches
