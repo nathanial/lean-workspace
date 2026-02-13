@@ -4,6 +4,21 @@ Date: 2026-02-13
 Owner: Canopy team
 Status: Ready to execute
 
+## Execution Checkpoint (2026-02-13)
+
+Completed now:
+1. `Layout/MDI.lean` implemented with move/resize/snap/maximize toggle behavior.
+2. Host/window/titlebar component wiring and FRP reducer (`foldDynM`) implemented.
+3. Snap preview overlay implemented.
+4. Keyed incremental render path implemented via `dynWidgetKeyedListWith`.
+5. Test module `AfferentTests/MDITests.lean` added and wired into `AfferentTests.lean`.
+6. Demo tab `CanopyApp/Tabs/MDI.lean` added and registered in `CanopyApp.lean`.
+7. `just test-project graphics/afferent` passing.
+8. `just test-project graphics/afferent-demos` passing.
+9. Added reducer-focused transition tests for move/resize/snap helpers.
+10. Added FRP overlap-hit integration coverage for topmost click routing.
+11. Completed MDI demo UX polish pass with interaction telemetry labels.
+
 ## Mission
 
 Ship a production-usable Canopy MDI widget fast.

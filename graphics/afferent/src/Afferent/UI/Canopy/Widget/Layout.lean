@@ -3,6 +3,7 @@
   Container and structural layout elements.
 -/
 import Afferent.UI.Canopy.Widget.Layout.Card
+import Afferent.UI.Canopy.Widget.Layout.MDI
 import Afferent.UI.Canopy.Widget.Layout.Modal
 import Afferent.UI.Canopy.Widget.Layout.Panel
 import Afferent.UI.Canopy.Widget.Layout.Popover
