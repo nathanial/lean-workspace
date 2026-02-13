@@ -16,15 +16,19 @@ structure Transducer (α β σ : Type) where
 
 namespace Transducer
 
-/-- Run a transducer over an input array. -/
-def runArray (t : Transducer α β σ) (input : Array α) : Array β := Id.run do
+/-- Run a transducer and return both final state and outputs. -/
+def runArrayWithState (t : Transducer α β σ) (input : Array α) : σ × Array β := Id.run do
   let mut st := t.init
   let mut out : Array β := #[]
   for x in input do
     let (next, ys) := t.step st x
     st := next
     out := out ++ ys
-  out ++ t.done st
+  (st, out ++ t.done st)
+
+/-- Run a transducer over an input array. -/
+def runArray (t : Transducer α β σ) (input : Array α) : Array β := Id.run do
+  (runArrayWithState t input).2
 
 /-- Map outputs from a transducer. -/
 def map (f : β → γ) (t : Transducer α β σ) : Transducer α γ σ where
