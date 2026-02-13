@@ -135,7 +135,8 @@ def lineColToCursor (lineIdx : Nat) (col : Nat) (lines : Array WrappedLine) : Na
       0
   else
     let line := lines[lineIdx]!
-    let maxCol := line.endIdx - line.startIdx
+    -- Clamp to visible text width, not raw span (which can include trailing newline).
+    let maxCol := line.text.length
     line.startIdx + min col maxCol
 
 /-- Move cursor up one line. -/
