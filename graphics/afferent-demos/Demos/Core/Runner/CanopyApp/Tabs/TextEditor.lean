@@ -30,15 +30,17 @@ def textEditorTabContent (env : DemoEnv) : WidgetM Unit := do
     flexItem := some (FlexItem.growing 1)
   }
 
-  let editorWidth := max 280 (min 1200 (env.windowWidthF - 220))
-  -- Keep the editor inside the tab panel by budgeting for app chrome and footer first.
+  -- Seed viewport math with a best-effort estimate; visual sizing is fill-based.
+  let editorWidth := max 320 (env.windowWidthF - 120)
   let footerHeight := 318.0 * env.screenScale
-  let reservedChrome := 260.0
+  let reservedChrome := 240.0
   let usableHeight := env.windowHeightF - footerHeight - reservedChrome
-  let editorHeight := max 180 (min 520 usableHeight)
+  let editorHeight := max 220 usableHeight
   let editorConfig : TextEditorConfig := {
     width := editorWidth
     height := editorHeight
+    fillWidth := true
+    fillHeight := true
     scrollSpeed := 24
     showLineNumbers := true
     showStatusBar := true

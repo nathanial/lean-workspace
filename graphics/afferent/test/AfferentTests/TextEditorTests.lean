@@ -159,6 +159,23 @@ test "TextEditor.editorVisual does not force fixed min/max bounds" := do
   | _ =>
       ensure false "Expected editorVisual root to be a flex widget"
 
+test "TextEditor.editorVisual uses fill sizing when enabled" := do
+  let cfg : TextEditorConfig := { width := 640, height := 420, fillWidth := true, fillHeight := true }
+  let state : TextAreaState := {}
+  let cursor : TextEditorCursor := {}
+  let (widget, _) ← (TextEditor.editorVisual 9003 testTheme state cursor "" cfg).run {}
+  match widget with
+  | .flex _ _ _ style _ _ =>
+      ensure (style.width == .percent 1.0) s!"Expected percent width fill, got {repr style.width}"
+      ensure (style.height == .percent 1.0) s!"Expected percent height fill, got {repr style.height}"
+      match style.flexItem with
+      | some fi =>
+          ensure (fi.grow == 1) s!"Expected grow=1 for fillHeight, got {fi.grow}"
+      | none =>
+          ensure false "Expected flexItem.growing for fillHeight"
+  | _ =>
+      ensure false "Expected editorVisual root to be a flex widget"
+
 test "TextEditor.editorVisual can shrink within a constrained column" := do
   let cfg : TextEditorConfig := {
     width := 640

@@ -101,6 +101,8 @@ deriving Repr, BEq, Inhabited
 structure TextEditorConfig where
   width : Float := 720
   height : Float := 420
+  fillWidth : Bool := false
+  fillHeight : Bool := false
   padding : Float := 10
   scrollSpeed : Float := 20
   gutterWidth : Float := 52
@@ -198,13 +200,21 @@ private def modeLabel (mode : TextEditorMode) : String :=
 def editorVisual (name : ComponentId) (theme : Theme) (state : TextAreaState)
     (cursor : TextEditorCursor) (placeholder : String) (config : TextEditorConfig) : WidgetBuilder := do
   let focusedBorder := if state.focused then theme.input.borderFocused else theme.panel.border
+  let frameWidth : Trellis.Dimension := if config.fillWidth then .percent 1.0 else .length config.width
+  let frameHeight : Trellis.Dimension := if config.fillHeight then .percent 1.0 else .length config.height
+  let frameFlexItem :=
+    if config.fillHeight then
+      some (FlexItem.growing 1)
+    else
+      none
   let frameStyle : BoxStyle := {
     backgroundColor := some theme.panel.background
     borderColor := some focusedBorder
     borderWidth := if state.focused then 2 else 1
     cornerRadius := theme.cornerRadius
-    width := .length config.width
-    height := .length config.height
+    width := frameWidth
+    height := frameHeight
+    flexItem := frameFlexItem
   }
 
   let contentStyle : BoxStyle := {
