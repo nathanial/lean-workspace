@@ -345,7 +345,6 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
 
         RenderM.fillText labelText labelX labelY theme.smallFont theme.text
 
-  draw := none
 }
 
 end SankeyDiagram

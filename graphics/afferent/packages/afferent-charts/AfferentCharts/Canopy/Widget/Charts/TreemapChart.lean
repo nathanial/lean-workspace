@@ -264,7 +264,6 @@ def treemapChartSpec (data : Data) (theme : Theme)
     -- Render all nodes
     renderNodes layout theme dims 0
 
-  draw := none
 }
 
 end TreemapChart

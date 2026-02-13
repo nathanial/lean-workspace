@@ -875,25 +875,6 @@ def seascapeWidget (t : Float) (screenScale : Float) (windowW windowH : Float)
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun w h => do
-        let rect := layout.contentRect
-        let renderer ← getRenderer
-        renderSeascapeViewport renderer t w h rect.x rect.y windowW windowH state.camera
-        resetTransform
-        setFillColor Color.white
-        if state.locked then
-          fillTextXY
-            "Seascape - WASD+Q/E to move, mouse to look, Escape to release (Space to advance)"
-            (20 * screenScale) (30 * screenScale) fontMedium
-        else
-          fillTextXY
-            "Seascape - WASD+Q/E to move, click or Escape to capture mouse (Space to advance)"
-            (20 * screenScale) (30 * screenScale) fontMedium
-        fillTextXY
-          (s!"pos=({state.camera.x},{state.camera.y},{state.camera.z}) yaw={state.camera.yaw} pitch={state.camera.pitch}")
-          (20 * screenScale) (55 * screenScale) fontSmall
-    )
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

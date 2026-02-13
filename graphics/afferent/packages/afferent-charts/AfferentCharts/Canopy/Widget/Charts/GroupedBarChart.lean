@@ -192,7 +192,6 @@ def groupedBarChartSpec (data : Data) (theme : Theme)
           -- Label
           RenderM.fillText series.name (legendX + 16) (itemY + 10) theme.smallFont theme.text
 
-  draw := none
 }
 
 end GroupedBarChart

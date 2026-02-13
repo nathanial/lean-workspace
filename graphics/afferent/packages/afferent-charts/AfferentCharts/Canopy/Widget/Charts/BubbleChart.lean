@@ -196,7 +196,6 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 /-- Custom spec for multi-series bubble chart rendering. -/
@@ -298,7 +297,6 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 /-- Custom spec for bubble chart with legend. -/
@@ -412,7 +410,6 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
         let label := s.label.getD s!"Series {si + 1}"
         RenderM.fillText label (legendX + 20) (itemY + 12) theme.smallFont theme.text
 
-  draw := none
 }
 
 end BubbleChart

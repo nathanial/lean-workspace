@@ -261,7 +261,6 @@ def radarChartSpec (data : Data) (theme : Theme)
         }
         let _ ← ChartUtils.drawLegend legendItems legendX legendY theme legendConfig
 
-  draw := none
 }
 
 end RadarChart

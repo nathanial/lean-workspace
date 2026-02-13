@@ -80,7 +80,6 @@ def pulseSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment pulseFragment.hash pulseFragment.primitive.toUInt32
         params pulseFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

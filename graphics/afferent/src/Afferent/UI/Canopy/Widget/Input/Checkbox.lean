@@ -42,7 +42,6 @@ def boxSpec (checked : Bool) (_hovered : Bool) (theme : Theme) (size : Float) : 
       if checked then
         let path := checkmarkPath rect.x rect.y size
         RenderM.strokePath path theme.primary.foreground 2.5
-  draw := none
 }
 
 end Checkbox

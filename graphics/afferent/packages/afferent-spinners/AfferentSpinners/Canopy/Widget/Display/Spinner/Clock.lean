@@ -50,7 +50,6 @@ def clockSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
 
       -- Center dot (batchable fillCircle instead of fillPath)
       RenderM.fillCircle center (dims.strokeWidth * 0.8) color
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

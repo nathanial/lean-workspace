@@ -96,7 +96,6 @@ def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
       if target == .high then
         RenderM.strokeRect (Arbor.Rect.mk' (highX - 2) (thumbY - 2)
           (dims.thumbSize + 4) (dims.thumbSize + 4)) theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
-  draw := none
 }
 
 end RangeSlider

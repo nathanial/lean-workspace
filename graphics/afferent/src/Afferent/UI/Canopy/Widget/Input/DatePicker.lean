@@ -130,7 +130,6 @@ def arrowSpec (dir : ArrowDirection) (theme : Theme) (size : Float) : CustomSpec
       |>.lineTo p3
     RenderM.build do
       RenderM.strokePath path theme.text 2.0
-  draw := none
 }
 
 end DatePicker

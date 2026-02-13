@@ -62,7 +62,6 @@ def spiralSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
                    |>.push c.r |>.push c.g |>.push c.b |>.push c.a
                    |>.push 0.0
         RenderM.strokeLineBatch data lineCount dims.strokeWidth
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

@@ -115,7 +115,6 @@ def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
       -- Center holes (using GPU-batched circles)
       RenderM.fillCircle (Point.mk' gear1X gear1Y) (gear1Scale * 0.25) (color.withAlpha 0.3)
       RenderM.fillCircle (Point.mk' gear2X gear2Y) (gear2Scale * 0.25) (color.withAlpha 0.25)
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

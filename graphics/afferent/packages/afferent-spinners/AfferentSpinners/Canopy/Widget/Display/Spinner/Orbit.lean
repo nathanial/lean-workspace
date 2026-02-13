@@ -96,7 +96,6 @@ def orbitSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment orbitFragment.hash orbitFragment.primitive.toUInt32
         params orbitFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

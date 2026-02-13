@@ -149,7 +149,6 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
       RenderM.fillRect xAxisRect axisColor 0.0
 
-  draw := none
 }
 
 /-- Custom spec for horizontal bar chart with individually colored bars. -/
@@ -234,7 +233,6 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
       RenderM.fillRect xAxisRect axisColor 0.0
 
-  draw := none
 }
 
 end HorizontalBarChart

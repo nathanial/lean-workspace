@@ -116,12 +116,6 @@ def spinningCubesOverviewWidget (t : Float) (windowW windowH : Float) (camera : 
   custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun w h => do
-        let renderer ← getRenderer
-        let rect := layout.contentRect
-        renderSpinningCubesWithCameraViewport renderer t w h rect.x rect.y windowW windowH camera
-    )
   }) (style := {
     width := .percent 1.0
     height := .percent 1.0

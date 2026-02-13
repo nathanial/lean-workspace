@@ -98,14 +98,6 @@ def dashedLinesWidget (screenScale : Float) (fontSmall fontMedium : Font) : Affe
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun _ _ => do
-        resetTransform
-        scale screenScale screenScale
-        renderDashedLinesM fontSmall
-        setFillColor Color.white
-        fillTextXY "Dashed Lines (Space to advance)" 20 30 fontMedium
-    )
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

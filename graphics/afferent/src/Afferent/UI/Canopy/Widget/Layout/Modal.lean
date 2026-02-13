@@ -58,7 +58,6 @@ def closeButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := def
     let color := if isHovered then theme.primary.foreground else theme.textMuted
     RenderM.build do
       RenderM.strokePath path color 2.0
-  draw := none
 }
 
 end Modal

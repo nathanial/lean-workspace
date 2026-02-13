@@ -176,7 +176,6 @@ def donutChartSpec (slices : Array Slice) (theme : Theme)
 
           labelAngle := labelAngle + sweepAngle
 
-  draw := none
 }
 
 /-- Custom spec for donut chart with legend. -/
@@ -256,7 +255,6 @@ def donutChartWithLegendSpec (slices : Array Slice) (theme : Theme)
         items
       let _ ← ChartUtils.drawLegend legendItems legendX legendStartY theme
 
-  draw := none
 }
 
 end DonutChart

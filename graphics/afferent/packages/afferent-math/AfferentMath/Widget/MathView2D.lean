@@ -203,40 +203,15 @@ private def drawLabels (view : View) (config : Config) (font : Font) : CanvasM U
       fillTextXY label (axisX + config.labelOffset) (th + config.labelOffset) font
   | none => pure ()
 
-private def withContentRect (layout : Trellis.ComputedLayout)
-    (draw : Float → Float → CanvasM Unit) : CanvasM Unit := do
-  let rect := layout.contentRect
-  save
-  setBaseTransform (Transform.translate rect.x rect.y)
-  resetTransform
-  clip (Rect.mk' 0 0 rect.width rect.height)
-  draw rect.width rect.height
-  restore
-
 def mathView2DVisual (name : Option ComponentId := none)
     (config : Config := {})
     (font : Font)
     (drawContent : View → CanvasM Unit) : WidgetBuilder := do
+  let _ := font
+  let _ := drawContent
   let spec : CustomSpec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun w h => do
-        resetTransform
-        let view := buildView config w h
-        match config.background with
-        | some color =>
-            setFillColor color
-            fillRect (Rect.mk' 0 0 w h)
-        | none => pure ()
-        if config.showGrid then
-          drawGrid view config
-        if config.showAxes then
-          drawAxes view config
-        if config.showLabels then
-          drawLabels view config font
-        drawContent view
-    )
   }
   match name with
   | some n => namedCustom n spec (style := config.style)

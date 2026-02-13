@@ -74,7 +74,6 @@ def bouncingDotsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpe
     RenderM.build do
       RenderM.drawFragment bouncingDotsFragment.hash bouncingDotsFragment.primitive.toUInt32
         params bouncingDotsFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

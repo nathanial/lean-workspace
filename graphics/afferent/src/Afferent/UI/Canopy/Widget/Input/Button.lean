@@ -604,7 +604,6 @@ private def rippleOverlaySpec (progress : Float) (center : Arbor.Point)
         let absCenter := Arbor.Point.mk' (rect.x + center.x) (rect.y + center.y)
         RenderM.withClip rect do
           RenderM.strokeCircle absCenter radius rippleColor 2.0
-  draw := none
   skipCache := true
 }
 
@@ -618,7 +617,6 @@ private def pulseOverlaySpec (intensity : Float) (color : Color) : CustomSpec :=
         let rect := rectFromLayout layout.contentRect
         let overlayColor := color.withAlpha (color.a * intensity)
         RenderM.fillRect rect overlayColor 0
-  draw := none
   skipCache := true
 }
 
@@ -632,7 +630,6 @@ private def glowOverlaySpec (progress : Float) (color : Color) (cornerRadius : F
         let rect := rectFromLayout layout.contentRect
         let glowColor := color.withAlpha (color.a * progress * 0.6)
         RenderM.strokeRect rect glowColor 4.0 cornerRadius
-  draw := none
   skipCache := true
 }
 
@@ -663,7 +660,6 @@ private def borderTraceSpec (progress : Float) (color : Color) (lineWidth : Floa
             bottomLen lineWidth color 0
         if leftLen > 0.0 then
           RenderM.fillRect' rect.x (rect.y + h - leftLen) lineWidth leftLen color 0
-  draw := none
   skipCache := true
 }
 
@@ -679,7 +675,6 @@ private def shimmerOverlaySpec (phase : Float) (color : Color) : CustomSpec := {
       let shimmerColor := color.withAlpha (color.a * 0.25)
       RenderM.withClip rect do
         RenderM.fillRect' (rect.x + offset) rect.y bandWidth rect.height shimmerColor 0
-  draw := none
   skipCache := true
 }
 
@@ -695,7 +690,6 @@ private def slideRevealSpec (progress : Float) (color : Color) : CustomSpec := {
         let revealWidth := layoutRect.width * progress
         RenderM.withClip rect do
           RenderM.fillRect' rect.x rect.y revealWidth rect.height color 0
-  draw := none
   skipCache := true
 }
 
@@ -709,7 +703,6 @@ private def heartbeatOverlaySpec (intensity : Float) (color : Color) : CustomSpe
         let rect := rectFromLayout layout.contentRect
         let overlayColor := color.withAlpha (color.a * intensity)
         RenderM.fillRect rect overlayColor 0
-  draw := none
   skipCache := true
 }
 

@@ -90,7 +90,6 @@ def helixSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment helixFragment.hash helixFragment.primitive.toUInt32
         params helixFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

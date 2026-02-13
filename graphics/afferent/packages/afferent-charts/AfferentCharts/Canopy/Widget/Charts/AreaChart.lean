@@ -142,7 +142,6 @@ def areaChartSpec (data : Array Float) (labels : Array String)
       RenderM.fillRect (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
       RenderM.fillRect (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
 
-  draw := none
 }
 
 /-- Default colors for multi-series charts. -/
@@ -248,7 +247,6 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
       RenderM.fillRect (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
       RenderM.fillRect (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
 
-  draw := none
 }
 
 end AreaChart

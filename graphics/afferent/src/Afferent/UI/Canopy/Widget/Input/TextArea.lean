@@ -392,7 +392,6 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
           RenderM.fillRect cursorRect theme.focusRing 0
 
       RenderM.popClip
-  draw := none
 }
 
 end TextArea

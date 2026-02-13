@@ -137,7 +137,6 @@ def lineChartSpec (data : Array Float) (labels : Array String)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 /-- Default colors for multi-series charts. -/
@@ -234,7 +233,6 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 end LineChart

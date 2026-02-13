@@ -282,16 +282,6 @@ def renderVoxelMesh (renderer : FFI.Renderer) (width height : Float)
         config.fogStart
         config.fogEnd
 
-private def withContentRect (layout : Trellis.ComputedLayout)
-    (draw : Float → Float → CanvasM Unit) : CanvasM Unit := do
-  let rect := layout.contentRect
-  save
-  setBaseTransform (Transform.translate rect.x rect.y)
-  resetTransform
-  clip (Rect.mk' 0 0 rect.width rect.height)
-  draw rect.width rect.height
-  restore
-
 /-- Create a voxel-world custom widget. -/
 private def defaultVoxelWorldStyle : Afferent.Arbor.BoxStyle := {
   flexItem := some (Trellis.FlexItem.growing 1)
@@ -300,15 +290,12 @@ private def defaultVoxelWorldStyle : Afferent.Arbor.BoxStyle := {
 def voxelWorldWidget (mesh : VoxelMesh) (camera : FPSCamera)
     (config : VoxelSceneConfig := {})
     (style : Afferent.Arbor.BoxStyle := defaultVoxelWorldStyle) : Afferent.Arbor.WidgetBuilder := do
+  let _ := mesh
+  let _ := camera
+  let _ := config
   Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun w h => do
-        resetTransform
-        let renderer ← getRenderer
-        renderVoxelMesh renderer w h camera mesh config
-    )
     skipCache := true
   }) style
 
@@ -317,15 +304,12 @@ def namedVoxelWorldWidget (name : Arbor.ComponentId)
     (mesh : VoxelMesh) (camera : FPSCamera)
     (config : VoxelSceneConfig := {})
     (style : Afferent.Arbor.BoxStyle := defaultVoxelWorldStyle) : Afferent.Arbor.WidgetBuilder := do
+  let _ := mesh
+  let _ := camera
+  let _ := config
   Arbor.namedCustom name (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun _ => #[]
-    draw := some (fun layout => do
-      withContentRect layout fun w h => do
-        resetTransform
-        let renderer ← getRenderer
-        renderVoxelMesh renderer w h camera mesh config
-    )
     skipCache := true
   }) style
 

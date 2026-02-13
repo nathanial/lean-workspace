@@ -188,7 +188,6 @@ private def lineNumberSpec (state : TextAreaState) (theme : Theme)
               RenderM.fillText (toString logicalLine) (rect.x + 8) textY theme.smallFont color
         | none => pure ()
       RenderM.popClip
-  draw := none
 }
 
 private def modeLabel (mode : TextEditorMode) : String :=

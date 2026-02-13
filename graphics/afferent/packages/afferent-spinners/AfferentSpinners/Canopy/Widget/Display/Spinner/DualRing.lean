@@ -53,7 +53,6 @@ def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
         b := innerColor.b
         a := innerColor.a
       }]
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner
