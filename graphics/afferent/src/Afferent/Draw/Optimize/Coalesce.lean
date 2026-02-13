@@ -448,49 +448,6 @@ def computeBoundedCommands (cmds : Array RenderCommand) : Array BoundedCommand :
 
   result
 
-/-- Coalesce commands by grouping same-category commands together using bucket sort.
-    O(N) bucket sort by category priority, preserving original order within each bucket.
-
-    After transform flattening, simple geometry (rects, circles) is in
-    absolute coordinates and doesn't depend on transform state.
-    Text captures its transform during batching (TextBatchEntry.{ta..tty}). -/
-def coalesceByCategory (bounded : Array BoundedCommand) : Array RenderCommand := Id.run do
-  if bounded.isEmpty then return #[]
-
-  -- 7 buckets for priorities 0-6: fillRect, fillCircle, strokeRect, strokeCircle, strokeLine, fillText, other
-  let mut bucket0 : Array RenderCommand := #[]  -- fillRect
-  let mut bucket1 : Array RenderCommand := #[]  -- fillCircle
-  let mut bucket2 : Array RenderCommand := #[]  -- strokeRect
-  let mut bucket3 : Array RenderCommand := #[]  -- strokeCircle
-  let mut bucket4 : Array RenderCommand := #[]  -- strokeLine
-  let mut bucket5 : Array RenderCommand := #[]  -- fillText
-  let mut bucket6 : Array RenderCommand := #[]  -- other
-
-  -- Distribute into buckets (O(N))
-  for bc in bounded do
-    match bc.cmd.category.sortPriority with
-    | 0 => bucket0 := bucket0.push bc.cmd
-    | 1 => bucket1 := bucket1.push bc.cmd
-    | 2 => bucket2 := bucket2.push bc.cmd
-    | 3 => bucket3 := bucket3.push bc.cmd
-    | 4 => bucket4 := bucket4.push bc.cmd
-    | 5 => bucket5 := bucket5.push bc.cmd
-    | _ => bucket6 := bucket6.push bc.cmd
-
-  -- Concatenate buckets in priority order
-  -- Pre-allocate output array for efficiency
-  let totalSize := bucket0.size + bucket1.size + bucket2.size + bucket3.size +
-                   bucket4.size + bucket5.size + bucket6.size
-  let mut out : Array RenderCommand := Array.mkEmpty totalSize
-  for cmd in bucket0 do out := out.push cmd
-  for cmd in bucket1 do out := out.push cmd
-  for cmd in bucket2 do out := out.push cmd
-  for cmd in bucket3 do out := out.push cmd
-  for cmd in bucket4 do out := out.push cmd
-  for cmd in bucket5 do out := out.push cmd
-  for cmd in bucket6 do out := out.push cmd
-  out
-
 /-- Coalesce commands by category while preserving stateful command order.
     Splits at any non-batchable ("other") command so transforms/clips apply.
     Uses bucket sort within each segment for O(N) performance. -/

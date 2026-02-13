@@ -55,21 +55,6 @@ def isOverlayWidgetForRender (w : Widget) : Bool :=
   | some style => style.position == .absolute && style.layer == .overlay
   | none => false
 
-/-- Separate children into flow, absolute (in-flow), and overlay (deferred) buckets. -/
-def partitionChildren (children : Array Widget)
-    : (Array Widget × Array Widget × Array Widget) := Id.run do
-  let mut flow : Array Widget := #[]
-  let mut abs : Array Widget := #[]
-  let mut overlay : Array Widget := #[]
-  for child in children do
-    if isOverlayWidgetForRender child then
-      overlay := overlay.push child
-    else if isAbsoluteWidgetForRender child then
-      abs := abs.push child
-    else
-      flow := flow.push child
-  (flow, abs, overlay)
-
 /-- Collect box background and border render commands based on BoxStyle. -/
 def collectBoxStyle (rect : Trellis.LayoutRect) (style : BoxStyle) : CollectM Unit := do
   let r : Rect := ⟨⟨rect.x, rect.y⟩, ⟨rect.width, rect.height⟩⟩
@@ -276,13 +261,5 @@ def collectCommands (w : Widget) (layouts : Trellis.LayoutResult) : Array Render
   CollectM.execute do
     collectWidget w layouts
     renderDeferredOverlay
-
-/-- Collect render commands with an initial save/restore wrapper. -/
-def collectCommandsWithSave (w : Widget) (layouts : Trellis.LayoutResult) : Array RenderCommand :=
-  CollectM.execute do
-    CollectM.emit .save
-    collectWidget w layouts
-    renderDeferredOverlay
-    CollectM.emit .restore
 
 end Afferent.Arbor
