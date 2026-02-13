@@ -30,6 +30,21 @@ opaque Renderer.drawMesh3D
   (fogColor : @& Array Float)
   (fogStart fogEnd : Float) : IO Unit
 
+/-- Draw a 3D mesh in wireframe mode (triangle edges only).
+    Parameters match `Renderer.drawMesh3D`. -/
+@[extern "lean_afferent_renderer_draw_mesh_3d_wireframe"]
+opaque Renderer.drawMesh3DWireframe
+  (renderer : @& Renderer)
+  (vertices : @& Array Float)
+  (indices : @& Array UInt32)
+  (mvpMatrix : @& Array Float)
+  (modelMatrix : @& Array Float)
+  (lightDir : @& Array Float)
+  (ambient : Float)
+  (cameraPos : @& Array Float)
+  (fogColor : @& Array Float)
+  (fogStart fogEnd : Float) : IO Unit
+
 /-- Draw an infinite-feeling ocean using a projected grid + Gerstner waves on the GPU.
     This avoids per-frame large vertex array marshaling from Lean.
     `waveParams` layout (Float array, length ≥ 32):

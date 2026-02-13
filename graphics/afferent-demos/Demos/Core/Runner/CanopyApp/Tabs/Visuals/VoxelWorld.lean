@@ -179,6 +179,12 @@ def voxelWorldTabContent (env : DemoEnv) : WidgetM Unit := do
       ) fogSwitch.onToggle
       performEvent_ fogActions
 
+      let meshSwitch ← switch (some "Show Mesh") initial.params.showMesh
+      let meshActions ← Event.mapM (fun on =>
+        fireStateUpdate (updateParams (fun p => { p with showMesh := on }))
+      ) meshSwitch.onToggle
+      performEvent_ meshActions
+
       let chunkBoundarySwitch ← switch (some "Chunk Boundaries") initial.params.showChunkBoundaries
       let chunkBoundaryActions ← Event.mapM (fun on => do
         let s ← state.sample
@@ -195,7 +201,8 @@ def voxelWorldTabContent (env : DemoEnv) : WidgetM Unit := do
       spacer' 0 (6.0 * env.screenScale)
 
       let _ ← dynWidget state fun s =>
-        caption' s!"Chunk radius: {s.params.chunkRadius}"
+        let chunkCount := Demos.voxelWorldChunkCount s.params.chunkRadius
+        caption' s!"Chunk radius: {s.params.chunkRadius} ({chunkCount} chunks)"
       let radiusSlider ← slider none (Demos.voxelWorldRadiusToSlider initial.params.chunkRadius)
       let radiusActions ← Event.mapM (fun t => do
         let s ← state.sample

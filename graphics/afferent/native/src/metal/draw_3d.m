@@ -189,7 +189,7 @@ void afferent_renderer_draw_ocean_projected_grid_with_fog(
     }
 }
 
-void afferent_renderer_draw_mesh_3d(
+static void afferent_renderer_draw_mesh_3d_internal(
     AfferentRendererRef renderer,
     const AfferentVertex3D* vertices,
     uint32_t vertex_count,
@@ -202,7 +202,8 @@ void afferent_renderer_draw_mesh_3d(
     const float* camera_pos,
     const float* fog_color,
     float fog_start,
-    float fog_end
+    float fog_end,
+    MTLTriangleFillMode fill_mode
 ) {
     if (!renderer || !renderer->currentEncoder || !vertices || !indices ||
         vertex_count == 0 || index_count == 0) {
@@ -251,6 +252,7 @@ void afferent_renderer_draw_mesh_3d(
         // Configure encoder for 3D rendering
         [renderer->currentEncoder setRenderPipelineState:renderer->pipeline3D];
         [renderer->currentEncoder setDepthStencilState:renderer->depthState];
+        [renderer->currentEncoder setTriangleFillMode:fill_mode];
         [renderer->currentEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
         [renderer->currentEncoder setVertexBytes:&uniforms length:sizeof(uniforms) atIndex:1];
         [renderer->currentEncoder setFragmentBytes:&uniforms length:sizeof(uniforms) atIndex:0];
@@ -262,9 +264,77 @@ void afferent_renderer_draw_mesh_3d(
                                             indexBuffer:indexBuffer
                                       indexBufferOffset:0];
 
+        [renderer->currentEncoder setTriangleFillMode:MTLTriangleFillModeFill];
+
         // Restore default pipeline
         [renderer->currentEncoder setRenderPipelineState:renderer->pipelineState];
     }
+}
+
+void afferent_renderer_draw_mesh_3d(
+    AfferentRendererRef renderer,
+    const AfferentVertex3D* vertices,
+    uint32_t vertex_count,
+    const uint32_t* indices,
+    uint32_t index_count,
+    const float* mvp_matrix,
+    const float* model_matrix,
+    const float* light_dir,
+    float ambient,
+    const float* camera_pos,
+    const float* fog_color,
+    float fog_start,
+    float fog_end
+) {
+    afferent_renderer_draw_mesh_3d_internal(
+        renderer,
+        vertices,
+        vertex_count,
+        indices,
+        index_count,
+        mvp_matrix,
+        model_matrix,
+        light_dir,
+        ambient,
+        camera_pos,
+        fog_color,
+        fog_start,
+        fog_end,
+        MTLTriangleFillModeFill
+    );
+}
+
+void afferent_renderer_draw_mesh_3d_wireframe(
+    AfferentRendererRef renderer,
+    const AfferentVertex3D* vertices,
+    uint32_t vertex_count,
+    const uint32_t* indices,
+    uint32_t index_count,
+    const float* mvp_matrix,
+    const float* model_matrix,
+    const float* light_dir,
+    float ambient,
+    const float* camera_pos,
+    const float* fog_color,
+    float fog_start,
+    float fog_end
+) {
+    afferent_renderer_draw_mesh_3d_internal(
+        renderer,
+        vertices,
+        vertex_count,
+        indices,
+        index_count,
+        mvp_matrix,
+        model_matrix,
+        light_dir,
+        ambient,
+        camera_pos,
+        fog_color,
+        fog_start,
+        fog_end,
+        MTLTriangleFillModeLines
+    );
 }
 
 

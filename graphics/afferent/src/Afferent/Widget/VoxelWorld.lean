@@ -63,6 +63,7 @@ structure VoxelSceneConfig where
   farPlane : Float := 600.0
   lightDir : Array Float := #[0.45, 0.85, 0.35]
   ambient : Float := 0.45
+  showMesh : Bool := false
   fogColor : Array Float := #[0.06, 0.08, 0.12]
   fogStart : Float := 45.0
   fogEnd : Float := 160.0
@@ -254,18 +255,32 @@ def renderVoxelMesh (renderer : FFI.Renderer) (width height : Float)
     let model := Mat4.identity
     let mvp := proj * view * model
     let cameraPos := #[camera.x, camera.y, camera.z]
-    Renderer.drawMesh3D
-      renderer
-      mesh.vertices
-      mesh.indices
-      mvp.toArray
-      model.toArray
-      config.lightDir
-      config.ambient
-      cameraPos
-      config.fogColor
-      config.fogStart
-      config.fogEnd
+    if config.showMesh then
+      Renderer.drawMesh3DWireframe
+        renderer
+        mesh.vertices
+        mesh.indices
+        mvp.toArray
+        model.toArray
+        config.lightDir
+        config.ambient
+        cameraPos
+        config.fogColor
+        config.fogStart
+        config.fogEnd
+    else
+      Renderer.drawMesh3D
+        renderer
+        mesh.vertices
+        mesh.indices
+        mvp.toArray
+        model.toArray
+        config.lightDir
+        config.ambient
+        cameraPos
+        config.fogColor
+        config.fogStart
+        config.fogEnd
 
 private def withContentRect (layout : Trellis.ComputedLayout)
     (draw : Float → Float → CanvasM Unit) : CanvasM Unit := do

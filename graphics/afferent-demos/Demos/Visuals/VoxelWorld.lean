@@ -20,8 +20,16 @@ structure VoxelWorldParams where
   terraceStep : Nat := 1
   palette : Afferent.Widget.VoxelPalette := .terrain
   fogEnabled : Bool := true
+  showMesh : Bool := false
   showChunkBoundaries : Bool := true
   deriving Repr, Inhabited, BEq
+
+def voxelWorldMinChunkRadius : Nat := 0
+def voxelWorldMaxChunkRadius : Nat := 10
+
+def voxelWorldChunkCount (radius : Nat) : Nat :=
+  let span := radius * 2 + 1
+  span * span
 
 def voxelWorldInitialCamera : FPSCamera := {
   x := 0.0
@@ -59,8 +67,11 @@ private def sliderToNat (t : Float) (lo hi : Nat) : Nat :=
     let raw := (clamped * span + 0.5).floor.toUInt64.toNat
     Nat.min hi (lo + raw)
 
-def voxelWorldRadiusToSlider (radius : Nat) : Float := natToSlider radius 0 2
-def voxelWorldRadiusFromSlider (t : Float) : Nat := sliderToNat t 0 2
+def voxelWorldRadiusToSlider (radius : Nat) : Float :=
+  natToSlider radius voxelWorldMinChunkRadius voxelWorldMaxChunkRadius
+
+def voxelWorldRadiusFromSlider (t : Float) : Nat :=
+  sliderToNat t voxelWorldMinChunkRadius voxelWorldMaxChunkRadius
 
 def voxelWorldHeightToSlider (height : Nat) : Float := natToSlider height 12 42
 def voxelWorldHeightFromSlider (t : Float) : Nat := sliderToNat t 12 42
@@ -100,6 +111,7 @@ def voxelWorldSceneConfig (params : VoxelWorldParams) : Afferent.Widget.VoxelSce
       farPlane := 600.0
       lightDir := #[0.45, 0.85, 0.35]
       ambient := 0.45
+      showMesh := params.showMesh
       fogColor := #[0.06, 0.08, 0.12]
       fogStart := 45.0
       fogEnd := 160.0
@@ -111,6 +123,7 @@ def voxelWorldSceneConfig (params : VoxelWorldParams) : Afferent.Widget.VoxelSce
       farPlane := 600.0
       lightDir := #[0.45, 0.85, 0.35]
       ambient := 0.45
+      showMesh := params.showMesh
       fogColor := #[0.06, 0.08, 0.12]
       fogStart := 0.0
       fogEnd := 0.0

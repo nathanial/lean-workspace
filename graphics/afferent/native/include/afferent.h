@@ -423,6 +423,24 @@ void afferent_renderer_draw_mesh_3d(
     float fog_end
 );
 
+// 3D mesh wireframe rendering (triangle edges only).
+// Parameters match afferent_renderer_draw_mesh_3d.
+void afferent_renderer_draw_mesh_3d_wireframe(
+    AfferentRendererRef renderer,
+    const AfferentVertex3D* vertices,
+    uint32_t vertex_count,
+    const uint32_t* indices,
+    uint32_t index_count,
+    const float* mvp_matrix,
+    const float* model_matrix,
+    const float* light_dir,
+    float ambient,
+    const float* camera_pos,
+    const float* fog_color,
+    float fog_start,
+    float fog_end
+);
+
 // Projected-grid ocean rendering with GPU Gerstner waves + fog.
 // Uses a fixed 4-wave set provided via `wave_params`:
 // - wave_params[0..15]  : 4x waveA = (dirX, dirZ, k, omegaSpeed)
