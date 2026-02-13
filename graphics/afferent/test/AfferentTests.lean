@@ -25,6 +25,7 @@ import AfferentTests.DynWidgetTests
 import AfferentTests.CoalescingTests
 import AfferentTests.ShaderDSLTests
 import AfferentTests.TextInputTests
+import AfferentTests.TextEditorTests
 import Crucible
 
 open Crucible

@@ -8,6 +8,7 @@ import Afferent.UI.Canopy.Widget.Input.RadioButton
 import Afferent.UI.Canopy.Widget.Input.Switch
 import Afferent.UI.Canopy.Widget.Input.TextInput
 import Afferent.UI.Canopy.Widget.Input.TextArea
+import Afferent.UI.Canopy.Widget.Input.TextEditor
 import Afferent.UI.Canopy.Widget.Input.PasswordInput
 import Afferent.UI.Canopy.Widget.Input.SearchInput
 import Afferent.UI.Canopy.Widget.Input.Dropdown

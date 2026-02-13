@@ -10,6 +10,7 @@ import Demos.Core.Runner.CanopyApp.Support
 import Demos.Core.Runner.CanopyApp.Tabs.Core
 import Demos.Core.Runner.CanopyApp.Tabs.Buttons
 import Demos.Core.Runner.CanopyApp.Tabs.NodeEditor
+import Demos.Core.Runner.CanopyApp.Tabs.TextEditor
 import Demos.Core.Runner.CanopyApp.Tabs.Linalg
 import Demos.Core.Runner.CanopyApp.Tabs.Visuals
 import Trellis
@@ -40,6 +41,7 @@ def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
     { label := "CSS Grid", content := cssGridTabContent env },
     { label := "Buttons", content := buttonsTabContent env },
     { label := "Node Graph", content := nodeEditorTabContent env },
+    { label := "Text Editor", content := textEditorTabContent env },
     { label := "Reactive", content := reactiveShowcaseTabContent reactiveShowcaseApp },
     { label := "Widget Perf", content := widgetPerfTabContent widgetPerfApp },
     { label := "Shapes", content := shapeGalleryTabContent env },
