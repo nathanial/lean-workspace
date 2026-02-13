@@ -1,5 +1,19 @@
 /-
   Afferent Widget Backend Batched Execution
+
+  This is the production RenderCommand executor used by Arbor rendering entry points
+  in `Afferent.Output.Execute.Render`.
+
+  End-to-end placement in the Afferent UI pipeline:
+  1) `Afferent.Arbor.collectCommands` emits backend-agnostic `RenderCommand`s.
+  2) Coalescing/flattening (from `Afferent.Draw.Optimize.Coalesce`) rewrites command
+     order within clip/transform-safe segments to increase batching opportunities.
+  3) This module builds per-primitive batches, flushes them at ordering boundaries,
+     and submits draw calls through:
+     - `Afferent.Output.Execute.Batches` for optimized batched paths
+     - `Afferent.Output.Execute.Interpreter` for non-batchable fallback commands
+
+  The goal is to reduce draw-call count without changing RenderCommand semantics.
 -/
 import Afferent.Output.Canvas
 import Afferent.Core.Transform
@@ -15,6 +29,8 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
+/-! ## Batch Execution State and Coalescing -/
+
 /-- Snap text positions to device pixels for axis-aligned transforms (scale + translate only). -/
 private def snapTextPosition (x y : Float) (transform : Transform) : (Float × Float) :=
   let eps : Float := 1.0e-4
@@ -26,6 +42,10 @@ private def snapTextPosition (x y : Float) (transform : Transform) : (Float × F
   else
     (x, y)
 
+/-- Mutable per-frame accumulator for the coalesced command stream.
+    Each batch array groups commands that share the same GPU path, and
+    `current*` fields track the parameter key that must stay uniform inside
+    that batch (for example stroke line width or text font id). -/
 private structure BatchState where
   rectBatch : Array RectBatchEntry
   strokeRectBatch : Array StrokeRectBatchEntry
@@ -58,6 +78,8 @@ private def initBatchState (totalCommands : Nat) (textFillCommands : Nat) : Batc
     textPackTimeNs := 0
     textFFITimeNs := 0 }
 
+-- Apply category coalescing first, then merge instanced command families.
+-- This preserves clip/transform barrier semantics while increasing run length.
 private def coalesceCommandsWithClip (bounded : Array BoundedCommand) : Array RenderCommand :=
   let cmds := coalesceByCategoryWithClip bounded
   let cmds := mergeInstancedPolygons cmds
@@ -222,6 +244,9 @@ private def flushAll (reg : FontRegistry) (state : BatchState) : CanvasM BatchSt
   let state ← flushFragments state
   pure state
 
+-- Pre-flush helpers define compatibility boundaries between batch kinds.
+-- If a new command would require a different pipeline or ordering barrier, we
+-- flush the conflicting accumulated batches before appending it.
 private def flushForFillRect (reg : FontRegistry) (state : BatchState) : CanvasM BatchState := do
   let state ← flushStrokeRects state
   let state ← flushCircles state
@@ -395,6 +420,7 @@ private def handleFillText (reg : FontRegistry) (state : BatchState) (text : Str
 private def handleDrawFragment (reg : FontRegistry) (state : BatchState) (fragmentHash : UInt64)
     (params : Array Float) : CanvasM BatchState := do
   let state ← flushForDrawFragment reg state
+  -- Fragment draws are batchable only when they target the same fragment hash.
   if state.currentFragmentHash == some fragmentHash then
     pure { state with fragmentParamsBatch := state.fragmentParamsBatch ++ params }
   else
@@ -408,11 +434,15 @@ private def handleDrawFragment (reg : FontRegistry) (state : BatchState) (fragme
 
 private def handleNonBatchable (reg : FontRegistry) (state : BatchState)
     (cmd : RenderCommand) : CanvasM BatchState := do
+  -- Preserve exact command ordering by draining all pending batches before
+  -- delegating to the canonical interpreter path.
   let state ← flushAll reg state
   executeCommand reg cmd
   let stats := { state.stats with individualCalls := state.stats.individualCalls + 1 }
   pure { state with stats := stats }
 
+/-- Route one command to a specialized batch path when available, otherwise
+    execute it via interpreter fallback. -/
 private def handleCommand (reg : FontRegistry) (state : BatchState)
     (cmd : RenderCommand) : CanvasM BatchState := do
   match cmd with
@@ -439,7 +469,10 @@ private def handleCommand (reg : FontRegistry) (state : BatchState)
 
 private def handleStrokeRectRunDirect (reg : FontRegistry) (state : BatchState)
     (cmds : Array RenderCommand) (startIdx : Nat) : CanvasM (BatchState × Nat) := do
-  -- Keep command ordering semantics: flush incompatible batches, then emit one direct draw call.
+  -- Fast path for contiguous `strokeRect` runs with the same line width.
+  -- It skips per-entry Lean allocations and writes directly into the
+  -- reusable stroke rect buffer managed by Canvas.
+  -- Keep command ordering semantics: flush incompatible batches first.
   let state ← flushForStrokeRect reg state
   let state ← flushStrokeRects state
   let t0 ← IO.monoNanosNow
@@ -465,6 +498,8 @@ private def handleStrokeRectRunDirect (reg : FontRegistry) (state : BatchState)
 
 private def processCommands (reg : FontRegistry) (cmds : Array RenderCommand)
     (state : BatchState) : CanvasM BatchState := do
+  -- Single pass over coalesced commands. Most commands flow through
+  -- `handleCommand`; `strokeRect` additionally tries the direct-run fast path.
   let mut state := state
   let mut i := 0
   while i < cmds.size do
@@ -482,12 +517,16 @@ private def processCommands (reg : FontRegistry) (cmds : Array RenderCommand)
       i := cmds.size
   flushAll reg state
 
-/-- Execute an array of RenderCommands using CanvasM with batching optimization.
-    First coalesces commands within scopes to maximize batching opportunities, then
-    groups consecutive fillRect commands (per-instance cornerRadius),
-    consecutive strokeRect commands with the same lineWidth (per-instance cornerRadius),
-    and consecutive fillCircle commands into batched draw calls.
-    Returns batch statistics for performance monitoring. -/
+/-- Execute a RenderCommand stream using the production batching pipeline.
+
+    This is called from Arbor render entry points after layout + command collection.
+    The execution stages are:
+    1) flatten/annotate commands with transform-aware bounds (`computeBoundedCommands`)
+    2) clip-safe category coalescing + instanced command merging
+    3) single-pass batch accumulation + ordered flushing into Canvas/FFI draw calls
+
+    The returned stats expose both batching effectiveness (draw-call reduction)
+    and timing split by pipeline stage. -/
 def executeCommandsBatchedWithStats (reg : FontRegistry) (cmds : Array Afferent.Arbor.RenderCommand) : CanvasM BatchStats := do
   -- Time: Flatten commands (transform tracking, simple geometry to absolute coords)
   -- Use `pure` to force evaluation at this point in the monadic sequence
