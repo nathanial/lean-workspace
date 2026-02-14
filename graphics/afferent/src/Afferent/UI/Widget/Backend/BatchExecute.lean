@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical batched execution lives at `Afferent.Output.Execute.Batched`.
+  Compatibility APIs now live at `Afferent.Output.Execute.Interpreter`.
 -/
-import Afferent.Output.Execute.Batched
+import Afferent.Output.Execute.Interpreter

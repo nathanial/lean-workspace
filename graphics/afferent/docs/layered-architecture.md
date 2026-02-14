@@ -25,8 +25,6 @@ graphics/afferent/src/Afferent/
     Builder.lean
     Cache.lean
     Collect.lean
-    Optimize/
-      Coalesce.lean
     Optimize.lean
     Runtime.lean
   Draw.lean
@@ -36,10 +34,7 @@ graphics/afferent/src/Afferent/
     FFI.lean
     Execute/
       Interpreter.lean
-      Batches.lean
-      Batched.lean
       Render.lean
-      Coalesce.lean
     Execute.lean
   Output.lean
 

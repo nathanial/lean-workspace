@@ -5,7 +5,7 @@ import Afferent.Output.Canvas
 import Afferent.Graphics.Text.Font
 import Afferent.Graphics.Text.Measurer
 import Afferent.UI.Arbor
-import Afferent.Output.Execute.Batched
+import Afferent.Output.Execute.Interpreter
 
 namespace Afferent.Widget
 

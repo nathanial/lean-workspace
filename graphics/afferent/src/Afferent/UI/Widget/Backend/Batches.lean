@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical output batching helpers live at `Afferent.Output.Execute.Batches`.
+  Compatibility stats live at `Afferent.Output.Execute.Interpreter`.
 -/
-import Afferent.Output.Execute.Batches
+import Afferent.Output.Execute.Interpreter
