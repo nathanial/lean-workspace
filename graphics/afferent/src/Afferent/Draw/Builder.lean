@@ -161,7 +161,8 @@ def strokeRectColor' (x y w h : Float) (color : Color) (lineWidth : Float) (corn
 
 /-! ## Text Commands -/
 
-def fillTextId (reg : FontRegistry) (text : String) (x y : Float) (font : Arbor.FontId) (color : Color) : CanvasM Unit := do
+def fillTextId (text : String) (x y : Float) (font : Arbor.FontId) (color : Color) : CanvasM Unit := do
+  let reg ← getFontRegistry
   match reg.get font with
   | some resolved =>
       let canvas ← getCanvas
@@ -170,8 +171,9 @@ def fillTextId (reg : FontRegistry) (text : String) (x y : Float) (font : Arbor.
   | none =>
       pure ()
 
-def fillTextBlockId (reg : FontRegistry) (text : String) (rect : Rect) (font : Arbor.FontId) (color : Color)
+def fillTextBlockId (text : String) (rect : Rect) (font : Arbor.FontId) (color : Color)
     (align : Arbor.TextAlign := .left) (valign : Arbor.TextVAlign := .top) : CanvasM Unit := do
+  let reg ← getFontRegistry
   match reg.get font with
   | some resolved =>
       let (textWidth, textHeight) ← measureText text resolved

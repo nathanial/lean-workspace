@@ -108,7 +108,7 @@ private def heartHash : UInt64 := 0x68656172745F5F5F  -- "heart___"
     Uses pre-tessellated heart geometry with instanced rendering for better performance. -/
 def heartbeatSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2

@@ -81,7 +81,7 @@ initialize orbitFragmentRegistration : Unit ← do
     Passes only 8 floats to GPU; the shader computes all 4 circle positions, sizes, and alphas. -/
 def orbitSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2

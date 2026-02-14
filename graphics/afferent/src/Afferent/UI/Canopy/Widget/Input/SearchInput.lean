@@ -53,7 +53,7 @@ def clearButtonPath (cx cy halfSize : Float) : Afferent.Path :=
 /-- Custom spec for search icon. -/
 def searchIconSpec (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.iconSize + dims.iconPadding, dims.iconSize)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let centerX := rect.x + dims.iconSize / 2
     let centerY := rect.y + rect.height / 2
@@ -66,7 +66,7 @@ def searchIconSpec (theme : Theme) (dims : Dimensions := defaultDimensions) : Cu
 /-- Custom spec for clear button (X icon). -/
 def clearButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.clearButtonSize, dims.clearButtonSize)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
@@ -84,7 +84,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let lineHeight := theme.font.lineHeight
     let height := lineHeight + 4
     (0, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let text := if showPlaceholder then placeholder else displayText
     let textColor := if showPlaceholder then theme.textMuted else theme.text
@@ -93,7 +93,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let verticalOffset := (rect.height - lineHeight) / 2
     let textY := rect.y + verticalOffset + ascender
     do
-      CanvasM.fillTextId reg text rect.x textY theme.font textColor
+      CanvasM.fillTextId text rect.x textY theme.font textColor
       if focused then
         let cursorX := rect.x + cursorPixelX
         let cursorY := rect.y + verticalOffset

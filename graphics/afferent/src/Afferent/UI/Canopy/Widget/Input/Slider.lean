@@ -33,7 +33,7 @@ def defaultDimensions : Dimensions := {}
 def trackSpec (value : Float) (hovered : Bool) (focused : Bool)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.thumbSize)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     do
       -- Clamp value to valid range

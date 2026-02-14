@@ -118,7 +118,7 @@ private def formatValue (v : Float) : String :=
 def boxPlotSpec (summaries : Array Summary) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -226,7 +226,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := yMin + ratio * yRange
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
-          CanvasM.fillTextId reg (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (box labels)
       for i in [0:boxCount] do
@@ -235,7 +235,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
         | some label =>
           let boxCenterX := chartX + gapWidth + i.toFloat * (dims.boxWidth + gapWidth) + dims.boxWidth / 2
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg label boxCenterX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId label boxCenterX labelY theme.smallFont theme.textMuted
         | none => pure ()
 
       -- Draw axes
@@ -248,7 +248,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
 def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -349,7 +349,7 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
           let value := xMin + ratio * xRange
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg (formatValue value) labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) labelX labelY theme.smallFont theme.textMuted
 
       -- Draw Y-axis labels (box labels)
       for i in [0:boxCount] do
@@ -357,7 +357,7 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
         match s.label with
         | some label =>
           let boxCenterY := chartY + gapHeight + i.toFloat * (dims.boxWidth + gapHeight) + dims.boxWidth / 2
-          CanvasM.fillTextId reg label (rect.x + 4) (boxCenterY + 4) theme.smallFont theme.text
+          CanvasM.fillTextId label (rect.x + 4) (boxCenterY + 4) theme.smallFont theme.text
         | none => pure ()
 
       -- Draw axes

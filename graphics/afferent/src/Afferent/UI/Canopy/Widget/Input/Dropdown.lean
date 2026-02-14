@@ -47,7 +47,7 @@ def chevronPoints (x y : Float) (isOpen : Bool) : Arbor.Point × Arbor.Point × 
 /-- Custom spec for dropdown arrow (downward chevron). -/
 def arrowSpec (isOpen : Bool) (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.arrowWidth, dims.itemHeight)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
@@ -71,7 +71,7 @@ def checkmarkPoints (x y : Float) : Arbor.Point × Arbor.Point × Arbor.Point :=
 /-- Custom spec for checkmark in menu item. -/
 def checkmarkSpec (theme : Theme) : CustomSpec := {
   measure := fun _ _ => (20.0, 20.0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2

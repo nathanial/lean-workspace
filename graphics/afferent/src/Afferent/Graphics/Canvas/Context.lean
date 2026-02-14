@@ -9,6 +9,7 @@ import Afferent.Core.Paint
 import Afferent.Graphics.Canvas.State
 import Afferent.Graphics.Render.Dynamic
 import Afferent.Graphics.Text.Font
+import Afferent.Graphics.Text.Measurer
 import Afferent.Runtime.FFI
 import Afferent.Runtime.Shader
 import Std.Data.HashMap
@@ -492,6 +493,7 @@ deriving Repr, Inhabited
 structure Canvas where
   ctx : DrawContext
   stateStack : StateStack
+  fontRegistry : FontRegistry := FontRegistry.empty
   /-- Screen scale factor (e.g., 2.0 for Retina). Used for auto-scaling mode. -/
   screenScale : Float := 1.0
   /-- High-performance mutable FloatBuffer for zero-copy line rendering. -/
@@ -534,17 +536,25 @@ namespace Canvas
 def create (width height : UInt32) (title : String) : IO Canvas := do
   let ctx ← DrawContext.create width height title
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, fontRegistry := FontRegistry.empty, fragmentCache }
 
 /-- Create a new canvas with a window and explicit screen scale factor. -/
 def createWithScale (width height : UInt32) (title : String) (screenScale : Float) : IO Canvas := do
   let ctx ← DrawContext.create width height title
   let fragmentCache ← IO.mkRef Shader.FragmentCache.empty
-  pure { ctx, stateStack := StateStack.new, screenScale, fragmentCache }
+  pure { ctx, stateStack := StateStack.new, fontRegistry := FontRegistry.empty, screenScale, fragmentCache }
 
 /-- Get the current state. -/
 def state (c : Canvas) : CanvasState :=
   c.stateStack.current
+
+/-- Set the active font registry used by CanvasM text helpers. -/
+def setFontRegistry (reg : FontRegistry) (c : Canvas) : Canvas :=
+  { c with fontRegistry := reg }
+
+/-- Get the active font registry used by CanvasM text helpers. -/
+def getFontRegistry (c : Canvas) : FontRegistry :=
+  c.fontRegistry
 
 /-- Save the current state. -/
 def save (c : Canvas) : Canvas :=
@@ -1093,6 +1103,8 @@ def baseHeight : CanvasM Float := do return (← get).baseHeight
 def width : CanvasM Float := do (← get).width
 def height : CanvasM Float := do (← get).height
 def getCurrentSize : CanvasM (Float × Float) := do (← get).ctx.getCurrentSize
+def setFontRegistry (reg : FontRegistry) : CanvasM Unit := modifyCanvas (Canvas.setFontRegistry reg)
+def getFontRegistry : CanvasM FontRegistry := do return (Canvas.getFontRegistry (← get))
 
 /-- Get the screen scale factor (e.g., 2.0 for Retina displays).
     Use this when loading fonts at physical pixel sizes:

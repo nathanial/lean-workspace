@@ -18,17 +18,17 @@ instance : Inhabited Html where
   default := .fragment []
 
 /-- Render monad with context -/
-abbrev RenderM := ReaderT Context (Except RenderError)
+abbrev TemplateM := ReaderT Context (Except RenderError)
 
 /-- Get the current context -/
-def getContext : RenderM Context := read
+def getContext : TemplateM Context := read
 
 /-- Run with a modified context -/
-def withContext {α : Type} (ctx : Context) (m : RenderM α) : RenderM α :=
+def withContext {α : Type} (ctx : Context) (m : TemplateM α) : TemplateM α :=
   fun _ => m ctx
 
 /-- Render a variable reference to a string -/
-def renderVarToString (ref : VarRef) : RenderM String := do
+def renderVarToString (ref : VarRef) : TemplateM String := do
   let ctx ← getContext
   -- Return null for missing variables (allows default filter to work)
   -- Handle parent path traversal (../)
@@ -47,7 +47,7 @@ def renderVarToString (ref : VarRef) : RenderM String := do
   return finalValue.toString
 
 /-- Render a variable node -/
-def renderVariable (ref : VarRef) : RenderM Html := do
+def renderVariable (ref : VarRef) : TemplateM Html := do
   let s ← renderVarToString ref
   if ref.escaped then
     return .text s  -- .text escapes HTML
@@ -57,7 +57,7 @@ def renderVariable (ref : VarRef) : RenderM Html := do
 -- Expression evaluation
 
 /-- Evaluate an expression to a Value -/
-partial def evalExpr (expr : Expr) : RenderM Value := do
+partial def evalExpr (expr : Expr) : TemplateM Value := do
   let ctx ← getContext
   match expr with
   | .var path parentLevels =>
@@ -131,19 +131,19 @@ where
     | _, _ => a.toString < b.toString
 
 /-- Evaluate an expression to a boolean -/
-def evalExprToBool (expr : Expr) : RenderM Bool := do
+def evalExprToBool (expr : Expr) : TemplateM Bool := do
   let v ← evalExpr expr
   return v.isTruthy
 
 -- Mutually recursive rendering functions
 mutual
   /-- Render a list of nodes -/
-  partial def renderNodes (nodes : List Node) : RenderM Html := do
+  partial def renderNodes (nodes : List Node) : TemplateM Html := do
     let htmls ← nodes.mapM renderNode
     return .fragment htmls
 
   /-- Render a conditional with branches -/
-  partial def renderConditional (branches : List (Expr × List Node)) (elseBody : List Node) (inverted : Bool) (_pos : Position) : RenderM Html := do
+  partial def renderConditional (branches : List (Expr × List Node)) (elseBody : List Node) (inverted : Bool) (_pos : Position) : TemplateM Html := do
     -- Try each branch in order
     for (condition, body) in branches do
       let result ← evalExprToBool condition
@@ -154,7 +154,7 @@ mutual
     renderNodes elseBody
 
   /-- Render an each loop -/
-  partial def renderEach (config : EachConfig) (body : List Node) (elseBody : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderEach (config : EachConfig) (body : List Node) (elseBody : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.lookup config.source with
     | some (.array items) =>
@@ -207,7 +207,7 @@ mutual
       renderNodes elseBody
 
   /-- Render a with block -/
-  partial def renderWith (path : String) (body : List Node) (elseBody : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderWith (path : String) (body : List Node) (elseBody : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.lookup path with
     | some v =>
@@ -220,7 +220,7 @@ mutual
       renderNodes elseBody
 
   /-- Render a let block -/
-  partial def renderLet (bindings : List (String × Expr)) (body : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderLet (bindings : List (String × Expr)) (body : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     -- Evaluate all bindings
     let values ← bindings.mapM fun (name, expr) => do
@@ -231,7 +231,7 @@ mutual
     withContext childCtx (renderNodes body)
 
   /-- Render a repeat block -/
-  partial def renderRepeat (countExpr : Expr) (body : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderRepeat (countExpr : Expr) (body : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     let countVal ← evalExpr countExpr
     let count := match countVal with
@@ -252,7 +252,7 @@ mutual
       return .fragment htmls
 
   /-- Render a range block -/
-  partial def renderRange (startExpr : Expr) (endExpr : Expr) (body : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderRange (startExpr : Expr) (endExpr : Expr) (body : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     let startVal ← evalExpr startExpr
     let endVal ← evalExpr endExpr
@@ -278,7 +278,7 @@ mutual
   /-- Render a partial with optional context and hash parameters.
       If context is provided, it replaces the current data context.
       Hash params are merged on top of the context (or current context if none). -/
-  partial def renderPartial (name : String) (context : Option Expr) (params : List (String × Expr)) (pos : Position) : RenderM Html := do
+  partial def renderPartial (name : String) (context : Option Expr) (params : List (String × Expr)) (pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.getPartial name with
     | some tmpl =>
@@ -301,7 +301,7 @@ mutual
     | none => throw (.unknownPartial name (some pos))
 
   /-- Render a partial block with optional context -/
-  partial def renderPartialBlock (name : String) (context : Option Expr) (params : List (String × Expr)) (body : List Node) (pos : Position) : RenderM Html := do
+  partial def renderPartialBlock (name : String) (context : Option Expr) (params : List (String × Expr)) (body : List Node) (pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.getPartial name with
     | some tmpl =>
@@ -325,7 +325,7 @@ mutual
     | none => throw (.unknownPartial name (some pos))
 
   /-- Render a block (check for override) -/
-  partial def renderBlock (name : String) (defaultBody : List Node) (_pos : Position) : RenderM Html := do
+  partial def renderBlock (name : String) (defaultBody : List Node) (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.getBlock name with
     | some blockDef =>
@@ -337,7 +337,7 @@ mutual
       renderNodes defaultBody
 
   /-- Render super (parent block content) -/
-  partial def renderSuper (_pos : Position) : RenderM Html := do
+  partial def renderSuper (_pos : Position) : TemplateM Html := do
     let ctx ← getContext
     match ctx.currentBlock with
     | some blockName =>
@@ -350,7 +350,7 @@ mutual
     | none => return .fragment []  -- super used outside block
 
   /-- Render a single node -/
-  partial def renderNode (node : Node) : RenderM Html :=
+  partial def renderNode (node : Node) : TemplateM Html :=
     match node with
     | .text content => return .raw content  -- Template text is trusted, use raw
     | .comment _ => return .fragment []  -- Comments produce no output
@@ -376,7 +376,7 @@ def extractBlocks (nodes : List Node) : List (String × List Node) :=
     | _ => none
 
 /-- Render a complete template (handling extends) -/
-def renderTemplate (tmpl : Template) : RenderM Html := do
+def renderTemplate (tmpl : Template) : TemplateM Html := do
   match tmpl.nodes with
   | .extends parentName pos :: restNodes =>
     let ctx ← getContext

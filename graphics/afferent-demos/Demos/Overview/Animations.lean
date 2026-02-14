@@ -111,17 +111,17 @@ private def bouncingRectsCommands (r : Rect) (t : Float) : CanvasM Unit := do
 /-- Animated cards rendered as widgets. -/
 def animationsWidget (labelFont : FontId) (t : Float) : WidgetBuilder := do
   let cards : Array (String × CardDraw) := #[(
-    "Spinning Stars", fun r _reg => spinningStarsCommands r t
+    "Spinning Stars", fun r => spinningStarsCommands r t
   ), (
-    "Pulsing Circles", fun r _reg => pulsingCirclesCommands r t
+    "Pulsing Circles", fun r => pulsingCirclesCommands r t
   ), (
-    "Wiggling Line", fun r _reg => wigglingLineCommands r t
+    "Wiggling Line", fun r => wigglingLineCommands r t
   ), (
-    "Morphing Poly", fun r _reg => morphingPolygonCommands r t
+    "Morphing Poly", fun r => morphingPolygonCommands r t
   ), (
-    "Orbiting Hearts", fun r _reg => orbitingHeartsCommands r t
+    "Orbiting Hearts", fun r => orbitingHeartsCommands r t
   ), (
-    "Bouncing Rects", fun r _reg => bouncingRectsCommands r t
+    "Bouncing Rects", fun r => bouncingRectsCommands r t
   )]
   let widgets := cards.map fun (label, draw) => demoCardFlex labelFont label draw
   gridFlex 3 10 4 widgets (EdgeInsets.uniform 10)
@@ -129,12 +129,12 @@ def animationsWidget (labelFont : FontId) (t : Float) : WidgetBuilder := do
 /-- Responsive animations widget that fills available space. -/
 def animationsWidgetFlex (labelFont : FontId) (t : Float) : WidgetBuilder := do
   let cards : Array (String × CardDraw) := #[
-    ("Spinning Stars", fun r _reg => spinningStarsCommands r t),
-    ("Pulsing Circles", fun r _reg => pulsingCirclesCommands r t),
-    ("Wiggling Line", fun r _reg => wigglingLineCommands r t),
-    ("Morphing Poly", fun r _reg => morphingPolygonCommands r t),
-    ("Orbiting Hearts", fun r _reg => orbitingHeartsCommands r t),
-    ("Bouncing Rects", fun r _reg => bouncingRectsCommands r t)
+    ("Spinning Stars", fun r => spinningStarsCommands r t),
+    ("Pulsing Circles", fun r => pulsingCirclesCommands r t),
+    ("Wiggling Line", fun r => wigglingLineCommands r t),
+    ("Morphing Poly", fun r => morphingPolygonCommands r t),
+    ("Orbiting Hearts", fun r => orbitingHeartsCommands r t),
+    ("Bouncing Rects", fun r => bouncingRectsCommands r t)
   ]
   let widgets := cards.map fun (label, draw) => demoCardFlex labelFont label draw
   gridFlex 2 3 4 widgets

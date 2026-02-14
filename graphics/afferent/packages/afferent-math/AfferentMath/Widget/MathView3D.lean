@@ -307,7 +307,7 @@ def mathView3DVisual (name : Option ComponentId := none)
     (drawContent : View → CanvasM Unit) : WidgetBuilder := do
   let spec : CustomSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun w h => do
         resetTransform
         let view := buildView config w h

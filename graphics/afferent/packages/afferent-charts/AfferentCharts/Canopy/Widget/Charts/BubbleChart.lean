@@ -93,7 +93,7 @@ private def sizeToRadius (size minSize maxSize : Float) (dims : Dimensions) : Fl
 def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -170,7 +170,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           | some label =>
             let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
             let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-            CanvasM.fillTextId reg label px (py - 4) theme.smallFont theme.text
+            CanvasM.fillTextId label px (py - 4) theme.smallFont theme.text
           | none => pure ()
 
       -- Draw Y-axis labels
@@ -180,7 +180,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -190,7 +190,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
@@ -202,7 +202,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
 def multiSeriesSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -281,7 +281,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -291,7 +291,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
@@ -303,7 +303,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
 def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 170, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -389,13 +389,13 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          CanvasM.fillTextId reg (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
         -- X-axis labels
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := niceMinX + ratio * rangeX
           let labelX := chartX + (ratio * chartWidth)
-          CanvasM.fillTextId reg (formatValue value) labelX (chartY + chartHeight + 16) theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) labelX (chartY + chartHeight + 16) theme.smallFont theme.textMuted
 
       -- Draw legend
       for si in [0:series.size] do
@@ -408,7 +408,7 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
 
         -- Label text
         let label := s.label.getD s!"Series {si + 1}"
-        CanvasM.fillTextId reg label (legendX + 20) (itemY + 12) theme.smallFont theme.text
+        CanvasM.fillTextId label (legendX + 20) (itemY + 12) theme.smallFont theme.text
 
 }
 

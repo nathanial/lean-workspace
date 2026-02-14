@@ -89,7 +89,7 @@ private def findMaxValue (data : Data) : Float :=
 def groupedBarChartSpec (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -161,7 +161,7 @@ def groupedBarChartSpec (data : Data) (theme : Theme)
           let value := ratio * niceMax
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (centered under each group)
       for i in [0:numCategories] do
@@ -169,7 +169,7 @@ def groupedBarChartSpec (data : Data) (theme : Theme)
         let groupX := chartX + i.toFloat * (groupWidth + dims.groupGap)
         let labelX := groupX + groupWidth / 2
         let labelY := chartY + chartHeight + 16
-        CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+        CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
       let axisColor := Color.gray 0.5
@@ -190,7 +190,7 @@ def groupedBarChartSpec (data : Data) (theme : Theme)
           let colorRect := Arbor.Rect.mk' legendX itemY 12.0 12.0
           CanvasM.fillRectColor colorRect color 2.0
           -- Label
-          CanvasM.fillTextId reg series.name (legendX + 16) (itemY + 10) theme.smallFont theme.text
+          CanvasM.fillTextId series.name (legendX + 16) (itemY + 10) theme.smallFont theme.text
 
 }
 

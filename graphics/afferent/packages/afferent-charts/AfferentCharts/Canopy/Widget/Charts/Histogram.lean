@@ -159,7 +159,7 @@ def computeBins (data : Array Float) (config : BinConfig := defaultBinConfig) : 
 def histogramSpec (bins : Array Bin) (variant : HistogramVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) (showDensity : Bool := false) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -223,7 +223,7 @@ def histogramSpec (bins : Array Bin) (variant : HistogramVariant) (theme : Theme
             s!"{pct}%"
           else
             formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (bin edges)
       if dims.showBinLabels then
@@ -235,7 +235,7 @@ def histogramSpec (bins : Array Bin) (variant : HistogramVariant) (theme : Theme
           let value := if binIdx < bins.size then bins[binIdx]!.lower else bins[bins.size - 1]!.upper
           let labelX := chartX + ((value - minX) / rangeX) * chartWidth
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg (formatValue value) labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
@@ -248,7 +248,7 @@ def histogramFromCountsSpec (labels : Array String) (counts : Array Nat)
     (variant : HistogramVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -299,7 +299,7 @@ def histogramFromCountsSpec (labels : Array String) (counts : Array Nat)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := ratio * maxCount.toFloat
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
-          CanvasM.fillTextId reg (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showBinLabels then
@@ -307,7 +307,7 @@ def histogramFromCountsSpec (labels : Array String) (counts : Array Nat)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * (barWidth + dims.barGap) + barWidth / 2
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId label labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0

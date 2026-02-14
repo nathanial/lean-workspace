@@ -122,7 +122,7 @@ def dataBounds (series : Array Series) : Float × Float × Float × Float := Id.
 def mathPlotSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) (config : Config := {}) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -214,22 +214,22 @@ def mathPlotSpec (series : Array Series) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let valueY := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          CanvasM.fillTextId reg (ChartUtils.formatValue valueY) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (ChartUtils.formatValue valueY) (rect.x + 4) labelY theme.smallFont theme.textMuted
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let valueX := niceMinX + ratio * rangeX
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg (ChartUtils.formatValue valueX) labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (ChartUtils.formatValue valueX) labelX labelY theme.smallFont theme.textMuted
 
       -- Axis titles
       match config.xLabel with
       | some label =>
-          CanvasM.fillTextId reg label (chartX + chartWidth / 2) (chartY + chartHeight + 32) theme.smallFont theme.text
+          CanvasM.fillTextId label (chartX + chartWidth / 2) (chartY + chartHeight + 32) theme.smallFont theme.text
       | none => pure ()
       match config.yLabel with
       | some label =>
-          CanvasM.fillTextId reg label (rect.x + 4) (rect.y + 4) theme.smallFont theme.text
+          CanvasM.fillTextId label (rect.x + 4) (rect.y + 4) theme.smallFont theme.text
       | none => pure ()
 
       -- Axes

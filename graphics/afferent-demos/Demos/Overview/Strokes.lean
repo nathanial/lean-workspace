@@ -211,54 +211,54 @@ private def crossCommands (r : Rect) : CanvasM Unit := do
 /-- Strokes rendered as cards in a grid. -/
 def strokesWidget (labelFont : FontId) : WidgetBuilder := do
   let cards : Array (String × CardDraw) := #[(
-    "Rect Widths", fun r _reg => rectWidthCommands r
+    "Rect Widths", fun r => rectWidthCommands r
   ), (
-    "Circle Widths", fun r _reg => circleWidthCommands r
+    "Circle Widths", fun r => circleWidthCommands r
   ), (
-    "Line Widths", fun r _reg => lineWidthCommands r
+    "Line Widths", fun r => lineWidthCommands r
   ), (
-    "Diagonals", fun r _reg => diagonalCommands r
+    "Diagonals", fun r => diagonalCommands r
   ), (
-    "Rounded Rects", fun r _reg => roundedRectCommands r
+    "Rounded Rects", fun r => roundedRectCommands r
   ), (
-    "Ellipses", fun r _reg => ellipseCommands r
+    "Ellipses", fun r => ellipseCommands r
   ), (
-    "Stars", fun r _reg => starCommands r
+    "Stars", fun r => starCommands r
   ), (
-    "Polygons", fun r _reg => polygonCommands r
+    "Polygons", fun r => polygonCommands r
   ), (
-    "Heart", fun r _reg => heartCommands r
+    "Heart", fun r => heartCommands r
   ), (
-    "Fill+Stroke", fun r _reg => fillStrokeCommands r
+    "Fill+Stroke", fun r => fillStrokeCommands r
   ), (
-    "Zigzag", fun r _reg => zigzagCommands r
+    "Zigzag", fun r => zigzagCommands r
   ), (
-    "Wave", fun r _reg => waveCommands r
+    "Wave", fun r => waveCommands r
   ), (
-    "Spiral", fun r _reg => spiralCommands r
+    "Spiral", fun r => spiralCommands r
   ), (
-    "Arcs", fun r _reg => arcCommands r
+    "Arcs", fun r => arcCommands r
   ), (
-    "Pie Outlines", fun r _reg => pieCommands r
+    "Pie Outlines", fun r => pieCommands r
   ), (
-    "Arrow", fun r _reg => arrowCommands r
+    "Arrow", fun r => arrowCommands r
   ), (
-    "Cross", fun r _reg => crossCommands r
+    "Cross", fun r => crossCommands r
   )]
   let widgets := cards.map fun (label, draw) => demoCardFlex labelFont label draw
   gridFlex 4 10 4 widgets (EdgeInsets.uniform 10)
 
 /-- Curated subset of strokes for responsive grid display. -/
 def strokesSubset : Array (String × CardDraw) := #[
-  ("Rect Widths", fun r _reg => rectWidthCommands r),
-  ("Circle Widths", fun r _reg => circleWidthCommands r),
-  ("Line Widths", fun r _reg => lineWidthCommands r),
-  ("Rounded Rects", fun r _reg => roundedRectCommands r),
-  ("Stars", fun r _reg => starCommands r),
-  ("Fill+Stroke", fun r _reg => fillStrokeCommands r),
-  ("Wave", fun r _reg => waveCommands r),
-  ("Arcs", fun r _reg => arcCommands r),
-  ("Arrow", fun r _reg => arrowCommands r)
+  ("Rect Widths", fun r => rectWidthCommands r),
+  ("Circle Widths", fun r => circleWidthCommands r),
+  ("Line Widths", fun r => lineWidthCommands r),
+  ("Rounded Rects", fun r => roundedRectCommands r),
+  ("Stars", fun r => starCommands r),
+  ("Fill+Stroke", fun r => fillStrokeCommands r),
+  ("Wave", fun r => waveCommands r),
+  ("Arcs", fun r => arcCommands r),
+  ("Arrow", fun r => arrowCommands r)
 ]
 
 /-- Responsive strokes widget that fills available space. -/

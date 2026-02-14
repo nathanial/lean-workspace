@@ -108,7 +108,7 @@ def gaugeChartSpec (data : Data) (theme : Theme)
     (colors : ChartColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)  -- Minimum size for circular gauge
-  collect := fun layout reg => do
+  collect := fun layout => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -189,14 +189,14 @@ def gaugeChartSpec (data : Data) (theme : Theme)
     if dims.showValue then
       let valueStr := formatValue data.value data.unit
       let valueY := centerY + minDim * 0.12
-      CanvasM.fillTextId reg valueStr centerX valueY theme.font theme.text
+      CanvasM.fillTextId valueStr centerX valueY theme.font theme.text
 
     -- Draw label
     if dims.showLabel then
       match data.label with
       | some label =>
         let labelY := centerY + minDim * 0.2
-        CanvasM.fillTextId reg label centerX labelY theme.smallFont theme.textMuted
+        CanvasM.fillTextId label centerX labelY theme.smallFont theme.textMuted
       | none => pure ()
 
     -- Draw min/max labels
@@ -210,8 +210,8 @@ def gaugeChartSpec (data : Data) (theme : Theme)
       let maxY := centerY + labelRadius * Float.sin maxAngle
       let minStr := formatValue data.minValue none
       let maxStr := formatValue data.maxValue none
-      CanvasM.fillTextId reg minStr minX minY theme.smallFont theme.textMuted
-      CanvasM.fillTextId reg maxStr maxX maxY theme.smallFont theme.textMuted
+      CanvasM.fillTextId minStr minX minY theme.smallFont theme.textMuted
+      CanvasM.fillTextId maxStr maxX maxY theme.smallFont theme.textMuted
 
 }
 

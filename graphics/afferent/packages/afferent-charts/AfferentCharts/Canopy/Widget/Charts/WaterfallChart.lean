@@ -125,7 +125,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
     (colors : ChartColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg => do
+  collect := fun layout => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -215,7 +215,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
         let value := minVal + ratio * valueRange
         let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
         let labelText := formatValue value
-        CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+        CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
     -- Draw X-axis labels
     for i in [0:numBars] do
@@ -223,7 +223,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
       let barX := chartX + dims.barGap + i.toFloat * (barWidth + dims.barGap)
       let labelX := barX + barWidth / 2
       let labelY := chartY + chartHeight + 16
-      CanvasM.fillTextId reg bar.label labelX labelY theme.smallFont theme.text
+      CanvasM.fillTextId bar.label labelX labelY theme.smallFont theme.text
 
     -- Draw axes
     let axisColor := Color.gray 0.5

@@ -54,7 +54,7 @@ def worldmapWidgetNamed (screenScale : Float) (fontMedium fontSmall : Font)
   }
   let sidebarSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       let rect := layout.contentRect
       resetTransform
       setFillColor (Color.gray 0.1)
@@ -150,7 +150,7 @@ def worldmapWidgetNamed (screenScale : Float) (fontMedium fontSmall : Font)
   }
   let mapSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun _ _ => do
         let rect := layout.contentRect
         let renderer ← getRenderer

@@ -147,8 +147,8 @@ end BoxStyle
 structure CustomSpec where
   /-- Measure intrinsic content size given available width/height. -/
   measure : Float → Float → (Float × Float)
-  /-- Draw using `CanvasM` given computed layout and font registry. -/
-  collect : Trellis.ComputedLayout → FontRegistry → CanvasM Unit
+  /-- Draw using `CanvasM` given computed layout. -/
+  collect : Trellis.ComputedLayout → CanvasM Unit
   /-- Optional custom hit test (true if point is inside widget). -/
   hitTest : Option (Trellis.ComputedLayout → Point → Bool) := none
   /-- Cache generation number. Widgets with different generations are not cached together.
@@ -162,7 +162,7 @@ namespace CustomSpec
 
 def default : CustomSpec :=
   { measure := fun _ _ => (0, 0)
-    collect := fun _ _ => pure ()
+    collect := fun _ => pure ()
     hitTest := none }
 
 end CustomSpec

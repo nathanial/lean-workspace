@@ -590,7 +590,7 @@ def loadingButton (label : String) (isLoading : Reactive.Dynamic Spider Bool)
 private def rippleOverlaySpec (progress : Float) (center : Arbor.Point)
     (color : Color) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if progress <= 0.0 || progress >= 1.0 then
         pure ()
@@ -609,7 +609,7 @@ private def rippleOverlaySpec (progress : Float) (center : Arbor.Point)
 
 private def pulseOverlaySpec (intensity : Float) (color : Color) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if intensity <= 0.0 then
         pure ()
@@ -622,7 +622,7 @@ private def pulseOverlaySpec (intensity : Float) (color : Color) : CustomSpec :=
 
 private def glowOverlaySpec (progress : Float) (color : Color) (cornerRadius : Float) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if progress <= 0.0 then
         pure ()
@@ -636,7 +636,7 @@ private def glowOverlaySpec (progress : Float) (color : Color) (cornerRadius : F
 private def borderTraceSpec (progress : Float) (color : Color) (lineWidth : Float := 2.0)
     : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if progress <= 0.0 then
         pure ()
@@ -665,7 +665,7 @@ private def borderTraceSpec (progress : Float) (color : Color) (lineWidth : Floa
 
 private def shimmerOverlaySpec (phase : Float) (color : Color) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       let layoutRect := layout.contentRect
       let rect := rectFromLayout layoutRect
@@ -680,7 +680,7 @@ private def shimmerOverlaySpec (phase : Float) (color : Color) : CustomSpec := {
 
 private def slideRevealSpec (progress : Float) (color : Color) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if progress <= 0.0 then
         pure ()
@@ -695,7 +695,7 @@ private def slideRevealSpec (progress : Float) (color : Color) : CustomSpec := {
 
 private def heartbeatOverlaySpec (intensity : Float) (color : Color) : CustomSpec := {
   measure := fun _ _ => (0, 0)
-  collect := fun layout reg =>
+  collect := fun layout =>
     do
       if intensity <= 0.0 then
         pure ()

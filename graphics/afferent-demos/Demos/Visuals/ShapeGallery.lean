@@ -193,7 +193,7 @@ def shapeGalleryWidget (idx : Nat) (screenScale : Float)
     (fontLarge fontSmall fontMedium : Font) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun w h => do
         resetTransform
         renderShapeGalleryM idx w h screenScale fontLarge fontSmall

@@ -59,7 +59,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
     (variant : AreaChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -129,14 +129,14 @@ def areaChartSpec (data : Array Float) (labels : Array String)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          CanvasM.fillTextId reg (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- X-axis labels
       if labels.size > 0 && pointCount > 0 then
         for i in [0:min labels.size pointCount] do
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg labels[i]! labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId labels[i]! labelX labelY theme.smallFont theme.text
 
       -- Axes
       CanvasM.fillRectColor (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
@@ -151,7 +151,7 @@ def defaultSeriesColors (theme : Theme) : Array Color := ChartUtils.defaultColor
 def multiSeriesSpec (series : Array Series) (labels : Array String)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -234,14 +234,14 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          CanvasM.fillTextId reg (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- X-axis labels
       if labels.size > 0 && maxPoints > 0 then
         for i in [0:min labels.size maxPoints] do
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg labels[i]! labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId labels[i]! labelX labelY theme.smallFont theme.text
 
       -- Axes
       CanvasM.fillRectColor (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor

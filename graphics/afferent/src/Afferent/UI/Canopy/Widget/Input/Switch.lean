@@ -33,7 +33,7 @@ def defaultDimensions : Dimensions := {}
 /-- Custom spec for switch track and thumb rendering (boolean version). -/
 def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.trackHeight)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     do
       -- Draw the thumb (circular knob)
@@ -52,7 +52,7 @@ def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions
     `progress` is 0.0 (off) to 1.0 (on), allowing smooth animation. -/
 def animatedTrackSpec (progress : Float) (hovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.trackHeight)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     do
       -- Interpolate thumb X position based on progress

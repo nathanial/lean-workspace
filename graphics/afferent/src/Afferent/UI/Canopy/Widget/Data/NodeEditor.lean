@@ -538,7 +538,7 @@ def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
     let width := if config.fillWidth && availableW > 0 then availableW else config.width
     let height := if config.fillHeight && availableH > 0 then availableH else config.height
     (width, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let majorEvery := max 1 config.majorGridEvery
     let gridStep := max 8.0 config.gridSize

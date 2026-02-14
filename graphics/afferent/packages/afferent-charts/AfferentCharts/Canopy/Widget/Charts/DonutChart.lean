@@ -83,7 +83,7 @@ private def annularSegment (center : Arbor.Point) (outerR innerR : Float)
 def donutChartSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -138,12 +138,12 @@ def donutChartSpec (slices : Array Slice) (theme : Theme)
       -- Draw center label/value if specified
       match dims.centerLabel, dims.centerValue with
       | some label, some value =>
-        CanvasM.fillTextId reg label centerX (centerY - 8) theme.font theme.text
-        CanvasM.fillTextId reg value centerX (centerY + 12) theme.smallFont theme.textMuted
+        CanvasM.fillTextId label centerX (centerY - 8) theme.font theme.text
+        CanvasM.fillTextId value centerX (centerY + 12) theme.smallFont theme.textMuted
       | some label, none =>
-        CanvasM.fillTextId reg label centerX (centerY + 4) theme.font theme.text
+        CanvasM.fillTextId label centerX (centerY + 4) theme.font theme.text
       | none, some value =>
-        CanvasM.fillTextId reg value centerX (centerY + 4) theme.font theme.text
+        CanvasM.fillTextId value centerX (centerY + 4) theme.font theme.text
       | none, none => pure ()
 
       -- Draw labels outside the ring
@@ -172,7 +172,7 @@ def donutChartSpec (slices : Array Slice) (theme : Theme)
 
           if labelParts.size > 0 then
             let labelText := String.intercalate " " labelParts.toList
-            CanvasM.fillTextId reg labelText labelX (labelY + 4) theme.smallFont theme.text
+            CanvasM.fillTextId labelText labelX (labelY + 4) theme.smallFont theme.text
 
           labelAngle := labelAngle + sweepAngle
 
@@ -182,7 +182,7 @@ def donutChartSpec (slices : Array Slice) (theme : Theme)
 def donutChartWithLegendSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (170, 50)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -235,12 +235,12 @@ def donutChartWithLegendSpec (slices : Array Slice) (theme : Theme)
       -- Draw center label/value
       match dims.centerLabel, dims.centerValue with
       | some label, some value =>
-        CanvasM.fillTextId reg label chartCenterX (chartCenterY - 8) theme.font theme.text
-        CanvasM.fillTextId reg value chartCenterX (chartCenterY + 12) theme.smallFont theme.textMuted
+        CanvasM.fillTextId label chartCenterX (chartCenterY - 8) theme.font theme.text
+        CanvasM.fillTextId value chartCenterX (chartCenterY + 12) theme.smallFont theme.textMuted
       | some label, none =>
-        CanvasM.fillTextId reg label chartCenterX (chartCenterY + 4) theme.font theme.text
+        CanvasM.fillTextId label chartCenterX (chartCenterY + 4) theme.font theme.text
       | none, some value =>
-        CanvasM.fillTextId reg value chartCenterX (chartCenterY + 4) theme.font theme.text
+        CanvasM.fillTextId value chartCenterX (chartCenterY + 4) theme.font theme.text
       | none, none => pure ()
 
       -- Build legend items and draw using shared utility
@@ -253,7 +253,7 @@ def donutChartWithLegendSpec (slices : Array Slice) (theme : Theme)
           let label := slice.label.getD s!"Item {idx + 1}"
           items := items.push { label, color, suffix := some (ChartUtils.formatPercent proportion) }
         items
-      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY reg theme
+      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY theme
 
 }
 

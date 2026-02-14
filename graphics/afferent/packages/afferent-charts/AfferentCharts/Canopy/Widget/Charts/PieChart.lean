@@ -43,7 +43,7 @@ deriving Repr, Inhabited, BEq
 def pieChartSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)  -- Minimum size
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -124,7 +124,7 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
 
           if labelParts.size > 0 then
             let labelText := String.intercalate " " labelParts.toList
-            CanvasM.fillTextId reg labelText labelX (labelY + 4) theme.smallFont theme.text
+            CanvasM.fillTextId labelText labelX (labelY + 4) theme.smallFont theme.text
 
           labelAngle := labelAngle + sweepAngle
 
@@ -134,7 +134,7 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
 def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (170, 50)  -- Minimum size with legend
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -193,7 +193,7 @@ def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
           let label := slice.label.getD s!"Item {idx + 1}"
           items := items.push { label, color, suffix := some (ChartUtils.formatPercent proportion) }
         items
-      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY reg theme
+      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY theme
 
 }
 

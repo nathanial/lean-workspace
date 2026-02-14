@@ -85,7 +85,7 @@ private def formatPercentage (frac : Float) : String :=
 def funnelChartSpec (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 60, dims.marginTop + dims.marginBottom + 40)
-  collect := fun layout reg => do
+  collect := fun layout => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -156,7 +156,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
         let labelY := stageY + stageHeight / 2
 
         -- Stage label
-        CanvasM.fillTextId reg stage.label labelX labelY theme.smallFont theme.text
+        CanvasM.fillTextId stage.label labelX labelY theme.smallFont theme.text
 
         -- Value and/or percentage
         if dims.showValues || dims.showPercentages then
@@ -167,7 +167,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
             formatValue stage.value
           else
             formatPercentage valueFrac
-          CanvasM.fillTextId reg valueStr labelX valueY theme.smallFont theme.textMuted
+          CanvasM.fillTextId valueStr labelX valueY theme.smallFont theme.textMuted
 
 }
 

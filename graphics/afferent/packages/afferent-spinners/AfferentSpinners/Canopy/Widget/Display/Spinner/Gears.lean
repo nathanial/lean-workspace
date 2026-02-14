@@ -70,7 +70,7 @@ private def gear6Hash : UInt64 := 0x67656172365F5F5F  -- "gear6___"
     Uses instanced rendering for high performance with many gear copies. -/
 def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2

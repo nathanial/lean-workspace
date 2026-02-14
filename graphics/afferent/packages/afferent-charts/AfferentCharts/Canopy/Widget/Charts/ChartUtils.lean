@@ -107,7 +107,7 @@ def makeLegendItems (labels : Array (Option String)) (colors : Array Color)
 /-- Draw a vertical legend at the specified position.
     Returns the total height used by the legend. -/
 def drawLegend (items : Array LegendItem) (x y : Float)
-    (reg : FontRegistry) (theme : Theme) (config : LegendConfig := defaultLegendConfig) : CanvasM Float := do
+    (theme : Theme) (config : LegendConfig := defaultLegendConfig) : CanvasM Float := do
   for i in [0:items.size] do
     let item := items[i]!
     let itemY := y + i.toFloat * config.itemHeight
@@ -123,7 +123,7 @@ def drawLegend (items : Array LegendItem) (x y : Float)
       | some suffix => s!"{item.label} ({suffix})"
       | none => item.label
 
-    CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
+    CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.text
 
   pure (items.size.toFloat * config.itemHeight)
 
@@ -131,7 +131,7 @@ def drawLegend (items : Array LegendItem) (x y : Float)
     Items are laid out left-to-right with spacing.
     Returns the total width used by the legend. -/
 def drawLegendHorizontal (items : Array LegendItem) (x y : Float)
-    (reg : FontRegistry) (theme : Theme) (itemWidth : Float := 100.0)
+    (theme : Theme) (itemWidth : Float := 100.0)
     (config : LegendConfig := defaultLegendConfig) : CanvasM Float := do
   for i in [0:items.size] do
     let item := items[i]!
@@ -148,7 +148,7 @@ def drawLegendHorizontal (items : Array LegendItem) (x y : Float)
       | some suffix => s!"{item.label} ({suffix})"
       | none => item.label
 
-    CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
+    CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.text
 
   pure (items.size.toFloat * itemWidth)
 

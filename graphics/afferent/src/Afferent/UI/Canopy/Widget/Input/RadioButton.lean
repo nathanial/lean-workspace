@@ -17,7 +17,7 @@ namespace RadioButton
 /-- Custom spec for radio button circle rendering (filled dot when selected). -/
 def circleSpec (selected : Bool) (_hovered : Bool) (theme : Theme) (size : Float) : CustomSpec := {
   measure := fun _ _ => (size, size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     do
       if selected then

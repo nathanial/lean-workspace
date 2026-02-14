@@ -18,7 +18,7 @@ def orbitalInstancedWidget (t : Float) (screenScale : Float)
     (orbitalBuffer : FFI.FloatBuffer) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun w h => do
         resetTransform
         setFillColor Color.white

@@ -36,7 +36,7 @@ def checkmarkPath (x y size : Float) : Afferent.Path :=
 /-- Custom spec for checkbox box rendering. -/
 def boxSpec (checked : Bool) (_hovered : Bool) (theme : Theme) (size : Float) : CustomSpec := {
   measure := fun _ _ => (size, size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     do
       if checked then

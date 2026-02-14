@@ -352,7 +352,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
   measure := fun _ _ =>
     -- Return fixed viewport dimensions (container handles actual sizing)
     (viewportWidth, viewportHeight)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let viewportH := rect.height
     let lineHeight := renderState.lineHeight
@@ -369,7 +369,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
       if showPlaceholder then
         -- Render placeholder
         let textY := rect.y + ascender
-        CanvasM.fillTextId reg placeholder rect.x textY theme.font theme.textMuted
+        CanvasM.fillTextId placeholder rect.x textY theme.font theme.textMuted
       else
         -- Render each visible line
         for i in [:lines.size] do
@@ -379,7 +379,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
             -- Only render if line is visible
             if lineY + lineHeight >= rect.y && lineY < rect.y + viewportH then
               let textY := lineY + ascender  -- Baseline position from actual font metrics
-              CanvasM.fillTextId reg line.text rect.x textY theme.font theme.text
+              CanvasM.fillTextId line.text rect.x textY theme.font theme.text
           | none => pure ()
 
       -- Render cursor if focused

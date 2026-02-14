@@ -109,7 +109,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
     (colors : CandleColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -202,7 +202,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
           let price := minPrice + ratio * priceRange
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
           let labelText := formatPrice price
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (dates/times)
       for idx in labelIndices do
@@ -213,7 +213,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
             let candleX := chartX + dims.candleGap + idx.toFloat * (candleWidth + dims.candleGap)
             let labelX := candleX + candleWidth / 2
             let labelY := chartY + chartHeight + 16
-            CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+            CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
           | none => pure ()
 
       -- Draw axes

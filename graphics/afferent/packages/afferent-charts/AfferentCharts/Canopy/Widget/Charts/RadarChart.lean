@@ -109,7 +109,7 @@ private def findMaxValue (data : Data) : Float :=
 def radarChartSpec (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -170,7 +170,7 @@ def radarChartSpec (data : Data) (theme : Theme)
           let label := data.axisLabels[axisIdx]!
           let angle := axisAngle axisIdx numAxes
           let (x, y) := pointPosition centerX centerY angle labelDistance
-          CanvasM.fillTextId reg label x (y + 4) theme.smallFont theme.text
+          CanvasM.fillTextId label x (y + 4) theme.smallFont theme.text
 
       -- Draw data series (filled polygons and lines)
       -- First pass: draw all filled areas
@@ -259,7 +259,7 @@ def radarChartSpec (data : Data) (theme : Theme)
           itemHeight := dims.legendItemHeight + 4
           spacing := 4.0
         }
-        let _ ← ChartUtils.drawLegend legendItems legendX legendY reg theme legendConfig
+        let _ ← ChartUtils.drawLegend legendItems legendX legendY theme legendConfig
 
 }
 

@@ -83,7 +83,7 @@ initialize pendulumFragmentRegistration : Unit ← do
     Passes 9 floats to GPU for circles; rod drawn separately. -/
 def pendulumSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let pivotY := rect.y + dims.size * 0.15

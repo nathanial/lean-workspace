@@ -79,18 +79,22 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
     (viewState : ProvinceMap.ProvinceMapViewState) : Afferent.Arbor.CustomSpec := {
   skipCache := false  -- No animation, can cache when state unchanged
   measure := fun _ _ => (0, 0)  -- Use layout-provided size
-  collect := fun layout =>
+  collect := fun layout => do
     let rect := layout.contentRect
     -- Screen center for zoom origin (relative to content rect)
     let centerX := rect.width / 2.0
     let centerY := rect.height / 2.0
 
-    Afferent.Arbor.RenderM.build do
-      -- Fill background (ocean color, not affected by pan/zoom)
-      -- Use pushTranslate for the background rect since it uses local coordinates
-      RenderM.pushTranslate rect.x rect.y
-      RenderM.fillRect' 0 0 rect.width rect.height staticConfig.backgroundColor
-      RenderM.popTransform
+    -- Fill background (ocean color, not affected by pan/zoom)
+    -- Use pushTranslate for the background rect since it uses local coordinates
+    Afferent.CanvasM.pushTranslate rect.x rect.y
+    Afferent.CanvasM.fillRectColor' 0 0 rect.width rect.height
+      (Afferent.Color.rgba
+        staticConfig.backgroundColor.r
+        staticConfig.backgroundColor.g
+        staticConfig.backgroundColor.b
+        staticConfig.backgroundColor.a)
+    Afferent.CanvasM.popTransform
 
       -- Build tessellated fill batch from all provinces
       -- Batch uses absolute screen coordinates (rect offset is added in addPolygon)
@@ -118,7 +122,7 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
 
       -- Emit single draw call for all province fills
       if !fillBatch.isEmpty then
-        RenderM.fillTessellatedBatch fillBatch.vertices fillBatch.indices fillBatch.vertexCount
+        Afferent.CanvasM.fillTessellatedBatch fillBatch.vertices fillBatch.indices fillBatch.vertexCount
 
       -- Build stroke batch from all province borders
       -- Stroke batch also uses absolute screen coordinates
@@ -136,12 +140,12 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
 
       -- Emit single draw call for all province borders (using existing line batch)
       if !strokeBatch.isEmpty then
-        RenderM.strokeLineBatch strokeBatch.data strokeBatch.lineCount staticConfig.borderWidth
+        Afferent.CanvasM.strokeLineBatch strokeBatch.data strokeBatch.lineCount staticConfig.borderWidth
 
       -- Draw labels if font provided (centered on province centroids)
       -- Labels use pushTranslate since fillText expects local coordinates
       if let some font := staticConfig.labelFont then
-        RenderM.pushTranslate rect.x rect.y
+        Afferent.CanvasM.pushTranslate rect.x rect.y
 
         -- Transform a normalized position (0-1) to local coords with zoom and pan
         let transformToLocal (normX normY : Float) : Float × Float :=
@@ -166,9 +170,10 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
 
             -- Create a bounding rect centered on the centroid
             let labelRect := Rect.mk' (cx - 100) (cy - 20) 200 40
-            RenderM.fillTextBlock province.name labelRect font labelColor .center .middle
+            Afferent.CanvasM.fillTextBlockId province.name labelRect font
+              (Afferent.Color.rgba labelColor.r labelColor.g labelColor.b labelColor.a) .center .middle
 
-        RenderM.popTransform
+        Afferent.CanvasM.popTransform
 }
 
 /-- Convert a Province to ProvinceHitInfo for hit testing. -/

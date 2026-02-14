@@ -874,7 +874,7 @@ def seascapeWidget (t : Float) (screenScale : Float) (windowW windowH : Float)
     (fontMedium fontSmall : Afferent.Font) (state : SeascapeState) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun w h => do
         let rect := layout.contentRect
         let renderer ← getRenderer

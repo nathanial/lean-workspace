@@ -130,7 +130,7 @@ def getWidgetRect (componentMap : Std.HashMap ComponentId WidgetId) (layouts : T
 def svSquareSpec (hue saturation value : Float) (size : Float)
     (indicatorRadius : Float) : CustomSpec := {
   measure := fun _ _ => (size, size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Layer 1: Horizontal gradient (white → pure hue color) for saturation
@@ -173,7 +173,7 @@ def svSquareSpec (hue saturation value : Float) (size : Float)
 def hueBarSpec (selectedHue : Float) (width height : Float)
     (indicatorHeight cornerRadius : Float) : CustomSpec := {
   measure := fun _ _ => (width, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- 7-stop vertical gradient for HSV hue spectrum (red → yellow → green → cyan → blue → magenta → red)
@@ -213,7 +213,7 @@ def hueBarSpec (selectedHue : Float) (width height : Float)
 def alphaBarSpec (selectedAlpha : Float) (currentHSV : HSV)
     (width height : Float) (indicatorHeight cornerRadius : Float) : CustomSpec := {
   measure := fun _ _ => (width, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Draw checkerboard background for transparency visualization
@@ -255,7 +255,7 @@ def alphaBarSpec (selectedAlpha : Float) (currentHSV : HSV)
 /-- CustomSpec for color preview rectangle. -/
 def colorPreviewSpec (color : Color) (width height cornerRadius : Float) : CustomSpec := {
   measure := fun _ _ => (width, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     -- Draw checkerboard background for alpha visualization
     let checkSize : Float := 6.0

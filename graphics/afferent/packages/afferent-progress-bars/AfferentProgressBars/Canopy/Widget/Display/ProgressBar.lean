@@ -52,7 +52,7 @@ def variantColor (variant : ProgressVariant) (theme : Theme) : Color :=
 def determinateSpec (value : Float) (variant : ProgressVariant)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.width, dims.height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     -- Clamp value to valid range
     let v := if value < 0.0 then 0.0 else if value > 1.0 then 1.0 else value
@@ -75,7 +75,7 @@ def determinateSpec (value : Float) (variant : ProgressVariant)
 def indeterminateSpec (animationProgress : Float) (variant : ProgressVariant)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.width, dims.height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let trackRect := Afferent.Arbor.Rect.mk' rect.x rect.y dims.width dims.height
     let trackBg := Afferent.Color.gray 0.25

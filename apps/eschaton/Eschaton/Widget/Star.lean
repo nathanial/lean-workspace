@@ -79,7 +79,7 @@ initialize starFragmentRegistration : Unit ← do
 def starSpec (t : Float) (color : Tincture.Color) (size : Float) : CustomSpec := {
   skipCache := true  -- Animation requires fresh render each frame
   measure := fun _ _ => (size * 2, size * 2)  -- Size includes glow
-  collect := fun layout =>
+  collect := fun layout => do
     let rect := layout.contentRect
     let cx := rect.x + rect.width / 2
     let cy := rect.y + rect.height / 2
@@ -92,9 +92,8 @@ def starSpec (t : Float) (color : Tincture.Color) (size : Float) : CustomSpec :=
       color.r, color.g, color.b, color.a      -- color
     ]
 
-    RenderM.build do
-      RenderM.drawFragment starFragment.hash starFragment.primitive.toUInt32
-        params starFragment.instanceCount.toUInt32
+    Afferent.CanvasM.drawFragment starFragment.hash starFragment.primitive.toUInt32
+      params starFragment.instanceCount.toUInt32
 }
 
 /-- Create a star widget with animated glow effect.

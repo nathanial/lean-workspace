@@ -186,7 +186,7 @@ private partial def squarify (items : Array LayoutItem) (rect : LayoutRect)
 
 /-- Recursively render treemap nodes. -/
 private partial def renderNodes (items : Array (LayoutItem × LayoutRect))
-    (reg : FontRegistry) (theme : Theme) (dims : Dimensions) (depth : Nat)
+    (theme : Theme) (dims : Dimensions) (depth : Nat)
     : CanvasM Unit := do
   for (item, rect) in items do
     -- Skip tiny rectangles
@@ -209,13 +209,13 @@ private partial def renderNodes (items : Array (LayoutItem × LayoutRect))
         Color.rgba 0.1 0.1 0.1 1.0
       else
         Color.rgba 0.95 0.95 0.95 1.0
-      CanvasM.fillTextId reg item.node.label labelX labelY theme.smallFont textColor
+      CanvasM.fillTextId item.node.label labelX labelY theme.smallFont textColor
 
       -- Draw value if space permits
       if dims.showValues && rect.h > 35 then
         let valueY := labelY + 14
         let valueStr := formatValue item.node.totalValue
-        CanvasM.fillTextId reg valueStr labelX valueY theme.smallFont (textColor.withAlpha 0.8)
+        CanvasM.fillTextId valueStr labelX valueY theme.smallFont (textColor.withAlpha 0.8)
 
     -- Render children if within depth limit and has children
     if depth < dims.maxDepth && !item.node.children.isEmpty then
@@ -229,13 +229,13 @@ private partial def renderNodes (items : Array (LayoutItem × LayoutRect))
         let childItems := item.node.children.mapIdx fun i child =>
           { node := child, value := child.totalValue, colorIdx := item.colorIdx + i + 1 : LayoutItem }
         let childLayout := squarify childItems childRect
-        renderNodes childLayout reg theme dims (depth + 1)
+        renderNodes childLayout theme dims (depth + 1)
 
 /-- Custom spec for treemap chart rendering. -/
 def treemapChartSpec (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.padding * 2 + 40, dims.padding * 2 + 40)
-  collect := fun layout reg => do
+  collect := fun layout => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -262,7 +262,7 @@ def treemapChartSpec (data : Data) (theme : Theme)
     let layout := squarify items layoutRect
 
     -- Render all nodes
-    renderNodes layout reg theme dims 0
+    renderNodes layout theme dims 0
 
 }
 

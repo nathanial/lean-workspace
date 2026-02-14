@@ -20,7 +20,7 @@ structure ShapeDef where
   path : Afferent.Arbor.Rect → Afferent.Path
   stroke : Option (Afferent.Arbor.Color × Float) := none
 
-def shapeCommands (shape : ShapeDef) (rect : Rect) (_reg : Afferent.FontRegistry) : Afferent.CanvasM Unit := do
+def shapeCommands (shape : ShapeDef) (rect : Rect) : Afferent.CanvasM Unit := do
   let path := shape.path rect
   CanvasM.fillPathColor path shape.color
   match shape.stroke with

@@ -173,42 +173,42 @@ private def heartCommands (r : Rect) : CanvasM Unit := do
 /-- Transform cards rendered as widgets. -/
 def transformsWidget (labelFont : FontId) : WidgetBuilder := do
   let cards : Array (String × CardDraw) := #[(
-    "Reference", fun r _reg => referenceCommands r Afferent.Color.white
+    "Reference", fun r => referenceCommands r Afferent.Color.white
   ), (
-    "Translate", fun r _reg => translateCommands r
+    "Translate", fun r => translateCommands r
   ), (
-    "Scale", fun r _reg => scaleCommands r
+    "Scale", fun r => scaleCommands r
   ), (
-    "Rotate Fan", fun r _reg => rotateFanCommands r
+    "Rotate Fan", fun r => rotateFanCommands r
   ), (
-    "Scale Series", fun r _reg => scaledCircleCommands r
+    "Scale Series", fun r => scaledCircleCommands r
   ), (
-    "Rotate+Scale", fun r _reg => combinedCommands r
+    "Rotate+Scale", fun r => combinedCommands r
   ), (
-    "Nested", fun r _reg => nestedCommands r
+    "Nested", fun r => nestedCommands r
   ), (
-    "Alpha", fun r _reg => alphaCommands r
+    "Alpha", fun r => alphaCommands r
   ), (
-    "Orbit", fun r _reg => orbitCommands r
+    "Orbit", fun r => orbitCommands r
   ), (
-    "Skew", fun r _reg => skewCommands r
+    "Skew", fun r => skewCommands r
   ), (
-    "Hearts", fun r _reg => heartCommands r
+    "Hearts", fun r => heartCommands r
   )]
   let widgets := cards.map fun (label, draw) => demoCardFlex labelFont label draw
   gridFlex 4 10 4 widgets (EdgeInsets.uniform 10)
 
 /-- Curated subset of transforms for responsive grid display. -/
 def transformsSubset : Array (String × CardDraw) := #[
-  ("Reference", fun r _reg => referenceCommands r Afferent.Color.white),
-  ("Translate", fun r _reg => translateCommands r),
-  ("Scale", fun r _reg => scaleCommands r),
-  ("Rotate Fan", fun r _reg => rotateFanCommands r),
-  ("Nested", fun r _reg => nestedCommands r),
-  ("Alpha", fun r _reg => alphaCommands r),
-  ("Orbit", fun r _reg => orbitCommands r),
-  ("Skew", fun r _reg => skewCommands r),
-  ("Hearts", fun r _reg => heartCommands r)
+  ("Reference", fun r => referenceCommands r Afferent.Color.white),
+  ("Translate", fun r => translateCommands r),
+  ("Scale", fun r => scaleCommands r),
+  ("Rotate Fan", fun r => rotateFanCommands r),
+  ("Nested", fun r => nestedCommands r),
+  ("Alpha", fun r => alphaCommands r),
+  ("Orbit", fun r => orbitCommands r),
+  ("Skew", fun r => skewCommands r),
+  ("Hearts", fun r => heartCommands r)
 ]
 
 /-- Responsive transforms widget that fills available space. -/

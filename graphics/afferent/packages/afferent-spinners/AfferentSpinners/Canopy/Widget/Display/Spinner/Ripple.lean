@@ -68,7 +68,7 @@ initialize rippleFragmentRegistration : Unit ← do
     Passes 9 floats to GPU; the shader computes center dot + 4 expanding rings. -/
 def rippleSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2

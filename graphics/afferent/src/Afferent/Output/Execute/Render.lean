@@ -51,10 +51,10 @@ private structure DrawState where
   deferredOverlay : Array (Afferent.Arbor.Widget × Trellis.LayoutResult) := #[]
 deriving Inhabited
 
-private abbrev DrawM := ReaderT FontRegistry (StateT DrawState CanvasM)
+private abbrev DrawM := StateT DrawState CanvasM
 
 private def DrawM.liftCanvas {α : Type} (m : CanvasM α) : DrawM α :=
-  fun _ => StateT.lift m
+  StateT.lift m
 
 namespace DrawM
 
@@ -83,7 +83,6 @@ private def drawBoxStyle (rect : Trellis.LayoutRect) (style : BoxStyle) : DrawM 
 
 private def drawWrappedText (contentRect : Trellis.LayoutRect) (font : FontId)
     (color : Color) (align : TextAlign) (textLayout : TextLayout) : DrawM Unit := do
-  let reg ← read
   let lineHeight := textLayout.lineHeight
   let ascender := textLayout.ascender
   let verticalOffset := (contentRect.height - textLayout.totalHeight) / 2
@@ -94,20 +93,19 @@ private def drawWrappedText (contentRect : Trellis.LayoutRect) (font : FontId)
       | .left => contentRect.x
       | .center => contentRect.x + (contentRect.width - line.width) / 2
       | .right => contentRect.x + contentRect.width - line.width
-    DrawM.liftCanvas (CanvasM.fillTextId reg line.text x y font color)
+    DrawM.liftCanvas (CanvasM.fillTextId line.text x y font color)
     y := y + lineHeight
 
 private def drawSingleLineText (contentRect : Trellis.LayoutRect) (text : String)
     (font : FontId) (color : Color) (align : TextAlign) (textWidth : Float)
     (lineHeight : Float) : DrawM Unit := do
-  let reg ← read
   let x := match align with
     | .left => contentRect.x
     | .center => contentRect.x + (contentRect.width - textWidth) / 2
     | .right => contentRect.x + contentRect.width - textWidth
   let ascender := lineHeight * 0.8
   let verticalOffset := (contentRect.height - lineHeight) / 2
-  DrawM.liftCanvas (CanvasM.fillTextId reg text x (contentRect.y + verticalOffset + ascender) font color)
+  DrawM.liftCanvas (CanvasM.fillTextId text x (contentRect.y + verticalOffset + ascender) font color)
 
 partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult) : DrawM Unit := do
   let some computed := layouts.get w.id | return
@@ -130,8 +128,7 @@ partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResu
 
   | .custom _ _ style spec _ =>
     drawBoxStyle borderRect style
-    let reg ← read
-    DrawM.liftCanvas (spec.collect computed reg)
+    DrawM.liftCanvas (spec.collect computed)
 
   | .flex _ _ _ style children _ =>
     drawBoxStyle borderRect style
@@ -221,11 +218,11 @@ partial def drawDeferredOverlay : DrawM Unit := do
   if newState.deferredOverlay.size > 0 then
     drawDeferredOverlay
 
-private def drawWidgetTree (reg : FontRegistry) (w : Afferent.Arbor.Widget)
+private def drawWidgetTree (w : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) : CanvasM Unit := do
   let _ ← ((do
     drawWidget w layouts
-    drawDeferredOverlay).run reg).run ({ deferredOverlay := #[] } : DrawState)
+    drawDeferredOverlay).run ({ deferredOverlay := #[] } : DrawState))
   pure ()
 
 private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
@@ -248,14 +245,14 @@ private def withOffset (offsetX offsetY : Float) (action : CanvasM α) : CanvasM
     CanvasM.restore
     pure result
 
-private def drawWithOffset (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
+private def drawWithOffset (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM Unit := do
-  withOffset offsetX offsetY (drawWidgetTree reg measuredWidget layouts)
+  withOffset offsetX offsetY (drawWidgetTree measuredWidget layouts)
 
-private def drawWithOffsetAndStats (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
+private def drawWithOffsetAndStats (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM (BatchStats × Float) := do
   let t0 ← IO.monoNanosNow
-  withOffset offsetX offsetY (drawWidgetTree reg measuredWidget layouts)
+  withOffset offsetX offsetY (drawWidgetTree measuredWidget layouts)
   let t1 ← IO.monoNanosNow
   pure ({}, (t1 - t0).toFloat / 1000000.0)
 
@@ -264,15 +261,17 @@ private def drawWithOffsetAndStats (reg : FontRegistry) (measuredWidget : Affere
     (for example: event dispatch and rendering in the same frame). -/
 def renderMeasuredArborWidget (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM Unit := do
-  drawWithOffset reg measuredWidget layouts offsetX offsetY
+  CanvasM.setFontRegistry reg
+  drawWithOffset measuredWidget layouts offsetX offsetY
 
 /-- Render an Arbor widget tree using CanvasM.
     This is the single entry point for rendering Arbor widgets with Afferent's Metal backend. -/
 def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM ArborRenderStats := do
   let prepared ← prepareRender reg widget availWidth availHeight
+  CanvasM.setFontRegistry reg
   let (batchStats, timeExecuteMs) ←
-    drawWithOffsetAndStats reg prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
+    drawWithOffsetAndStats prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
   pure {
     batch := batchStats
     timeCollectMs := 0.0

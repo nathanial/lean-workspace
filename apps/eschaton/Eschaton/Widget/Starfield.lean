@@ -207,7 +207,7 @@ initialize warpFragmentRegistration : Unit ← do
 def starfieldSpec (config : StarfieldConfig) (t : Float) : Afferent.Arbor.CustomSpec := {
   skipCache := true  -- Ensure animation updates each frame
   measure := fun _ _ => (0, 0)  -- Use layout-provided size
-  collect := fun layout =>
+  collect := fun layout => do
     let rect := layout.contentRect
 
     -- Parameters: width, height, time, seed, warpSpeed
@@ -219,18 +219,17 @@ def starfieldSpec (config : StarfieldConfig) (t : Float) : Afferent.Arbor.Custom
       config.warpSpeed
     ]
 
-    Afferent.Arbor.RenderM.build do
-      Afferent.Arbor.RenderM.pushTranslate rect.x rect.y
+    Afferent.CanvasM.pushTranslate rect.x rect.y
 
-      -- Draw glow layer first (behind stars)
-      Afferent.Arbor.RenderM.drawFragment warpGlowFragment100.hash warpGlowFragment100.primitive.toUInt32
-        params warpGlowFragment100.instanceCount.toUInt32
+    -- Draw glow layer first (behind stars)
+    Afferent.CanvasM.drawFragment warpGlowFragment100.hash warpGlowFragment100.primitive.toUInt32
+      params warpGlowFragment100.instanceCount.toUInt32
 
-      -- Draw main stars on top
-      Afferent.Arbor.RenderM.drawFragment warpStarFragment500.hash warpStarFragment500.primitive.toUInt32
-        params warpStarFragment500.instanceCount.toUInt32
+    -- Draw main stars on top
+    Afferent.CanvasM.drawFragment warpStarFragment500.hash warpStarFragment500.primitive.toUInt32
+      params warpStarFragment500.instanceCount.toUInt32
 
-      Afferent.Arbor.RenderM.popTransform
+    Afferent.CanvasM.popTransform
 }
 
 /-- Create a starfield widget that renders an animated warp speed effect.

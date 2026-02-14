@@ -181,18 +181,18 @@ private def pathsTransformedArcCommands (r : Rect) : CanvasM Unit := do
   CanvasM.popTransform
 
 private def pathsCards : Array PathsCardDef := #[
-  { label := "Concave Arrow", draw := fun r _reg => pathsCommands (pathsConcaveArrowPath r) Afferent.Color.blue },
-  { label := "L-Shape", draw := fun r _reg => pathsCommands (pathsLShapePath r) Afferent.Color.green },
-  { label := "Concave Star", draw := fun r _reg => pathsCommands (pathsConcaveStarPath r) Afferent.Color.yellow },
-  { label := "Chevron", draw := fun r _reg => pathsCommands (pathsChevronPath r) Afferent.Color.magenta },
-  { label := "Rounded Rect", draw := fun r _reg => pathsCommands (pathsRoundedRectPath r) Afferent.Color.cyan },
-  { label := "Rounded Tri", draw := fun r _reg => pathsCommands (pathsRoundedTrianglePath r) Afferent.Color.orange },
-  { label := "Pill Tab", draw := fun r _reg => pathsCommands (pathsPillTabPath r) Afferent.Color.purple },
-  { label := "Circle 1:1", draw := fun r _reg => pathsCommands (pathsCirclePath r) (Afferent.Color.gray 0.6) },
-  { label := "Scale 2:1", draw := fun r _reg => pathsScaledCircleCommands r 2.0 1.0 Afferent.Color.red },
-  { label := "Scale 1:2", draw := fun r _reg => pathsScaledCircleCommands r 1.0 2.0 Afferent.Color.green },
-  { label := "Pie 30deg", draw := fun r _reg => pathsRotatedPieCommands r },
-  { label := "Arc 45deg", draw := fun r _reg => pathsTransformedArcCommands r }
+  { label := "Concave Arrow", draw := fun r => pathsCommands (pathsConcaveArrowPath r) Afferent.Color.blue },
+  { label := "L-Shape", draw := fun r => pathsCommands (pathsLShapePath r) Afferent.Color.green },
+  { label := "Concave Star", draw := fun r => pathsCommands (pathsConcaveStarPath r) Afferent.Color.yellow },
+  { label := "Chevron", draw := fun r => pathsCommands (pathsChevronPath r) Afferent.Color.magenta },
+  { label := "Rounded Rect", draw := fun r => pathsCommands (pathsRoundedRectPath r) Afferent.Color.cyan },
+  { label := "Rounded Tri", draw := fun r => pathsCommands (pathsRoundedTrianglePath r) Afferent.Color.orange },
+  { label := "Pill Tab", draw := fun r => pathsCommands (pathsPillTabPath r) Afferent.Color.purple },
+  { label := "Circle 1:1", draw := fun r => pathsCommands (pathsCirclePath r) (Afferent.Color.gray 0.6) },
+  { label := "Scale 2:1", draw := fun r => pathsScaledCircleCommands r 2.0 1.0 Afferent.Color.red },
+  { label := "Scale 1:2", draw := fun r => pathsScaledCircleCommands r 1.0 2.0 Afferent.Color.green },
+  { label := "Pie 30deg", draw := fun r => pathsRotatedPieCommands r },
+  { label := "Arc 45deg", draw := fun r => pathsTransformedArcCommands r }
 ]
 
 /-- Paths rendered as cards in a grid (overview-friendly). -/

@@ -57,7 +57,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
     (variant : LineChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -123,7 +123,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if labels.size > 0 && pointCount > 0 then
@@ -131,7 +131,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
@@ -146,7 +146,7 @@ def defaultSeriesColors (theme : Theme) : Array Color := ChartUtils.defaultColor
 def multiSeriesSpec (series : Array Series) (labels : Array String)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -219,7 +219,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if labels.size > 0 && maxPoints > 0 then
@@ -227,7 +227,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
       CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0

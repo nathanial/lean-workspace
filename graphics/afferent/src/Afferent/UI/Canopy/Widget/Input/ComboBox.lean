@@ -144,7 +144,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let lineHeight := theme.font.lineHeight
     let height := lineHeight + 4
     (0, height)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let text := if showPlaceholder then placeholder else displayText
     let textColor := if showPlaceholder then theme.textMuted else theme.text
@@ -153,7 +153,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let verticalOffset := (rect.height - lineHeight) / 2
     let textY := rect.y + verticalOffset + ascender
     do
-      CanvasM.fillTextId reg text rect.x textY theme.font textColor
+      CanvasM.fillTextId text rect.x textY theme.font textColor
       if focused then
         let cursorX := rect.x + cursorPixelX
         let cursorY := rect.y + verticalOffset

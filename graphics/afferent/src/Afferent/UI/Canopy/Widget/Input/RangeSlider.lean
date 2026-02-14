@@ -61,7 +61,7 @@ def applyDrag (target : RangeSliderTarget) (value : Float) (low high : Float) : 
 def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.thumbSize)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let (l, h) := clampRange low high
     do

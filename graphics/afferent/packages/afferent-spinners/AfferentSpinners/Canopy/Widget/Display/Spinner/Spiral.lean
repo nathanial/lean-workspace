@@ -37,7 +37,7 @@ private def spiralSegmentAlphas : Array Float := Id.run do
 /-- Spiral: Drawing spiral that grows and resets. -/
 def spiralSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2

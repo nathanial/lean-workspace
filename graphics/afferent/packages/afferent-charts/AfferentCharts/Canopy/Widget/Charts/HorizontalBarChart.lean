@@ -78,7 +78,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
     (variant : HorizontalBarChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -130,7 +130,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw Y-axis labels (category names on left)
       if labels.size > 0 then
@@ -138,7 +138,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
           let label := labels[i]!
           let labelX := rect.x + 4
           let labelY := chartY + i.toFloat * (barHeight + dims.barGap) + barHeight / 2 + 4
-          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
       let axisColor := Color.gray 0.5
@@ -155,7 +155,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
 def multiColorHorizontalBarChartSpec (data : Array DataPoint)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -214,7 +214,7 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Y-axis labels (from DataPoint labels)
       for i in [0:barCount] do
@@ -223,7 +223,7 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
         | some label =>
           let labelX := rect.x + 4
           let labelY := chartY + i.toFloat * (barHeight + dims.barGap) + barHeight / 2 + 4
-          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId label labelX labelY theme.smallFont theme.text
         | none => pure ()
 
       -- Axes

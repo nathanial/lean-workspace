@@ -97,7 +97,7 @@ def renderDashedLinesM (font : Font) : CanvasM Unit := do
 def dashedLinesWidget (screenScale : Float) (fontSmall fontMedium : Font) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun _ _ => do
         resetTransform
         scale screenScale screenScale

@@ -114,7 +114,7 @@ def monthGrid (year : Nat) (month : Nat) : Array (Option DatePickerDate) := Id.r
 /-- Chevron path for navigation arrows. -/
 def arrowSpec (dir : ArrowDirection) (theme : Theme) (size : Float) : CustomSpec := {
   measure := fun _ _ => (size, size)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let half := size * 0.22
     let midX := rect.x + rect.width / 2

@@ -271,7 +271,7 @@ private def linkPath (l : LinkLayout) (ox oy : Float) : Afferent.Path :=
 def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 100, dims.marginTop + dims.marginBottom + 50)
-  collect := fun layout reg => do
+  collect := fun layout => do
     let rect := layout.contentRect
 
     if cached.nodeLayouts.isEmpty then return
@@ -343,7 +343,7 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
         else
           n.node.label
 
-        CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
+        CanvasM.fillTextId labelText labelX labelY theme.smallFont theme.text
 
 }
 

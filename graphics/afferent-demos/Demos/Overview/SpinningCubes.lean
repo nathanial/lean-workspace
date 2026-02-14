@@ -115,7 +115,7 @@ def updateSpinningCubesState (env : DemoEnv) (state : SpinningCubesState) : IO S
 def spinningCubesOverviewWidget (t : Float) (windowW windowH : Float) (camera : FPSCamera) : WidgetBuilder := do
   custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => fun _ => do
+    collect := fun layout => do
       withContentRect layout fun w h => do
         let renderer ← getRenderer
         let rect := layout.contentRect

@@ -18,95 +18,95 @@ private structure TextCard where
 
 /-- Center a single line of text within the rect. -/
 private def centeredText (text : String) (font : FontId) (color : Color)
-    (r : Rect) (reg : Afferent.FontRegistry) : Afferent.CanvasM Unit := do
-  CanvasM.fillTextBlockId reg text r font color .center .middle
+    (r : Rect) : Afferent.CanvasM Unit := do
+  CanvasM.fillTextBlockId text r font color .center .middle
 
 /-- Text cards rendered as widgets. -/
 def textWidget (fonts : DemoFonts) : WidgetBuilder := do
   let cards : Array TextCard := #[(
-    { label := "Small", draw := fun r reg => centeredText "Small 16pt" fonts.small Afferent.Color.white r reg }
+    { label := "Small", draw := fun r => centeredText "Small 16pt" fonts.small Afferent.Color.white r }
   ), (
-    { label := "Medium", draw := fun r reg => centeredText "Medium 24pt" fonts.medium Afferent.Color.white r reg }
+    { label := "Medium", draw := fun r => centeredText "Medium 24pt" fonts.medium Afferent.Color.white r }
   ), (
-    { label := "Large", draw := fun r reg => centeredText "Large 36pt" fonts.large Afferent.Color.white r reg }
+    { label := "Large", draw := fun r => centeredText "Large 36pt" fonts.large Afferent.Color.white r }
   ), (
-    { label := "Huge", draw := fun r reg => centeredText "Huge 48pt" fonts.huge Afferent.Color.white r reg }
+    { label := "Huge", draw := fun r => centeredText "Huge 48pt" fonts.huge Afferent.Color.white r }
   ), (
-    { label := "Red", draw := fun r reg => centeredText "Red Text" fonts.medium Afferent.Color.red r reg }
+    { label := "Red", draw := fun r => centeredText "Red Text" fonts.medium Afferent.Color.red r }
   ), (
-    { label := "Green", draw := fun r reg => centeredText "Green Text" fonts.medium Afferent.Color.green r reg }
+    { label := "Green", draw := fun r => centeredText "Green Text" fonts.medium Afferent.Color.green r }
   ), (
-    { label := "Blue", draw := fun r reg => centeredText "Blue Text" fonts.medium Afferent.Color.blue r reg }
+    { label := "Blue", draw := fun r => centeredText "Blue Text" fonts.medium Afferent.Color.blue r }
   ), (
-    { label := "Yellow", draw := fun r reg => centeredText "Yellow Text" fonts.medium Afferent.Color.yellow r reg }
+    { label := "Yellow", draw := fun r => centeredText "Yellow Text" fonts.medium Afferent.Color.yellow r }
   ), (
-    { label := "Cyan", draw := fun r reg => centeredText "Cyan Text" fonts.medium Afferent.Color.cyan r reg }
+    { label := "Cyan", draw := fun r => centeredText "Cyan Text" fonts.medium Afferent.Color.cyan r }
   ), (
-    { label := "Magenta", draw := fun r reg => centeredText "Magenta Text" fonts.medium Afferent.Color.magenta r reg }
+    { label := "Magenta", draw := fun r => centeredText "Magenta Text" fonts.medium Afferent.Color.magenta r }
   ), (
     { label := "Headline",
-      draw := fun r reg => centeredText "Afferent" fonts.large Afferent.Color.white r reg }
+      draw := fun r => centeredText "Afferent" fonts.large Afferent.Color.white r }
   ), (
     { label := "Text on Shape",
-      draw := fun r reg => do
+      draw := fun r => do
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
         CanvasM.fillRectColor rect Afferent.Color.blue 6
-        CanvasM.fillTextBlockId reg "Text on Shape" rect fonts.small Afferent.Color.white .center .middle }
+        CanvasM.fillTextBlockId "Text on Shape" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Labels",
-      draw := fun r reg => do
+      draw := fun r => do
         let center := rectCenter r
         let radius := minSide r * 0.3
         CanvasM.fillPathColor (Afferent.Path.circle center radius) Afferent.Color.red
-        CanvasM.fillTextBlockId reg "Labels" (Rect.mk' (center.x - radius) (center.y - 10) (radius * 2) 20)
+        CanvasM.fillTextBlockId "Labels" (Rect.mk' (center.x - radius) (center.y - 10) (radius * 2) 20)
           fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Rounded Button",
-      draw := fun r reg => do
+      draw := fun r => do
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
         CanvasM.fillRectColor rect Afferent.Color.green 10
-        CanvasM.fillTextBlockId reg "Rounded" rect fonts.small Afferent.Color.black .center .middle }
+        CanvasM.fillTextBlockId "Rounded" rect fonts.small Afferent.Color.black .center .middle }
   ), (
     { label := "Alphabet",
-      draw := fun r reg => do
+      draw := fun r => do
         let x := r.origin.x + 6
         let y1 := r.origin.y + r.size.height * 0.4
         let y2 := r.origin.y + r.size.height * 0.7
-        CanvasM.fillTextId reg "ABCDEFGHIJKLMNOPQRSTUVWXYZ" x y1 fonts.small Afferent.Color.white
-        CanvasM.fillTextId reg "abcdefghijklmnopqrstuvwxyz" x y2 fonts.small Afferent.Color.white }
+        CanvasM.fillTextId "ABCDEFGHIJKLMNOPQRSTUVWXYZ" x y1 fonts.small Afferent.Color.white
+        CanvasM.fillTextId "abcdefghijklmnopqrstuvwxyz" x y2 fonts.small Afferent.Color.white }
   ), (
     { label := "Digits",
-      draw := fun r reg =>
+      draw := fun r =>
         let x := r.origin.x + 6
         let y := r.origin.y + r.size.height * 0.55
-        CanvasM.fillTextId reg "0123456789 !@#$%^&*()" x y fonts.small Afferent.Color.white }
+        CanvasM.fillTextId "0123456789 !@#$%^&*()" x y fonts.small Afferent.Color.white }
   ), (
     { label := "Transparent",
-      draw := fun r reg => do
+      draw := fun r => do
         let x := r.origin.x + 6
         let y0 := r.origin.y + r.size.height * 0.35
         let step := r.size.height * 0.22
-        CanvasM.fillTextId reg "Semi-transparent" x y0 fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.7)
-        CanvasM.fillTextId reg "More transparent" x (y0 + step) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.4)
-        CanvasM.fillTextId reg "Very faint" x (y0 + step * 2) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.2) }
+        CanvasM.fillTextId "Semi-transparent" x y0 fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.7)
+        CanvasM.fillTextId "More transparent" x (y0 + step) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.4)
+        CanvasM.fillTextId "Very faint" x (y0 + step * 2) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.2) }
   ), (
     { label := "Error",
-      draw := fun r reg => do
+      draw := fun r => do
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
         CanvasM.fillRectColor rect (Afferent.Color.hsva 0.0 0.75 0.8 1.0) 6
-        CanvasM.fillTextBlockId reg "Error" rect fonts.small Afferent.Color.white .center .middle }
+        CanvasM.fillTextBlockId "Error" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Success",
-      draw := fun r reg => do
+      draw := fun r => do
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
         CanvasM.fillRectColor rect (Afferent.Color.hsva 0.333 0.667 0.6 1.0) 6
-        CanvasM.fillTextBlockId reg "Success" rect fonts.small Afferent.Color.white .center .middle }
+        CanvasM.fillTextBlockId "Success" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Warning",
-      draw := fun r reg => do
+      draw := fun r => do
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
         CanvasM.fillRectColor rect (Afferent.Color.hsva 0.119 0.875 0.8 1.0) 6
-        CanvasM.fillTextBlockId reg "Warning" rect fonts.small Afferent.Color.black .center .middle }
+        CanvasM.fillTextBlockId "Warning" rect fonts.small Afferent.Color.black .center .middle }
   )]
 
   let widgets := cards.map fun card =>
@@ -115,15 +115,15 @@ def textWidget (fonts : DemoFonts) : WidgetBuilder := do
 
 /-- Curated subset of text cards for responsive grid display. -/
 def textSubset (fonts : DemoFonts) : Array (String × CardDraw) := #[
-  ("Small", fun r reg => centeredText "Small" fonts.small Afferent.Color.white r reg),
-  ("Medium", fun r reg => centeredText "Medium" fonts.medium Afferent.Color.white r reg),
-  ("Large", fun r reg => centeredText "Large" fonts.large Afferent.Color.white r reg),
-  ("Red", fun r reg => centeredText "Red" fonts.medium Afferent.Color.red r reg),
-  ("Green", fun r reg => centeredText "Green" fonts.medium Afferent.Color.green r reg),
-  ("Blue", fun r reg => centeredText "Blue" fonts.medium Afferent.Color.blue r reg),
-  ("Yellow", fun r reg => centeredText "Yellow" fonts.medium Afferent.Color.yellow r reg),
-  ("Cyan", fun r reg => centeredText "Cyan" fonts.medium Afferent.Color.cyan r reg),
-  ("Magenta", fun r reg => centeredText "Magenta" fonts.medium Afferent.Color.magenta r reg)
+  ("Small", fun r => centeredText "Small" fonts.small Afferent.Color.white r),
+  ("Medium", fun r => centeredText "Medium" fonts.medium Afferent.Color.white r),
+  ("Large", fun r => centeredText "Large" fonts.large Afferent.Color.white r),
+  ("Red", fun r => centeredText "Red" fonts.medium Afferent.Color.red r),
+  ("Green", fun r => centeredText "Green" fonts.medium Afferent.Color.green r),
+  ("Blue", fun r => centeredText "Blue" fonts.medium Afferent.Color.blue r),
+  ("Yellow", fun r => centeredText "Yellow" fonts.medium Afferent.Color.yellow r),
+  ("Cyan", fun r => centeredText "Cyan" fonts.medium Afferent.Color.cyan r),
+  ("Magenta", fun r => centeredText "Magenta" fonts.medium Afferent.Color.magenta r)
 ]
 
 /-- Responsive text widget that fills available space. -/

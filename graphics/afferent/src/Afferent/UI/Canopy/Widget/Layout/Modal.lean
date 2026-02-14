@@ -49,7 +49,7 @@ def closeButtonPath (x y size : Float) : Afferent.Path :=
 /-- Custom spec for close button (X icon). -/
 def closeButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.closeButtonSize, dims.closeButtonSize)
-  collect := fun layout reg =>
+  collect := fun layout =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
