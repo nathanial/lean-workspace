@@ -40,19 +40,21 @@ private def destroyTestAssets (assets : TestAssets) : IO Unit := do
   Font.destroy assets.fontCanopy
   Font.destroy assets.fontCanopySmall
 
-private def widgetGridRender (wtype : WidgetType) (instanceCount : Nat) : ReactiveM ComponentRender := do
+private def widgetGridRender (wtype : WidgetType) (instanceCount : Nat)
+    (aspectHint : Float := 1.0) : ReactiveM ComponentRender := do
   let (_, render) ← runWidget do
-    renderWidgetGrid wtype instanceCount
+    renderWidgetGrid wtype instanceCount (aspectHint := aspectHint)
   pure render
 
-private def buildWidgetTree (wtype : WidgetType) (instanceCount : Nat) : IO Widget := do
+private def buildWidgetTree (wtype : WidgetType) (instanceCount : Nat)
+    (aspectHint : Float := 1.0) : IO Widget := do
   let assets ← loadTestAssets
   let spiderEnv ← Reactive.Host.SpiderEnv.new Reactive.Host.defaultErrorHandler
   try
     let widget ← (do
       let (events, _inputs) ← Afferent.Canopy.Reactive.createInputs
         assets.registry assets.theme (some assets.fontCanopy)
-      let render ← ReactiveM.run events (widgetGridRender wtype instanceCount)
+      let render ← ReactiveM.run events (widgetGridRender wtype instanceCount aspectHint)
       let builder ← SpiderM.liftIO render
       pure (Afferent.Arbor.buildFrom 0 builder)
     ).run spiderEnv
@@ -199,21 +201,25 @@ private def buildWidgetPerfBarChartTabLikeTree
                 height := .percent 1.0
               }
               column' (gap := 0) (style := rightPanelStyle) do
-                if shouldUseGridScroll .barChart instanceCount windowH then
-                  let cfg : ScrollContainerConfig := {
-                    width := windowW
-                    height := windowH
-                    verticalScroll := true
-                    horizontalScroll := false
-                    fillWidth := true
-                    fillHeight := true
-                    scrollbarVisibility := .always
-                  }
-                  let (_, _) ← scrollContainer cfg do
-                    renderWidgetGrid .barChart instanceCount (fillRows := false)
-                  pure ()
-                else
-                  renderWidgetGrid .barChart instanceCount (fillRows := true)
+                let cfg : ScrollContainerConfig := {
+                  width := windowW
+                  height := windowH
+                  verticalScroll := true
+                  horizontalScroll := true
+                  fillWidth := true
+                  fillHeight := true
+                  scrollbarVisibility := .always
+                }
+                let (_, _) ← scrollContainer cfg do
+                  let rightPanelWidthHint := max 1.0 (windowW - 280.0)
+                  let rightPanelHeightHint := max 1.0 (windowH - 220.0)
+                  let aspectHint := rightPanelWidthHint / rightPanelHeightHint
+                  renderWidgetGrid .barChart instanceCount
+                    (fillRows := true) (fillColumns := true)
+                    (aspectHint := aspectHint)
+                    (viewportWidthHint := rightPanelWidthHint)
+                    (viewportHeightHint := rightPanelHeightHint)
+                pure ()
         pure render
       let builder ← SpiderM.liftIO render
       pure (Afferent.Arbor.buildFrom 0 builder)
@@ -258,45 +264,56 @@ private def minCustomHeight (widget : Widget) (layouts : Trellis.LayoutResult) :
     | none => pure ()
   pure minH
 
+private def tracksAreMinContentFr (tracks : Array Trellis.GridTrack) : Bool :=
+  tracks.all (fun track => track.size == Trellis.TrackSize.minContentFr 1)
+
 testSuite "WidgetPerf Grid Layout"
 
-test "label grid uses exact slot count for low instance count" := do
+test "label grid uses multi-row packing for low instance count" := do
   let instanceCount := 10
   let widget ← buildWidgetTree .label instanceCount
   let props ← requireGridProps widget
   let rows := props.templateRows.tracks.size
   let cols := props.templateColumns.tracks.size
-  rows ≡ 1
-  cols ≡ 10
-  gridSlotCount props ≡ instanceCount
+  ensure (rows > 1)
+    s!"Expected multi-row layout for low count (rows={rows}, cols={cols})"
+  ensure (cols < instanceCount)
+    s!"Expected fewer columns than item count (rows={rows}, cols={cols})"
+  ensure (gridSlotCount props >= instanceCount)
+    s!"Expected enough grid slots for all instances (rows={rows}, cols={cols})"
 
-test "mixed grid should not allocate empty track slots (repro)" := do
+test "mixed grid uses multi-row packing for low instance count" := do
   let instanceCount := 10
   let widget ← buildWidgetTree .mixed instanceCount
   let props ← requireGridProps widget
-  let slots := gridSlotCount props
-  ensure (slots == instanceCount)
-    s!"Expected mixed grid to allocate exactly {instanceCount} slots, got {slots} (rows={props.templateRows.tracks.size}, cols={props.templateColumns.tracks.size})"
+  let rows := props.templateRows.tracks.size
+  let cols := props.templateColumns.tracks.size
+  ensure (rows > 1)
+    s!"Expected multi-row mixed layout for low count (rows={rows}, cols={cols})"
+  ensure (cols < instanceCount)
+    s!"Expected fewer columns than item count for mixed grid (rows={rows}, cols={cols})"
 
-test "mixed grid should avoid trailing empty rows (repro)" := do
-  let instanceCount := 48
-  let widget ← buildWidgetTree .mixed instanceCount
-  let props ← requireGridProps widget
-  let slots := gridSlotCount props
-  ensure (slots == instanceCount)
-    s!"Expected mixed grid to allocate exactly {instanceCount} slots, got {slots} (rows={props.templateRows.tracks.size}, cols={props.templateColumns.tracks.size})"
-
-test "label grid has no trailing empty rows across representative counts" := do
+test "grid packing respects max columns across representative counts" := do
   for instanceCount in [1, 2, 3, 10, 11, 17, 19, 20, 21, 48, 99, 100, 101, 1000, 2000, 10000] do
     let widget ← buildWidgetTree .label instanceCount
     let props ← requireGridProps widget
-    assertNoTrailingEmptyRows "label" instanceCount props
+    let cols := props.templateColumns.tracks.size
+    let rows := props.templateRows.tracks.size
+    ensure (cols <= 20)
+      s!"Column cap exceeded (count={instanceCount}, cols={cols})"
+    ensure (rows * cols >= instanceCount)
+      s!"Grid under-allocated slots (count={instanceCount}, rows={rows}, cols={cols})"
 
-test "mixed grid has no trailing empty rows across representative counts" := do
-  for instanceCount in [1, 2, 3, 10, 11, 17, 19, 20, 21, 48, 99, 100, 101, 1000, 2000, 10000] do
-    let widget ← buildWidgetTree .mixed instanceCount
-    let props ← requireGridProps widget
-    assertNoTrailingEmptyRows "mixed" instanceCount props
+test "wide aspect hint prefers more columns than square aspect hint" := do
+  let instanceCount := 10
+  let squareWidget ← buildWidgetTree .label instanceCount (aspectHint := 1.0)
+  let wideWidget ← buildWidgetTree .label instanceCount (aspectHint := 3.0)
+  let squareProps ← requireGridProps squareWidget
+  let wideProps ← requireGridProps wideWidget
+  let squareCols := squareProps.templateColumns.tracks.size
+  let wideCols := wideProps.templateColumns.tracks.size
+  ensure (wideCols > squareCols)
+    s!"Expected wide aspect to pick more columns (square={squareCols}, wide={wideCols})"
 
 test "scroll content height is close to actual child layout height (label, low count)" := do
   let viewportW := 1800.0
@@ -340,30 +357,44 @@ test "scroll content height is close to actual child layout height (heatmap, low
   ensure (slack <= 64)
     s!"Unexpected scroll content height slack (contentH={contentH}, viewportH={viewportH}, childH={childH}, slack={slack})"
 
-test "widget perf tab logic: bar chart x10 fills height with no phantom scroll" := do
+test "widget perf tab logic: bar chart x10 uses scroll container with min-content fr tracks" := do
   let rootW := 1800.0
   let rootH := 720.0
   let windowW := 1800.0
   let windowH := 1200.0
   let widget ← buildWidgetPerfBarChartTabLikeTree 10 rootW rootH windowW windowH
   let (_, layouts) ← measureAndLayout widget rootW rootH
-  ensure (firstScrollData? widget |>.isNone)
-    "Did not expect a scroll container for 10 instances"
+  ensure (firstScrollData? widget |>.isSome)
+    "Expected a scroll container for widget perf content"
+  let props ← requireGridProps widget
+  ensure (tracksAreMinContentFr props.templateRows.tracks)
+    "Expected min-content fr rows for bar chart mode"
+  ensure (tracksAreMinContentFr props.templateColumns.tracks)
+    "Expected min-content fr columns for bar chart mode"
+  ensure (props.templateRows.tracks.size > 1)
+    s!"Expected multiple rows for low-count chart grid, got {props.templateRows.tracks.size}"
   let minChartH ← minCustomHeight widget layouts
-  ensure (minChartH >= 180.0)
-    s!"Expected bar chart widgets to expand vertically (min chart height={minChartH})"
+  ensure (minChartH >= 110.0)
+    s!"Expected bar chart widgets to stretch in fill mode (min chart height={minChartH})"
 
-test "widget perf tab logic: bar chart x100 still fills height without phantom scroll" := do
+test "widget perf tab logic: bar chart x100 uses scroll container with min-content fr tracks" := do
   let rootW := 1800.0
   let rootH := 720.0
   let windowW := 1800.0
   let windowH := 1200.0
   let widget ← buildWidgetPerfBarChartTabLikeTree 100 rootW rootH windowW windowH
   let (_, layouts) ← measureAndLayout widget rootW rootH
-  ensure (firstScrollData? widget |>.isNone)
-    "Did not expect a scroll container for 100 instances when intrinsic content fits the viewport"
+  ensure (firstScrollData? widget |>.isSome)
+    "Expected a scroll container for widget perf content"
+  let props ← requireGridProps widget
+  ensure (tracksAreMinContentFr props.templateRows.tracks)
+    "Expected min-content fr rows for bar chart mode"
+  ensure (tracksAreMinContentFr props.templateColumns.tracks)
+    "Expected min-content fr columns for bar chart mode"
+  ensure (props.templateRows.tracks.size > 1)
+    s!"Expected multiple rows for high-count chart grid, got {props.templateRows.tracks.size}"
   let minChartH ← minCustomHeight widget layouts
-  ensure (minChartH >= 90.0)
-    s!"Expected bar chart widgets to stretch beyond intrinsic height for x100 (min chart height={minChartH})"
+  ensure (minChartH >= 70.0)
+    s!"Expected bar chart widgets to stretch in fill mode (min chart height={minChartH})"
 
 end AfferentDemosTests.WidgetPerfGridLayout

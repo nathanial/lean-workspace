@@ -404,7 +404,7 @@ test "dropdown pipeline baseline vs hover" := do
     IO.println (BenchResult.format "hover (dropdown)" hover)
     IO.println (BenchResult.format "delta(hover-baseline) (dropdown)" delta)
 
-    ensureTargetCountsStable "dropdown" baseline hover 300
+    ensureTargetCountsStable "dropdown" baseline hover 200
   finally
     appBaseline.shutdown
     appHover.shutdown

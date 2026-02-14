@@ -21,6 +21,8 @@ namespace TrackSize
 def auto : TrackSize := .fixed .auto
 def px (n : Length) : TrackSize := .fixed (.length n)
 def percent (p : Float) : TrackSize := .fixed (.percent p)
+def minContentFr (n : Float := 1) : TrackSize := .minmax (.fixed .minContent) (.fr n)
+def maxContentFr (n : Float := 1) : TrackSize := .minmax (.fixed .maxContent) (.fr n)
 
 /-- Check if this track size uses fr units. -/
 def isFr : TrackSize → Bool

@@ -702,6 +702,30 @@ def resolveTrackBaseSize (size : TrackSize) (available : Length) : Length :=
   | .fitContent maxLen => min maxLen available
   | .subgrid => 0
 
+/-- Resolve a track's minimum contribution using measured content size.
+    This allows `minmax(min-content, 1fr)` tracks to keep intrinsic floors
+    before fr expansion. -/
+def resolveTrackMinForContent (size : TrackSize) (available content : Length) : Length :=
+  match size with
+  | .fixed .minContent => content
+  | .fixed .maxContent => content
+  | .fixed dim => dim.resolve available content
+  | .fr _ => 0
+  | .minmax minTrack _ => resolveTrackMinForContent minTrack available content
+  | .fitContent maxLen => min content maxLen
+  | .subgrid => content
+
+/-- Resolve a track's upper bound using measured content where needed. -/
+def resolveTrackMaxForContent (size : TrackSize) (available content : Length) : Length :=
+  match size with
+  | .fixed .minContent => content
+  | .fixed .maxContent => content
+  | .fixed dim => dim.resolve available content
+  | .fr _ => content
+  | .minmax _ maxTrack => resolveTrackMaxForContent maxTrack available content
+  | .fitContent maxLen => maxLen
+  | .subgrid => content
+
 /-- Calculate max content contribution per track in one pass (including margins).
     For spanning items, contribution to each covered track is `size / span`. -/
 def maxContentByTrack (items : Array GridItemState) (trackCount : Nat) (isColumn : Bool)
@@ -779,13 +803,13 @@ def sizeTracksToContent (tracks : Array ResolvedTrack) (items : Array GridItemSt
       | .fr _ => 0  -- Fr tracks sized in fr resolution phase
       | .minmax minTrack maxTrack =>
         -- Base size starts at min
-        let minSz := resolveTrackBaseSize minTrack available
+        let minSz := resolveTrackMinForContent minTrack available content
         -- If max is not fr, we can size to content up to max
         if maxTrack.isFr then
           minSz  -- Will be grown in fr resolution phase
         else
           -- Grow based on content, clamped between min and max
-          let maxSz := resolveTrackBaseSize maxTrack available
+          let maxSz := resolveTrackMaxForContent maxTrack available content
           max minSz (min content maxSz)
       | .fitContent maxLen =>
         min content maxLen

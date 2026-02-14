@@ -502,6 +502,32 @@ test "grid minmax(px, fr) with unequal fr values" := do
   shouldBeNear cl1.width 100 0.01
   shouldBeNear cl2.width 200 0.01
 
+test "grid minmax(min-content, fr) expands from intrinsic minimums" := do
+  let props := GridContainer.withColumns #[TrackSize.minContentFr 1, TrackSize.minContentFr 1]
+  let node := LayoutNode.gridBox 0 props #[
+    LayoutNode.leaf 1 (ContentSize.mk' 100 30),
+    LayoutNode.leaf 2 (ContentSize.mk' 50 30)
+  ]
+  let result := layout node 400 100
+  let cl1 := result.get! 1
+  let cl2 := result.get! 2
+  -- Min floors are 100 and 50; remaining 250 splits equally.
+  shouldBeNear cl1.width 225 0.01
+  shouldBeNear cl2.width 175 0.01
+
+test "grid minmax(min-content, fr) preserves intrinsic minimum under compression" := do
+  let props := GridContainer.withColumns #[TrackSize.minContentFr 1, TrackSize.minContentFr 1]
+  let node := LayoutNode.gridBox 0 props #[
+    LayoutNode.leaf 1 (ContentSize.mk' 100 30),
+    LayoutNode.leaf 2 (ContentSize.mk' 50 30)
+  ]
+  let result := layout node 120 100
+  let cl1 := result.get! 1
+  let cl2 := result.get! 2
+  shouldSatisfy (cl1.width >= 100) "first column should not shrink below intrinsic width"
+  shouldSatisfy (cl2.width >= 50) "second column should not shrink below intrinsic width"
+  shouldSatisfy (cl1.width + cl2.width > 120) "columns should overflow container when intrinsic mins exceed width"
+
 test "grid minmax with row sizing" := do
   -- Test minmax on rows
   let props := GridContainer.withTemplate

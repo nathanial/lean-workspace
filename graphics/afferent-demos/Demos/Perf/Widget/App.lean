@@ -25,30 +25,44 @@ private def defaultWidgetInstanceCount : Nat := 10
 private def widgetInstanceOptions : Array Nat := #[1, 10, 100, 1000, 2000, 10000]
 private def widgetInstanceOptionLabels : Array String := widgetInstanceOptions.map toString
 private def widgetGridGap : Float := 6
-private def widgetPerfChromeHeightEstimate : Float := 150
 private def defaultWidgetInstanceIndex : Nat :=
   (widgetInstanceOptions.findIdx? (· == defaultWidgetInstanceCount)).getD 0
 
 private def gridRowCount (instanceCount columns : Nat) : Nat :=
   if instanceCount == 0 then 0 else (instanceCount + columns - 1) / columns
 
-/-- Choose grid dimensions bounded by `maxColumns` while minimizing empty slots. -/
-private def chooseGridDims (instanceCount maxColumns : Nat) : Nat × Nat :=
+/-- Clamp invalid aspect hints to a sane fallback. -/
+private def normalizeAspectHint (aspectHint : Float) : Float :=
+  if aspectHint.isNaN || aspectHint <= 0 then 1.0 else aspectHint
+
+/-- Choose grid dimensions bounded by `maxColumns`, preferring a column/row ratio
+    close to the provided viewport aspect ratio while still minimizing slack. -/
+private def chooseGridDims (instanceCount maxColumns : Nat) (aspectHint : Float := 1.0) : Nat × Nat :=
   if instanceCount == 0 then
     (0, 0)
   else
+    let targetAspect := normalizeAspectHint aspectHint
     let maxCols := Nat.max 1 (Nat.min maxColumns instanceCount)
+    let eps := 0.000001
     let step := fun best cols =>
       let rows := gridRowCount instanceCount cols
       let slots := rows * cols
       let slack := slots - instanceCount
-      let (bestCols, bestRows, bestSlack) := best
-      if slack < bestSlack || (slack == bestSlack && cols > bestCols) then
-        (cols, rows, slack)
+      let ratio := (Float.ofNat cols) / (Float.ofNat (Nat.max 1 rows))
+      let aspectError := Float.abs (ratio - targetAspect)
+      let (bestCols, bestRows, bestAspectError, bestSlack) := best
+      let betterAspect := aspectError + eps < bestAspectError
+      let sameAspect := Float.abs (aspectError - bestAspectError) <= eps
+      if betterAspect || (sameAspect && (slack < bestSlack || (slack == bestSlack && cols > bestCols))) then
+        (cols, rows, aspectError, slack)
       else
-        (bestCols, bestRows, bestSlack)
+        (bestCols, bestRows, bestAspectError, bestSlack)
     let candidates := (List.range maxCols).map (· + 1)
-    let (cols, rows, _) := candidates.foldl step (1, instanceCount, instanceCount - 1)
+    let initialRows := gridRowCount instanceCount 1
+    let initialRatio := (Float.ofNat 1) / (Float.ofNat (Nat.max 1 initialRows))
+    let initialAspectError := Float.abs (initialRatio - targetAspect)
+    let initialSlack := initialRows - instanceCount
+    let (cols, rows, _, _) := candidates.foldl step (1, initialRows, initialAspectError, initialSlack)
     (cols, rows)
 
 /-- Widget types we can test. -/
@@ -179,73 +193,6 @@ def allWidgetTypes : Array WidgetType := #[
 
 def widgetTypeNames : Array String := allWidgetTypes.map WidgetType.name
 
-/-- Conservative intrinsic row-height estimate by widget type. -/
-private def estimatedIntrinsicRowHeight : WidgetType → Float
-  | .label => 28
-  | .caption => 24
-  | .spacer => 30
-  | .panel => 36
-  | .button => 40
-  | .checkbox => 32
-  | .switch => 30
-  | .radioGroup => 44
-  | .slider => 32
-  | .stepper => 34
-  | .progressBar => 30
-  | .progressIndeterminate => 30
-  | .dropdown => 40
-  | .spinnerCircleDots => 56
-  | .spinnerRing => 56
-  | .spinnerBouncingDots => 56
-  | .spinnerBars => 56
-  | .spinnerDualRing => 56
-  | .spinnerOrbit => 56
-  | .spinnerPulse => 56
-  | .spinnerHelix => 56
-  | .spinnerWave => 56
-  | .spinnerSpiral => 56
-  | .spinnerClock => 56
-  | .spinnerPendulum => 56
-  | .spinnerRipple => 56
-  | .spinnerHeartbeat => 56
-  | .spinnerGears => 56
-  | .barChart => 80
-  | .lineChart => 80
-  | .areaChart => 80
-  | .pieChart => 80
-  | .donutChart => 80
-  | .scatterPlot => 80
-  | .horizontalBarChart => 80
-  | .bubbleChart => 80
-  | .histogram => 80
-  | .boxPlot => 80
-  | .heatmap => 80
-  | .stackedBarChart => 80
-  | .groupedBarChart => 80
-  | .stackedAreaChart => 80
-  | .radarChart => 100
-  | .candlestickChart => 80
-  | .waterfallChart => 80
-  | .gaugeChart => 70
-  | .funnelChart => 80
-  | .treemapChart => 80
-  | .sankeyDiagram => 80
-  | .mixed => 80
-
-/-- Decide if grid content should be wrapped in a vertical scroller.
-    Rule: fill available space when intrinsic content fits; use intrinsic + scroll only on overflow. -/
-def shouldUseGridScroll (wtype : WidgetType) (instanceCount : Nat) (windowHeight : Float) : Bool :=
-  if instanceCount == 0 then
-    false
-  else
-    let maxCols := if wtype == .mixed then Nat.min renderableWidgetTypes.size widgetGridColumns else widgetGridColumns
-    let (_, rowCount) := chooseGridDims instanceCount maxCols
-    let rowH := estimatedIntrinsicRowHeight wtype
-    let intrinsicRowsH :=
-      rowCount.toFloat * rowH + max 0 ((rowCount - 1).toFloat * widgetGridGap)
-    let availableH := max 0 (windowHeight - widgetPerfChromeHeightEstimate)
-    intrinsicRowsH > availableH
-
 /-- Sample data for charts. -/
 def sampleBarData : Array Float := #[42.0, 78.0, 56.0, 91.0]
 def sampleBarLabels : Array String := #["Q1", "Q2", "Q3", "Q4"]
@@ -267,9 +214,12 @@ def sampleSankeyData : SankeyDiagram.Data :=
   { nodes, links }
 
 /-- Render a single widget of the given type in a grid cell. -/
-def renderWidget (wtype : WidgetType) (index : Nat) : WidgetM Unit := do
+def renderWidget (wtype : WidgetType) (index : Nat)
+    (fillCellWidth : Bool := true) (fillCellHeight : Bool := true) : WidgetM Unit := do
   let cellStyle : BoxStyle := {
-    width := .percent 1.0
+    width := if fillCellWidth then .percent 1.0 else .auto
+    height := if fillCellHeight then .percent 1.0 else .auto
+    flexItem := if fillCellWidth || fillCellHeight then some (FlexItem.growing 1) else none
   }
   column' (gap := 0) (style := cellStyle) do match wtype with
   -- Simple
@@ -551,17 +501,25 @@ def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle
   pure result
 
 /-- Render a mixed grid with the requested total instance count. -/
-def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Unit := do
+def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true)
+    (fillColumns : Bool := true) (aspectHint : Float := 1.0)
+    (viewportWidthHint : Float := 0.0) (viewportHeightHint : Float := 0.0) : WidgetM Unit := do
+  let minWidthHint := if viewportWidthHint > 0 then some viewportWidthHint else none
+  let minHeightHint := if viewportHeightHint > 0 then some viewportHeightHint else none
   let containerStyle : BoxStyle := {
     flexItem := some (FlexItem.growing 1)
-    width := .percent 1.0
+    width := if fillColumns then .percent 1.0 else .auto
+    height := if fillRows then .percent 1.0 else .auto
+    minWidth := if fillColumns then minWidthHint else none
+    minHeight := if fillRows then minHeightHint else none
   }
   let numTypes := renderableWidgetTypes.size
   let maxCols := Nat.min numTypes widgetGridColumns
-  let (numCols, numRows) := chooseGridDims instanceCount maxCols
-  let rowTrack := if fillRows then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+  let (numCols, numRows) := chooseGridDims instanceCount maxCols aspectHint
+  let rowTrack := if fillRows then Trellis.TrackSize.minContentFr 1 else Trellis.TrackSize.auto
+  let colTrack := if fillColumns then Trellis.TrackSize.minContentFr 1 else Trellis.TrackSize.auto
   let rowTemplate := Array.replicate numRows rowTrack
-  let colTemplate := Array.replicate numCols (Trellis.TrackSize.fr 1)
+  let colTemplate := Array.replicate numCols colTrack
   let gridProps : Trellis.GridContainer := {
     Trellis.GridContainer.withTemplate rowTemplate colTemplate 6 with
     alignContent := .stretch
@@ -570,7 +528,10 @@ def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Un
     heading3' s!"Mixed Grid ({instanceCount} instances across {numTypes} widget types)"
     let gridStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
+      width := if fillColumns then .percent 1.0 else .auto
+      height := if fillRows then .percent 1.0 else .auto
+      minWidth := if fillColumns then minWidthHint else none
+      minHeight := if fillRows then minHeightHint else none
     }
     gridCustom' gridProps gridStyle do
       for row in [:numRows] do
@@ -579,22 +540,33 @@ def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Un
           if index < instanceCount then
             let wtype := renderableWidgetTypes.getD (index % numTypes) .label
             renderWidget wtype index
+              (fillCellWidth := fillColumns)
+              (fillCellHeight := fillRows)
           else
             pure ()
 
 /-- Render a grid of widgets for a given type. -/
-def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat) (fillRows : Bool := true) : WidgetM Unit := do
+def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat)
+    (fillRows : Bool := true) (fillColumns : Bool := true)
+    (aspectHint : Float := 1.0)
+    (viewportWidthHint : Float := 0.0) (viewportHeightHint : Float := 0.0) : WidgetM Unit := do
   if wtype == .mixed then
-    renderMixedGrid instanceCount fillRows
+    renderMixedGrid instanceCount fillRows fillColumns aspectHint viewportWidthHint viewportHeightHint
   else
+    let minWidthHint := if viewportWidthHint > 0 then some viewportWidthHint else none
+    let minHeightHint := if viewportHeightHint > 0 then some viewportHeightHint else none
     let containerStyle : BoxStyle := {
       flexItem := some (FlexItem.growing 1)
-      width := .percent 1.0
+      width := if fillColumns then .percent 1.0 else .auto
+      height := if fillRows then .percent 1.0 else .auto
+      minWidth := if fillColumns then minWidthHint else none
+      minHeight := if fillRows then minHeightHint else none
     }
-    let (effectiveColumns, rowCount) := chooseGridDims instanceCount widgetGridColumns
-    let rowTrack := if fillRows then Trellis.TrackSize.fr 1 else Trellis.TrackSize.auto
+    let (effectiveColumns, rowCount) := chooseGridDims instanceCount widgetGridColumns aspectHint
+    let rowTrack := if fillRows then Trellis.TrackSize.minContentFr 1 else Trellis.TrackSize.auto
+    let colTrack := if fillColumns then Trellis.TrackSize.minContentFr 1 else Trellis.TrackSize.auto
     let rowTemplate := Array.replicate rowCount rowTrack
-    let colTemplate := Array.replicate effectiveColumns (Trellis.TrackSize.fr 1)
+    let colTemplate := Array.replicate effectiveColumns colTrack
     let gridProps : Trellis.GridContainer := {
       Trellis.GridContainer.withTemplate rowTemplate colTemplate 6 with
       alignContent := .stretch
@@ -603,11 +575,16 @@ def renderWidgetGrid (wtype : WidgetType) (instanceCount : Nat) (fillRows : Bool
       heading3' s!"Grid of {wtype.name} ({instanceCount} instances)"
       let gridStyle : BoxStyle := {
         flexItem := some (FlexItem.growing 1)
-        width := .percent 1.0
+        width := if fillColumns then .percent 1.0 else .auto
+        height := if fillRows then .percent 1.0 else .auto
+        minWidth := if fillColumns then minWidthHint else none
+        minHeight := if fillRows then minHeightHint else none
       }
       gridCustom' gridProps gridStyle do
         for index in [0:instanceCount] do
           renderWidget wtype index
+            (fillCellWidth := fillColumns)
+            (fillCellHeight := fillRows)
 
 /-- Application state. -/
 structure AppState where
@@ -674,12 +651,15 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
           width := .percent 1.0
           height := .percent 1.0
         }
+        let rightPanelWidthHint := max 1.0 (env.windowWidthF - 280.0)
+        let rightPanelHeightHint := max 1.0 (env.windowHeightF - 220.0)
+        let gridAspectHint := rightPanelWidthHint / rightPanelHeightHint
         column' (gap := 0) (style := rightPanelStyle) do
           let gridScrollConfig : ScrollContainerConfig := {
-            width := env.windowWidthF
-            height := env.windowHeightF
+            width := rightPanelWidthHint
+            height := rightPanelHeightHint
             verticalScroll := true
-            horizontalScroll := false
+            horizontalScroll := true
             fillWidth := true
             fillHeight := true
             scrollbarVisibility := .always
@@ -690,13 +670,13 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
           let _ ← dynWidget renderConfig (fun (selIdx, countIdx) => do
             let wtype := allWidgetTypes.getD selIdx .label
             let instanceCount := widgetInstanceOptions.getD countIdx defaultWidgetInstanceCount
-            let needsScroll := shouldUseGridScroll wtype instanceCount env.windowHeightF
-            if needsScroll then
-              let (_, _) ← scrollContainer gridScrollConfig do
-                renderWidgetGrid wtype instanceCount (fillRows := false)
-              pure ()
-            else
-              renderWidgetGrid wtype instanceCount (fillRows := true))
+            let (_, _) ← scrollContainer gridScrollConfig do
+              renderWidgetGrid wtype instanceCount
+                (fillRows := true) (fillColumns := true)
+                (aspectHint := gridAspectHint)
+                (viewportWidthHint := rightPanelWidthHint)
+                (viewportHeightHint := rightPanelHeightHint)
+            pure ())
           pure ()
 
   pure { render }
