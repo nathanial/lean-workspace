@@ -66,7 +66,6 @@ def determinateSpec (value : Float) (variant : ProgressVariant)
       -- Filled portion
       if filledWidth > 0 then
         RenderM.fillRect filledRect fillColor dims.cornerRadius
-  draw := none
 }
 
 /-- Custom spec for indeterminate progress bar with animation.
@@ -92,7 +91,6 @@ def indeterminateSpec (animationProgress : Float) (variant : ProgressVariant)
       RenderM.fillRect trackRect trackBg dims.cornerRadius
       -- Animated segment
       RenderM.fillRect segmentRect fillColor dims.cornerRadius
-  draw := none
   skipCache := true
 }
 

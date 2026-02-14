@@ -59,7 +59,6 @@ def arrowSpec (isOpen : Bool) (theme : Theme) (dims : Dimensions := defaultDimen
     ]
     RenderM.build do
       RenderM.strokeLineBatch data 2 2.0
-  draw := none
 }
 
 /-- Build checkmark points for menu items. -/
@@ -84,7 +83,6 @@ def checkmarkSpec (theme : Theme) : CustomSpec := {
     ]
     RenderM.build do
       RenderM.strokeLineBatch data 2 2.0
-  draw := none
 }
 
 end Dropdown

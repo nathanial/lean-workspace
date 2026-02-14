@@ -241,7 +241,6 @@ def histogramSpec (bins : Array Bin) (variant : HistogramVariant) (theme : Theme
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 /-- Custom spec for histogram with pre-computed bin counts (useful for categorical data). -/
@@ -314,7 +313,6 @@ def histogramFromCountsSpec (labels : Array String) (counts : Array Nat)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 end Histogram

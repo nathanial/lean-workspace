@@ -46,7 +46,6 @@ def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
       RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
-  draw := none
 }
 
 /-- Custom spec for animated switch track and thumb rendering.
@@ -65,7 +64,6 @@ def animatedTrackSpec (progress : Float) (hovered : Bool) (dims : Dimensions := 
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
       RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
-  draw := none
 }
 
 end Switch

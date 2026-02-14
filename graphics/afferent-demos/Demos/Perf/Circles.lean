@@ -22,12 +22,11 @@ def circlesPerfWidget (t : Float) (font : Font) (particles : Render.Dynamic.Part
     (radius : Float) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun _ => #[]
-    draw := some (fun layout => do
+    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
       withContentRect layout fun _ _ => do
         resetTransform
         renderCircleTestM t font particles radius
-    )
+    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 def stepCirclesPerfFrame (c : Canvas) (dt t : Float) (font : Font)

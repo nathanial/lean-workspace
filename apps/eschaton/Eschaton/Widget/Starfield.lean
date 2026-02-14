@@ -231,7 +231,6 @@ def starfieldSpec (config : StarfieldConfig) (t : Float) : Afferent.Arbor.Custom
         params warpStarFragment500.instanceCount.toUInt32
 
       Afferent.Arbor.RenderM.popTransform
-  draw := none
 }
 
 /-- Create a starfield widget that renders an animated warp speed effect.

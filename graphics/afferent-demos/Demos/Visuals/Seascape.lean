@@ -874,8 +874,7 @@ def seascapeWidget (t : Float) (screenScale : Float) (windowW windowH : Float)
     (fontMedium fontSmall : Afferent.Font) (state : SeascapeState) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun _ => #[]
-    draw := some (fun layout => do
+    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
       withContentRect layout fun w h => do
         let rect := layout.contentRect
         let renderer ← getRenderer
@@ -893,7 +892,7 @@ def seascapeWidget (t : Float) (screenScale : Float) (windowW windowH : Float)
         fillTextXY
           (s!"pos=({state.camera.x},{state.camera.y},{state.camera.z}) yaw={state.camera.yaw} pitch={state.camera.pitch}")
           (20 * screenScale) (55 * screenScale) fontSmall
-    )
+    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

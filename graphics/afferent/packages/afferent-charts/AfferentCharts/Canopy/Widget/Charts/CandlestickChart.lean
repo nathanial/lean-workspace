@@ -223,7 +223,6 @@ def candlestickChartSpec (data : Data) (theme : Theme)
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
       RenderM.fillRect xAxisRect axisColor 0.0
 
-  draw := none
 }
 
 end CandlestickChart

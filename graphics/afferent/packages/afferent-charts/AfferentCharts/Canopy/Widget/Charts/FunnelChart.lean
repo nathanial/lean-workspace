@@ -169,7 +169,6 @@ def funnelChartSpec (data : Data) (theme : Theme)
             formatPercentage valueFrac
           RenderM.fillText valueStr labelX valueY theme.smallFont theme.textMuted
 
-  draw := none
 }
 
 end FunnelChart

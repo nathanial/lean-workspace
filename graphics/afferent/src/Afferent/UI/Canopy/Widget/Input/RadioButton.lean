@@ -27,7 +27,6 @@ def circleSpec (selected : Bool) (_hovered : Bool) (theme : Theme) (size : Float
         let offsetY := (size - innerSize) / 2
         let innerRect := Arbor.Rect.mk' (rect.x + offsetX) (rect.y + offsetY) innerSize innerSize
         RenderM.fillRect innerRect theme.primary.foreground (innerSize / 2)
-  draw := none
 }
 
 end RadioButton

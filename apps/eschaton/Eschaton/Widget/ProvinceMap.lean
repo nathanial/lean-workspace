@@ -169,7 +169,6 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
             RenderM.fillTextBlock province.name labelRect font labelColor .center .middle
 
         RenderM.popTransform
-  draw := none
 }
 
 /-- Convert a Province to ProvinceHitInfo for hit testing. -/

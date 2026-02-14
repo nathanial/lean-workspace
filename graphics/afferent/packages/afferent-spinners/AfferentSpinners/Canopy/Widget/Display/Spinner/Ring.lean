@@ -36,7 +36,6 @@ def ringSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
         b := color.b
         a := color.a
       }]
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

@@ -67,7 +67,6 @@ def trackSpec (value : Float) (hovered : Bool) (focused : Bool)
         let focusRect := Arbor.Rect.mk' (thumbX - 2) (thumbY - 2)
                                          (dims.thumbSize + 4) (dims.thumbSize + 4)
         RenderM.strokeRect focusRect theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
-  draw := none
 }
 
 end Slider

@@ -303,6 +303,9 @@ def executeCommand (reg : FontRegistry) (cmd : Afferent.Arbor.RenderCommand) : C
       canvas.ctx.renderer.drawTrianglesScreenCoords
         vertices indices vertexCount.toUInt32 screenWidth screenHeight
 
+  | .customDraw draw =>
+    draw.run
+
   | .pushClip rect =>
     executeClipStackAction (.push rect)
 

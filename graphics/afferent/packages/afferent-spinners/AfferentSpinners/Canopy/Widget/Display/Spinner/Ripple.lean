@@ -84,7 +84,6 @@ def rippleSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment rippleFragment.hash rippleFragment.primitive.toUInt32
         params rippleFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

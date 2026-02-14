@@ -242,7 +242,6 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 /-- Custom spec for horizontal box plot rendering. -/
@@ -365,7 +364,6 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
       RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
       RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
-  draw := none
 }
 
 end BoxPlot

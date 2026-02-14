@@ -5,6 +5,7 @@
 import Afferent.UI.Arbor.Core.Types
 import Afferent.Core.Path
 import Afferent.Core.Paint
+import Afferent.Output.Canvas
 
 namespace Afferent.Arbor
 
@@ -50,6 +51,13 @@ structure ArcInstance where
   b : Float            -- Blue component [0, 1]
   a : Float            -- Alpha component [0, 1]
 deriving Repr, BEq, Inhabited
+
+/-- Backend-specific callback wrapped as a render command payload. -/
+structure CustomDraw where
+  run : Afferent.CanvasM Unit
+
+instance : Repr CustomDraw where
+  reprPrec _ _ := "⟨customDraw⟩"
 
 /-- Abstract render command.
     These commands describe what to render without knowing how. -/
@@ -138,6 +146,10 @@ inductive RenderCommand where
       - vertexCount: Number of vertices (vertices.size / 6) -/
   | fillTessellatedBatch (vertices : Array Float) (indices : Array UInt32) (vertexCount : Nat)
 
+  /-- Execute a custom CanvasM action for backend-specific rendering.
+      Use sparingly for effects that cannot be represented by standard commands. -/
+  | customDraw (draw : CustomDraw)
+
   /-- Push a clipping rectangle onto the clip stack. -/
   | pushClip (rect : Rect)
 
@@ -196,6 +208,10 @@ def circle (cx cy radius : Float) (color : Color) : RenderCommand :=
 /-- Create a stroked circle command. -/
 def strokeCircle' (cx cy radius : Float) (color : Color) (lineWidth : Float := 1.0) : RenderCommand :=
   .strokeCircle ⟨cx, cy⟩ radius color lineWidth
+
+/-- Create a backend-specific custom draw command. -/
+def custom (action : Afferent.CanvasM Unit) : RenderCommand :=
+  .customDraw ⟨action⟩
 
 end RenderCommand
 

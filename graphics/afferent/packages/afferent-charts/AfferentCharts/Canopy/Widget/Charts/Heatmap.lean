@@ -228,7 +228,6 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
         RenderM.fillText (formatValue maxVal) (barX + dims.colorBarWidth + 4) (barY + 4) theme.smallFont theme.textMuted
         RenderM.fillText (formatValue minVal) (barX + dims.colorBarWidth + 4) (barY + barHeight + 4) theme.smallFont theme.textMuted
 
-  draw := none
 }
 
 end Heatmap

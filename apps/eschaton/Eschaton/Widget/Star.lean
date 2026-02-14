@@ -95,7 +95,6 @@ def starSpec (t : Float) (color : Tincture.Color) (size : Float) : CustomSpec :=
     RenderM.build do
       RenderM.drawFragment starFragment.hash starFragment.primitive.toUInt32
         params starFragment.instanceCount.toUInt32
-  draw := none
 }
 
 /-- Create a star widget with animated glow effect.

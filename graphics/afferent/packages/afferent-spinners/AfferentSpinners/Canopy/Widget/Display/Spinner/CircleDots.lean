@@ -75,7 +75,6 @@ def circleDotsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec 
     RenderM.build do
       RenderM.drawFragment circleDotsFragment.hash circleDotsFragment.primitive.toUInt32
         params circleDotsFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

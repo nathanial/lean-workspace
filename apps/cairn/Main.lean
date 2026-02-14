@@ -173,8 +173,7 @@ def voxelSceneWidgetFRP (statesDyn : Dynamic Spider SceneStates) (config : Voxel
     : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.namedCustom voxelSceneWidgetName (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun _ => #[]
-    draw := some (fun layout => do
+    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
       -- Sample current states from the Dynamic in draw callback
       let states ← statesDyn.sample
       let currentState := states.getActiveState
@@ -188,7 +187,7 @@ def voxelSceneWidgetFRP (statesDyn : Dynamic Spider SceneStates) (config : Voxel
       let renderer ← Afferent.CanvasM.getRenderer
       Cairn.Widget.renderVoxelSceneWithHighlight renderer rect.width rect.height currentState config highlightPos
       Afferent.CanvasM.restore
-    )
+    ]
     skipCache := true
   }) (style := BoxStyle.fill)
 

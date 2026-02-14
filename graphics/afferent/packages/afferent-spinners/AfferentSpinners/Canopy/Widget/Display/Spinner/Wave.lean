@@ -73,7 +73,6 @@ def waveSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment waveFragment.hash waveFragment.primitive.toUInt32
         params waveFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

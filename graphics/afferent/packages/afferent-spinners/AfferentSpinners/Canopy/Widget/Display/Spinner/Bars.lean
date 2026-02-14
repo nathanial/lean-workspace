@@ -80,7 +80,6 @@ def barsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     RenderM.build do
       RenderM.drawFragment barsFragment.hash barsFragment.primitive.toUInt32
         params barsFragment.instanceCount.toUInt32
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

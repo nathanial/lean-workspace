@@ -134,7 +134,6 @@ def heartbeatSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :
         r := color.r, g := color.g, b := color.b, a := color.a
       }
       RenderM.fillPolygonInstanced heartHash heartVerts heartIndices #[heartInstance] heartCX heartCY
-  draw := none
 }
 
 end AfferentSpinners.Canopy.Spinner

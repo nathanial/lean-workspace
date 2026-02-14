@@ -130,13 +130,12 @@ def linesPerfWidget (t : Float) (buffer : FFI.Buffer) (lineCount : Nat) (lineWid
     (font : Font) (windowW windowH : Float) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun _ => #[]
-    draw := some (fun layout => do
+    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
       withContentRect layout fun w h => do
         resetTransform
         let rect := layout.contentRect
         renderLinesPerfMappedM t buffer lineCount lineWidth font w h windowW windowH rect.x rect.y
-    )
+    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

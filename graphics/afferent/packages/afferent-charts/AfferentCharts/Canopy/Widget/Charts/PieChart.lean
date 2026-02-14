@@ -128,7 +128,6 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
 
           labelAngle := labelAngle + sweepAngle
 
-  draw := none
 }
 
 /-- Custom spec for pie chart with legend instead of inline labels. -/
@@ -196,7 +195,6 @@ def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
         items
       let _ ← ChartUtils.drawLegend legendItems legendX legendStartY theme
 
-  draw := none
 }
 
 end PieChart

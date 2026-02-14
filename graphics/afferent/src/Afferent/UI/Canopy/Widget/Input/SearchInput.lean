@@ -61,7 +61,6 @@ def searchIconSpec (theme : Theme) (dims : Dimensions := defaultDimensions) : Cu
     let path := searchIconPath centerX centerY radius
     RenderM.build do
       RenderM.strokePath path theme.textMuted 1.5
-  draw := none
 }
 
 /-- Custom spec for clear button (X icon). -/
@@ -76,7 +75,6 @@ def clearButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := def
     let color := if isHovered then theme.text else theme.textMuted
     RenderM.build do
       RenderM.strokePath path color 1.5
-  draw := none
 }
 
 /-- Custom spec for search input text with cursor (reuses TextInput pattern). -/
@@ -101,7 +99,6 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
         let cursorY := rect.y + verticalOffset
         let cursorH := lineHeight
         RenderM.fillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
-  draw := none
 }
 
 end SearchInput

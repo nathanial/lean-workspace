@@ -104,7 +104,6 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
         let cursorY := rect.y + verticalOffset
         let cursorH := lineHeight
         RenderM.fillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
-  draw := none
 }
 
 /-- Handle key press for text input. -/

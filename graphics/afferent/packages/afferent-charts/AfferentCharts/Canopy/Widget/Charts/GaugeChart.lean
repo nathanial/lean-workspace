@@ -213,7 +213,6 @@ def gaugeChartSpec (data : Data) (theme : Theme)
       RenderM.fillText minStr minX minY theme.smallFont theme.textMuted
       RenderM.fillText maxStr maxX maxY theme.smallFont theme.textMuted
 
-  draw := none
 }
 
 end GaugeChart

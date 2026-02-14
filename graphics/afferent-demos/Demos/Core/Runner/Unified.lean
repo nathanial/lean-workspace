@@ -314,10 +314,7 @@ def unifiedDemo : IO Unit := do
               let executeBatchStart ← IO.monoNanosNow
               let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
               let executeBatchEnd ← IO.monoNanosNow
-              let executeCustomStart := executeBatchEnd
-              Afferent.Widget.renderCustomWidgets measuredWidget layouts
-              let executeCustomEnd ← IO.monoNanosNow
-              pure (batchStats, executeBatchEnd - executeBatchStart, executeCustomEnd - executeCustomStart)
+              pure (batchStats, executeBatchEnd - executeBatchStart, 0)
             let executeEnd ← IO.monoNanosNow
             c := c'
             let endFrameStart ← IO.monoNanosNow
