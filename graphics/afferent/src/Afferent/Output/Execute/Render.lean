@@ -18,9 +18,6 @@ private structure PreparedRender where
   offsetX : Float := 0.0
   offsetY : Float := 0.0
 
-private structure RenderOptions where
-  centered : Bool := false
-
 structure ArborRenderStats where
   batch : BatchStats := {}
   timeCollectMs : Float := 0.0
@@ -29,26 +26,13 @@ structure ArborRenderStats where
 deriving Repr, Inhabited
 
 private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (availWidth availHeight : Float) (centered : Bool) : CanvasM PreparedRender := do
-  if centered then
-    let (intrinsicWidth, intrinsicHeight) ← runWithFonts reg (Afferent.Arbor.intrinsicSize widget)
-    let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget intrinsicWidth intrinsicHeight)
-    let layouts := Trellis.layout measureResult.node intrinsicWidth intrinsicHeight
-    let offsetX := (availWidth - intrinsicWidth) / 2
-    let offsetY := (availHeight - intrinsicHeight) / 2
-    pure {
-      measuredWidget := measureResult.widget
-      layouts
-      offsetX
-      offsetY
-    }
-  else
-    let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
-    let layouts := Trellis.layout measureResult.node availWidth availHeight
-    pure {
-      measuredWidget := measureResult.widget
-      layouts
-    }
+    (availWidth availHeight : Float) : CanvasM PreparedRender := do
+  let measureResult ← runWithFonts reg (Afferent.Arbor.measureWidget widget availWidth availHeight)
+  let layouts := Trellis.layout measureResult.node availWidth availHeight
+  pure {
+    measuredWidget := measureResult.widget
+    layouts
+  }
 
 private def collectCommands (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) : CanvasM (Array Afferent.Arbor.RenderCommand) := do
@@ -93,31 +77,11 @@ def renderMeasuredArborWidget (reg : FontRegistry) (measuredWidget : Afferent.Ar
   let commands ← collectCommands measuredWidget layouts
   executeWithOffset reg commands offsetX offsetY
 
-/-- Compatibility wrapper for legacy API name.
-    Custom behavior now runs through RenderCommands during normal execution. -/
-def renderMeasuredArborWidgetWithCustom (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
-    (layouts : Trellis.LayoutResult) (offsetX : Float := 0.0) (offsetY : Float := 0.0) : CanvasM Unit := do
-  renderMeasuredArborWidget reg measuredWidget layouts offsetX offsetY
-
-private def renderArborInternal (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (availWidth availHeight : Float) (opts : RenderOptions) : CanvasM Unit := do
-  let prepared ← prepareRender reg widget availWidth availHeight opts.centered
-  renderMeasuredArborWidget reg prepared.measuredWidget prepared.layouts
-    prepared.offsetX prepared.offsetY
-
 /-- Render an Arbor widget tree using CanvasM.
-    This is the main entry point for rendering Arbor widgets with Afferent's Metal backend. -/
+    This is the single entry point for rendering Arbor widgets with Afferent's Metal backend. -/
 def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (availWidth availHeight : Float) : CanvasM Unit := do
-  renderArborInternal reg widget availWidth availHeight {
-    centered := false
-  }
-
-/-- Render an Arbor widget tree and return render statistics.
-    `timeCustomMs` is retained for backward compatibility and is always 0. -/
-def renderArborWidgetWithCustomAndStats (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM ArborRenderStats := do
-  let prepared ← prepareRender reg widget availWidth availHeight false
+  let prepared ← prepareRender reg widget availWidth availHeight
   let (commands, timeCollectMs) ←
     collectCommandsWithStats prepared.measuredWidget prepared.layouts
   let (batchStats, timeExecuteMs) ←
@@ -127,20 +91,6 @@ def renderArborWidgetWithCustomAndStats (reg : FontRegistry) (widget : Afferent.
     timeCollectMs
     timeExecuteMs
     timeCustomMs := 0.0
-  }
-
-/-- Compatibility wrapper for legacy API name. -/
-def renderArborWidgetWithCustom (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (availWidth availHeight : Float) : CanvasM Unit := do
-  let _ ← renderArborWidgetWithCustomAndStats reg widget availWidth availHeight
-  pure ()
-
-/-- Render an Arbor widget tree centered on screen.
-    Computes intrinsic size and offsets rendering to center the widget. -/
-def renderArborWidgetCentered (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
-    (screenWidth screenHeight : Float) : CanvasM Unit := do
-  renderArborInternal reg widget screenWidth screenHeight {
-    centered := true
   }
 
 end Afferent.Widget

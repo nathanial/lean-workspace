@@ -93,7 +93,7 @@ def run (canvas : Canvas) (fontReg : FontRegistry) (initial : Model) (app : UIAp
           model := msgs.foldl (fun s m => app.update m s) model
 
         c ← CanvasM.run' c do
-          Afferent.Widget.renderMeasuredArborWidgetWithCustom fontReg
+          Afferent.Widget.renderMeasuredArborWidget fontReg
             layoutInfo.widget layoutInfo.layouts layoutInfo.offsetX layoutInfo.offsetY
         c ← c.endFrame
   let task ← IO.asTask (prio := .dedicated) renderLoop

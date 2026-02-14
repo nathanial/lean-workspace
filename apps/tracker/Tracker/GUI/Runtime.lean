@@ -128,7 +128,7 @@ def run (createApp : ReactiveM Tracker.GUI.GuiApp) : IO Unit := do
       inputs.fireAnimationFrame dt
 
       canvas ← CanvasM.run' canvas do
-        let _ ← Afferent.Widget.renderArborWidgetWithCustomAndStats fontRegistry widget currentW currentH
+        let _ ← Afferent.Widget.renderArborWidget fontRegistry widget currentW currentH
         pure ()
       canvas ← canvas.endFrame
 

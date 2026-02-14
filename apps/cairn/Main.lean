@@ -19,7 +19,7 @@ import Cairn.World.Async
 
 open Afferent Afferent.FFI Afferent.Render
 open Afferent.Arbor (build BoxStyle)
-open Afferent.Widget (renderArborWidgetWithCustomAndStats)
+open Afferent.Widget (renderArborWidget)
 open Afferent.Canopy (TabDef TabViewResult tabView)
 open Afferent.Canopy.Reactive (ReactiveEvents ReactiveInputs createInputs runWidget ComponentRender
   WidgetM emit column' row' dynWidget)
@@ -591,7 +591,7 @@ def main : IO Unit := do
 
       -- Render the widget tree
       canvas ← CanvasM.run' canvas do
-        let _ ← renderArborWidgetWithCustomAndStats fontRegistry widget currentW currentH
+        let _ ← renderArborWidget fontRegistry widget currentW currentH
         pure ()
 
       -- Debug text overlay (sample state again after FRP propagation)

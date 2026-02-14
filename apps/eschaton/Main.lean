@@ -325,7 +325,7 @@ def main : IO Unit := do
 
         -- Timing: Render phase (collect + execute + custom draw hooks)
         let (newRenderStats, newCanvas) ← CanvasM.run canvas do
-          Afferent.Widget.renderArborWidgetWithCustomAndStats
+          Afferent.Widget.renderArborWidget
             fontRegistry starfieldWidget currentW currentH
         canvas := newCanvas
 
@@ -445,7 +445,7 @@ def main : IO Unit := do
 
         -- Timing: Render phase (collect + execute + custom draw hooks)
         let (newRenderStats, newCanvas) ← CanvasM.run canvas do
-          Afferent.Widget.renderArborWidgetWithCustomAndStats
+          Afferent.Widget.renderArborWidget
             fontRegistry provinceMapWidgetTree currentW currentH
         canvas := newCanvas
 
