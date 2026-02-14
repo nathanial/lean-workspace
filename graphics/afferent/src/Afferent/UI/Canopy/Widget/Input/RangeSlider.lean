@@ -61,21 +61,21 @@ def applyDrag (target : RangeSliderTarget) (value : Float) (low high : Float) : 
 def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.thumbSize)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let (l, h) := clampRange low high
-    RenderM.build do
+    do
       -- Track
       let trackY := rect.y + (rect.height - dims.trackHeight) / 2
       let trackRect := Arbor.Rect.mk' rect.x trackY dims.trackWidth dims.trackHeight
-      RenderM.fillRect trackRect (Color.gray 0.3) (dims.trackHeight / 2)
+      CanvasM.fillRectColor trackRect (Color.gray 0.3) (dims.trackHeight / 2)
 
       -- Filled range
       let rangeStart := rect.x + dims.trackWidth * l
       let rangeWidth := dims.trackWidth * (h - l)
       if rangeWidth > 0 then
         let rangeRect := Arbor.Rect.mk' rangeStart trackY rangeWidth dims.trackHeight
-        RenderM.fillRect rangeRect theme.primary.background (dims.trackHeight / 2)
+        CanvasM.fillRectColor rangeRect theme.primary.background (dims.trackHeight / 2)
 
       -- Thumb positions
       let thumbY := rect.y + (rect.height - dims.thumbSize) / 2
@@ -87,14 +87,14 @@ def trackSpec (low high : Float) (hovered : Bool) (target : RangeSliderTarget)
 
       let lowRect := Arbor.Rect.mk' lowX thumbY dims.thumbSize dims.thumbSize
       let highRect := Arbor.Rect.mk' highX thumbY dims.thumbSize dims.thumbSize
-      RenderM.fillRect lowRect lowColor (dims.thumbSize / 2)
-      RenderM.fillRect highRect highColor (dims.thumbSize / 2)
+      CanvasM.fillRectColor lowRect lowColor (dims.thumbSize / 2)
+      CanvasM.fillRectColor highRect highColor (dims.thumbSize / 2)
 
       if target == .low then
-        RenderM.strokeRect (Arbor.Rect.mk' (lowX - 2) (thumbY - 2)
+        CanvasM.strokeRectColor (Arbor.Rect.mk' (lowX - 2) (thumbY - 2)
           (dims.thumbSize + 4) (dims.thumbSize + 4)) theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
       if target == .high then
-        RenderM.strokeRect (Arbor.Rect.mk' (highX - 2) (thumbY - 2)
+        CanvasM.strokeRectColor (Arbor.Rect.mk' (highX - 2) (thumbY - 2)
           (dims.thumbSize + 4) (dims.thumbSize + 4)) theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
 }
 

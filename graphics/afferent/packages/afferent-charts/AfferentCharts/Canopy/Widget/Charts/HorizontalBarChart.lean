@@ -78,7 +78,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
     (variant : HorizontalBarChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -101,10 +101,10 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
     -- Fill color for bars
     let fillColor := variantColor variant theme
 
-    RenderM.build do
+    do
       -- Draw background
       let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-      RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw vertical grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
@@ -112,7 +112,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
           let lineRect := Arbor.Rect.mk' lineX chartY 1.0 chartHeight
-          RenderM.fillRect lineRect (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor lineRect (Color.gray 0.3) 0.0
 
       -- Draw bars (horizontal)
       for i in [0:barCount] do
@@ -120,7 +120,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
         let barWidth := (value / niceMaxVal) * chartWidth
         let barY := chartY + i.toFloat * (barHeight + dims.barGap)
         let barRect := Arbor.Rect.mk' chartX barY barWidth barHeight
-        RenderM.fillRect barRect fillColor dims.cornerRadius
+        CanvasM.fillRectColor barRect fillColor dims.cornerRadius
 
       -- Draw X-axis labels (values at bottom)
       if dims.gridLineCount > 0 then
@@ -130,7 +130,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw Y-axis labels (category names on left)
       if labels.size > 0 then
@@ -138,16 +138,16 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
           let label := labels[i]!
           let labelX := rect.x + 4
           let labelY := chartY + i.toFloat * (barHeight + dims.barGap) + barHeight / 2 + 4
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
       let axisColor := Color.gray 0.5
       -- Y-axis (left edge of chart area)
       let yAxisRect := Arbor.Rect.mk' chartX chartY 1.0 chartHeight
-      RenderM.fillRect yAxisRect axisColor 0.0
+      CanvasM.fillRectColor yAxisRect axisColor 0.0
       -- X-axis (bottom)
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
-      RenderM.fillRect xAxisRect axisColor 0.0
+      CanvasM.fillRectColor xAxisRect axisColor 0.0
 
 }
 
@@ -155,7 +155,7 @@ def horizontalBarChartSpec (data : Array Float) (labels : Array String)
 def multiColorHorizontalBarChartSpec (data : Array DataPoint)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -184,10 +184,10 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
       Color.rgba 0.0 0.7 0.7 1.0
     ]
 
-    RenderM.build do
+    do
       -- Background
       let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-      RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
@@ -195,7 +195,7 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
           let lineRect := Arbor.Rect.mk' lineX chartY 1.0 chartHeight
-          RenderM.fillRect lineRect (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor lineRect (Color.gray 0.3) 0.0
 
       -- Draw bars with individual colors
       for i in [0:barCount] do
@@ -204,7 +204,7 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
         let barY := chartY + i.toFloat * (barHeight + dims.barGap)
         let barRect := Arbor.Rect.mk' chartX barY barWidth barHeight
         let color := dp.color.getD (defaultColors[i % defaultColors.size]!)
-        RenderM.fillRect barRect color dims.cornerRadius
+        CanvasM.fillRectColor barRect color dims.cornerRadius
 
       -- X-axis labels
       if dims.gridLineCount > 0 then
@@ -214,7 +214,7 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Y-axis labels (from DataPoint labels)
       for i in [0:barCount] do
@@ -223,15 +223,15 @@ def multiColorHorizontalBarChartSpec (data : Array DataPoint)
         | some label =>
           let labelX := rect.x + 4
           let labelY := chartY + i.toFloat * (barHeight + dims.barGap) + barHeight / 2 + 4
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
         | none => pure ()
 
       -- Axes
       let axisColor := Color.gray 0.5
       let yAxisRect := Arbor.Rect.mk' chartX chartY 1.0 chartHeight
-      RenderM.fillRect yAxisRect axisColor 0.0
+      CanvasM.fillRectColor yAxisRect axisColor 0.0
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
-      RenderM.fillRect xAxisRect axisColor 0.0
+      CanvasM.fillRectColor xAxisRect axisColor 0.0
 
 }
 

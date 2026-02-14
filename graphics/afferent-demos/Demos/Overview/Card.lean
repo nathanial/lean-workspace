@@ -40,16 +40,16 @@ def cardLabelColor : Color :=
   Afferent.Color.gray 0.85
 
 /-- Immediate draw callback used by overview demo cards. -/
-abbrev CardDraw := Rect → RenderM Unit
+abbrev CardDraw := Rect → Afferent.FontRegistry → Afferent.CanvasM Unit
 
 /-- Create a flexible custom spec with minimum size that expands. -/
 def cardSpecFlex (draw : CardDraw) : CustomSpec :=
   { measure := fun _ _ => (60, 60)  -- Minimum content size
-    collect := fun layout =>
+    collect := fun layout reg =>
       let rect := layoutRectToRect layout.borderRect
       let pad := min rect.size.width rect.size.height * 0.08
       let inner := insetRect rect pad
-      draw inner }
+      draw inner reg }
 
 /-- Flexible card style for responsive layout. -/
 def cardStyleFlex : BoxStyle :=

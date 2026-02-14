@@ -7,6 +7,7 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-! ## Precomputed Spiral Geometry -/
@@ -36,13 +37,13 @@ private def spiralSegmentAlphas : Array Float := Id.run do
 /-- Spiral: Drawing spiral that grows and resets. -/
 def spiralSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
     let maxRadius := dims.size * 0.4
 
-    RenderM.build do
+    do
       -- Draw spiral up to current progress
       let targetSegments := (t * spiralPointDivisor).toUInt32.toNat
       let numSegments := min spiralPointCount targetSegments
@@ -61,7 +62,7 @@ def spiralSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
           data := data.push x1 |>.push y1 |>.push x2 |>.push y2
                    |>.push c.r |>.push c.g |>.push c.b |>.push c.a
                    |>.push 0.0
-        RenderM.strokeLineBatch data lineCount dims.strokeWidth
+        CanvasM.strokeLineBatch data lineCount dims.strokeWidth
 }
 
 end AfferentSpinners.Canopy.Spinner

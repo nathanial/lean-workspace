@@ -33,9 +33,9 @@ def defaultDimensions : Dimensions := {}
 def trackSpec (value : Float) (hovered : Bool) (focused : Bool)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.thumbSize)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
-    RenderM.build do
+    do
       -- Clamp value to valid range
       let v := if value < 0.0 then 0.0 else if value > 1.0 then 1.0 else value
 
@@ -45,13 +45,13 @@ def trackSpec (value : Float) (hovered : Bool) (focused : Bool)
 
       -- Background track (gray)
       let trackBg := Color.gray 0.3
-      RenderM.fillRect trackRect trackBg (dims.trackHeight / 2)
+      CanvasM.fillRectColor trackRect trackBg (dims.trackHeight / 2)
 
       -- Filled portion (primary color)
       let filledWidth := dims.trackWidth * v
       if filledWidth > 0 then
         let filledRect := Arbor.Rect.mk' rect.x trackY filledWidth dims.trackHeight
-        RenderM.fillRect filledRect theme.primary.background (dims.trackHeight / 2)
+        CanvasM.fillRectColor filledRect theme.primary.background (dims.trackHeight / 2)
 
       -- Thumb position (centered on value position)
       let thumbX := rect.x + (dims.trackWidth - dims.thumbSize) * v
@@ -60,13 +60,13 @@ def trackSpec (value : Float) (hovered : Bool) (focused : Bool)
 
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
-      RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
+      CanvasM.fillRectColor thumbRect thumbColor (dims.thumbSize / 2)
 
       -- Focus ring on thumb
       if focused then
         let focusRect := Arbor.Rect.mk' (thumbX - 2) (thumbY - 2)
                                          (dims.thumbSize + 4) (dims.thumbSize + 4)
-        RenderM.strokeRect focusRect theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
+        CanvasM.strokeRectColor focusRect theme.focusRing 2.0 ((dims.thumbSize + 4) / 2)
 }
 
 end Slider

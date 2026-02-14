@@ -352,7 +352,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
   measure := fun _ _ =>
     -- Return fixed viewport dimensions (container handles actual sizing)
     (viewportWidth, viewportHeight)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let viewportH := rect.height
     let lineHeight := renderState.lineHeight
@@ -361,15 +361,15 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
     -- Use actual font ascender for baseline positioning
     let ascender := theme.font.ascender
 
-    RenderM.build do
+    do
       -- Clip to viewport
       let clipRect := Arbor.Rect.mk' rect.x rect.y rect.width viewportH
-      RenderM.pushClip clipRect
+      CanvasM.pushClip clipRect
 
       if showPlaceholder then
         -- Render placeholder
         let textY := rect.y + ascender
-        RenderM.fillText placeholder rect.x textY theme.font theme.textMuted
+        CanvasM.fillTextId reg placeholder rect.x textY theme.font theme.textMuted
       else
         -- Render each visible line
         for i in [:lines.size] do
@@ -379,7 +379,7 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
             -- Only render if line is visible
             if lineY + lineHeight >= rect.y && lineY < rect.y + viewportH then
               let textY := lineY + ascender  -- Baseline position from actual font metrics
-              RenderM.fillText line.text rect.x textY theme.font theme.text
+              CanvasM.fillTextId reg line.text rect.x textY theme.font theme.text
           | none => pure ()
 
       -- Render cursor if focused
@@ -389,9 +389,9 @@ def areaSpec (renderState : TextAreaRenderState) (placeholder : String) (showPla
         -- Only render cursor if visible
         if cursorScreenY + lineHeight >= rect.y && cursorScreenY < rect.y + viewportH then
           let cursorRect := Arbor.Rect.mk' cursorScreenX cursorScreenY 2 lineHeight
-          RenderM.fillRect cursorRect theme.focusRing 0
+          CanvasM.fillRectColor cursorRect theme.focusRing 0
 
-      RenderM.popClip
+      CanvasM.popClip
 }
 
 end TextArea

@@ -56,7 +56,7 @@ def barChartSpec (data : Array Float) (labels : Array String)
     (variant : BarChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size from layout
@@ -89,16 +89,16 @@ def barChartSpec (data : Array Float) (labels : Array String)
     let fillColor := variantColor variant theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
 
       -- Draw bars
       for i in [0:barCount] do
@@ -106,7 +106,7 @@ def barChartSpec (data : Array Float) (labels : Array String)
         let barHeight := (value / niceMax) * chartHeight
         let barX := chartX + i.toFloat * (barWidth + dims.barGap)
         let barY := chartY + chartHeight - barHeight
-        RenderM.fillRect' barX barY barWidth barHeight fillColor dims.cornerRadius
+        CanvasM.fillRectColor' barX barY barWidth barHeight fillColor dims.cornerRadius
 
       -- Draw Y-axis labels
       if dims.gridLineCount > 0 then
@@ -115,7 +115,7 @@ def barChartSpec (data : Array Float) (labels : Array String)
           let value := ratio * niceMax
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if labels.size > 0 then
@@ -123,11 +123,11 @@ def barChartSpec (data : Array Float) (labels : Array String)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * (barWidth + dims.barGap) + barWidth / 2
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -135,7 +135,7 @@ def barChartSpec (data : Array Float) (labels : Array String)
 def multiColorBarChartSpec (data : Array DataPoint)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size from layout
@@ -167,16 +167,16 @@ def multiColorBarChartSpec (data : Array DataPoint)
 
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
 
       -- Draw bars with individual colors
       for i in [0:barCount] do
@@ -185,7 +185,7 @@ def multiColorBarChartSpec (data : Array DataPoint)
         let barX := chartX + i.toFloat * (barWidth + dims.barGap)
         let barY := chartY + chartHeight - barHeight
         let color := dp.color.getD (defaultColors[i % defaultColors.size]!)
-        RenderM.fillRect' barX barY barWidth barHeight color dims.cornerRadius
+        CanvasM.fillRectColor' barX barY barWidth barHeight color dims.cornerRadius
 
       -- Y-axis labels
       if dims.gridLineCount > 0 then
@@ -194,7 +194,7 @@ def multiColorBarChartSpec (data : Array DataPoint)
           let value := ratio * niceMax
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- X-axis labels
       for i in [0:barCount] do
@@ -202,11 +202,11 @@ def multiColorBarChartSpec (data : Array DataPoint)
         if let some label := dp.label then
           let labelX := chartX + i.toFloat * (barWidth + dims.barGap) + barWidth / 2
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 

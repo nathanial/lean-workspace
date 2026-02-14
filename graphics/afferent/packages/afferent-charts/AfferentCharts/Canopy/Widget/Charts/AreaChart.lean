@@ -59,7 +59,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
     (variant : AreaChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -74,9 +74,9 @@ def areaChartSpec (data : Array Float) (labels : Array String)
     let areaColor := variantColor variant theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Background
-      RenderM.fillRect (Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight)
+      CanvasM.fillRectColor (Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight)
         (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Grid lines
@@ -84,7 +84,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect (Arbor.Rect.mk' chartX lineY chartWidth 1.0) (Color.gray 0.3)
+          CanvasM.fillRectColor (Arbor.Rect.mk' chartX lineY chartWidth 1.0) (Color.gray 0.3)
 
       -- Filled area path
       if pointCount > 0 then
@@ -101,7 +101,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
           let lastX := chartX + (pointCount - 1).toFloat * stepX
           path := path.lineTo (Arbor.Point.mk' lastX baseY)
           path.lineTo (Arbor.Point.mk' chartX baseY)
-        RenderM.fillPath areaPath (areaColor.withAlpha dims.fillOpacity)
+        CanvasM.fillPathColor areaPath (areaColor.withAlpha dims.fillOpacity)
 
       -- Line on top of fill
       if dims.showLine && pointCount > 0 then
@@ -113,7 +113,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
             let pt := Arbor.Point.mk' x y
             path := if i == 0 then path.moveTo pt else path.lineTo pt
           path
-        RenderM.strokePath linePath areaColor dims.lineWidth
+        CanvasM.strokePathColor linePath areaColor dims.lineWidth
 
       -- Markers
       if dims.showMarkers && pointCount > 0 then
@@ -121,7 +121,7 @@ def areaChartSpec (data : Array Float) (labels : Array String)
           let x := chartX + i.toFloat * stepX
           let y := chartY + chartHeight - (data[i]! / niceMaxVal) * chartHeight
           -- GPU-batched marker
-          RenderM.fillCircle' x y dims.markerRadius areaColor
+          CanvasM.fillCircleColor' x y dims.markerRadius areaColor
 
       -- Y-axis labels
       if dims.gridLineCount > 0 then
@@ -129,18 +129,18 @@ def areaChartSpec (data : Array Float) (labels : Array String)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          RenderM.fillText (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- X-axis labels
       if labels.size > 0 && pointCount > 0 then
         for i in [0:min labels.size pointCount] do
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText labels[i]! labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg labels[i]! labelX labelY theme.smallFont theme.text
 
       -- Axes
-      RenderM.fillRect (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
-      RenderM.fillRect (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
+      CanvasM.fillRectColor (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
+      CanvasM.fillRectColor (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
 
 }
 
@@ -151,7 +151,7 @@ def defaultSeriesColors (theme : Theme) : Array Color := ChartUtils.defaultColor
 def multiSeriesSpec (series : Array Series) (labels : Array String)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -168,9 +168,9 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
     let baseY := chartY + chartHeight
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Background
-      RenderM.fillRect (Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight)
+      CanvasM.fillRectColor (Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight)
         (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Grid lines
@@ -178,7 +178,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect (Arbor.Rect.mk' chartX lineY chartWidth 1.0) (Color.gray 0.3)
+          CanvasM.fillRectColor (Arbor.Rect.mk' chartX lineY chartWidth 1.0) (Color.gray 0.3)
 
       -- First pass: draw all filled areas
       for h : si in [0:series.size] do
@@ -198,7 +198,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
             let lastX := chartX + (pointCount - 1).toFloat * stepX
             path := path.lineTo (Arbor.Point.mk' lastX baseY)
             path.lineTo (Arbor.Point.mk' chartX baseY)
-          RenderM.fillPath areaPath (color.withAlpha dims.fillOpacity)
+          CanvasM.fillPathColor areaPath (color.withAlpha dims.fillOpacity)
 
       -- Second pass: draw all lines on top
       if dims.showLine then
@@ -215,7 +215,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
                 let pt := Arbor.Point.mk' x y
                 path := if i == 0 then path.moveTo pt else path.lineTo pt
               path
-            RenderM.strokePath linePath color dims.lineWidth
+            CanvasM.strokePathColor linePath color dims.lineWidth
 
       -- Third pass: draw markers
       if dims.showMarkers then
@@ -226,7 +226,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
             let x := chartX + i.toFloat * stepX
             let y := chartY + chartHeight - (s.values[i]! / niceMaxVal) * chartHeight
             -- GPU-batched marker
-            RenderM.fillCircle' x y dims.markerRadius color
+            CanvasM.fillCircleColor' x y dims.markerRadius color
 
       -- Y-axis labels
       if dims.gridLineCount > 0 then
@@ -234,18 +234,18 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          RenderM.fillText (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (ChartUtils.formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- X-axis labels
       if labels.size > 0 && maxPoints > 0 then
         for i in [0:min labels.size maxPoints] do
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText labels[i]! labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg labels[i]! labelX labelY theme.smallFont theme.text
 
       -- Axes
-      RenderM.fillRect (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
-      RenderM.fillRect (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
+      CanvasM.fillRectColor (Arbor.Rect.mk' chartX chartY 1.0 chartHeight) axisColor
+      CanvasM.fillRectColor (Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0) axisColor
 
 }
 

@@ -85,7 +85,7 @@ private def formatPercentage (frac : Float) : String :=
 def funnelChartSpec (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 60, dims.marginTop + dims.marginBottom + 40)
-  collect := fun layout => RenderM.build do
+  collect := fun layout reg => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -112,7 +112,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
 
     -- Draw background
     let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-    RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+    CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
     -- Draw stages as trapezoids
     for i in [0:numStages] do
@@ -148,7 +148,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
         |>.lineTo bottomLeft
         |>.closePath
 
-      RenderM.fillPath trapPath color
+      CanvasM.fillPathColor trapPath color
 
       -- Draw label and value on the right side
       if dims.showLabels then
@@ -156,7 +156,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
         let labelY := stageY + stageHeight / 2
 
         -- Stage label
-        RenderM.fillText stage.label labelX labelY theme.smallFont theme.text
+        CanvasM.fillTextId reg stage.label labelX labelY theme.smallFont theme.text
 
         -- Value and/or percentage
         if dims.showValues || dims.showPercentages then
@@ -167,7 +167,7 @@ def funnelChartSpec (data : Data) (theme : Theme)
             formatValue stage.value
           else
             formatPercentage valueFrac
-          RenderM.fillText valueStr labelX valueY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg valueStr labelX valueY theme.smallFont theme.textMuted
 
 }
 

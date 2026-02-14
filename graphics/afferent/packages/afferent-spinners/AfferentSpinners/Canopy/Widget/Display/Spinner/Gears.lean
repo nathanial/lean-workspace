@@ -7,6 +7,7 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-! ## Precomputed Gear Tessellation for Instanced Rendering -/
@@ -69,7 +70,7 @@ private def gear6Hash : UInt64 := 0x67656172365F5F5F  -- "gear6___"
     Uses instanced rendering for high performance with many gear copies. -/
 def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -92,7 +93,7 @@ def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let (gear8Verts, gear8Indices, gear8CX, gear8CY) := gear8Tessellation
     let (gear6Verts, gear6Indices, gear6CX, gear6CY) := gear6Tessellation
 
-    RenderM.build do
+    do
       -- Draw gear 1 (8-tooth) using instanced rendering
       let gear1Instance : MeshInstance := {
         x := gear1X, y := gear1Y
@@ -100,7 +101,7 @@ def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
         scale := gear1Scale
         r := color.r, g := color.g, b := color.b, a := color.a
       }
-      RenderM.fillPolygonInstanced gear8Hash gear8Verts gear8Indices #[gear1Instance] gear8CX gear8CY
+      CanvasM.fillPolygonInstanced gear8Hash gear8Verts gear8Indices #[gear1Instance] gear8CX gear8CY
 
       -- Draw gear 2 (6-tooth) using instanced rendering
       let gear2Color := color.withAlpha 0.85
@@ -110,11 +111,11 @@ def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
         scale := gear2Scale
         r := gear2Color.r, g := gear2Color.g, b := gear2Color.b, a := gear2Color.a
       }
-      RenderM.fillPolygonInstanced gear6Hash gear6Verts gear6Indices #[gear2Instance] gear6CX gear6CY
+      CanvasM.fillPolygonInstanced gear6Hash gear6Verts gear6Indices #[gear2Instance] gear6CX gear6CY
 
       -- Center holes (using GPU-batched circles)
-      RenderM.fillCircle (Point.mk' gear1X gear1Y) (gear1Scale * 0.25) (color.withAlpha 0.3)
-      RenderM.fillCircle (Point.mk' gear2X gear2Y) (gear2Scale * 0.25) (color.withAlpha 0.25)
+      CanvasM.fillCircleColor (Point.mk' gear1X gear1Y) (gear1Scale * 0.25) (color.withAlpha 0.3)
+      CanvasM.fillCircleColor (Point.mk' gear2X gear2Y) (gear2Scale * 0.25) (color.withAlpha 0.25)
 }
 
 end AfferentSpinners.Canopy.Spinner

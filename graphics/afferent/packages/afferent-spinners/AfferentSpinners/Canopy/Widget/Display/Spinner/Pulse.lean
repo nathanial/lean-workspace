@@ -9,6 +9,7 @@ import Afferent.Runtime.Shader.DSL
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Afferent.Shader
 open _root_.Shader hiding center size time color
 open Linalg
@@ -63,7 +64,7 @@ initialize pulseFragmentRegistration : Unit ← do
     Passes 9 floats to GPU; the shader computes all 3 ring positions and alphas. -/
 def pulseSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -77,8 +78,8 @@ def pulseSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
       color.r, color.g, color.b, color.a  -- color
     ]
 
-    RenderM.build do
-      RenderM.drawFragment pulseFragment.hash pulseFragment.primitive.toUInt32
+    do
+      CanvasM.drawFragment pulseFragment.hash pulseFragment.primitive.toUInt32
         params pulseFragment.instanceCount.toUInt32
 }
 

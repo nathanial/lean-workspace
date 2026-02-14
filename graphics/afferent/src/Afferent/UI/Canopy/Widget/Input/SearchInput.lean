@@ -53,28 +53,28 @@ def clearButtonPath (cx cy halfSize : Float) : Afferent.Path :=
 /-- Custom spec for search icon. -/
 def searchIconSpec (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.iconSize + dims.iconPadding, dims.iconSize)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let centerX := rect.x + dims.iconSize / 2
     let centerY := rect.y + rect.height / 2
     let radius := dims.iconSize * 0.35
     let path := searchIconPath centerX centerY radius
-    RenderM.build do
-      RenderM.strokePath path theme.textMuted 1.5
+    do
+      CanvasM.strokePathColor path theme.textMuted 1.5
 }
 
 /-- Custom spec for clear button (X icon). -/
 def clearButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.clearButtonSize, dims.clearButtonSize)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
     let iconSize := dims.clearButtonSize * 0.25
     let path := clearButtonPath centerX centerY iconSize
     let color := if isHovered then theme.text else theme.textMuted
-    RenderM.build do
-      RenderM.strokePath path color 1.5
+    do
+      CanvasM.strokePathColor path color 1.5
 }
 
 /-- Custom spec for search input text with cursor (reuses TextInput pattern). -/
@@ -84,7 +84,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let lineHeight := theme.font.lineHeight
     let height := lineHeight + 4
     (0, height)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let text := if showPlaceholder then placeholder else displayText
     let textColor := if showPlaceholder then theme.textMuted else theme.text
@@ -92,13 +92,13 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let ascender := theme.font.ascender
     let verticalOffset := (rect.height - lineHeight) / 2
     let textY := rect.y + verticalOffset + ascender
-    RenderM.build do
-      RenderM.fillText text rect.x textY theme.font textColor
+    do
+      CanvasM.fillTextId reg text rect.x textY theme.font textColor
       if focused then
         let cursorX := rect.x + cursorPixelX
         let cursorY := rect.y + verticalOffset
         let cursorH := lineHeight
-        RenderM.fillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
+        CanvasM.fillRectColor (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
 }
 
 end SearchInput

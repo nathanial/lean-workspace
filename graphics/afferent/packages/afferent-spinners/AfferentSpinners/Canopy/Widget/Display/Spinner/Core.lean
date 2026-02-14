@@ -3,11 +3,13 @@
 -/
 import Afferent.UI.Canopy.Core
 import Afferent.UI.Canopy.Theme
+import Afferent.Draw.Builder
 
 namespace AfferentSpinners.Canopy
 
 open Afferent.Canopy
 open Afferent.Arbor hiding Event
+open Afferent
 
 /-- Spinner variant for different visual styles. -/
 inductive SpinnerVariant where

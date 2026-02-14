@@ -51,7 +51,10 @@ private structure DrawState where
   deferredOverlay : Array (Afferent.Arbor.Widget × Trellis.LayoutResult) := #[]
 deriving Inhabited
 
-private abbrev DrawM := StateT DrawState RenderM
+private abbrev DrawM := ReaderT FontRegistry (StateT DrawState CanvasM)
+
+private def DrawM.liftCanvas {α : Type} (m : CanvasM α) : DrawM α :=
+  fun _ => StateT.lift m
 
 namespace DrawM
 
@@ -73,13 +76,14 @@ private def isOverlayWidgetForRender (w : Afferent.Arbor.Widget) : Bool :=
 private def drawBoxStyle (rect : Trellis.LayoutRect) (style : BoxStyle) : DrawM Unit := do
   let r : Rect := ⟨⟨rect.x, rect.y⟩, ⟨rect.width, rect.height⟩⟩
   if let some bg := style.backgroundColor then
-    StateT.lift (RenderM.fillRect r bg style.cornerRadius)
+    DrawM.liftCanvas (CanvasM.fillRectColor r bg style.cornerRadius)
   if let some bc := style.borderColor then
     if style.borderWidth > 0 then
-      StateT.lift (RenderM.strokeRect r bc style.borderWidth style.cornerRadius)
+      DrawM.liftCanvas (CanvasM.strokeRectColor r bc style.borderWidth style.cornerRadius)
 
 private def drawWrappedText (contentRect : Trellis.LayoutRect) (font : FontId)
     (color : Color) (align : TextAlign) (textLayout : TextLayout) : DrawM Unit := do
+  let reg ← read
   let lineHeight := textLayout.lineHeight
   let ascender := textLayout.ascender
   let verticalOffset := (contentRect.height - textLayout.totalHeight) / 2
@@ -90,19 +94,20 @@ private def drawWrappedText (contentRect : Trellis.LayoutRect) (font : FontId)
       | .left => contentRect.x
       | .center => contentRect.x + (contentRect.width - line.width) / 2
       | .right => contentRect.x + contentRect.width - line.width
-    StateT.lift (RenderM.fillText line.text x y font color)
+    DrawM.liftCanvas (CanvasM.fillTextId reg line.text x y font color)
     y := y + lineHeight
 
 private def drawSingleLineText (contentRect : Trellis.LayoutRect) (text : String)
     (font : FontId) (color : Color) (align : TextAlign) (textWidth : Float)
     (lineHeight : Float) : DrawM Unit := do
+  let reg ← read
   let x := match align with
     | .left => contentRect.x
     | .center => contentRect.x + (contentRect.width - textWidth) / 2
     | .right => contentRect.x + contentRect.width - textWidth
   let ascender := lineHeight * 0.8
   let verticalOffset := (contentRect.height - lineHeight) / 2
-  StateT.lift (RenderM.fillText text x (contentRect.y + verticalOffset + ascender) font color)
+  DrawM.liftCanvas (CanvasM.fillTextId reg text x (contentRect.y + verticalOffset + ascender) font color)
 
 partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult) : DrawM Unit := do
   let some computed := layouts.get w.id | return
@@ -125,7 +130,8 @@ partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResu
 
   | .custom _ _ style spec _ =>
     drawBoxStyle borderRect style
-    StateT.lift (spec.collect computed)
+    let reg ← read
+    DrawM.liftCanvas (spec.collect computed reg)
 
   | .flex _ _ _ style children _ =>
     drawBoxStyle borderRect style
@@ -166,13 +172,13 @@ partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResu
     let effectiveScroll := scrollState.clamp viewportW viewportH contentWidth contentHeight
 
     let clipRect : Rect := ⟨⟨contentRect.x, contentRect.y⟩, ⟨contentRect.width, contentRect.height⟩⟩
-    StateT.lift (RenderM.pushClip clipRect)
-    StateT.lift RenderM.save
-    StateT.lift (RenderM.pushTranslate (-effectiveScroll.offsetX) (-effectiveScroll.offsetY))
+    DrawM.liftCanvas (CanvasM.pushClip clipRect)
+    DrawM.liftCanvas CanvasM.save
+    DrawM.liftCanvas (CanvasM.pushTranslate (-effectiveScroll.offsetX) (-effectiveScroll.offsetY))
     drawWidget child layouts
-    StateT.lift RenderM.popTransform
-    StateT.lift RenderM.restore
-    StateT.lift RenderM.popClip
+    DrawM.liftCanvas CanvasM.popTransform
+    DrawM.liftCanvas CanvasM.restore
+    DrawM.liftCanvas CanvasM.popClip
 
     let thickness := scrollbarConfig.thickness
     let minThumb := scrollbarConfig.minThumbLength
@@ -188,9 +194,9 @@ partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResu
       let thumbY := thumbTravel * scrollRatio
       let trackX := contentRect.x + viewportW - thickness
       let trackRect : Rect := ⟨⟨trackX, contentRect.y⟩, ⟨thickness, trackHeight⟩⟩
-      StateT.lift (RenderM.fillRect trackRect scrollbarConfig.trackColor radius)
+      DrawM.liftCanvas (CanvasM.fillRectColor trackRect scrollbarConfig.trackColor radius)
       let thumbRect : Rect := ⟨⟨trackX, contentRect.y + thumbY⟩, ⟨thickness, thumbHeight⟩⟩
-      StateT.lift (RenderM.fillRect thumbRect scrollbarConfig.thumbColor radius)
+      DrawM.liftCanvas (CanvasM.fillRectColor thumbRect scrollbarConfig.thumbColor radius)
 
     if scrollbarConfig.showHorizontal && contentWidth > viewportW then
       let maxScrollX := contentWidth - viewportW
@@ -202,9 +208,9 @@ partial def drawWidget (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResu
       let thumbX := thumbTravel * scrollRatio
       let trackY := contentRect.y + viewportH - thickness
       let trackRect : Rect := ⟨⟨contentRect.x, trackY⟩, ⟨trackWidth, thickness⟩⟩
-      StateT.lift (RenderM.fillRect trackRect scrollbarConfig.trackColor radius)
+      DrawM.liftCanvas (CanvasM.fillRectColor trackRect scrollbarConfig.trackColor radius)
       let thumbRect : Rect := ⟨⟨contentRect.x + thumbX, trackY⟩, ⟨thumbWidth, thickness⟩⟩
-      StateT.lift (RenderM.fillRect thumbRect scrollbarConfig.thumbColor radius)
+      DrawM.liftCanvas (CanvasM.fillRectColor thumbRect scrollbarConfig.thumbColor radius)
 
 partial def drawDeferredOverlay : DrawM Unit := do
   let state ← get
@@ -215,10 +221,11 @@ partial def drawDeferredOverlay : DrawM Unit := do
   if newState.deferredOverlay.size > 0 then
     drawDeferredOverlay
 
-private def drawWidgetTree (w : Afferent.Arbor.Widget) (layouts : Trellis.LayoutResult) : RenderM Unit := do
-  let _ ← StateT.run (do
+private def drawWidgetTree (reg : FontRegistry) (w : Afferent.Arbor.Widget)
+    (layouts : Trellis.LayoutResult) : CanvasM Unit := do
+  let _ ← ((do
     drawWidget w layouts
-    drawDeferredOverlay) ({ deferredOverlay := #[] } : DrawState)
+    drawDeferredOverlay).run reg).run ({ deferredOverlay := #[] } : DrawState)
   pure ()
 
 private def prepareRender (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
@@ -243,12 +250,12 @@ private def withOffset (offsetX offsetY : Float) (action : CanvasM α) : CanvasM
 
 private def drawWithOffset (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM Unit := do
-  withOffset offsetX offsetY (RenderM.run reg (drawWidgetTree measuredWidget layouts))
+  withOffset offsetX offsetY (drawWidgetTree reg measuredWidget layouts)
 
 private def drawWithOffsetAndStats (reg : FontRegistry) (measuredWidget : Afferent.Arbor.Widget)
     (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM (BatchStats × Float) := do
   let t0 ← IO.monoNanosNow
-  withOffset offsetX offsetY (RenderM.run reg (drawWidgetTree measuredWidget layouts))
+  withOffset offsetX offsetY (drawWidgetTree reg measuredWidget layouts)
   let t1 ← IO.monoNanosNow
   pure ({}, (t1 - t0).toFloat / 1000000.0)
 

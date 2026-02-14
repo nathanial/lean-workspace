@@ -8,7 +8,7 @@ import Trellis
 import Demos.Overview.Card
 import Linalg.Core
 
-open Afferent.Arbor
+open Afferent Afferent.Arbor
 open Trellis (EdgeInsets)
 open Linalg
 
@@ -20,12 +20,12 @@ structure ShapeDef where
   path : Afferent.Arbor.Rect → Afferent.Path
   stroke : Option (Afferent.Arbor.Color × Float) := none
 
-def shapeCommands (shape : ShapeDef) (rect : Rect) : RenderM Unit := do
+def shapeCommands (shape : ShapeDef) (rect : Rect) (_reg : Afferent.FontRegistry) : Afferent.CanvasM Unit := do
   let path := shape.path rect
-  RenderM.fillPath path shape.color
+  CanvasM.fillPathColor path shape.color
   match shape.stroke with
   | some (strokeColor, strokeWidth) =>
-    RenderM.strokePath path strokeColor strokeWidth
+    CanvasM.strokePathColor path strokeColor strokeWidth
   | none => pure ()
 
 /-- Build a labeled card for a single shape. -/

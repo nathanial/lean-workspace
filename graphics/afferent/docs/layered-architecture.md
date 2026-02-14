@@ -62,7 +62,7 @@ Disallowed:
 - Owns widget model, measure/layout preparation, event model, and Canopy composition.
 
 3. Draw
-- Owns shared draw datatypes (`TextAlign`, `MeshInstance`, etc.) and immediate drawing DSL (`RenderM`).
+- Owns shared draw datatypes (`TextAlign`, `MeshInstance`, etc.) and immediate drawing helpers (`CanvasM`).
 
 4. Output
 - Owns concrete widget traversal and Canvas/FFI execution (`renderMeasuredArborWidget` / `renderArborWidget`).

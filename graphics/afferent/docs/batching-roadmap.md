@@ -1,7 +1,7 @@
 # Batching Performance Roadmap
 
 > Status: archival roadmap from the pre-immediate-mode pipeline.
-> The current runtime renders directly via `RenderM`/`CanvasM`; command collection/execution APIs referenced below are historical.
+> The current runtime renders directly via `CanvasM`; command collection/execution APIs referenced below are historical.
 
 This document outlines historical optimization ideas for GPU batching in Afferent's rendering pipeline.
 

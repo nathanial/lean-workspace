@@ -118,7 +118,7 @@ private def formatValue (v : Float) : String :=
 def boxPlotSpec (summaries : Array Summary) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -165,16 +165,16 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
     let colors := defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw horizontal grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
 
       -- Draw each box plot
       for i in [0:boxCount] do
@@ -193,32 +193,32 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
 
         -- Draw whisker (vertical line from min to max)
         let whiskerX := boxCenterX
-        RenderM.fillRect' (whiskerX - 0.5) maxY 1.0 (minY - maxY) color 0.0
+        CanvasM.fillRectColor' (whiskerX - 0.5) maxY 1.0 (minY - maxY) color 0.0
 
         -- Draw whisker caps
         let capHalfWidth := dims.whiskerWidth / 2
         -- Min cap (bottom)
-        RenderM.fillRect' (whiskerX - capHalfWidth) (minY - 0.5) dims.whiskerWidth 1.0 color 0.0
+        CanvasM.fillRectColor' (whiskerX - capHalfWidth) (minY - 0.5) dims.whiskerWidth 1.0 color 0.0
         -- Max cap (top)
-        RenderM.fillRect' (whiskerX - capHalfWidth) (maxY - 0.5) dims.whiskerWidth 1.0 color 0.0
+        CanvasM.fillRectColor' (whiskerX - capHalfWidth) (maxY - 0.5) dims.whiskerWidth 1.0 color 0.0
 
         -- Draw box (Q1 to Q3)
         let boxLeft := boxCenterX - dims.boxWidth / 2
         let boxHeight := q1Y - q3Y  -- Q1 is lower on screen (higher Y) than Q3
         let boxRect := Arbor.Rect.mk' boxLeft q3Y dims.boxWidth boxHeight
-        RenderM.fillRect boxRect (color.withAlpha 0.6) 2.0
+        CanvasM.fillRectColor boxRect (color.withAlpha 0.6) 2.0
         -- Box outline
-        RenderM.strokeRect boxRect color 1.5
+        CanvasM.strokeRectColor boxRect color 1.5
 
         -- Draw median line
-        RenderM.fillRect' boxLeft (medianY - 1) dims.boxWidth 2.0 (Color.white.withAlpha 0.9) 0.0
+        CanvasM.fillRectColor' boxLeft (medianY - 1) dims.boxWidth 2.0 (Color.white.withAlpha 0.9) 0.0
 
         -- Draw outliers
         if dims.showOutliers then
           for outlier in s.outliers do
             let outlierY := yToPixel outlier
             -- GPU-batched outlier marker
-            RenderM.fillCircle' boxCenterX outlierY dims.outlierRadius color
+            CanvasM.fillCircleColor' boxCenterX outlierY dims.outlierRadius color
 
       -- Draw Y-axis labels
       if dims.gridLineCount > 0 then
@@ -226,7 +226,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := yMin + ratio * yRange
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
-          RenderM.fillText (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (box labels)
       for i in [0:boxCount] do
@@ -235,12 +235,12 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
         | some label =>
           let boxCenterX := chartX + gapWidth + i.toFloat * (dims.boxWidth + gapWidth) + dims.boxWidth / 2
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText label boxCenterX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg label boxCenterX labelY theme.smallFont theme.textMuted
         | none => pure ()
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -248,7 +248,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
 def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -292,16 +292,16 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
     let colors := defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw vertical grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw each horizontal box plot
       for i in [0:boxCount] do
@@ -318,29 +318,29 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
         let maxX := xToPixel s.max
 
         -- Draw whisker (horizontal line from min to max)
-        RenderM.fillRect' minX (boxCenterY - 0.5) (maxX - minX) 1.0 color 0.0
+        CanvasM.fillRectColor' minX (boxCenterY - 0.5) (maxX - minX) 1.0 color 0.0
 
         -- Draw whisker caps
         let capHalfHeight := dims.whiskerWidth / 2
-        RenderM.fillRect' (minX - 0.5) (boxCenterY - capHalfHeight) 1.0 dims.whiskerWidth color 0.0
-        RenderM.fillRect' (maxX - 0.5) (boxCenterY - capHalfHeight) 1.0 dims.whiskerWidth color 0.0
+        CanvasM.fillRectColor' (minX - 0.5) (boxCenterY - capHalfHeight) 1.0 dims.whiskerWidth color 0.0
+        CanvasM.fillRectColor' (maxX - 0.5) (boxCenterY - capHalfHeight) 1.0 dims.whiskerWidth color 0.0
 
         -- Draw box (Q1 to Q3)
         let boxTop := boxCenterY - dims.boxWidth / 2
         let boxWidth := q3X - q1X
         let boxRect := Arbor.Rect.mk' q1X boxTop boxWidth dims.boxWidth
-        RenderM.fillRect boxRect (color.withAlpha 0.6) 2.0
-        RenderM.strokeRect boxRect color 1.5
+        CanvasM.fillRectColor boxRect (color.withAlpha 0.6) 2.0
+        CanvasM.strokeRectColor boxRect color 1.5
 
         -- Draw median line
-        RenderM.fillRect' (medianX - 1) boxTop 2.0 dims.boxWidth (Color.white.withAlpha 0.9) 0.0
+        CanvasM.fillRectColor' (medianX - 1) boxTop 2.0 dims.boxWidth (Color.white.withAlpha 0.9) 0.0
 
         -- Draw outliers
         if dims.showOutliers then
           for outlier in s.outliers do
             let outlierX := xToPixel outlier
             -- GPU-batched outlier marker
-            RenderM.fillCircle' outlierX boxCenterY dims.outlierRadius color
+            CanvasM.fillCircleColor' outlierX boxCenterY dims.outlierRadius color
 
       -- Draw X-axis labels (values)
       if dims.gridLineCount > 0 then
@@ -349,7 +349,7 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
           let value := xMin + ratio * xRange
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText (formatValue value) labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (formatValue value) labelX labelY theme.smallFont theme.textMuted
 
       -- Draw Y-axis labels (box labels)
       for i in [0:boxCount] do
@@ -357,12 +357,12 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
         match s.label with
         | some label =>
           let boxCenterY := chartY + gapHeight + i.toFloat * (dims.boxWidth + gapHeight) + dims.boxWidth / 2
-          RenderM.fillText label (rect.x + 4) (boxCenterY + 4) theme.smallFont theme.text
+          CanvasM.fillTextId reg label (rect.x + 4) (boxCenterY + 4) theme.smallFont theme.text
         | none => pure ()
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 

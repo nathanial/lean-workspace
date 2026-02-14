@@ -8,6 +8,7 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-! ## Precomputed Heart Tessellation for Instanced Rendering -/
@@ -107,7 +108,7 @@ private def heartHash : UInt64 := 0x68656172745F5F5F  -- "heart___"
     Uses pre-tessellated heart geometry with instanced rendering for better performance. -/
 def heartbeatSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -126,14 +127,14 @@ def heartbeatSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :
 
     let (heartVerts, heartIndices, heartCX, heartCY) := heartTessellation
 
-    RenderM.build do
+    do
       let heartInstance : MeshInstance := {
         x := cx, y := cy
         rotation := 0.0
         scale := baseSize * scale
         r := color.r, g := color.g, b := color.b, a := color.a
       }
-      RenderM.fillPolygonInstanced heartHash heartVerts heartIndices #[heartInstance] heartCX heartCY
+      CanvasM.fillPolygonInstanced heartHash heartVerts heartIndices #[heartInstance] heartCX heartCY
 }
 
 end AfferentSpinners.Canopy.Spinner

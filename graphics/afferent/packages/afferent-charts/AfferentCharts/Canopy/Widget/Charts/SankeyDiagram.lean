@@ -271,7 +271,7 @@ private def linkPath (l : LinkLayout) (ox oy : Float) : Afferent.Path :=
 def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 100, dims.marginTop + dims.marginBottom + 50)
-  collect := fun layout => RenderM.build do
+  collect := fun layout reg => do
     let rect := layout.contentRect
 
     if cached.nodeLayouts.isEmpty then return
@@ -294,7 +294,7 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
 
     -- Draw background
     let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-    RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+    CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
     -- Scale node width proportionally
     let scaledNodeWidth := dims.nodeWidth * scaleX
@@ -313,7 +313,7 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
         color := l.color
       }
       let path := linkPath scaledLink ox oy
-      RenderM.fillPath path l.color
+      CanvasM.fillPathColor path l.color
 
     -- Draw nodes - scale and offset pre-computed positions
     for n in cached.nodeLayouts do
@@ -321,7 +321,7 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
       let scaledY := n.y * scaleY
       let scaledHeight := n.height * scaleY
       let nodeRect := Arbor.Rect.mk' (scaledX + ox) (scaledY + oy) scaledNodeWidth scaledHeight
-      RenderM.fillRect nodeRect n.color 2.0
+      CanvasM.fillRectColor nodeRect n.color 2.0
 
     -- Draw labels - scale and offset pre-computed positions
     if dims.showLabels then
@@ -343,7 +343,7 @@ def sankeyDiagramSpecCached (cached : CachedLayout) (data : Data) (theme : Theme
         else
           n.node.label
 
-        RenderM.fillText labelText labelX labelY theme.smallFont theme.text
+        CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
 
 }
 

@@ -43,7 +43,7 @@ deriving Repr, Inhabited, BEq
 def pieChartSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)  -- Minimum size
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -68,9 +68,9 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
     let pi := 3.141592653589793
     let twoPi := 2.0 * pi
 
-    RenderM.build do
+    do
       -- GPU-batched background circle
-      RenderM.fillCircle center radius (theme.panel.background.withAlpha 0.3)
+      CanvasM.fillCircleColor center radius (theme.panel.background.withAlpha 0.3)
 
       -- Draw each slice
       let mut startAngle := -pi / 2  -- Start at top (12 o'clock)
@@ -87,12 +87,12 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
         let slicePath := Afferent.Path.pie center radius startAngle endAngle
 
         -- Fill the slice
-        RenderM.fillPath slicePath color
+        CanvasM.fillPathColor slicePath color
 
         -- Optionally stroke the slice
         if let some strokeColor := dims.strokeColor then
           if dims.strokeWidth > 0.0 then
-            RenderM.strokePath slicePath strokeColor dims.strokeWidth
+            CanvasM.strokePathColor slicePath strokeColor dims.strokeWidth
 
         startAngle := endAngle
 
@@ -124,7 +124,7 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
 
           if labelParts.size > 0 then
             let labelText := String.intercalate " " labelParts.toList
-            RenderM.fillText labelText labelX (labelY + 4) theme.smallFont theme.text
+            CanvasM.fillTextId reg labelText labelX (labelY + 4) theme.smallFont theme.text
 
           labelAngle := labelAngle + sweepAngle
 
@@ -134,7 +134,7 @@ def pieChartSpec (slices : Array Slice) (theme : Theme)
 def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (170, 50)  -- Minimum size with legend
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -163,7 +163,7 @@ def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
     let legendX := rect.x + radius * 2 + 50
     let legendStartY := rect.y + 20
 
-    RenderM.build do
+    do
       -- Draw each slice
       let mut startAngle := -pi / 2
       for i in [0:slices.size] do
@@ -175,11 +175,11 @@ def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
         let color := slice.color.getD (colors[i % colors.size]!)
         let slicePath := Afferent.Path.pie center radius startAngle endAngle
 
-        RenderM.fillPath slicePath color
+        CanvasM.fillPathColor slicePath color
 
         if let some strokeColor := dims.strokeColor then
           if dims.strokeWidth > 0.0 then
-            RenderM.strokePath slicePath strokeColor dims.strokeWidth
+            CanvasM.strokePathColor slicePath strokeColor dims.strokeWidth
 
         startAngle := endAngle
 
@@ -193,7 +193,7 @@ def pieChartWithLegendSpec (slices : Array Slice) (theme : Theme)
           let label := slice.label.getD s!"Item {idx + 1}"
           items := items.push { label, color, suffix := some (ChartUtils.formatPercent proportion) }
         items
-      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY theme
+      let _ ← ChartUtils.drawLegend legendItems legendX legendStartY reg theme
 
 }
 

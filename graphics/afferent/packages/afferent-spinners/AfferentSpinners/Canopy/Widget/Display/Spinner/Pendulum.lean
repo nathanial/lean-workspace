@@ -9,6 +9,7 @@ import Afferent.Runtime.Shader.DSL
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Afferent.Shader
 open _root_.Shader hiding center size time color
 open Linalg
@@ -82,7 +83,7 @@ initialize pendulumFragmentRegistration : Unit ← do
     Passes 9 floats to GPU for circles; rod drawn separately. -/
 def pendulumSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let pivotY := rect.y + dims.size * 0.15
@@ -103,13 +104,13 @@ def pendulumSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
       color.r, color.g, color.b, color.a  -- color
     ]
 
-    RenderM.build do
+    do
       -- Draw all 7 circles via shader (pivot, 5 trail, bob)
-      RenderM.drawFragment pendulumFragment.hash pendulumFragment.primitive.toUInt32
+      CanvasM.drawFragment pendulumFragment.hash pendulumFragment.primitive.toUInt32
         params pendulumFragment.instanceCount.toUInt32
 
       -- Rod (line from pivot to bob - not part of circle shader)
-      RenderM.strokeLineBatch #[cx, pivotY, bobX, bobY, color.r, color.g, color.b, color.a * 0.7, 0.0] 1 (dims.strokeWidth * 0.7)
+      CanvasM.strokeLineBatch #[cx, pivotY, bobX, bobY, color.r, color.g, color.b, color.a * 0.7, 0.0] 1 (dims.strokeWidth * 0.7)
 }
 
 end AfferentSpinners.Canopy.Spinner

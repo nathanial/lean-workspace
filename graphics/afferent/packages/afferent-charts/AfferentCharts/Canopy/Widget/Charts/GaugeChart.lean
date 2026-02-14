@@ -108,7 +108,7 @@ def gaugeChartSpec (data : Data) (theme : Theme)
     (colors : ChartColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (50, 50)  -- Minimum size for circular gauge
-  collect := fun layout => RenderM.build do
+  collect := fun layout reg => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -140,7 +140,7 @@ def gaugeChartSpec (data : Data) (theme : Theme)
       radius
       (fractionToAngle 0.0 dims)
       (fractionToAngle 1.0 dims)
-    RenderM.strokePath bgArcPath colors.background arcThickness
+    CanvasM.strokePathColor bgArcPath colors.background arcThickness
 
     -- Draw colored segments
     for seg in segments do
@@ -151,7 +151,7 @@ def gaugeChartSpec (data : Data) (theme : Theme)
         radius
         startAngle
         endAngle
-      RenderM.strokePath segPath seg.color arcThickness
+      CanvasM.strokePathColor segPath seg.color arcThickness
 
     -- Draw tick marks
     if dims.showTicks && dims.tickCount > 0 then
@@ -169,7 +169,7 @@ def gaugeChartSpec (data : Data) (theme : Theme)
         let tickPath := Afferent.Path.empty
           |>.moveTo (Arbor.Point.mk' x1 y1)
           |>.lineTo (Arbor.Point.mk' x2 y2)
-        RenderM.strokePath tickPath colors.tickMarks 1.5
+        CanvasM.strokePathColor tickPath colors.tickMarks 1.5
 
     -- Draw needle
     let needleAngle := fractionToAngle valueFrac dims
@@ -179,24 +179,24 @@ def gaugeChartSpec (data : Data) (theme : Theme)
     let needlePath := Afferent.Path.empty
       |>.moveTo (Arbor.Point.mk' centerX centerY)
       |>.lineTo (Arbor.Point.mk' needleTipX needleTipY)
-    RenderM.strokePath needlePath colors.needle needleWidth
+    CanvasM.strokePathColor needlePath colors.needle needleWidth
 
     -- GPU-batched center circle
     let centerCircleRadius := minDim * 0.035
-    RenderM.fillCircle' centerX centerY centerCircleRadius colors.needleCenter
+    CanvasM.fillCircleColor' centerX centerY centerCircleRadius colors.needleCenter
 
     -- Draw current value
     if dims.showValue then
       let valueStr := formatValue data.value data.unit
       let valueY := centerY + minDim * 0.12
-      RenderM.fillText valueStr centerX valueY theme.font theme.text
+      CanvasM.fillTextId reg valueStr centerX valueY theme.font theme.text
 
     -- Draw label
     if dims.showLabel then
       match data.label with
       | some label =>
         let labelY := centerY + minDim * 0.2
-        RenderM.fillText label centerX labelY theme.smallFont theme.textMuted
+        CanvasM.fillTextId reg label centerX labelY theme.smallFont theme.textMuted
       | none => pure ()
 
     -- Draw min/max labels
@@ -210,8 +210,8 @@ def gaugeChartSpec (data : Data) (theme : Theme)
       let maxY := centerY + labelRadius * Float.sin maxAngle
       let minStr := formatValue data.minValue none
       let maxStr := formatValue data.maxValue none
-      RenderM.fillText minStr minX minY theme.smallFont theme.textMuted
-      RenderM.fillText maxStr maxX maxY theme.smallFont theme.textMuted
+      CanvasM.fillTextId reg minStr minX minY theme.smallFont theme.textMuted
+      CanvasM.fillTextId reg maxStr maxX maxY theme.smallFont theme.textMuted
 
 }
 

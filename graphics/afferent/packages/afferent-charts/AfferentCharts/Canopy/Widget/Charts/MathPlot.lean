@@ -122,7 +122,7 @@ def dataBounds (series : Array Series) : Float × Float × Float × Float := Id.
 def mathPlotSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) (config : Config := {}) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -158,20 +158,20 @@ def mathPlotSpec (series : Array Series) (theme : Theme)
     let colors := ChartUtils.defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Series rendering
       for si in [0:series.size] do
@@ -196,17 +196,17 @@ def mathPlotSpec (series : Array Series) (theme : Theme)
                   else
                     path := path.lineTo pt
                 path
-              RenderM.strokePath path color lineWidth
+              CanvasM.strokePathColor path color lineWidth
               if showMarkers then
                 for p in s.points do
                   let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
                   let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-                  RenderM.fillCircle' px py pointRadius color
+                  CanvasM.fillCircleColor' px py pointRadius color
         | .scatter =>
             for p in s.points do
               let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
               let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-              RenderM.fillCircle' px py pointRadius color
+              CanvasM.fillCircleColor' px py pointRadius color
 
       -- Axis tick labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -214,28 +214,28 @@ def mathPlotSpec (series : Array Series) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let valueY := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          RenderM.fillText (ChartUtils.formatValue valueY) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (ChartUtils.formatValue valueY) (rect.x + 4) labelY theme.smallFont theme.textMuted
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let valueX := niceMinX + ratio * rangeX
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText (ChartUtils.formatValue valueX) labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (ChartUtils.formatValue valueX) labelX labelY theme.smallFont theme.textMuted
 
       -- Axis titles
       match config.xLabel with
       | some label =>
-          RenderM.fillText label (chartX + chartWidth / 2) (chartY + chartHeight + 32) theme.smallFont theme.text
+          CanvasM.fillTextId reg label (chartX + chartWidth / 2) (chartY + chartHeight + 32) theme.smallFont theme.text
       | none => pure ()
       match config.yLabel with
       | some label =>
-          RenderM.fillText label (rect.x + 4) (rect.y + 4) theme.smallFont theme.text
+          CanvasM.fillTextId reg label (rect.x + 4) (rect.y + 4) theme.smallFont theme.text
       | none => pure ()
 
       -- Axes
       if dims.showAxes then
-        RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-        RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+        CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+        CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 

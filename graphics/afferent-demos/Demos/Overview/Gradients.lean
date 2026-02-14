@@ -7,48 +7,48 @@ import Afferent.UI.Arbor
 import Demos.Overview.Card
 import Trellis
 
-open Afferent.Arbor
+open Afferent Afferent.Arbor
 open Trellis (EdgeInsets)
 
 namespace Demos
 
 /-- Fill a rect with a linear gradient style. -/
 private def linearRect (r : Rect) (start finish : Afferent.Point) (stops : Array Afferent.GradientStop)
-    (cornerRadius : Float := 8) : RenderM Unit := do
+    (cornerRadius : Float := 8) : CanvasM Unit := do
   let style := Afferent.FillStyle.linearGradient start finish stops
-  RenderM.fillRectStyle r style cornerRadius
+  CanvasM.fillRectStyle r style cornerRadius
 
 /-- Fill a shape path with a gradient style. -/
-private def fillPathStyle (path : Afferent.Path) (style : Afferent.FillStyle) : RenderM Unit := do
-  RenderM.fillPathStyle path style
+private def fillPathStyle (path : Afferent.Path) (style : Afferent.FillStyle) : CanvasM Unit := do
+  CanvasM.fillPathStyle path style
 
 /-- Linear gradient horizontal. -/
-private def linearHorizontal (colors : Array Color) : CardDraw := fun r =>
+private def linearHorizontal (colors : Array Color) : CardDraw := fun r _reg =>
   let start := Afferent.Point.mk' r.origin.x (r.origin.y + r.size.height / 2)
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height / 2)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Linear gradient vertical. -/
-private def linearVertical (colors : Array Color) : CardDraw := fun r =>
+private def linearVertical (colors : Array Color) : CardDraw := fun r _reg =>
   let start := Afferent.Point.mk' (r.origin.x + r.size.width / 2) r.origin.y
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Diagonal linear gradient. -/
-private def linearDiagonal (colors : Array Color) : CardDraw := fun r =>
+private def linearDiagonal (colors : Array Color) : CardDraw := fun r _reg =>
   let start := Afferent.Point.mk' r.origin.x r.origin.y
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Radial gradient circle. -/
-private def radialCircle (colors : Array Color) : CardDraw := fun r =>
+private def radialCircle (colors : Array Color) : CardDraw := fun r _reg =>
   let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
   let radius := minSide r * 0.45
   let style := Afferent.FillStyle.radialGradient center radius (Afferent.GradientStop.distribute colors)
   fillPathStyle (Afferent.Path.circle ⟨center.x, center.y⟩ radius) style
 
 /-- Radial gradient ellipse. -/
-private def radialEllipse (colors : Array Color) : CardDraw := fun r =>
+private def radialEllipse (colors : Array Color) : CardDraw := fun r _reg =>
   let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
   let rx := r.size.width * 0.45
   let ry := r.size.height * 0.32
@@ -133,7 +133,7 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
       Afferent.Color.green, Afferent.Color.blue, Afferent.Color.purple, Afferent.Color.magenta
     ]
   ), (
-    "Sunset", fun r =>
+    "Sunset", fun r _reg =>
       let start := Afferent.Point.mk' (r.origin.x + r.size.width / 2) r.origin.y
       let finish := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height)
       linearRect r start finish sunset
@@ -144,7 +144,7 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
   ), (
     "Radial Warm", radialCircle #[Afferent.Color.yellow, Afferent.Color.orange, Afferent.Color.red]
   ), (
-    "Spotlight", fun r =>
+    "Spotlight", fun r _reg =>
       let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
       let radius := minSide r * 0.45
       let style := Afferent.FillStyle.radialGradient center radius spotlight
@@ -156,14 +156,14 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
   ), (
     "Radial Cyan", radialCircle #[Afferent.Color.cyan, Afferent.Color.magenta]
   ), (
-    "Rounded Rect", fun r =>
+    "Rounded Rect", fun r _reg =>
       let start := Afferent.Point.mk' r.origin.x r.origin.y
       let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height)
       linearRect r start finish (Afferent.GradientStop.distribute #[Afferent.Color.red, Afferent.Color.blue]) 12
   ), (
     "Ellipse", radialEllipse #[Afferent.Color.yellow, Afferent.Color.purple]
   ), (
-    "Star", fun r =>
+    "Star", fun r _reg =>
       let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
       let radius := minSide r * 0.4
       let start := Afferent.Point.mk' r.origin.x r.origin.y
@@ -172,29 +172,29 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
         (Afferent.GradientStop.distribute #[Afferent.Color.yellow, Afferent.Color.orange, Afferent.Color.red])
       fillPathStyle (Afferent.Path.star ⟨center.x, center.y⟩ radius (radius * 0.5) 5) style
   ), (
-    "Heart", fun r =>
+    "Heart", fun r _reg =>
       let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
       let radius := minSide r * 0.45
       let style := Afferent.FillStyle.radialGradient center radius
         (Afferent.GradientStop.distribute #[Afferent.Color.hsva 0.0 0.5 1.0 1.0, Afferent.Color.red, Afferent.Color.hsva 0.0 1.0 0.5 1.0])
       fillPathStyle (Afferent.Path.heart ⟨center.x, center.y⟩ radius) style
   ), (
-    "Stripes", fun r =>
+    "Stripes", fun r _reg =>
       let start := Afferent.Point.mk' r.origin.x (r.origin.y + r.size.height / 2)
       let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height / 2)
       linearRect r start finish stripes
   ), (
-    "Chrome", fun r =>
+    "Chrome", fun r _reg =>
       let start := Afferent.Point.mk' (r.origin.x + r.size.width / 2) r.origin.y
       let finish := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height)
       linearRect r start finish chrome
   ), (
-    "Gold", fun r =>
+    "Gold", fun r _reg =>
       let start := Afferent.Point.mk' (r.origin.x + r.size.width / 2) r.origin.y
       let finish := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height)
       linearRect r start finish gold
   ), (
-    "Deep Radial", fun r =>
+    "Deep Radial", fun r _reg =>
       let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
       let radius := minSide r * 0.55
       let style := Afferent.FillStyle.radialGradient center radius #[(
@@ -204,9 +204,9 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
       ), (
         { position := 1.0, color := Afferent.Color.hsva 0.667 1.0 0.3 1.0 }
       )]
-      RenderM.fillRectStyle r style 8
+      CanvasM.fillRectStyle r style 8
   ), (
-    "Purple-Pink", fun r =>
+    "Purple-Pink", fun r _reg =>
       let start := Afferent.Point.mk' (r.origin.x + r.size.width) r.origin.y
       let finish := Afferent.Point.mk' r.origin.x (r.origin.y + r.size.height)
       linearRect r start finish

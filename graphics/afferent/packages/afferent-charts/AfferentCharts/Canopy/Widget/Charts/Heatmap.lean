@@ -123,7 +123,7 @@ private def formatValue (v : Float) : String :=
 def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -171,9 +171,9 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
     let cellWidth := (chartWidth - totalGapWidth) / numCols.toFloat
     let cellHeight := (chartHeight - totalGapHeight) / numRows.toFloat
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw cells
       for ri in [0:numRows] do
@@ -185,21 +185,21 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
 
           let cellX := chartX + ci.toFloat * (cellWidth + dims.cellGap)
           let cellY := chartY + ri.toFloat * (cellHeight + dims.cellGap)
-          RenderM.fillRect' cellX cellY cellWidth cellHeight color dims.cornerRadius
+          CanvasM.fillRectColor' cellX cellY cellWidth cellHeight color dims.cornerRadius
 
           -- Optionally show value in cell
           if dims.showValues && cellWidth > 20 && cellHeight > 15 then
             let textColor := if normalized > 0.5 then Color.white else Color.black
             let labelX := cellX + cellWidth / 2
             let labelY := cellY + cellHeight / 2 + 4
-            RenderM.fillText (formatValue value) labelX labelY theme.smallFont textColor
+            CanvasM.fillTextId reg (formatValue value) labelX labelY theme.smallFont textColor
 
       -- Draw row labels
       if dims.showRowLabels && data.rowLabels.size > 0 then
         for ri in [0:min numRows data.rowLabels.size] do
           let label := data.rowLabels[ri]!
           let labelY := chartY + ri.toFloat * (cellHeight + dims.cellGap) + cellHeight / 2 + 4
-          RenderM.fillText label (rect.x + 4) labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label (rect.x + 4) labelY theme.smallFont theme.text
 
       -- Draw column labels
       if dims.showColumnLabels && data.columnLabels.size > 0 then
@@ -207,7 +207,7 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
           let label := data.columnLabels[ci]!
           let labelX := chartX + ci.toFloat * (cellWidth + dims.cellGap) + cellWidth / 2
           let labelY := rect.y + dims.marginTop - 8
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Draw color bar
       if dims.showColorBar then
@@ -222,11 +222,11 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
           let color := colorForValue scale (1.0 - t)  -- Invert so high values at top
           let stepHeight := barHeight / numSteps.toFloat
           let stepY := barY + i.toFloat * stepHeight
-          RenderM.fillRect' barX stepY dims.colorBarWidth stepHeight color 0.0
+          CanvasM.fillRectColor' barX stepY dims.colorBarWidth stepHeight color 0.0
 
         -- Draw min/max labels
-        RenderM.fillText (formatValue maxVal) (barX + dims.colorBarWidth + 4) (barY + 4) theme.smallFont theme.textMuted
-        RenderM.fillText (formatValue minVal) (barX + dims.colorBarWidth + 4) (barY + barHeight + 4) theme.smallFont theme.textMuted
+        CanvasM.fillTextId reg (formatValue maxVal) (barX + dims.colorBarWidth + 4) (barY + 4) theme.smallFont theme.textMuted
+        CanvasM.fillTextId reg (formatValue minVal) (barX + dims.colorBarWidth + 4) (barY + barHeight + 4) theme.smallFont theme.textMuted
 
 }
 

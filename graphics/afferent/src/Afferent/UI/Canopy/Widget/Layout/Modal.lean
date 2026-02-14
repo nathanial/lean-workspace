@@ -49,15 +49,15 @@ def closeButtonPath (x y size : Float) : Afferent.Path :=
 /-- Custom spec for close button (X icon). -/
 def closeButtonSpec (theme : Theme) (isHovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.closeButtonSize, dims.closeButtonSize)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
     let iconSize := dims.closeButtonSize * 0.35
     let path := closeButtonPath centerX centerY iconSize
     let color := if isHovered then theme.primary.foreground else theme.textMuted
-    RenderM.build do
-      RenderM.strokePath path color 2.0
+    do
+      CanvasM.strokePathColor path color 2.0
 }
 
 end Modal

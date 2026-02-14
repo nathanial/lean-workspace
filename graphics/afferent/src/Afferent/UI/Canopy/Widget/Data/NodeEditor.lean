@@ -538,16 +538,16 @@ def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
     let width := if config.fillWidth && availableW > 0 then availableW else config.width
     let height := if config.fillHeight && availableH > 0 then availableH else config.height
     (width, height)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let majorEvery := max 1 config.majorGridEvery
     let gridStep := max 8.0 config.gridSize
     let origin := Point.mk' rect.x rect.y
     let model := state.model
     let camera := state.camera
-    RenderM.build do
-      RenderM.withClip (Rect.mk' rect.x rect.y rect.width rect.height) do
-        RenderM.fillRect (Rect.mk' rect.x rect.y rect.width rect.height) config.backgroundColor 0
+    do
+      CanvasM.withClip (Rect.mk' rect.x rect.y rect.width rect.height) do
+        CanvasM.fillRectColor (Rect.mk' rect.x rect.y rect.width rect.height) config.backgroundColor 0
 
         if config.showGrid then
           let offsetX := floatMod camera.x gridStep
@@ -564,14 +564,14 @@ def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
             let isMajor := config.showMajorGrid && (i % majorEvery == 0)
             let lineColor := if isMajor then config.majorGridColor else config.gridColor
             let lineWidth := if isMajor then 1.2 else 1.0
-            RenderM.fillRect (Rect.mk' x rect.y lineWidth rect.height) lineColor 0
+            CanvasM.fillRectColor (Rect.mk' x rect.y lineWidth rect.height) lineColor 0
 
           for i in [:horizontalCount] do
             let y := startY + i.toFloat * gridStep
             let isMajor := config.showMajorGrid && (i % majorEvery == 0)
             let lineColor := if isMajor then config.majorGridColor else config.gridColor
             let lineWidth := if isMajor then 1.2 else 1.0
-            RenderM.fillRect (Rect.mk' rect.x y rect.width lineWidth) lineColor 0
+            CanvasM.fillRectColor (Rect.mk' rect.x y rect.width lineWidth) lineColor 0
 
         for connIdx in [:model.connections.size] do
           let conn := model.connections[connIdx]!
@@ -604,9 +604,9 @@ def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
                 (if isSelected then config.selectedConnectionWidthBoost else 0)
             let socketRadius :=
               config.socketRadius + (if isHovered || isSelected then 1.1 else 0)
-            RenderM.strokePath path lineColor lineWidth
-            RenderM.fillCircle fromPos socketRadius (lineColor.withAlpha 0.95)
-            RenderM.fillCircle toPos socketRadius (lineColor.withAlpha 0.95)
+            CanvasM.strokePathColor path lineColor lineWidth
+            CanvasM.fillCircleColor fromPos socketRadius (lineColor.withAlpha 0.95)
+            CanvasM.fillCircleColor toPos socketRadius (lineColor.withAlpha 0.95)
           | _, _ =>
             pure ()
 
@@ -629,9 +629,9 @@ def canvasSpec (state : State) (config : NodeEditorConfig) : CustomSpec := {
             let previewColor := Color.lerp sourceColor config.wirePreviewColor 0.2
             let previewWidth :=
               config.wirePreviewWidth + (if snappedTarget.isSome then 0.4 else 0)
-            RenderM.strokePath previewPath previewColor previewWidth
-            RenderM.fillCircle fromPos (config.socketRadius + 1.2) (previewColor.withAlpha 0.95)
-            RenderM.fillCircle toPos (config.socketRadius + 0.9) (previewColor.withAlpha 0.92)
+            CanvasM.strokePathColor previewPath previewColor previewWidth
+            CanvasM.fillCircleColor fromPos (config.socketRadius + 1.2) (previewColor.withAlpha 0.95)
+            CanvasM.fillCircleColor toPos (config.socketRadius + 0.9) (previewColor.withAlpha 0.92)
         | _ =>
           pure ()
   -- Connection geometry depends on drag/pan state and must redraw every frame.

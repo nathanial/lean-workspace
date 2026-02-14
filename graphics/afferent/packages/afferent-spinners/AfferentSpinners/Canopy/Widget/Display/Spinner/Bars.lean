@@ -9,6 +9,7 @@ import Afferent.Runtime.Shader.DSL
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Afferent.Shader
 open _root_.Shader hiding center size time color
 open Linalg
@@ -64,7 +65,7 @@ initialize barsFragmentRegistration : Unit ← do
     Passes 8 floats to GPU; the shader computes all 5 bar positions and sizes. -/
 def barsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -77,8 +78,8 @@ def barsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
       color.r, color.g, color.b, color.a  -- color
     ]
 
-    RenderM.build do
-      RenderM.drawFragment barsFragment.hash barsFragment.primitive.toUInt32
+    do
+      CanvasM.drawFragment barsFragment.hash barsFragment.primitive.toUInt32
         params barsFragment.instanceCount.toUInt32
 }
 

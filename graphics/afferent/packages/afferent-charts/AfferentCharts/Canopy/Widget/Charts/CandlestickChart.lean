@@ -109,7 +109,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
     (colors : CandleColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -144,10 +144,10 @@ def candlestickChartSpec (data : Data) (theme : Theme)
     else
       #[0, numCandles / 4, numCandles / 2, 3 * numCandles / 4, numCandles - 1]
 
-    RenderM.build do
+    do
       -- Draw background
       let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-      RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
@@ -155,7 +155,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
           let lineRect := Arbor.Rect.mk' chartX lineY chartWidth 1.0
-          RenderM.fillRect lineRect (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor lineRect (Color.gray 0.3) 0.0
 
       -- Draw candles
       for i in [0:numCandles] do
@@ -184,16 +184,16 @@ def candlestickChartSpec (data : Data) (theme : Theme)
         -- Draw upper wick (from body top to high)
         let upperWickRect := Arbor.Rect.mk'
           (candleCenterX - dims.wickWidth / 2) highY dims.wickWidth (bodyTop - highY)
-        RenderM.fillRect upperWickRect wickColor 0.0
+        CanvasM.fillRectColor upperWickRect wickColor 0.0
 
         -- Draw lower wick (from body bottom to low)
         let lowerWickRect := Arbor.Rect.mk'
           (candleCenterX - dims.wickWidth / 2) bodyBottom dims.wickWidth (lowY - bodyBottom)
-        RenderM.fillRect lowerWickRect wickColor 0.0
+        CanvasM.fillRectColor lowerWickRect wickColor 0.0
 
         -- Draw body
         let bodyRect := Arbor.Rect.mk' candleX bodyTop candleWidth bodyHeight
-        RenderM.fillRect bodyRect bodyColor 1.0
+        CanvasM.fillRectColor bodyRect bodyColor 1.0
 
       -- Draw Y-axis labels (prices)
       if dims.gridLineCount > 0 then
@@ -202,7 +202,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
           let price := minPrice + ratio * priceRange
           let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
           let labelText := formatPrice price
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels (dates/times)
       for idx in labelIndices do
@@ -213,15 +213,15 @@ def candlestickChartSpec (data : Data) (theme : Theme)
             let candleX := chartX + dims.candleGap + idx.toFloat * (candleWidth + dims.candleGap)
             let labelX := candleX + candleWidth / 2
             let labelY := chartY + chartHeight + 16
-            RenderM.fillText label labelX labelY theme.smallFont theme.text
+            CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
           | none => pure ()
 
       -- Draw axes
       let axisColor := Color.gray 0.5
       let yAxisRect := Arbor.Rect.mk' chartX chartY 1.0 chartHeight
-      RenderM.fillRect yAxisRect axisColor 0.0
+      CanvasM.fillRectColor yAxisRect axisColor 0.0
       let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
-      RenderM.fillRect xAxisRect axisColor 0.0
+      CanvasM.fillRectColor xAxisRect axisColor 0.0
 
 }
 

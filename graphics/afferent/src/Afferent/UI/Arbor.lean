@@ -8,7 +8,7 @@
   Canvas/Metal backend in `Afferent.Widget`.
 
   Key abstractions:
-  - RenderM: immediate drawing operations over CanvasM with FontRegistry access
+  - CanvasM helpers: immediate drawing operations with FontRegistry-driven text lookup
   - TextMeasurer: text measurement interface (implemented by Afferent fonts)
   - Widget: declarative widget tree (flex, grid, text, scroll, etc.)
 

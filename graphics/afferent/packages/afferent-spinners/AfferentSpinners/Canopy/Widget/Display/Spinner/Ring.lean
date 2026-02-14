@@ -7,6 +7,7 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-- Ring: Rotating arc segment (macOS/iOS style).
@@ -14,7 +15,7 @@ open Linalg
     Note: `t` is raw elapsed time in seconds, not wrapped progress. -/
 def ringSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -23,8 +24,8 @@ def ringSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let startAngle := t * Float.pi  -- Half rotation per second
     let sweepAngle := Float.pi * 1.5  -- 270° arc
 
-    RenderM.build do
-      RenderM.strokeArcInstanced #[{
+    do
+      CanvasM.strokeArcInstanced #[{
         centerX := cx
         centerY := cy
         startAngle := startAngle

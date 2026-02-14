@@ -1,7 +1,7 @@
 /-
   Stroke Card Tests
   Temporarily reduced while custom widgets migrate from command collection
-  to immediate RenderM drawing.
+  to immediate CanvasM drawing.
 -/
 import Crucible
 

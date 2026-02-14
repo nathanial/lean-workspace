@@ -93,7 +93,7 @@ private def sizeToRadius (size minSize maxSize : Float) (dims : Dimensions) : Fl
 def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -133,9 +133,9 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
     let colors := defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
@@ -143,12 +143,12 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         -- Vertical grid lines
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw bubbles
       for i in [0:points.size] do
@@ -160,8 +160,8 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           | some c => c.withAlpha dims.bubbleOpacity
           | none => (colors[i % colors.size]!).withAlpha dims.bubbleOpacity
         -- Use GPU-batched circle rendering for better performance
-        RenderM.fillCircle' px py radius color
-        RenderM.strokeCircle' px py radius (color.withAlpha 1.0) 1.5
+        CanvasM.fillCircleColor' px py radius color
+        CanvasM.strokeCircleColor' px py radius (color.withAlpha 1.0) 1.5
 
       -- Draw bubble labels if enabled
       if dims.showBubbleLabels then
@@ -170,7 +170,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           | some label =>
             let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
             let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-            RenderM.fillText label px (py - 4) theme.smallFont theme.text
+            CanvasM.fillTextId reg label px (py - 4) theme.smallFont theme.text
           | none => pure ()
 
       -- Draw Y-axis labels
@@ -180,7 +180,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -190,11 +190,11 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -202,7 +202,7 @@ def bubbleChartSpec (points : Array DataPoint) (theme : Theme)
 def multiSeriesSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -245,20 +245,20 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
     let colors := defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw bubbles for each series
       for si in [0:series.size] do
@@ -271,8 +271,8 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let radius := sizeToRadius p.size minSize maxSize dims
           let color := (p.color.getD seriesColor).withAlpha dims.bubbleOpacity
           -- Use GPU-batched circle rendering for better performance
-          RenderM.fillCircle' px py radius color
-          RenderM.strokeCircle' px py radius (color.withAlpha 1.0) 1.5
+          CanvasM.fillCircleColor' px py radius color
+          CanvasM.strokeCircleColor' px py radius (color.withAlpha 1.0) 1.5
 
       -- Draw Y-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -281,7 +281,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -291,11 +291,11 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -303,7 +303,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
 def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 170, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -350,20 +350,20 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
     let legendStartY := chartY + 10
     let legendItemHeight : Float := 24.0
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw bubbles
       for si in [0:series.size] do
@@ -375,12 +375,12 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
           let radius := sizeToRadius p.size minSize maxSize dims
           let color := (p.color.getD seriesColor).withAlpha dims.bubbleOpacity
           -- Use GPU-batched circle rendering for better performance
-          RenderM.fillCircle' px py radius color
-          RenderM.strokeCircle' px py radius (color.withAlpha 1.0) 1.5
+          CanvasM.fillCircleColor' px py radius color
+          CanvasM.strokeCircleColor' px py radius (color.withAlpha 1.0) 1.5
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
       -- Draw axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -389,13 +389,13 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
-          RenderM.fillText (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (formatValue value) (rect.x + 4) labelY theme.smallFont theme.textMuted
         -- X-axis labels
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let value := niceMinX + ratio * rangeX
           let labelX := chartX + (ratio * chartWidth)
-          RenderM.fillText (formatValue value) labelX (chartY + chartHeight + 16) theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg (formatValue value) labelX (chartY + chartHeight + 16) theme.smallFont theme.textMuted
 
       -- Draw legend
       for si in [0:series.size] do
@@ -404,11 +404,11 @@ def bubbleChartWithLegendSpec (series : Array Series) (theme : Theme)
         let itemY := legendStartY + si.toFloat * legendItemHeight
 
         -- Color circle (GPU-batched)
-        RenderM.fillCircle' (legendX + 8) (itemY + 8) 6.0 color
+        CanvasM.fillCircleColor' (legendX + 8) (itemY + 8) 6.0 color
 
         -- Label text
         let label := s.label.getD s!"Series {si + 1}"
-        RenderM.fillText label (legendX + 20) (itemY + 12) theme.smallFont theme.text
+        CanvasM.fillTextId reg label (legendX + 20) (itemY + 12) theme.smallFont theme.text
 
 }
 

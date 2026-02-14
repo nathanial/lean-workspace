@@ -47,7 +47,7 @@ def chevronPoints (x y : Float) (isOpen : Bool) : Arbor.Point × Arbor.Point × 
 /-- Custom spec for dropdown arrow (downward chevron). -/
 def arrowSpec (isOpen : Bool) (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.arrowWidth, dims.itemHeight)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
@@ -57,8 +57,8 @@ def arrowSpec (isOpen : Bool) (theme : Theme) (dims : Dimensions := defaultDimen
       p1.x, p1.y, p2.x, p2.y, c.r, c.g, c.b, c.a, 0.0,
       p2.x, p2.y, p3.x, p3.y, c.r, c.g, c.b, c.a, 0.0
     ]
-    RenderM.build do
-      RenderM.strokeLineBatch data 2 2.0
+    do
+      CanvasM.strokeLineBatch data 2 2.0
 }
 
 /-- Build checkmark points for menu items. -/
@@ -71,7 +71,7 @@ def checkmarkPoints (x y : Float) : Arbor.Point × Arbor.Point × Arbor.Point :=
 /-- Custom spec for checkmark in menu item. -/
 def checkmarkSpec (theme : Theme) : CustomSpec := {
   measure := fun _ _ => (20.0, 20.0)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let centerX := rect.x + rect.width / 2
     let centerY := rect.y + rect.height / 2
@@ -81,8 +81,8 @@ def checkmarkSpec (theme : Theme) : CustomSpec := {
       p1.x, p1.y, p2.x, p2.y, c.r, c.g, c.b, c.a, 0.0,
       p2.x, p2.y, p3.x, p3.y, c.r, c.g, c.b, c.a, 0.0
     ]
-    RenderM.build do
-      RenderM.strokeLineBatch data 2 2.0
+    do
+      CanvasM.strokeLineBatch data 2 2.0
 }
 
 end Dropdown

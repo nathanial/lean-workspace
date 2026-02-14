@@ -7,12 +7,13 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-- Clock: Clock hands rotating at different speeds. -/
 def clockSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -35,21 +36,21 @@ def clockSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let hourColor := color.withAlpha 0.8
     let minuteColor := color.withAlpha 0.9
 
-    RenderM.build do
+    do
       -- Clock face circle (batched via GPU shader)
-      RenderM.strokeCircle center radius (color.withAlpha 0.3) (dims.strokeWidth * 0.5)
+      CanvasM.strokeCircleColor center radius (color.withAlpha 0.3) (dims.strokeWidth * 0.5)
 
       -- Hour hand (thickest) - strokeLineBatch is batchable
-      RenderM.strokeLineBatch #[cx, cy, hourEnd.x, hourEnd.y, hourColor.r, hourColor.g, hourColor.b, hourColor.a, 0.0] 1 (dims.strokeWidth * 1.5)
+      CanvasM.strokeLineBatch #[cx, cy, hourEnd.x, hourEnd.y, hourColor.r, hourColor.g, hourColor.b, hourColor.a, 0.0] 1 (dims.strokeWidth * 1.5)
 
       -- Minute hand - strokeLineBatch is batchable
-      RenderM.strokeLineBatch #[cx, cy, minuteEnd.x, minuteEnd.y, minuteColor.r, minuteColor.g, minuteColor.b, minuteColor.a, 0.0] 1 dims.strokeWidth
+      CanvasM.strokeLineBatch #[cx, cy, minuteEnd.x, minuteEnd.y, minuteColor.r, minuteColor.g, minuteColor.b, minuteColor.a, 0.0] 1 dims.strokeWidth
 
       -- Second hand (thinnest) - strokeLineBatch is batchable
-      RenderM.strokeLineBatch #[cx, cy, secondEnd.x, secondEnd.y, color.r, color.g, color.b, color.a, 0.0] 1 (dims.strokeWidth * 0.6)
+      CanvasM.strokeLineBatch #[cx, cy, secondEnd.x, secondEnd.y, color.r, color.g, color.b, color.a, 0.0] 1 (dims.strokeWidth * 0.6)
 
       -- Center dot (batchable fillCircle instead of fillPath)
-      RenderM.fillCircle center (dims.strokeWidth * 0.8) color
+      CanvasM.fillCircleColor center (dims.strokeWidth * 0.8) color
 }
 
 end AfferentSpinners.Canopy.Spinner

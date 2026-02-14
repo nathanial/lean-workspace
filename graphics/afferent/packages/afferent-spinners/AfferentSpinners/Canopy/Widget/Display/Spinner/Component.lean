@@ -26,6 +26,7 @@ namespace AfferentSpinners.Canopy
 
 open Afferent.Canopy
 open Afferent.Arbor hiding Event
+open Afferent
 
 namespace Spinner
 

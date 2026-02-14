@@ -33,9 +33,9 @@ def defaultDimensions : Dimensions := {}
 /-- Custom spec for switch track and thumb rendering (boolean version). -/
 def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.trackHeight)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
-    RenderM.build do
+    do
       -- Draw the thumb (circular knob)
       let thumbX := if isOn then
         rect.x + dims.trackWidth - dims.thumbSize - dims.thumbPadding
@@ -45,16 +45,16 @@ def trackSpec (isOn : Bool) (hovered : Bool) (_theme : Theme) (dims : Dimensions
       let thumbRect := Arbor.Rect.mk' thumbX thumbY dims.thumbSize dims.thumbSize
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
-      RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
+      CanvasM.fillRectColor thumbRect thumbColor (dims.thumbSize / 2)
 }
 
 /-- Custom spec for animated switch track and thumb rendering.
     `progress` is 0.0 (off) to 1.0 (on), allowing smooth animation. -/
 def animatedTrackSpec (progress : Float) (hovered : Bool) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.trackWidth, dims.trackHeight)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
-    RenderM.build do
+    do
       -- Interpolate thumb X position based on progress
       let leftX := rect.x + dims.thumbPadding
       let rightX := rect.x + dims.trackWidth - dims.thumbSize - dims.thumbPadding
@@ -63,7 +63,7 @@ def animatedTrackSpec (progress : Float) (hovered : Bool) (dims : Dimensions := 
       let thumbRect := Arbor.Rect.mk' thumbX thumbY dims.thumbSize dims.thumbSize
       -- Thumb color: white normally, slightly gray when hovered
       let thumbColor := if hovered then Color.gray 0.95 else Color.white
-      RenderM.fillRect thumbRect thumbColor (dims.thumbSize / 2)
+      CanvasM.fillRectColor thumbRect thumbColor (dims.thumbSize / 2)
 }
 
 end Switch

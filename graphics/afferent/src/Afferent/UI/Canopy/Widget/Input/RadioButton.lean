@@ -17,16 +17,16 @@ namespace RadioButton
 /-- Custom spec for radio button circle rendering (filled dot when selected). -/
 def circleSpec (selected : Bool) (_hovered : Bool) (theme : Theme) (size : Float) : CustomSpec := {
   measure := fun _ _ => (size, size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
-    RenderM.build do
+    do
       if selected then
         -- Draw inner filled circle (50% of outer size)
         let innerSize := size * 0.5
         let offsetX := (size - innerSize) / 2
         let offsetY := (size - innerSize) / 2
         let innerRect := Arbor.Rect.mk' (rect.x + offsetX) (rect.y + offsetY) innerSize innerSize
-        RenderM.fillRect innerRect theme.primary.foreground (innerSize / 2)
+        CanvasM.fillRectColor innerRect theme.primary.foreground (innerSize / 2)
 }
 
 end RadioButton

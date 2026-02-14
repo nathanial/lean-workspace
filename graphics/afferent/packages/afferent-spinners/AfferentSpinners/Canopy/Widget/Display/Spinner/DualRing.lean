@@ -7,6 +7,7 @@ import AfferentSpinners.Canopy.Widget.Display.Spinner.Core
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-- DualRing: Two concentric rings rotating in opposite directions.
@@ -14,7 +15,7 @@ open Linalg
     Note: `t` is raw elapsed time in seconds, not wrapped progress. -/
 def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -26,9 +27,9 @@ def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
     let innerColor := color.withAlpha 0.6
     let innerStrokeWidth := dims.strokeWidth * 0.7
 
-    RenderM.build do
+    do
       -- Outer arc (180°)
-      RenderM.strokeArcInstanced #[{
+      CanvasM.strokeArcInstanced #[{
         centerX := cx
         centerY := cy
         startAngle := outerAngle
@@ -41,7 +42,7 @@ def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
         a := color.a
       }]
       -- Inner arc (135°)
-      RenderM.strokeArcInstanced #[{
+      CanvasM.strokeArcInstanced #[{
         centerX := cx
         centerY := cy
         startAngle := innerAngle

@@ -1,9 +1,6 @@
 /-
-  Arbor Render Builder
-  Immediate-mode rendering DSL for custom widgets.
-
-  Unlike the old command-buffer builder, `RenderM` executes drawing operations
-  directly against `CanvasM` while reading the active `FontRegistry`.
+  Arbor Canvas Draw Helpers
+  Immediate-mode drawing helpers layered on CanvasM.
 -/
 import Afferent.Draw.Types
 import Afferent.Output.Canvas
@@ -16,26 +13,12 @@ import Afferent.Runtime.FFI.MeshCache
 import Afferent.Runtime.Shader.Cache
 import Afferent.Runtime.Shader.Fragment
 
-namespace Afferent.Arbor
+namespace Afferent
 
 open Afferent
+open Afferent.Arbor
 
-/-- Immediate rendering monad used by custom widget specs.
-    Carries `FontRegistry` for `FontId` lookup and executes in `CanvasM`. -/
-abbrev RenderM := ReaderT FontRegistry CanvasM
-
-namespace RenderM
-
-private def liftCanvas {α : Type} (m : CanvasM α) : RenderM α :=
-  fun _ => m
-
-/-- Run a render action with a font registry. -/
-def run {α : Type} (reg : FontRegistry) (m : RenderM α) : CanvasM α :=
-  m reg
-
-/-- Helper used by `collect := fun _ => RenderM.build do ...` callsites. -/
-def build (m : RenderM Unit) : RenderM Unit :=
-  m
+namespace CanvasM
 
 private def snapTextPosition (x y : Float) (transform : Transform) : (Float × Float) :=
   let eps : Float := 1.0e-4
@@ -146,54 +129,52 @@ private def transformTessellatedVertices (vertices : Array Float) (vertexCount :
 
 /-! ## Rectangle Commands -/
 
-def fillRect (rect : Rect) (color : Color) (cornerRadius : Float := 0) : RenderM Unit := do
-  liftCanvas (CanvasM.setFillColor color)
+def fillRectColor (rect : Rect) (color : Color) (cornerRadius : Float := 0) : CanvasM Unit := do
+  setFillColor color
   if cornerRadius > 0 then
-    liftCanvas (CanvasM.fillRoundedRect rect cornerRadius)
+    fillRoundedRect rect cornerRadius
   else
-    liftCanvas (CanvasM.fillRect rect)
+    fillRect rect
 
-def fillRect' (x y w h : Float) (color : Color) (cornerRadius : Float := 0) : RenderM Unit :=
-  fillRect (Rect.mk' x y w h) color cornerRadius
+def fillRectColor' (x y w h : Float) (color : Color) (cornerRadius : Float := 0) : CanvasM Unit :=
+  fillRectColor (Rect.mk' x y w h) color cornerRadius
 
-def fillRectStyle (rect : Rect) (style : Afferent.FillStyle) (cornerRadius : Float := 0) : RenderM Unit := do
-  liftCanvas CanvasM.save
-  liftCanvas (CanvasM.setFillStyle style)
+def fillRectStyle (rect : Rect) (style : Afferent.FillStyle) (cornerRadius : Float := 0) : CanvasM Unit := do
+  save
+  setFillStyle style
   if cornerRadius > 0 then
-    liftCanvas (CanvasM.fillRoundedRect rect cornerRadius)
+    fillRoundedRect rect cornerRadius
   else
-    liftCanvas (CanvasM.fillRect rect)
-  liftCanvas CanvasM.restore
+    fillRect rect
+  restore
 
-def strokeRect (rect : Rect) (color : Color) (lineWidth : Float) (cornerRadius : Float := 0) : RenderM Unit := do
-  liftCanvas (CanvasM.setStrokeColor color)
-  liftCanvas (CanvasM.setLineWidth lineWidth)
+def strokeRectColor (rect : Rect) (color : Color) (lineWidth : Float) (cornerRadius : Float := 0) : CanvasM Unit := do
+  setStrokeColor color
+  setLineWidth lineWidth
   if cornerRadius > 0 then
-    liftCanvas (CanvasM.strokeRoundedRect rect cornerRadius)
+    strokeRoundedRect rect cornerRadius
   else
-    liftCanvas (CanvasM.strokeRect rect)
+    strokeRect rect
 
-def strokeRect' (x y w h : Float) (color : Color) (lineWidth : Float) (cornerRadius : Float := 0) : RenderM Unit :=
-  strokeRect (Rect.mk' x y w h) color lineWidth cornerRadius
+def strokeRectColor' (x y w h : Float) (color : Color) (lineWidth : Float) (cornerRadius : Float := 0) : CanvasM Unit :=
+  strokeRectColor (Rect.mk' x y w h) color lineWidth cornerRadius
 
 /-! ## Text Commands -/
 
-def fillText (text : String) (x y : Float) (font : FontId) (color : Color) : RenderM Unit := do
-  let reg ← read
+def fillTextId (reg : FontRegistry) (text : String) (x y : Float) (font : Arbor.FontId) (color : Color) : CanvasM Unit := do
   match reg.get font with
   | some resolved =>
-      let canvas ← liftCanvas CanvasM.getCanvas
+      let canvas ← getCanvas
       let (sx, sy) := snapTextPosition x y canvas.state.transform
-      liftCanvas (CanvasM.fillTextColor text ⟨sx, sy⟩ resolved color)
+      fillTextColor text ⟨sx, sy⟩ resolved color
   | none =>
       pure ()
 
-def fillTextBlock (text : String) (rect : Rect) (font : FontId) (color : Color)
-    (align : TextAlign := .left) (valign : TextVAlign := .top) : RenderM Unit := do
-  let reg ← read
+def fillTextBlockId (reg : FontRegistry) (text : String) (rect : Rect) (font : Arbor.FontId) (color : Color)
+    (align : Arbor.TextAlign := .left) (valign : Arbor.TextVAlign := .top) : CanvasM Unit := do
   match reg.get font with
   | some resolved =>
-      let (textWidth, textHeight) ← liftCanvas (CanvasM.measureText text resolved)
+      let (textWidth, textHeight) ← measureText text resolved
       let x := match align with
         | .left => rect.origin.x
         | .center => rect.origin.x + (rect.size.width - textWidth) / 2
@@ -202,56 +183,56 @@ def fillTextBlock (text : String) (rect : Rect) (font : FontId) (color : Color)
         | .top => rect.origin.y + resolved.ascender
         | .middle => rect.origin.y + (rect.size.height - textHeight) / 2 + resolved.ascender
         | .bottom => rect.origin.y + rect.size.height - resolved.descender
-      let canvas ← liftCanvas CanvasM.getCanvas
+      let canvas ← getCanvas
       let (sx, sy) := snapTextPosition x y canvas.state.transform
-      liftCanvas (CanvasM.fillTextColor text ⟨sx, sy⟩ resolved color)
+      fillTextColor text ⟨sx, sy⟩ resolved color
   | none =>
       pure ()
 
 /-! ## Path Commands -/
 
-def fillPath (path : Path) (color : Color) : RenderM Unit := do
-  liftCanvas (CanvasM.setFillColor color)
-  liftCanvas (CanvasM.fillPath path)
+def fillPathColor (path : Path) (color : Color) : CanvasM Unit := do
+  setFillColor color
+  fillPath path
 
-def fillPathStyle (path : Path) (style : Afferent.FillStyle) : RenderM Unit := do
-  liftCanvas CanvasM.save
-  liftCanvas (CanvasM.setFillStyle style)
-  liftCanvas (CanvasM.fillPath path)
-  liftCanvas CanvasM.restore
+def fillPathStyle (path : Path) (style : Afferent.FillStyle) : CanvasM Unit := do
+  save
+  setFillStyle style
+  fillPath path
+  restore
 
-def strokePath (path : Path) (color : Color) (lineWidth : Float) : RenderM Unit := do
-  liftCanvas (CanvasM.setStrokeColor color)
-  liftCanvas (CanvasM.setLineWidth lineWidth)
-  liftCanvas (CanvasM.strokePath path)
+def strokePathColor (path : Path) (color : Color) (lineWidth : Float) : CanvasM Unit := do
+  setStrokeColor color
+  setLineWidth lineWidth
+  strokePath path
 
 /-! ## Line/Batch Commands -/
 
-def strokeLineBatch (data : Array Float) (count : Nat) (lineWidth : Float) : RenderM Unit := do
+def strokeLineBatch (data : Array Float) (count : Nat) (lineWidth : Float) : CanvasM Unit := do
   if count == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
+    let canvas ← getCanvas
     let data := transformLineBatchData data count canvas.state.transform
-    let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+    let (canvasWidth, canvasHeight) ← getCurrentSize
     canvas.ctx.renderer.drawLineBatch data count.toUInt32 lineWidth canvasWidth canvasHeight
 
-def strokeRectBatch (data : Array Float) (count : Nat) (lineWidth : Float) : RenderM Unit := do
+def strokeRectBatch (data : Array Float) (count : Nat) (lineWidth : Float) : CanvasM Unit := do
   if count == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
+    let canvas ← getCanvas
     let data := transformRectBatchData data count canvas.state.transform
-    let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+    let (canvasWidth, canvasHeight) ← getCurrentSize
     canvas.ctx.renderer.drawBatch 2 data count.toUInt32 lineWidth 0.0 canvasWidth canvasHeight
 
-def fillCircleBatch (data : Array Float) (count : Nat) : RenderM Unit := do
+def fillCircleBatch (data : Array Float) (count : Nat) : CanvasM Unit := do
   if count == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
+    let canvas ← getCanvas
     let data := transformCircleBatchData data count canvas.state.transform
-    let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+    let (canvasWidth, canvasHeight) ← getCurrentSize
     let mut batchData : Array Float := Array.mkEmpty (count * 9)
     for i in [:count] do
       let base := i * 7
@@ -270,32 +251,32 @@ def fillCircleBatch (data : Array Float) (count : Nat) : RenderM Unit := do
 
 /-! ## Polygon/Instancing Commands -/
 
-def fillPolygon (points : Array Point) (color : Color) : RenderM Unit := do
+def fillPolygon (points : Array Point) (color : Color) : CanvasM Unit := do
   if points.size >= 3 then
     let mut path := Path.empty.moveTo points[0]!
     for i in [1:points.size] do
       path := path.lineTo points[i]!
     path := path.closePath
-    fillPath path color
+    fillPathColor path color
   else
     pure ()
 
-def strokePolygon (points : Array Point) (color : Color) (lineWidth : Float := 1.0) : RenderM Unit := do
+def strokePolygon (points : Array Point) (color : Color) (lineWidth : Float := 1.0) : CanvasM Unit := do
   if points.size >= 3 then
     let mut path := Path.empty.moveTo points[0]!
     for i in [1:points.size] do
       path := path.lineTo points[i]!
     path := path.closePath
-    strokePath path color lineWidth
+    strokePathColor path color lineWidth
   else
     pure ()
 
 def fillPolygonInstanced (pathHash : UInt64) (vertices : Array Float) (indices : Array UInt32)
-    (instances : Array MeshInstance) (centerX centerY : Float) : RenderM Unit := do
+    (instances : Array MeshInstance) (centerX centerY : Float) : CanvasM Unit := do
   if instances.size == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
+    let canvas ← getCanvas
     let (mesh, canvas) ←
       match canvas.meshCache.get? pathHash with
       | some mesh => pure (mesh, canvas)
@@ -335,16 +316,16 @@ def fillPolygonInstanced (pathHash : UInt64) (vertices : Array Float) (indices :
       buf.setVec8 idx inst.x inst.y inst.rotation inst.scale inst.r inst.g inst.b inst.a
       idx := idx + 8
 
-    liftCanvas (CanvasM.setCanvas canvas)
-    let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+    setCanvas canvas
+    let (canvasWidth, canvasHeight) ← getCurrentSize
     FFI.MeshCache.drawInstancedBuffer canvas.ctx.renderer mesh buf transformedInstances.size.toUInt32 canvasWidth canvasHeight
 
-def strokeArcInstanced (instances : Array ArcInstance) (segments : Nat := 16) : RenderM Unit := do
+def strokeArcInstanced (instances : Array ArcInstance) (segments : Nat := 16) : CanvasM Unit := do
   if instances.size == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
-    let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+    let canvas ← getCanvas
+    let (canvasWidth, canvasHeight) ← getCurrentSize
     let transformedInstances :=
       if transformIsIdentity canvas.state.transform then
         instances
@@ -362,8 +343,8 @@ def strokeArcInstanced (instances : Array ArcInstance) (segments : Nat := 16) : 
 /-! ## Fragment Commands -/
 
 def drawFragment (fragmentHash : UInt64) (_primitiveType : UInt32)
-    (params : Array Float) (_instanceCount : UInt32) : RenderM Unit := do
-  let canvas ← liftCanvas CanvasM.getCanvas
+    (params : Array Float) (_instanceCount : UInt32) : CanvasM Unit := do
+  let canvas ← getCanvas
   let cache ← canvas.fragmentCache.get
   let (maybePipeline, newCache) ← Shader.getOrCompileGlobal cache canvas.ctx.renderer fragmentHash
   canvas.fragmentCache.set newCache
@@ -376,101 +357,92 @@ def drawFragment (fragmentHash : UInt64) (_primitiveType : UInt32)
             pure (transformFragmentParamsCenter params fragment canvas.state.transform)
         | none =>
             pure params
-      let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+      let (canvasWidth, canvasHeight) ← getCurrentSize
       FFI.Fragment.draw canvas.ctx.renderer pipeline params canvasWidth canvasHeight
   | none =>
       pure ()
 
 /-! ## Batched Tessellation Commands -/
 
-def fillTessellatedBatch (vertices : Array Float) (indices : Array UInt32) (vertexCount : Nat) : RenderM Unit := do
+def fillTessellatedBatch (vertices : Array Float) (indices : Array UInt32) (vertexCount : Nat) : CanvasM Unit := do
   if vertexCount == 0 || indices.size == 0 then
     pure ()
   else
-    let canvas ← liftCanvas CanvasM.getCanvas
+    let canvas ← getCanvas
     let vertices := transformTessellatedVertices vertices vertexCount canvas.state.transform
-    let (screenWidth, screenHeight) ← liftCanvas CanvasM.getCurrentSize
+    let (screenWidth, screenHeight) ← getCurrentSize
     canvas.ctx.renderer.drawTrianglesScreenCoords
       vertices indices vertexCount.toUInt32 screenWidth screenHeight
 
 /-! ## Circles -/
 
-def fillCircle (center : Point) (radius : Float) (color : Color) : RenderM Unit := do
-  let canvas ← liftCanvas CanvasM.getCanvas
+def fillCircleColor (center : Point) (radius : Float) (color : Color) : CanvasM Unit := do
+  let canvas ← getCanvas
   let (cx, cy) := transformPointXY canvas.state.transform center.x center.y
-  let (canvasWidth, canvasHeight) ← liftCanvas CanvasM.getCurrentSize
+  let (canvasWidth, canvasHeight) ← getCurrentSize
   let data := #[cx, cy, radius, 0.0, color.r, color.g, color.b, color.a, 0.0]
   canvas.ctx.renderer.drawBatch 1 data 1 0.0 0.0 canvasWidth canvasHeight
 
-def fillCircle' (cx cy radius : Float) (color : Color) : RenderM Unit :=
-  fillCircle ⟨cx, cy⟩ radius color
+def fillCircleColor' (cx cy radius : Float) (color : Color) : CanvasM Unit :=
+  fillCircleColor ⟨cx, cy⟩ radius color
 
-def strokeCircle (center : Point) (radius : Float) (color : Color) (lineWidth : Float := 1.0) : RenderM Unit := do
+def strokeCircleColor (center : Point) (radius : Float) (color : Color) (lineWidth : Float := 1.0) : CanvasM Unit := do
   let twoPi := 6.283185307179586
   let path := Path.empty.arc center radius 0 twoPi false
-  strokePath path color lineWidth
+  strokePathColor path color lineWidth
 
-def strokeCircle' (cx cy radius : Float) (color : Color) (lineWidth : Float := 1.0) : RenderM Unit :=
-  strokeCircle ⟨cx, cy⟩ radius color lineWidth
+def strokeCircleColor' (cx cy radius : Float) (color : Color) (lineWidth : Float := 1.0) : CanvasM Unit :=
+  strokeCircleColor ⟨cx, cy⟩ radius color lineWidth
 
 /-! ## Clipping -/
 
-def pushClip (rect : Rect) : RenderM Unit :=
-  liftCanvas (CanvasM.clip rect)
+def pushClip (rect : Rect) : CanvasM Unit :=
+  clip rect
 
-def popClip : RenderM Unit :=
-  liftCanvas CanvasM.popClip
-
-def withClip (rect : Rect) (m : RenderM Unit) : RenderM Unit := do
+def withClip (rect : Rect) (m : CanvasM Unit) : CanvasM Unit := do
   pushClip rect
   m
   popClip
 
 /-! ## Transforms -/
 
-def pushTranslate (dx dy : Float) : RenderM Unit := do
-  liftCanvas CanvasM.save
-  liftCanvas (CanvasM.translate dx dy)
+def pushTranslate (dx dy : Float) : CanvasM Unit := do
+  save
+  translate dx dy
 
-def pushRotate (angle : Float) : RenderM Unit := do
-  liftCanvas CanvasM.save
-  liftCanvas (CanvasM.rotate angle)
+def pushRotate (angle : Float) : CanvasM Unit := do
+  save
+  rotate angle
 
-def pushScale (sx sy : Float) : RenderM Unit := do
-  liftCanvas CanvasM.save
-  liftCanvas (CanvasM.scale sx sy)
+def pushScale (sx sy : Float) : CanvasM Unit := do
+  save
+  scale sx sy
 
-def popTransform : RenderM Unit :=
-  liftCanvas CanvasM.restore
+def popTransform : CanvasM Unit :=
+  restore
 
-def withTranslate (dx dy : Float) (m : RenderM Unit) : RenderM Unit := do
+def withTranslate (dx dy : Float) (m : CanvasM Unit) : CanvasM Unit := do
   pushTranslate dx dy
   m
   popTransform
 
-def withRotate (angle : Float) (m : RenderM Unit) : RenderM Unit := do
+def withRotate (angle : Float) (m : CanvasM Unit) : CanvasM Unit := do
   pushRotate angle
   m
   popTransform
 
-def withScale (sx sy : Float) (m : RenderM Unit) : RenderM Unit := do
+def withScale (sx sy : Float) (m : CanvasM Unit) : CanvasM Unit := do
   pushScale sx sy
   m
   popTransform
 
 /-! ## State Save/Restore -/
 
-def save : RenderM Unit :=
-  liftCanvas CanvasM.save
-
-def restore : RenderM Unit :=
-  liftCanvas CanvasM.restore
-
-def withSave (m : RenderM Unit) : RenderM Unit := do
+def withSave (m : CanvasM Unit) : CanvasM Unit := do
   save
   m
   restore
 
-end RenderM
+end CanvasM
 
-end Afferent.Arbor
+end Afferent

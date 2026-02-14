@@ -45,7 +45,7 @@ deriving Repr, Inhabited
 def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -83,9 +83,9 @@ def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
     let pointColor := theme.primary.background
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
@@ -93,18 +93,18 @@ def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         -- Vertical grid lines
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw data points (GPU-batched)
       for p in points do
         let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
         let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-        RenderM.fillCircle' px py dims.pointRadius pointColor
+        CanvasM.fillCircleColor' px py dims.pointRadius pointColor
 
       -- Draw Y-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -113,7 +113,7 @@ def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -123,11 +123,11 @@ def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -135,7 +135,7 @@ def scatterPlotSpec (points : Array DataPoint) (theme : Theme)
 def multiSeriesSpec (series : Array Series) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual container size for responsive layout
@@ -176,20 +176,20 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
     let colors := ChartUtils.defaultColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineX := chartX + (ratio * chartWidth)
-          RenderM.fillRect' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' lineX chartY 1.0 chartHeight (Color.gray 0.3) 0.0
 
       -- Draw data points for each series (GPU-batched)
       for si in [0:series.size] do
@@ -200,7 +200,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
         for p in s.points do
           let px := chartX + ((p.x - niceMinX) / rangeX) * chartWidth
           let py := chartY + chartHeight - ((p.y - niceMinY) / rangeY) * chartHeight
-          RenderM.fillCircle' px py radius color
+          CanvasM.fillCircleColor' px py radius color
 
       -- Draw Y-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -209,7 +209,7 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let value := niceMinY + ratio * rangeY
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if dims.showAxisLabels && dims.gridLineCount > 0 then
@@ -219,11 +219,11 @@ def multiSeriesSpec (series : Array Series) (theme : Theme)
           let labelX := chartX + (ratio * chartWidth)
           let labelY := chartY + chartHeight + 16
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText labelX labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.textMuted
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 

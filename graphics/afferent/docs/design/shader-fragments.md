@@ -156,9 +156,9 @@ def helixSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
 
-    RenderM.build do
+    do
       -- Single emit, 8 floats, GPU does all the work
-      RenderM.fragmentDraw helixFragment {
+      CanvasM.fragmentDraw helixFragment {
         center := (cx, cy)
         size := dims.size
         time := t * Float.twoPi
@@ -171,9 +171,9 @@ def helixSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
 ### Immediate API Extension
 
 ```lean
-/-- Draw using a shader fragment from RenderM.
+/-- Draw using a shader fragment from CanvasM.
     params are packed float data matching the fragment's param declaration. -/
-RenderM.drawFragment (fragmentHash : UInt64) (primitiveType : UInt32)
+CanvasM.drawFragment (fragmentHash : UInt64) (primitiveType : UInt32)
   (params : Array Float) (instanceCount : UInt32)
 ```
 
@@ -396,7 +396,7 @@ Fragment draws follow widget traversal order and the active transform/clip stack
 2. Create circle template shader with fragment slot
 3. Build script to extract and compile fragments
 4. FFI to load and execute compiled shaders
-5. `RenderM.drawFragment` API surface
+5. `CanvasM.drawFragment` API surface
 6. Backend execution path
 
 **Deliverable**: Helix spinner using fragment system.
@@ -467,8 +467,8 @@ def waveSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   collect := fun layout =>
     let cx := layout.contentRect.x + dims.size / 2
     let cy := layout.contentRect.y + dims.size / 2
-    RenderM.build do
-      RenderM.fragmentDraw waveFragment {
+    do
+      CanvasM.fragmentDraw waveFragment {
         center := (cx, cy)
         size := dims.size
         time := t * Float.twoPi

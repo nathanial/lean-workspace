@@ -57,7 +57,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
     (variant : LineChartVariant) (theme : Theme)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -80,16 +80,16 @@ def lineChartSpec (data : Array Float) (labels : Array String)
     let lineColor := variantColor variant theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
 
       -- Build and stroke line path
       if pointCount > 0 then
@@ -105,7 +105,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
             else
               path := path.lineTo pt
           path
-        RenderM.strokePath path lineColor dims.lineWidth
+        CanvasM.strokePathColor path lineColor dims.lineWidth
 
       -- Draw markers
       if dims.showMarkers && pointCount > 0 then
@@ -114,7 +114,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
           let x := chartX + i.toFloat * stepX
           let y := chartY + chartHeight - (value / niceMaxVal) * chartHeight
           -- GPU-batched marker
-          RenderM.fillCircle' x y dims.markerRadius lineColor
+          CanvasM.fillCircleColor' x y dims.markerRadius lineColor
 
       -- Draw Y-axis labels
       if dims.gridLineCount > 0 then
@@ -123,7 +123,7 @@ def lineChartSpec (data : Array Float) (labels : Array String)
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if labels.size > 0 && pointCount > 0 then
@@ -131,11 +131,11 @@ def lineChartSpec (data : Array Float) (labels : Array String)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 
@@ -146,7 +146,7 @@ def defaultSeriesColors (theme : Theme) : Array Color := ChartUtils.defaultColor
 def multiSeriesSpec (series : Array Series) (labels : Array String)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
 
     -- Use actual allocated size for responsive layout
@@ -170,16 +170,16 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
     let defaultColors := defaultSeriesColors theme
     let axisColor := Color.gray 0.5
 
-    RenderM.build do
+    do
       -- Draw background
-      RenderM.fillRect' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
+      CanvasM.fillRectColor' rect.x rect.y actualWidth actualHeight (theme.panel.background.withAlpha 0.3) 6.0
 
       -- Draw grid lines
       if dims.showGridLines && dims.gridLineCount > 0 then
         for i in [0:dims.gridLineCount + 1] do
           let ratio := i.toFloat / dims.gridLineCount.toFloat
           let lineY := chartY + chartHeight - (ratio * chartHeight)
-          RenderM.fillRect' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
+          CanvasM.fillRectColor' chartX lineY chartWidth 1.0 (Color.gray 0.3) 0.0
 
       -- Draw each series
       for si in [0:series.size] do
@@ -201,7 +201,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
               else
                 path := path.lineTo pt
             path
-          RenderM.strokePath path color dims.lineWidth
+          CanvasM.strokePathColor path color dims.lineWidth
 
           -- Draw markers
           if dims.showMarkers then
@@ -210,7 +210,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
               let x := chartX + i.toFloat * stepX
               let y := chartY + chartHeight - (value / niceMaxVal) * chartHeight
               -- GPU-batched marker
-              RenderM.fillCircle' x y dims.markerRadius color
+              CanvasM.fillCircleColor' x y dims.markerRadius color
 
       -- Draw Y-axis labels
       if dims.gridLineCount > 0 then
@@ -219,7 +219,7 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let value := ratio * niceMaxVal
           let labelY := chartY + chartHeight - (ratio * chartHeight) - 6
           let labelText := ChartUtils.formatValue value
-          RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+          CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
       -- Draw X-axis labels
       if labels.size > 0 && maxPoints > 0 then
@@ -227,11 +227,11 @@ def multiSeriesSpec (series : Array Series) (labels : Array String)
           let label := labels[i]!
           let labelX := chartX + i.toFloat * stepX
           let labelY := chartY + chartHeight + 16
-          RenderM.fillText label labelX labelY theme.smallFont theme.text
+          CanvasM.fillTextId reg label labelX labelY theme.smallFont theme.text
 
       -- Draw axes
-      RenderM.fillRect' chartX chartY 1.0 chartHeight axisColor 0.0
-      RenderM.fillRect' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
+      CanvasM.fillRectColor' chartX chartY 1.0 chartHeight axisColor 0.0
+      CanvasM.fillRectColor' chartX (chartY + chartHeight) chartWidth 1.0 axisColor 0.0
 
 }
 

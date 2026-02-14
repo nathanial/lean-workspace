@@ -165,7 +165,7 @@ private def logicalLineNumberAt (text : String) (idx : Nat) : Nat :=
 private def lineNumberSpec (state : TextAreaState) (theme : Theme)
     (config : TextEditorConfig) : CustomSpec := {
   measure := fun _ _ => (config.gutterWidth, viewportHeight config)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let clipRect := Arbor.Rect.mk' rect.x rect.y rect.width rect.height
     let lines := state.renderState.wrappedLines
@@ -173,9 +173,9 @@ private def lineNumberSpec (state : TextAreaState) (theme : Theme)
     let ascender := theme.font.ascender
     let cursorLine := (cursorLocation state).line
     let bgColor := theme.panel.backgroundHover.withAlpha 0.35
-    RenderM.build do
-      RenderM.fillRect clipRect bgColor 0
-      RenderM.pushClip clipRect
+    do
+      CanvasM.fillRectColor clipRect bgColor 0
+      CanvasM.pushClip clipRect
       for i in [:lines.size] do
         match lines[i]? with
         | some line =>
@@ -185,9 +185,9 @@ private def lineNumberSpec (state : TextAreaState) (theme : Theme)
               let isActive := logicalLine == cursorLine
               let color := if isActive then theme.text else theme.textMuted
               let textY := lineY + ascender
-              RenderM.fillText (toString logicalLine) (rect.x + 8) textY theme.smallFont color
+              CanvasM.fillTextId reg (toString logicalLine) (rect.x + 8) textY theme.smallFont color
         | none => pure ()
-      RenderM.popClip
+      CanvasM.popClip
 }
 
 private def modeLabel (mode : TextEditorMode) : String :=

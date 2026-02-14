@@ -88,7 +88,7 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let height := lineHeight + 4
     -- Return minimum intrinsic width (container minWidth handles actual sizing)
     (0, height)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let text := if showPlaceholder then placeholder else displayText
     let textColor := if showPlaceholder then theme.textMuted else theme.text
@@ -97,13 +97,13 @@ def inputSpec (displayText : String) (placeholder : String) (showPlaceholder : B
     let ascender := theme.font.ascender
     let verticalOffset := (rect.height - lineHeight) / 2
     let textY := rect.y + verticalOffset + ascender
-    RenderM.build do
-      RenderM.fillText text rect.x textY theme.font textColor
+    do
+      CanvasM.fillTextId reg text rect.x textY theme.font textColor
       if focused then
         let cursorX := rect.x + cursorPixelX  -- Use pre-computed cursor position
         let cursorY := rect.y + verticalOffset
         let cursorH := lineHeight
-        RenderM.fillRect (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
+        CanvasM.fillRectColor (Arbor.Rect.mk' cursorX cursorY 2 cursorH) theme.focusRing 0
 }
 
 /-- Handle key press for text input. -/

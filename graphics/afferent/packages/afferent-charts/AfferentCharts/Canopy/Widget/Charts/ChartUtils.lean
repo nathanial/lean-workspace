@@ -107,13 +107,13 @@ def makeLegendItems (labels : Array (Option String)) (colors : Array Color)
 /-- Draw a vertical legend at the specified position.
     Returns the total height used by the legend. -/
 def drawLegend (items : Array LegendItem) (x y : Float)
-    (theme : Theme) (config : LegendConfig := defaultLegendConfig) : RenderM Float := do
+    (reg : FontRegistry) (theme : Theme) (config : LegendConfig := defaultLegendConfig) : CanvasM Float := do
   for i in [0:items.size] do
     let item := items[i]!
     let itemY := y + i.toFloat * config.itemHeight
 
     -- Color swatch
-    RenderM.fillRect' x itemY config.swatchSize config.swatchSize item.color config.cornerRadius
+    CanvasM.fillRectColor' x itemY config.swatchSize config.swatchSize item.color config.cornerRadius
 
     -- Label text
     let labelX := x + config.swatchSize + config.spacing
@@ -123,7 +123,7 @@ def drawLegend (items : Array LegendItem) (x y : Float)
       | some suffix => s!"{item.label} ({suffix})"
       | none => item.label
 
-    RenderM.fillText labelText labelX labelY theme.smallFont theme.text
+    CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
 
   pure (items.size.toFloat * config.itemHeight)
 
@@ -131,14 +131,14 @@ def drawLegend (items : Array LegendItem) (x y : Float)
     Items are laid out left-to-right with spacing.
     Returns the total width used by the legend. -/
 def drawLegendHorizontal (items : Array LegendItem) (x y : Float)
-    (theme : Theme) (itemWidth : Float := 100.0)
-    (config : LegendConfig := defaultLegendConfig) : RenderM Float := do
+    (reg : FontRegistry) (theme : Theme) (itemWidth : Float := 100.0)
+    (config : LegendConfig := defaultLegendConfig) : CanvasM Float := do
   for i in [0:items.size] do
     let item := items[i]!
     let itemX := x + i.toFloat * itemWidth
 
     -- Color swatch
-    RenderM.fillRect' itemX y config.swatchSize config.swatchSize item.color config.cornerRadius
+    CanvasM.fillRectColor' itemX y config.swatchSize config.swatchSize item.color config.cornerRadius
 
     -- Label text
     let labelX := itemX + config.swatchSize + config.spacing
@@ -148,7 +148,7 @@ def drawLegendHorizontal (items : Array LegendItem) (x y : Float)
       | some suffix => s!"{item.label} ({suffix})"
       | none => item.label
 
-    RenderM.fillText labelText labelX labelY theme.smallFont theme.text
+    CanvasM.fillTextId reg labelText labelX labelY theme.smallFont theme.text
 
   pure (items.size.toFloat * itemWidth)
 

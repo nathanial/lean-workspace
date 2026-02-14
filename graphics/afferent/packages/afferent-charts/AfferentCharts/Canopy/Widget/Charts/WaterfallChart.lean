@@ -125,7 +125,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
     (colors : ChartColors := defaultColors)
     (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.marginLeft + dims.marginRight + 50, dims.marginTop + dims.marginBottom + 30)
-  collect := fun layout => RenderM.build do
+  collect := fun layout reg => do
     let rect := layout.contentRect
     let actualWidth := rect.width
     let actualHeight := rect.height
@@ -155,7 +155,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
 
     -- Draw background
     let bgRect := Arbor.Rect.mk' rect.x rect.y actualWidth actualHeight
-    RenderM.fillRect bgRect (theme.panel.background.withAlpha 0.3) 6.0
+    CanvasM.fillRectColor bgRect (theme.panel.background.withAlpha 0.3) 6.0
 
     -- Draw grid lines
     if dims.showGridLines && dims.gridLineCount > 0 then
@@ -163,13 +163,13 @@ def waterfallChartSpec (data : Data) (theme : Theme)
         let ratio := i.toFloat / dims.gridLineCount.toFloat
         let lineY := chartY + chartHeight - (ratio * chartHeight)
         let lineRect := Arbor.Rect.mk' chartX lineY chartWidth 1.0
-        RenderM.fillRect lineRect (Color.gray 0.3) 0.0
+        CanvasM.fillRectColor lineRect (Color.gray 0.3) 0.0
 
     -- Draw zero line if it's within the chart area
     if minVal < 0.0 && maxVal > 0.0 then
       let zeroY := valueToY 0.0
       let zeroRect := Arbor.Rect.mk' chartX zeroY chartWidth 1.5
-      RenderM.fillRect zeroRect (Color.gray 0.5) 0.0
+      CanvasM.fillRectColor zeroRect (Color.gray 0.5) 0.0
 
     -- Draw connectors and bars
     let mut prevEndY : Option Float := none
@@ -188,7 +188,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
           -- Only draw connector if this isn't a total bar
           if barType != .total then
             let connectorRect := Arbor.Rect.mk' (barX - dims.barGap) prevY dims.barGap dims.connectorWidth
-            RenderM.fillRect connectorRect colors.connector 0.0
+            CanvasM.fillRectColor connectorRect colors.connector 0.0
         | none => pure ()
 
       -- Determine bar color
@@ -203,7 +203,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
       let barBottom := max startY endY
       let barHeight := max 2.0 (barBottom - barTop)
       let barRect := Arbor.Rect.mk' barX barTop barWidth barHeight
-      RenderM.fillRect barRect barColor 2.0
+      CanvasM.fillRectColor barRect barColor 2.0
 
       -- Update previous end Y for connector
       prevEndY := some endY
@@ -215,7 +215,7 @@ def waterfallChartSpec (data : Data) (theme : Theme)
         let value := minVal + ratio * valueRange
         let labelY := chartY + chartHeight - (ratio * chartHeight) + 4
         let labelText := formatValue value
-        RenderM.fillText labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
+        CanvasM.fillTextId reg labelText (rect.x + 4) labelY theme.smallFont theme.textMuted
 
     -- Draw X-axis labels
     for i in [0:numBars] do
@@ -223,14 +223,14 @@ def waterfallChartSpec (data : Data) (theme : Theme)
       let barX := chartX + dims.barGap + i.toFloat * (barWidth + dims.barGap)
       let labelX := barX + barWidth / 2
       let labelY := chartY + chartHeight + 16
-      RenderM.fillText bar.label labelX labelY theme.smallFont theme.text
+      CanvasM.fillTextId reg bar.label labelX labelY theme.smallFont theme.text
 
     -- Draw axes
     let axisColor := Color.gray 0.5
     let yAxisRect := Arbor.Rect.mk' chartX chartY 1.0 chartHeight
-    RenderM.fillRect yAxisRect axisColor 0.0
+    CanvasM.fillRectColor yAxisRect axisColor 0.0
     let xAxisRect := Arbor.Rect.mk' chartX (chartY + chartHeight) chartWidth 1.0
-    RenderM.fillRect xAxisRect axisColor 0.0
+    CanvasM.fillRectColor xAxisRect axisColor 0.0
 
 }
 

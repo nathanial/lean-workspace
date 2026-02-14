@@ -6,6 +6,7 @@ import Reactive
 import Afferent.UI.Canopy.Core
 import Afferent.UI.Canopy.Theme
 import Afferent.UI.Canopy.Reactive.Component
+import Afferent.Draw.Builder
 import Linalg.Core
 
 namespace AfferentProgressBars.Canopy
@@ -13,6 +14,7 @@ namespace AfferentProgressBars.Canopy
 open Afferent.Canopy
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Linalg
 
 /-- Progress bar variant for different visual styles. -/
@@ -50,7 +52,7 @@ def variantColor (variant : ProgressVariant) (theme : Theme) : Color :=
 def determinateSpec (value : Float) (variant : ProgressVariant)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.width, dims.height)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     -- Clamp value to valid range
     let v := if value < 0.0 then 0.0 else if value > 1.0 then 1.0 else value
@@ -60,12 +62,12 @@ def determinateSpec (value : Float) (variant : ProgressVariant)
     let filledRect := Afferent.Arbor.Rect.mk' rect.x rect.y filledWidth dims.height
     let fillColor := variantColor variant theme
 
-    RenderM.build do
+    do
       -- Background track
-      RenderM.fillRect trackRect trackBg dims.cornerRadius
+      CanvasM.fillRectColor trackRect trackBg dims.cornerRadius
       -- Filled portion
       if filledWidth > 0 then
-        RenderM.fillRect filledRect fillColor dims.cornerRadius
+        CanvasM.fillRectColor filledRect fillColor dims.cornerRadius
 }
 
 /-- Custom spec for indeterminate progress bar with animation.
@@ -73,7 +75,7 @@ def determinateSpec (value : Float) (variant : ProgressVariant)
 def indeterminateSpec (animationProgress : Float) (variant : ProgressVariant)
     (theme : Theme) (dims : Dimensions := defaultDimensions) : CustomSpec := {
   measure := fun _ _ => (dims.width, dims.height)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let trackRect := Afferent.Arbor.Rect.mk' rect.x rect.y dims.width dims.height
     let trackBg := Afferent.Color.gray 0.25
@@ -86,11 +88,11 @@ def indeterminateSpec (animationProgress : Float) (variant : ProgressVariant)
     let segmentRect := Afferent.Arbor.Rect.mk' segmentX rect.y segmentWidth dims.height
     let fillColor := variantColor variant theme
 
-    RenderM.build do
+    do
       -- Background track
-      RenderM.fillRect trackRect trackBg dims.cornerRadius
+      CanvasM.fillRectColor trackRect trackBg dims.cornerRadius
       -- Animated segment
-      RenderM.fillRect segmentRect fillColor dims.cornerRadius
+      CanvasM.fillRectColor segmentRect fillColor dims.cornerRadius
   skipCache := true
 }
 

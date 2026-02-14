@@ -9,6 +9,7 @@ import Afferent.Runtime.Shader.DSL
 namespace AfferentSpinners.Canopy.Spinner
 
 open Afferent.Arbor hiding Event
+open Afferent
 open Afferent.Shader
 open _root_.Shader hiding center size time color
 open Linalg
@@ -58,7 +59,7 @@ initialize bouncingDotsFragmentRegistration : Unit ← do
     Passes only 8 floats to GPU; the shader computes all 3 circle positions. -/
 def bouncingDotsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
-  collect := fun layout =>
+  collect := fun layout reg =>
     let rect := layout.contentRect
     let cx := rect.x + dims.size / 2
     let cy := rect.y + dims.size / 2
@@ -71,8 +72,8 @@ def bouncingDotsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpe
       color.r, color.g, color.b, color.a  -- color
     ]
 
-    RenderM.build do
-      RenderM.drawFragment bouncingDotsFragment.hash bouncingDotsFragment.primitive.toUInt32
+    do
+      CanvasM.drawFragment bouncingDotsFragment.hash bouncingDotsFragment.primitive.toUInt32
         params bouncingDotsFragment.instanceCount.toUInt32
 }
 
