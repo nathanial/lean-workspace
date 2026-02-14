@@ -31,6 +31,19 @@ private def defaultWidgetInstanceIndex : Nat :=
 private def gridRowCount (instanceCount columns : Nat) : Nat :=
   if instanceCount == 0 then 0 else (instanceCount + columns - 1) / columns
 
+/-- Clamp panel dimensions to a positive usable range. -/
+private def clampPanelDims (width height : Float) : Float × Float :=
+  (max 1.0 width, max 1.0 height)
+
+/-- Resolve a named component's content size from a layout snapshot. -/
+private def componentContentDims?
+    (name : ComponentId)
+    (componentMap : Std.HashMap ComponentId WidgetId)
+    (layouts : Trellis.LayoutResult) : Option (Float × Float) := do
+  let wid ← componentMap.get? name
+  let layout ← layouts.get wid
+  pure (clampPanelDims layout.contentRect.width layout.contentRect.height)
+
 /-- Clamp invalid aspect hints to a sane fallback. -/
 private def normalizeAspectHint (aspectHint : Float) : Float :=
   if aspectHint.isNaN || aspectHint <= 0 then 1.0 else aspectHint
@@ -500,6 +513,17 @@ def gridCustom' (props : Trellis.GridContainer) (style : Afferent.Arbor.BoxStyle
   emitRender render
   pure result
 
+/-- Create a named column container that collects children's renders. -/
+def namedColumnCustom' (name : ComponentId) (gap : Float := 0)
+    (style : Afferent.Arbor.BoxStyle := {})
+    (children : WidgetM α) : WidgetM α := do
+  let (result, childRenders) ← runWidgetChildren children
+  let render ← SpiderM.liftIO <| ComponentRender.memoizedChildren
+    (childrenIO := pure childRenders)
+    (combine := fun widgets => Afferent.Arbor.namedColumn name gap style widgets)
+  emitRender render
+  pure result
+
 /-- Render a mixed grid with the requested total instance count. -/
 def renderMixedGrid (instanceCount : Nat) (fillRows : Bool := true)
     (fillColumns : Bool := true) (aspectHint : Float := 1.0)
@@ -597,6 +621,24 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
   let selectedType ← Reactive.holdDyn 0 selectionEvent
   let (instanceCountEvent, fireInstanceCount) ← Reactive.newTriggerEvent (t := Spider) (a := Nat)
   let selectedInstanceCountIndex ← Reactive.holdDyn defaultWidgetInstanceIndex instanceCountEvent
+  let rightPanelName ← registerComponent false false
+
+  let allClicks ← useAllClicks
+  let allHovers ← useAllHovers
+  let allScrolls ← useAllScrolls
+  let rightPanelDimsFromClicks ← Event.mapMaybeM (fun data =>
+    componentContentDims? rightPanelName data.componentMap data.layouts
+    ) allClicks
+  let rightPanelDimsFromHovers ← Event.mapMaybeM (fun data =>
+    componentContentDims? rightPanelName data.componentMap data.layouts
+    ) allHovers
+  let rightPanelDimsFromScrolls ← Event.mapMaybeM (fun data =>
+    componentContentDims? rightPanelName data.componentMap data.layouts
+    ) allScrolls
+  let rightPanelDimsEvent ← Event.mergeAllListM
+    [rightPanelDimsFromClicks, rightPanelDimsFromHovers, rightPanelDimsFromScrolls]
+  let initialPanelDims := clampPanelDims env.windowWidthF env.windowHeightF
+  let rightPanelDims ← Reactive.holdDyn initialPanelDims rightPanelDimsEvent
 
   let (_, render) ← runWidget do
     let rootStyle : BoxStyle := {
@@ -651,31 +693,33 @@ def createApp (env : DemoEnv) : ReactiveM AppState := do
           width := .percent 1.0
           height := .percent 1.0
         }
-        let rightPanelWidthHint := max 1.0 (env.windowWidthF - 280.0)
-        let rightPanelHeightHint := max 1.0 (env.windowHeightF - 220.0)
-        let gridAspectHint := rightPanelWidthHint / rightPanelHeightHint
-        column' (gap := 0) (style := rightPanelStyle) do
-          let gridScrollConfig : ScrollContainerConfig := {
-            width := rightPanelWidthHint
-            height := rightPanelHeightHint
-            verticalScroll := true
-            horizontalScroll := true
-            fillWidth := true
-            fillHeight := true
-            scrollbarVisibility := .always
-          }
+        namedColumnCustom' rightPanelName (gap := 0) (style := rightPanelStyle) do
           let renderConfig ← Dynamic.zipWithM
             (fun selIdx countIdx => (selIdx, countIdx))
             selectedType selectedInstanceCountIndex
-          let _ ← dynWidget renderConfig (fun (selIdx, countIdx) => do
+          let renderWithPanelDims ← Dynamic.zipWithM
+            (fun (selIdx, countIdx) panelDims => (selIdx, countIdx, panelDims))
+            renderConfig rightPanelDims
+          let _ ← dynWidget renderWithPanelDims (fun (selIdx, countIdx, panelDims) => do
+            let (panelWidth, panelHeight) := panelDims
+            let gridAspectHint := panelWidth / panelHeight
+            let gridScrollConfig : ScrollContainerConfig := {
+              width := panelWidth
+              height := panelHeight
+              verticalScroll := true
+              horizontalScroll := true
+              fillWidth := true
+              fillHeight := true
+              scrollbarVisibility := .always
+            }
             let wtype := allWidgetTypes.getD selIdx .label
             let instanceCount := widgetInstanceOptions.getD countIdx defaultWidgetInstanceCount
             let (_, _) ← scrollContainer gridScrollConfig do
               renderWidgetGrid wtype instanceCount
                 (fillRows := true) (fillColumns := true)
                 (aspectHint := gridAspectHint)
-                (viewportWidthHint := rightPanelWidthHint)
-                (viewportHeightHint := rightPanelHeightHint)
+                (viewportWidthHint := panelWidth)
+                (viewportHeightHint := panelHeight)
             pure ())
           pure ()
 

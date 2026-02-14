@@ -158,7 +158,7 @@ private partial def customIds (widget : Widget) : Array WidgetId :=
 
 private def buildWidgetPerfBarChartTabLikeTree
     (instanceCount : Nat := 10)
-    (rootW rootH windowW windowH : Float := 1800) : IO Widget := do
+    (rootW rootH panelW panelH : Float := 1800) : IO Widget := do
   let assets ← loadTestAssets
   let spiderEnv ← Reactive.Host.SpiderEnv.new Reactive.Host.defaultErrorHandler
   try
@@ -202,8 +202,8 @@ private def buildWidgetPerfBarChartTabLikeTree
               }
               column' (gap := 0) (style := rightPanelStyle) do
                 let cfg : ScrollContainerConfig := {
-                  width := windowW
-                  height := windowH
+                  width := panelW
+                  height := panelH
                   verticalScroll := true
                   horizontalScroll := true
                   fillWidth := true
@@ -211,14 +211,14 @@ private def buildWidgetPerfBarChartTabLikeTree
                   scrollbarVisibility := .always
                 }
                 let (_, _) ← scrollContainer cfg do
-                  let rightPanelWidthHint := max 1.0 (windowW - 280.0)
-                  let rightPanelHeightHint := max 1.0 (windowH - 220.0)
-                  let aspectHint := rightPanelWidthHint / rightPanelHeightHint
+                  let panelWidth := max 1.0 panelW
+                  let panelHeight := max 1.0 panelH
+                  let aspectHint := panelWidth / panelHeight
                   renderWidgetGrid .barChart instanceCount
                     (fillRows := true) (fillColumns := true)
                     (aspectHint := aspectHint)
-                    (viewportWidthHint := rightPanelWidthHint)
-                    (viewportHeightHint := rightPanelHeightHint)
+                    (viewportWidthHint := panelWidth)
+                    (viewportHeightHint := panelHeight)
                 pure ()
         pure render
       let builder ← SpiderM.liftIO render
@@ -360,9 +360,9 @@ test "scroll content height is close to actual child layout height (heatmap, low
 test "widget perf tab logic: bar chart x10 uses scroll container with min-content fr tracks" := do
   let rootW := 1800.0
   let rootH := 720.0
-  let windowW := 1800.0
-  let windowH := 1200.0
-  let widget ← buildWidgetPerfBarChartTabLikeTree 10 rootW rootH windowW windowH
+  let panelW := 1500.0
+  let panelH := 600.0
+  let widget ← buildWidgetPerfBarChartTabLikeTree 10 rootW rootH panelW panelH
   let (_, layouts) ← measureAndLayout widget rootW rootH
   ensure (firstScrollData? widget |>.isSome)
     "Expected a scroll container for widget perf content"
@@ -380,9 +380,9 @@ test "widget perf tab logic: bar chart x10 uses scroll container with min-conten
 test "widget perf tab logic: bar chart x100 uses scroll container with min-content fr tracks" := do
   let rootW := 1800.0
   let rootH := 720.0
-  let windowW := 1800.0
-  let windowH := 1200.0
-  let widget ← buildWidgetPerfBarChartTabLikeTree 100 rootW rootH windowW windowH
+  let panelW := 1500.0
+  let panelH := 600.0
+  let widget ← buildWidgetPerfBarChartTabLikeTree 100 rootW rootH panelW panelH
   let (_, layouts) ← measureAndLayout widget rootW rootH
   ensure (firstScrollData? widget |>.isSome)
     "Expected a scroll container for widget perf content"
