@@ -63,6 +63,13 @@ Project-specific note:
 - 2-space indentation
 - Keep FFI wrappers minimal in `ffi/` or `native/`
 
+## Layout Sizing Policy
+
+- Do not use heuristic width/height guesses (for example fixed "chrome" subtraction constants) to drive layout behavior.
+- Do not infer available space from global window size when a container/content rect is available.
+- Layout sizing must come from actual measured dimensions and resolved container/content bounds.
+- If exact container dimensions are not available yet, add plumbing to pass real measured sizes instead of introducing estimates.
+
 ## Commits
 
 Short, lowercase, imperative style:
