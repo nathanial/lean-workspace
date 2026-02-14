@@ -5,7 +5,6 @@
 import AfferentTests.TessellationTests
 import AfferentTests.LayoutTests
 import AfferentTests.CanvasStateTests
-import AfferentTests.BackendExecuteTests
 import AfferentTests.FontTests
 import AfferentTests.RenderSmokeTests
 import AfferentTests.CSSTests

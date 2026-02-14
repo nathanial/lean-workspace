@@ -295,9 +295,7 @@ private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
     let hitIndex := Afferent.Arbor.buildHitTestIndex measureResult.widget layouts
     let tHitIndex1 ← IO.monoNanosNow
 
-    let tCollect0 ← IO.monoNanosNow
-    let _ := Afferent.Arbor.collectCommands measureResult.widget layouts
-    let tCollect1 ← IO.monoNanosNow
+    let collectMs : Float := 0.0
 
     if widgetCount == 0 then
       widgetCount := measureResult.widget.widgetCount
@@ -316,7 +314,7 @@ private def runStress (render : ComponentRender) (inputs : ReactiveInputs)
         (deltaMs tMeasure0 tMeasure1)
         (deltaMs tLayout0 tLayout1)
         (deltaMs tHitIndex0 tHitIndex1)
-        (deltaMs tCollect0 tCollect1)
+        collectMs
 
   let frames := accum.frames
   pure {

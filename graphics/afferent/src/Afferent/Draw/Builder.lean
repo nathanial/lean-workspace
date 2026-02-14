@@ -5,7 +5,7 @@
   Unlike the old command-buffer builder, `RenderM` executes drawing operations
   directly against `CanvasM` while reading the active `FontRegistry`.
 -/
-import Afferent.Draw.Command
+import Afferent.Draw.Types
 import Afferent.Output.Canvas
 import Afferent.Core.Path
 import Afferent.Core.Transform

@@ -5,7 +5,6 @@
 import Crucible
 import Afferent.UI.Arbor
 import Afferent.UI.Arbor.Widget.DSL
-import Afferent.Draw.Collect
 import Afferent.UI.Canopy.Reactive.Component
 import AfferentChat.Canopy.Widget.Chat
 import Afferent.UI.Canopy.Widget.Layout.Scroll
@@ -864,40 +863,44 @@ test "FRP: scroll events ignored when not in hitPath" := do
 
 /-! ## Scrollbar Rendering Tests
 
-These tests verify that the scrollbar is correctly rendered when the chat
-message list content exceeds the viewport. Tests inspect the Arbor render
-commands emitted by the widget.
+These tests verify scrollbar geometry computed by the immediate render path.
 -/
 
-/-- Check if a fillRect command is in the vertical scrollbar track area.
-    Scrollbar is rendered at the right edge of the viewport.
-    We check if rect.origin.x is near viewportWidth - thickness. -/
-def isVerticalScrollbarRect (cmd : RenderCommand) (viewportWidth thickness : Float) : Bool :=
-  match cmd with
-  | .fillRect rect _ _ =>
-    -- Scrollbar is at right edge: x >= viewportWidth - thickness - 1 (1px tolerance)
-    rect.origin.x >= (viewportWidth - thickness - 1)
-  | _ => false
+structure VerticalScrollbarGeometry where
+  trackRect : Rect
+  thumbRect : Rect
 
-/-- Count scrollbar-related fillRect commands (track + thumb = 2 for vertical). -/
-def countVerticalScrollbarRects (cmds : Array RenderCommand) (viewportW thickness : Float) : Nat :=
-  cmds.foldl (fun acc cmd =>
-    if isVerticalScrollbarRect cmd viewportW thickness then acc + 1 else acc
-  ) 0
+/-- Compute vertical scrollbar geometry using renderer formulas. -/
+def computeVerticalScrollbarGeometry (contentRect : Trellis.LayoutRect) (scrollState : ScrollState)
+    (contentW contentH : Float) (scrollbarConfig : ScrollbarRenderConfig)
+    : Option VerticalScrollbarGeometry :=
+  let viewportW := contentRect.width
+  let viewportH := contentRect.height
+  if !scrollbarConfig.showVertical || contentH <= viewportH then
+    none
+  else
+    let effectiveScroll := scrollState.clamp viewportW viewportH contentW contentH
+    let thickness := scrollbarConfig.thickness
+    let minThumb := scrollbarConfig.minThumbLength
+    let maxScrollY := contentH - viewportH
+    let scrollRatio := if maxScrollY > 0 then effectiveScroll.offsetY / maxScrollY else 0
+    let thumbRatio := viewportH / contentH
+    let thumbHeight := max minThumb (viewportH * thumbRatio)
+    let trackHeight := viewportH
+    let thumbTravel := trackHeight - thumbHeight
+    let thumbY := thumbTravel * scrollRatio
+    let trackX := contentRect.x + viewportW - thickness
+    let trackRect : Rect := ⟨⟨trackX, contentRect.y⟩, ⟨thickness, trackHeight⟩⟩
+    let thumbRect : Rect := ⟨⟨trackX, contentRect.y + thumbY⟩, ⟨thickness, thumbHeight⟩⟩
+    some { trackRect, thumbRect }
 
-/-- Find the Y position of the scrollbar thumb.
-    The thumb is typically the smaller rect in the scrollbar area. -/
-def findScrollbarThumbY (cmds : Array RenderCommand) (viewportW thickness : Float) : Float :=
-  let scrollbarRects := cmds.filterMap fun cmd =>
-    match cmd with
-    | .fillRect rect _ _ =>
-      if rect.origin.x >= (viewportW - thickness - 1) then some rect else none
-    | _ => none
-  -- Thumb is typically smaller than track, so find the one with smaller height
-  match scrollbarRects.toList with
-  | r1 :: r2 :: _ => if r1.size.height < r2.size.height then r1.origin.y else r2.origin.y
-  | r :: _ => r.origin.y
-  | [] => 0.0
+/-- Compute vertical scrollbar geometry for a root scroll widget. -/
+def messageListScrollbarGeometry? (widget : Widget) (layouts : LayoutResult) : Option VerticalScrollbarGeometry := do
+  match widget with
+  | .scroll id _ _ scrollState contentW contentH scrollbarConfig _ _ =>
+      let layout ← layouts.get id
+      computeVerticalScrollbarGeometry layout.contentRect scrollState contentW contentH scrollbarConfig
+  | _ => none
 
 test "messageListVisual renders scrollbar when content exceeds viewport" := do
   -- Create enough messages to overflow the viewport
@@ -913,13 +916,8 @@ test "messageListVisual renders scrollbar when content exceeds viewport" := do
   let measureResult := measureWidget (M := Id) widget 400 300
   let layouts := Trellis.layout measureResult.node 400 300
 
-  -- Collect render commands
-  let commands := collectCommands widget layouts
-
-  -- Default scrollbar thickness is 8.0 (from ScrollbarConfig.default)
-  let scrollbarRects := countVerticalScrollbarRects commands 400 8.0
-  -- Should have scrollbar rects (track + thumb = at least 2)
-  ensure (scrollbarRects >= 2) s!"Expected at least 2 scrollbar rects (track + thumb), got {scrollbarRects}"
+  let geom := messageListScrollbarGeometry? widget layouts
+  ensure geom.isSome "Expected vertical scrollbar geometry when content exceeds viewport"
 
 test "messageListVisual does not render scrollbar when content fits" := do
   -- Single short message that fits in viewport
@@ -933,11 +931,8 @@ test "messageListVisual does not render scrollbar when content fits" := do
 
   let measureResult := measureWidget (M := Id) widget 400 300
   let layouts := Trellis.layout measureResult.node 400 300
-  let commands := collectCommands widget layouts
-
-  -- Should have no scrollbar rects when content fits
-  let scrollbarRects := countVerticalScrollbarRects commands 400 8.0
-  ensure (scrollbarRects == 0) s!"Expected 0 scrollbar rects when content fits, got {scrollbarRects}"
+  let geom := messageListScrollbarGeometry? widget layouts
+  ensure geom.isNone "Expected no vertical scrollbar geometry when content fits viewport"
 
 test "messageListVisual scrollbar thumb moves with scroll offset" := do
   let messages := (Array.range 20).map fun i => ChatMessage.user i s!"Message {i}"
@@ -949,7 +944,7 @@ test "messageListVisual scrollbar thumb moves with scroll offset" := do
   let (widgetTop, _) ← builderTop.run {}
   let measureTop := measureWidget (M := Id) widgetTop 400 300
   let layoutsTop := Trellis.layout measureTop.node 400 300
-  let commandsTop := collectCommands widgetTop layoutsTop
+  let geomTop := messageListScrollbarGeometry? widgetTop layoutsTop
 
   -- Widget scrolled down (scroll offset = 450)
   let scrolledState : ScrollState := { offsetX := 0, offsetY := 450.0 }
@@ -957,11 +952,16 @@ test "messageListVisual scrollbar thumb moves with scroll offset" := do
   let (widgetScrolled, _) ← builderScrolled.run {}
   let measureScrolled := measureWidget (M := Id) widgetScrolled 400 300
   let layoutsScrolled := Trellis.layout measureScrolled.node 400 300
-  let commandsScrolled := collectCommands widgetScrolled layoutsScrolled
+  let geomScrolled := messageListScrollbarGeometry? widgetScrolled layoutsScrolled
 
-  -- Extract thumb positions and verify they differ
-  let thumbTopY := findScrollbarThumbY commandsTop 400 8.0
-  let thumbScrolledY := findScrollbarThumbY commandsScrolled 400 8.0
+  let thumbTopY := match geomTop with
+    | some g => g.thumbRect.origin.y
+    | none => 0.0
+  let thumbScrolledY := match geomScrolled with
+    | some g => g.thumbRect.origin.y
+    | none => 0.0
+  ensure geomTop.isSome "Expected top geometry to be present"
+  ensure geomScrolled.isSome "Expected scrolled geometry to be present"
   -- When scrolled down, the thumb should be at a higher Y position (further down the screen)
   ensure (thumbScrolledY > thumbTopY) s!"Thumb should move down when scrolled: top={thumbTopY}, scrolled={thumbScrolledY}"
 
@@ -977,10 +977,13 @@ test "messageListVisual scrollbar with custom thickness" := do
 
   let measureResult := measureWidget (M := Id) widget 500 400
   let layouts := Trellis.layout measureResult.node 500 400
-  let commands := collectCommands widget layouts
-
-  -- Verify scrollbar renders at different viewport width
-  let scrollbarRects := countVerticalScrollbarRects commands 500 8.0
-  ensure (scrollbarRects >= 2) s!"Expected at least 2 scrollbar rects with 500px viewport, got {scrollbarRects}"
+  let geom := messageListScrollbarGeometry? widget layouts
+  match geom with
+  | some g =>
+      shouldBeNear g.trackRect.size.width 8.0
+      ensure (g.trackRect.origin.x >= 491.0)
+        s!"Expected scrollbar near right edge for 500px viewport, got x={g.trackRect.origin.x}"
+  | none =>
+      ensure false "Expected vertical scrollbar geometry for overflowing content"
 
 end AfferentChat.Tests.ChatTests

@@ -1,17 +1,38 @@
 /-
   Afferent Widget Backend Arbor Rendering
-  Immediate widget rendering pipeline (no RenderCommand collection).
+  Immediate widget rendering pipeline.
 -/
 import Afferent.Output.Canvas
 import Afferent.Graphics.Text.Font
 import Afferent.Graphics.Text.Measurer
 import Afferent.UI.Arbor
-import Afferent.Output.Execute.Interpreter
 
 namespace Afferent.Widget
 
 open Afferent
 open Afferent.Arbor
+
+/-- Execution statistics.
+    Fields are retained for compatibility with historical batching metrics. -/
+structure BatchStats where
+  batchedCalls : Nat := 0
+  individualCalls : Nat := 0
+  totalCommands : Nat := 0
+  rectsBatched : Nat := 0
+  circlesBatched : Nat := 0
+  strokeRectsBatched : Nat := 0
+  strokeRectDirectRuns : Nat := 0
+  strokeRectDirectRects : Nat := 0
+  textsBatched : Nat := 0
+  textFillCommands : Nat := 0
+  textBatchFlushes : Nat := 0
+  timeFlattenMs : Float := 0.0
+  timeCoalesceMs : Float := 0.0
+  timeBatchLoopMs : Float := 0.0
+  timeDrawCallsMs : Float := 0.0
+  timeTextPackMs : Float := 0.0
+  timeTextFFIMs : Float := 0.0
+  deriving Repr, Inhabited
 
 private structure PreparedRender where
   measuredWidget : Afferent.Arbor.Widget

@@ -1,5 +1,8 @@
 # Shader Fragments: Custom GPU Code for Widgets
 
+> Status: design proposal. Updated for immediate-mode rendering terminology.
+> Historical command-buffer terminology from earlier drafts has been removed.
+
 ## Executive Summary
 
 This document explores a system that allows widget authors to write GPU shader code without managing full Metal pipelines. Widgets provide small "shader fragments" - functions that compute per-primitive properties. Afferent composes these into complete shaders, handles compilation, and manages execution.
@@ -165,16 +168,13 @@ def helixSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
 }
 ```
 
-### RenderCommand Extension
+### Immediate API Extension
 
 ```lean
-inductive RenderCommand where
-  -- ... existing commands ...
-
-  /-- Draw using a shader fragment.
-      The fragment generates `primitiveCount` primitives per instance.
-      params is packed float data matching the fragment's param declaration. -/
-  | fragmentDraw (fragment : ShaderFragment) (params : Array Float) (instanceCount : Nat := 1)
+/-- Draw using a shader fragment from RenderM.
+    params are packed float data matching the fragment's param declaration. -/
+RenderM.drawFragment (fragmentHash : UInt64) (primitiveType : UInt32)
+  (params : Array Float) (instanceCount : UInt32)
 ```
 
 ---
@@ -357,7 +357,7 @@ Multiple instances using the same fragment batch naturally:
 
 ```lean
 -- 1000 helix spinners, each emits one fragmentDraw
--- Backend collects all with same fragment into one draw call
+-- Renderer batches compatible fragment draws into fewer draw calls
 -- GPU renders 1000 instances × 16 circles = 16000 circles in one call
 ```
 
@@ -382,7 +382,7 @@ vertex VertexOut fragment_vertex(...) {
 
 ### Z-Ordering
 
-Fragment draws are ordered like other commands - by their position in the command stream. The coalescing pass groups fragments by type while preserving relative order with other command types.
+Fragment draws follow widget traversal order and the active transform/clip stack. Batching must preserve visual order guarantees.
 
 ---
 
@@ -396,7 +396,7 @@ Fragment draws are ordered like other commands - by their position in the comman
 2. Create circle template shader with fragment slot
 3. Build script to extract and compile fragments
 4. FFI to load and execute compiled shaders
-5. `RenderCommand.fragmentDraw` variant
+5. `RenderM.drawFragment` API surface
 6. Backend execution path
 
 **Deliverable**: Helix spinner using fragment system.

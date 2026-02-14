@@ -23,10 +23,9 @@
 import Afferent.UI.Arbor.Core.Types
 import Afferent.UI.Arbor.Core.TextMeasurer
 
--- Render commands
-import Afferent.Draw.Command
+-- Draw types + immediate drawing DSL
+import Afferent.Draw.Types
 import Afferent.Draw.Builder
-import Afferent.Draw.Collect
 
 -- Widget system
 import Afferent.UI.Arbor.Widget.Core

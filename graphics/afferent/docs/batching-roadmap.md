@@ -1,6 +1,9 @@
 # Batching Performance Roadmap
 
-This document outlines remaining optimizations for GPU batching in Afferent's rendering pipeline.
+> Status: archival roadmap from the pre-immediate-mode pipeline.
+> The current runtime renders directly via `RenderM`/`CanvasM`; command collection/execution APIs referenced below are historical.
+
+This document outlines historical optimization ideas for GPU batching in Afferent's rendering pipeline.
 
 ## Current State
 
@@ -10,12 +13,12 @@ This document outlines remaining optimizations for GPU batching in Afferent's re
    - Consecutive fillRect commands with same corner radius batch into single GPU draw call
    - Uses `drawRectsBatch` with instanced rendering
 
-2. **Command Coalescing** (`Backend.lean`)
+2. **Command Coalescing** (`Backend.lean`, historical)
    - Reorders commands within scopes to maximize batching
    - Groups by type: fillRects → strokeRects → fillPaths → strokePaths → texts
    - Respects scope boundaries (save/restore, clips, transforms)
 
-3. **Render Command Caching** (`Collect.lean`)
+3. **Render Command Caching** (`Collect.lean`, removed)
    - Caches CustomSpec.collect output across frames
    - Keyed by widget name + layout hash + generation
    - Avoids redundant command generation for static widgets
@@ -29,16 +32,16 @@ This document outlines remaining optimizations for GPU batching in Afferent's re
    - `drawCirclesBatch` for scatter plots
    - `drawRectsBatch` for heatmaps/grids
 
-6. **strokeRect Batching** (`Backend.lean`)
+6. **strokeRect Batching** (`Backend.lean`, historical)
    - Consecutive strokeRect commands with same lineWidth and cornerRadius batch into single GPU draw call
    - Uses `executeStrokeRectBatch` with `StrokeRectBatchEntry` structures
 
-7. **fillCircle/strokeCircle Commands** (`Command.lean`, `Backend.lean`)
+7. **fillCircle/strokeCircle Commands** (`Command.lean`, `Backend.lean`, historical)
    - Dedicated `RenderCommand.fillCircle` and `RenderCommand.strokeCircle` variants
    - Batched via `executeFillCircleBatch` with `CircleBatchEntry` structures
    - Avoids CPU tessellation for circles (GPU-native rendering)
 
-8. **Text Batching** (`Backend.lean`, `draw_text.m`, `text_render.c`)
+8. **Text Batching** (`Backend.lean`, `draw_text.m`, `text_render.c`, historical)
    - Consecutive fillText commands with same font batch into single GPU draw call
    - Uses `executeTextBatch` with `TextBatchEntry` structures
    - Per-entry transforms supported (rotation/scale via affine matrix)
@@ -194,4 +197,4 @@ for (int i = 0; i < batchCount; i++) {
 - CPU time in coalescing/batching
 
 Render-command caching has been removed, so cache hit/miss ratios are no longer tracked.
-Add `executeCommandsBatchedWithStats` return value logging for batch metrics.
+Use `renderArborWidget`/`renderMeasuredArborWidget` timing and draw-call metrics for current profiling.

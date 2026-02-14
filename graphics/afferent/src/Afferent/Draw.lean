@@ -1,7 +1,6 @@
 /-
   Draw Layer
-  Backend-agnostic draw-command IR, collection, and optimization.
+  Shared draw datatypes and immediate drawing DSL.
 -/
-import Afferent.Draw.Command
+import Afferent.Draw.Types
 import Afferent.Draw.Builder
-import Afferent.Draw.Collect

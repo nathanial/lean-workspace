@@ -1,5 +1,8 @@
 # Afferent Layered Architecture
 
+> Status: current (post-RenderCommand removal).
+> `RenderCommand`/`collectCommands`/`Execute.Interpreter` are no longer part of the runtime architecture.
+
 Canonical layer roots:
 
 - `Afferent.Runner` (`src/Afferent/Runner/*`)
@@ -21,19 +24,14 @@ graphics/afferent/src/Afferent/
   Widget.lean
 
   Draw/
-    Command.lean
+    Types.lean
     Builder.lean
-    Cache.lean
-    Collect.lean
-    Optimize.lean
-    Runtime.lean
   Draw.lean
 
   Output/
     Canvas.lean
     FFI.lean
     Execute/
-      Interpreter.lean
       Render.lean
     Execute.lean
   Output.lean
@@ -46,7 +44,7 @@ Allowed:
 - `Runner -> Widget, Draw, Output`
 - `Widget -> Draw`
 - `Output -> Draw`
-- `Draw -> Core types/geometry only`
+- `Draw -> Core types/geometry + CanvasM-facing helpers`
 
 Disallowed:
 
@@ -64,15 +62,15 @@ Disallowed:
 - Owns widget model, measure/layout preparation, event model, and Canopy composition.
 
 3. Draw
-- Owns backend-agnostic render command IR (`RenderCommand`), command collection, and optimization.
+- Owns shared draw datatypes (`TextAlign`, `MeshInstance`, etc.) and immediate drawing DSL (`RenderM`).
 
 4. Output
-- Owns concrete canvas/FFI execution of draw commands to the renderer.
+- Owns concrete widget traversal and Canvas/FFI execution (`renderMeasuredArborWidget` / `renderArborWidget`).
 
 ## Runtime ownership
 
-- Render command collection is stateless; there is no `Afferent.Draw.Runtime`.
-- `Canvas` does not own render-command cache state.
+- Runtime rendering traverses measured/layouted widget trees directly.
+- `Canvas` does not own render-command cache state (no command cache path exists).
 
 ## Frame-flow contract (single measurement pass)
 
