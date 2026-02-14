@@ -1,5 +1,5 @@
 /-
   Compatibility module.
-  Canonical command coalescing lives at `Afferent.Output.Execute.Coalesce`.
+
+  Lean-side command coalescing has been removed.
 -/
-import Afferent.Output.Execute.Coalesce

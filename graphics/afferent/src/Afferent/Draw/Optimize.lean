@@ -1,5 +1,5 @@
 /-
   Draw Layer Optimizations
-  Coalescing and batch-planning helpers.
+
+  Lean-side draw-command optimization passes have been removed.
 -/
-import Afferent.Draw.Optimize.Coalesce

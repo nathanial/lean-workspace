@@ -1,5 +1,5 @@
 /-
   Output compatibility module.
-  Canonical coalescing lives at `Afferent.Draw.Optimize.Coalesce`.
+
+  Lean-side command coalescing has been removed.
 -/
-import Afferent.Draw.Optimize.Coalesce

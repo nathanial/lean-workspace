@@ -258,19 +258,6 @@ private def minCustomHeight (widget : Widget) (layouts : Trellis.LayoutResult) :
     | none => pure ()
   pure minH
 
-private def collectCoalescedCommands (widget : Widget) (viewportW viewportH : Float := 1800)
-    : IO (Array RenderCommand) := do
-  let assets ← loadTestAssets
-  try
-    let measured ← Afferent.runWithFonts assets.registry
-      (Afferent.Arbor.measureWidget widget viewportW viewportH)
-    let layouts := Trellis.layout measured.node viewportW viewportH
-    let cmds := Afferent.Arbor.collectCommands measured.widget layouts
-    let bounded := Afferent.Widget.computeBoundedCommands cmds
-    pure (Afferent.Widget.coalesceByCategoryWithClip bounded)
-  finally
-    destroyTestAssets assets
-
 testSuite "WidgetPerf Grid Layout"
 
 test "label grid uses exact slot count for low instance count" := do
@@ -378,30 +365,5 @@ test "widget perf tab logic: bar chart x100 still fills height without phantom s
   let minChartH ← minCustomHeight widget layouts
   ensure (minChartH >= 90.0)
     s!"Expected bar chart widgets to stretch beyond intrinsic height for x100 (min chart height={minChartH})"
-
-test "gauge coalescing keeps stroke commands before labels" := do
-  let widget ← buildWidgetTree .gaugeChart 10
-  let cmds ← collectCoalescedCommands widget
-  let textCount := cmds.foldl (init := 0) fun n c =>
-    match c with
-    | .fillText .. => n + 1
-    | _ => n
-  let hasStrokeAfterText := Id.run do
-    let mut sawText := false
-    let mut found := false
-    for c in cmds do
-      match c with
-      | .fillText .. => sawText := true
-      | .strokePath .. | .strokeLine .. | .strokeLineBatch ..
-      | .strokeRect .. | .strokeRectBatch ..
-      | .strokeCircle .. | .strokeArcInstanced .. =>
-          if sawText then
-            found := true
-      | _ => pure ()
-    found
-  ensure (textCount >= 30)
-    s!"Expected at least 30 gauge fillText commands for 10 instances, got {textCount}"
-  ensure (!hasStrokeAfterText)
-    "Expected gauge stroke commands to be ordered before text labels after coalescing"
 
 end AfferentDemosTests.WidgetPerfGridLayout
