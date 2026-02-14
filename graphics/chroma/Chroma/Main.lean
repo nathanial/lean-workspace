@@ -3,7 +3,7 @@
   Demo UI for the custom Arbor color picker widget.
 -/
 import Afferent
-import Afferent.App.UIRunner
+import Afferent.Runner
 import Afferent.UI.Arbor
 import Afferent.Runtime.FFI
 import Afferent.UI.Widget
@@ -32,7 +32,7 @@ def main : IO Unit := do
   let (fontReg, bodyId) := fontReg1.register bodyFont "body"
 
   let bg := Color.fromHex "#1a1a2e" |>.getD (Color.rgb 0.1 0.1 0.18)
-  let app : Afferent.App.UIApp PickerModel PickerMsg := {
+  let app : Afferent.Runner.UIApp PickerModel PickerMsg := {
     view := fun model =>
       let config : ColorPickerConfig := {
         size := sizes.pickerSize * screenScale
@@ -51,6 +51,6 @@ def main : IO Unit := do
     sendHover := true
   }
 
-  Afferent.App.run canvas fontReg {} app
+  Afferent.Runner.run canvas fontReg {} app
 
   IO.println "Done!"

@@ -3,7 +3,6 @@
   Message types, update function, and view rendering.
 -/
 import Afferent
-import Afferent.App.UIRunner
 import Afferent.UI.Arbor
 import Grove.Core.Types
 import Grove.Core.FileSystem

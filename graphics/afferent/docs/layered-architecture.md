@@ -7,7 +7,7 @@ Canonical layer roots:
 - `Afferent.Draw` (`src/Afferent/Draw/*`)
 - `Afferent.Output` (`src/Afferent/Output/*`)
 
-## Folder structure (canonical + compatibility)
+## Folder structure (canonical)
 
 ```text
 graphics/afferent/src/Afferent/
@@ -37,20 +37,7 @@ graphics/afferent/src/Afferent/
       Render.lean
     Execute.lean
   Output.lean
-
-  -- compatibility facades (legacy import paths only)
-  App/UIRunner.lean
-  UI/Arbor/Render/*.lean
-  UI/Widget/Backend*.lean
 ```
-
-Compatibility modules remain under:
-
-- `Afferent.App.UIRunner`
-- `Afferent.UI.Arbor.Render.*`
-- `Afferent.UI.Widget.Backend.*`
-
-These files are pass-through facades only. No new implementation should be added there.
 
 ## Dependency direction (enforced by convention)
 

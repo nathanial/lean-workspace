@@ -3,7 +3,6 @@
   Main entry point.
 -/
 import Afferent
-import Afferent.App.UIRunner
 import Afferent.Runtime.FFI
 import Afferent.UI.Arbor
 import Grove.App
