@@ -1,6 +1,6 @@
 /-
-  Orbital Instanced Demo
-  Demonstrates CPU orbit updates with GPU instancing.
+  Orbital Demo
+  Demonstrates CPU orbit updates with direct drawing.
 -/
 import Afferent
 import Afferent.UI.Arbor
@@ -12,29 +12,20 @@ open Afferent CanvasM
 
 namespace Demos
 
-def orbitalInstancedWidget (t : Float) (screenScale : Float)
-    (windowW windowH : Float)
+def orbitalWidget (t : Float) (screenScale : Float)
     (fontMedium : Font) (orbitalCount : Nat) (orbitalParams : FloatArray)
-    (orbitalBuffer : FFI.FloatBuffer) : Afferent.Arbor.WidgetBuilder := do
+    : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
     collect := fun layout => do
       withContentRect layout fun w h => do
         resetTransform
         setFillColor Color.white
-        fillTextXY s!"Orbital: {orbitalCount} instanced rects (Space to advance)"
+        fillTextXY s!"Orbital: {orbitalCount} orbiting rects (Space to advance)"
           (20 * screenScale) (30 * screenScale) fontMedium
-        let renderer ← getRenderer
         let rect := layout.contentRect
         let centerX := rect.x + w * 0.5
         let centerY := rect.y + h * 0.5
-        let a := 2.0 / windowW
-        let d := -2.0 / windowH
-        let tx := -1.0
-        let ty := 1.0
-        let sizeModeScreen : UInt32 := 1
-        let colorModeHSV : UInt32 := 1
-        let hueSpeed : Float := 0.2
         for i in [:orbitalCount] do
           let base := i * 5
           let phase := orbitalParams.get! base
@@ -45,19 +36,9 @@ def orbitalInstancedWidget (t : Float) (screenScale : Float)
           let angle := phase + t * speed
           let x := centerX + radius * Float.cos angle
           let y := centerY + radius * Float.sin angle
-          let rot := angle
-          let bufIndex : USize := (i * 8).toUSize
-          FFI.FloatBuffer.setVec8 orbitalBuffer bufIndex x y rot size hue 0.0 0.0 1.0
-        FFI.Renderer.drawInstancedShapesBuffer
-          renderer
-          0
-          orbitalBuffer
-          orbitalCount.toUInt32
-          a 0.0 0.0 d tx ty
-          windowW windowH
-          sizeModeScreen
-          t hueSpeed
-          colorModeHSV
+          let animatedHue := hue + t * 0.2
+          setFillColor (Color.hsva (animatedHue - Float.floor animatedHue) 1.0 1.0 1.0)
+          fillRectXYWH (x - size) (y - size) (size * 2.0) (size * 2.0)
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

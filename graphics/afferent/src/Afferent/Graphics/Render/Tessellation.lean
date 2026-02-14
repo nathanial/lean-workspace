@@ -9,4 +9,3 @@ import Afferent.Graphics.Render.Tessellation.Gradient
 import Afferent.Graphics.Render.Tessellation.Cache
 import Afferent.Graphics.Render.Tessellation.Fill
 import Afferent.Graphics.Render.Tessellation.Stroke
-import Afferent.Graphics.Render.Tessellation.Batch

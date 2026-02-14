@@ -122,7 +122,7 @@ LEAN_EXPORT lean_obj_res lean_afferent_fragment_draw(
         return lean_io_result_mk_ok(lean_box(0));
     }
 
-    // Compute batch count from array size
+    // Compute draw count from array size
     uint32_t batchCount = (uint32_t)(param_count / pipeline->paramsFloatCount);
     if (batchCount == 0) {
         return lean_io_result_mk_ok(lean_box(0));
@@ -157,76 +157,6 @@ LEAN_EXPORT lean_obj_res lean_afferent_fragment_draw(
                                                     length:param_count * sizeof(float)
                                                    options:MTLResourceStorageModeShared];
     free(params);
-
-    if (!paramsBuffer) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Draw using the fragment pipeline (batched)
-    afferent_fragment_draw(
-        encoder,
-        pipeline,
-        paramsBuffer,
-        batchCount,
-        (float)canvas_width,
-        (float)canvas_height
-    );
-
-    return lean_io_result_mk_ok(lean_box(0));
-}
-
-// Draw using a compiled fragment pipeline with FloatBuffer params
-// The buffer contains batchCount * paramsFloatCount floats (multiple param structs concatenated)
-LEAN_EXPORT lean_obj_res lean_afferent_fragment_draw_buffer(
-    b_lean_obj_arg renderer_obj,
-    b_lean_obj_arg pipeline_obj,
-    b_lean_obj_arg params_buffer_obj,
-    double canvas_width,
-    double canvas_height,
-    lean_obj_arg world
-) {
-    (void)world;
-
-    AfferentRendererRef renderer = (AfferentRendererRef)lean_get_external_data(renderer_obj);
-    AfferentFragmentPipelineRef pipeline =
-        (AfferentFragmentPipelineRef)lean_get_external_data(pipeline_obj);
-    AfferentFloatBufferRef params_buffer =
-        (AfferentFloatBufferRef)lean_get_external_data(params_buffer_obj);
-
-    if (!renderer || !pipeline || !pipeline->pipelineState || !params_buffer) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Get float data from FloatBuffer
-    float* data = afferent_float_buffer_data(params_buffer);
-    size_t count = afferent_float_buffer_count(params_buffer);
-
-    if (!data || count == 0 || pipeline->paramsFloatCount == 0) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Compute batch count from buffer size
-    uint32_t batchCount = (uint32_t)(count / pipeline->paramsFloatCount);
-    if (batchCount == 0) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Get encoder from renderer
-    id<MTLRenderCommandEncoder> encoder = afferent_renderer_get_encoder(renderer);
-    if (!encoder) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Get device for buffer creation
-    id<MTLDevice> device = afferent_renderer_get_device(renderer);
-    if (!device) {
-        return lean_io_result_mk_ok(lean_box(0));
-    }
-
-    // Create Metal buffer for params
-    id<MTLBuffer> paramsBuffer = [device newBufferWithBytes:data
-                                                    length:count * sizeof(float)
-                                                   options:MTLResourceStorageModeShared];
 
     if (!paramsBuffer) {
         return lean_io_result_mk_ok(lean_box(0));

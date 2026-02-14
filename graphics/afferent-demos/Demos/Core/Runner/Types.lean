@@ -41,7 +41,6 @@ structure LoadingState where
   lineSegments : Option (Array Float × Nat) := none
   lineBuffer : Option FFI.Buffer := none
   orbitalParams : Option FloatArray := none
-  orbitalBuffer : Option FFI.FloatBuffer := none
 
 structure LoadedAssets where
   screenScale : Float
@@ -63,7 +62,6 @@ structure LoadedAssets where
   lineWidth : Float
   orbitalCount : Nat
   orbitalParams : FloatArray
-  orbitalBuffer : FFI.FloatBuffer
   physWidthF : Float
   physHeightF : Float
   physWidth : UInt32

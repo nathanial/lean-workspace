@@ -496,36 +496,6 @@ structure Canvas where
   fontRegistry : FontRegistry := FontRegistry.empty
   /-- Screen scale factor (e.g., 2.0 for Retina). Used for auto-scaling mode. -/
   screenScale : Float := 1.0
-  /-- High-performance mutable FloatBuffer for zero-copy line rendering. -/
-  floatBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of line FloatBuffer (in floats). -/
-  floatBufferCapacity : Nat := 0
-  /-- High-performance mutable FloatBuffer for zero-copy rect rendering. -/
-  rectBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of rect FloatBuffer (in floats). -/
-  rectBufferCapacity : Nat := 0
-  /-- High-performance mutable FloatBuffer for zero-copy circle rendering. -/
-  circleBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of circle FloatBuffer (in floats). -/
-  circleBufferCapacity : Nat := 0
-  /-- High-performance mutable FloatBuffer for zero-copy strokeRect rendering. -/
-  strokeRectBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of strokeRect FloatBuffer (in floats). -/
-  strokeRectBufferCapacity : Nat := 0
-  /-- High-performance mutable FloatBuffer for zero-copy strokeCircle rendering. -/
-  strokeCircleBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of strokeCircle FloatBuffer (in floats). -/
-  strokeCircleBufferCapacity : Nat := 0
-  /-- High-performance mutable FloatBuffer for padded fragment params. -/
-  fragmentBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of fragment FloatBuffer (in floats). -/
-  fragmentBufferCapacity : Nat := 0
-  /-- Cache of GPU meshes keyed by path hash for instanced polygon rendering. -/
-  meshCache : Std.HashMap UInt64 FFI.CachedMesh := {}
-  /-- High-performance mutable FloatBuffer for mesh instance data. -/
-  meshInstanceBuffer : Option FFI.FloatBuffer := none
-  /-- Capacity of mesh instance FloatBuffer (in floats). -/
-  meshInstanceBufferCapacity : Nat := 0
   /-- Cache of compiled fragment pipelines by hash.
       Fragment definitions are looked up from the global registry. -/
   fragmentCache : IO.Ref Shader.FragmentCache
@@ -674,12 +644,11 @@ private def effectiveStrokeStyle (c : Canvas) : StrokeStyle :=
   { state.strokeStyle with
     color := state.effectiveStrokeColor }
 
-/-- Stroke a path using the current state.
-    Strokes bypass the fill batch because they use a different vertex format. -/
+/-- Stroke a path using the current state. -/
 def strokePath (path : Path) (c : Canvas) : IO Canvas := do
   let transform := c.state.transform
   let style := c.effectiveStrokeStyle
-  -- Stroke extrusion uses a separate vertex format, so it bypasses the fill batch.
+  -- Stroke extrusion uses a dedicated vertex format.
   c.ctx.strokePath path style transform
   pure c
 
@@ -724,23 +693,7 @@ def drawLine (p1 p2 : Point) (c : Canvas) : IO Canvas :=
 
 /-! ## Text operations -/
 
-/-- Ensure floatBuffer has at least the required capacity (in floats).
-    Returns updated Canvas with properly sized buffer. -/
-private def ensureFloatBufferCapacity (requiredFloats : Nat) (c : Canvas) : IO Canvas := do
-  match c.floatBuffer with
-  | some buf =>
-    if c.floatBufferCapacity >= requiredFloats then pure c
-    else
-      FFI.FloatBuffer.destroy buf
-      let newBuf ← FFI.FloatBuffer.create requiredFloats.toUSize
-      pure { c with floatBuffer := some newBuf, floatBufferCapacity := requiredFloats }
-  | none =>
-    let newBuf ← FFI.FloatBuffer.create requiredFloats.toUSize
-    pure { c with floatBuffer := some newBuf, floatBufferCapacity := requiredFloats }
-
-/-- Draw text at a position with a font using the current fill color and transform.
-    Note: Text uses a different shader and cannot be batched with shapes.
-    Auto-batch is flushed before drawing text. -/
+/-- Draw text at a position with a font using the current fill color and transform. -/
 def fillText (text : String) (pos : Point) (font : Font) (c : Canvas) : IO Canvas := do
   let color := c.state.effectiveFillColor
   let transform := c.state.transform
@@ -798,10 +751,6 @@ def endFrame' (c : Canvas) : IO Unit := do
   discard (c.endFrame)
 
 def destroy (c : Canvas) : IO Unit := do
-  if let some buf := c.floatBuffer then
-    FFI.FloatBuffer.destroy buf
-  if let some buf := c.fragmentBuffer then
-    FFI.FloatBuffer.destroy buf
   c.ctx.destroy
 
 def width (c : Canvas) : IO Float := c.ctx.width
@@ -882,63 +831,74 @@ def runLoopWithTime (c : Canvas) (clearColor : Color) (draw : Canvas → Float �
         canvas ← canvas.endFrame
   runWithEventLoop c.ctx.window render
 
-/-! ## Dynamic Particle Rendering
+/-! ## Dynamic Particle Rendering -/
 
-High-level API for GPU-instanced particle rendering. These methods manage
-FloatBuffer allocation internally, providing zero-copy performance without
-exposing buffer management to callers. -/
+private def wrapUnitHue (h : Float) : Float :=
+  let shifted := h - Float.floor h
+  if shifted < 0 then shifted + 1.0 else shifted
 
-/-- Fill dynamic instanced shapes with uniform rotation.
+/-- Fill dynamic shapes with uniform rotation.
     shapeType: 0=rect, 1=triangle, 2=circle. -/
-def fillDynamicInstanced (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
+def fillDynamicShapes (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
     (halfSize rotation t : Float) (c : Canvas) : IO Canvas := do
-  let c ← c.ensureFloatBufferCapacity (particles.count * 8)
-  match c.floatBuffer with
-  | some buf =>
-    Render.Dynamic.drawInstancedUniform c.ctx.renderer shapeType particles buf halfSize rotation t
-    pure c
-  | none => pure c
+  let _ := rotation
+  let mut canvas := c
+  for i in [:particles.count] do
+    let base := i * 5
+    let x := particles.data.get! base
+    let y := particles.data.get! (base + 1)
+    let hue := wrapUnitHue (particles.data.get! (base + 4) + t * 0.2)
+    canvas := canvas.setFillColor (Color.hsva hue 1.0 1.0 1.0)
+    if shapeType == 2 then
+      canvas ← canvas.fillCircle ⟨x, y⟩ halfSize
+    else if shapeType == 1 then
+      canvas ← canvas.fillPath (Path.equilateralTriangle ⟨x, y⟩ (halfSize * 2.0))
+    else
+      canvas ← canvas.fillRect (Rect.mk' (x - halfSize) (y - halfSize) (halfSize * 2.0) (halfSize * 2.0))
+  pure canvas
 
-/-- Fill dynamic instanced shapes with animated rotation.
+/-- Fill dynamic shapes with animated rotation.
     shapeType: 0=rect, 1=triangle, 2=circle. -/
-def fillDynamicInstancedAnimated (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
+def fillDynamicShapesAnimated (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
     (halfSize t spinSpeed : Float) (c : Canvas) : IO Canvas := do
-  let c ← c.ensureFloatBufferCapacity (particles.count * 8)
-  match c.floatBuffer with
-  | some buf =>
-    Render.Dynamic.drawInstancedAnimated c.ctx.renderer shapeType particles buf halfSize t spinSpeed
-    pure c
-  | none => pure c
+  let _ := spinSpeed
+  fillDynamicShapes shapeType particles halfSize 0.0 t c
 
-/-- Draw dynamic sprites (textured quads) from particle state.
-    Uses Canvas's managed floatBuffer for zero-copy performance.
-    - texture: The texture to draw
-    - particles: ParticleState containing position/velocity/hue data
-    - halfSize: Half the sprite size in pixels
-    - rotation: Rotation angle in radians (default 0)
-    - alpha: Opacity (default 1.0) -/
+/-- Draw dynamic sprites (textured quads) from particle state. -/
 def fillDynamicSprites (texture : FFI.Texture) (particles : Render.Dynamic.ParticleState)
     (halfSize : Float) (rotation : Float := 0.0) (alpha : Float := 1.0) (c : Canvas) : IO Canvas := do
-  -- Sprites use 5 floats per instance (x, y, rotation, halfSize, alpha)
-  let c ← c.ensureFloatBufferCapacity (particles.count * 5)
-  match c.floatBuffer with
-  | some buf =>
-    Render.Dynamic.writeSpritesToBuffer particles buf halfSize rotation alpha
-    Render.Dynamic.drawSpritesFromBuffer c.ctx.renderer texture buf particles.count.toUInt32 halfSize
+  let _ := rotation
+  for i in [:particles.count] do
+    let base := i * 5
+    let x := particles.data.get! base
+    let y := particles.data.get! (base + 1)
+    FFI.Renderer.drawTexturedRect
+      c.ctx.renderer texture
+      0.0 0.0 0.0 0.0
+      (x - halfSize) (y - halfSize) (halfSize * 2.0) (halfSize * 2.0)
       particles.screenWidth particles.screenHeight
-    pure c
-  | none => pure c
+      alpha
+  pure c
 
 /-- Draw orbital particles as rectangles. Each particle orbits around a center point.
     - orbital: OrbitalState containing orbital parameters
     - t: Current time (controls orbital position and HSV animation) -/
 def fillOrbitalRects (orbital : Render.Dynamic.OrbitalState) (t : Float) (c : Canvas) : IO Canvas := do
-  let c ← c.ensureFloatBufferCapacity (orbital.count * 8)
-  match c.floatBuffer with
-  | some buf =>
-    Render.Dynamic.drawOrbitalRects c.ctx.renderer orbital buf t
-    pure c
-  | none => pure c
+  let mut canvas := c
+  for i in [:orbital.count] do
+    let base := i * 5
+    let phase := orbital.params.get! base
+    let radius := orbital.params.get! (base + 1)
+    let speed := orbital.params.get! (base + 2)
+    let hue := orbital.params.get! (base + 3)
+    let size := orbital.params.get! (base + 4)
+    let angle := phase + t * speed
+    let x := orbital.centerX + radius * Float.cos angle
+    let y := orbital.centerY + radius * Float.sin angle
+    let color := Color.hsva (wrapUnitHue (hue + t * 0.2)) 1.0 1.0 1.0
+    canvas := canvas.setFillColor color
+    canvas ← canvas.fillRect (Rect.mk' (x - size) (y - size) (size * 2.0) (size * 2.0))
+  pure canvas
 
 end Canvas
 
@@ -1065,13 +1025,13 @@ def drawLine (p1 p2 : Point) : CanvasM Unit := liftCanvas (Canvas.drawLine p1 p2
 
 /-! ## Dynamic Particle Rendering -/
 
-def fillDynamicInstanced (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
+def fillDynamicShapes (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
     (halfSize rotation t : Float) : CanvasM Unit :=
-  liftCanvas (Canvas.fillDynamicInstanced shapeType particles halfSize rotation t)
+  liftCanvas (Canvas.fillDynamicShapes shapeType particles halfSize rotation t)
 
-def fillDynamicInstancedAnimated (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
+def fillDynamicShapesAnimated (shapeType : UInt32) (particles : Render.Dynamic.ParticleState)
     (halfSize t spinSpeed : Float) : CanvasM Unit :=
-  liftCanvas (Canvas.fillDynamicInstancedAnimated shapeType particles halfSize t spinSpeed)
+  liftCanvas (Canvas.fillDynamicShapesAnimated shapeType particles halfSize t spinSpeed)
 
 def fillDynamicSprites (texture : FFI.Texture) (particles : Render.Dynamic.ParticleState)
     (halfSize : Float) (rotation : Float := 0.0) (alpha : Float := 1.0) : CanvasM Unit :=

@@ -11,7 +11,6 @@ open Afferent
 open Linalg
 
 /-- DualRing: Two concentric rings rotating in opposite directions.
-    Uses instanced arc rendering for GPU batching - multiple spinners batch into single draw calls.
     Note: `t` is raw elapsed time in seconds, not wrapped progress. -/
 def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
@@ -29,31 +28,9 @@ def dualRingSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
 
     do
       -- Outer arc (180°)
-      CanvasM.strokeArcInstanced #[{
-        centerX := cx
-        centerY := cy
-        startAngle := outerAngle
-        sweepAngle := Float.pi
-        radius := outerRadius
-        strokeWidth := dims.strokeWidth
-        r := color.r
-        g := color.g
-        b := color.b
-        a := color.a
-      }]
+      CanvasM.strokeArcColor (Point.mk' cx cy) outerRadius outerAngle Float.pi color dims.strokeWidth
       -- Inner arc (135°)
-      CanvasM.strokeArcInstanced #[{
-        centerX := cx
-        centerY := cy
-        startAngle := innerAngle
-        sweepAngle := Float.pi * 0.75
-        radius := innerRadius
-        strokeWidth := innerStrokeWidth
-        r := innerColor.r
-        g := innerColor.g
-        b := innerColor.b
-        a := innerColor.a
-      }]
+      CanvasM.strokeArcColor (Point.mk' cx cy) innerRadius innerAngle (Float.pi * 0.75) innerColor innerStrokeWidth
 }
 
 end AfferentSpinners.Canopy.Spinner

@@ -11,7 +11,6 @@ open Afferent
 open Linalg
 
 /-- Ring: Rotating arc segment (macOS/iOS style).
-    Uses instanced arc rendering for GPU batching.
     Note: `t` is raw elapsed time in seconds, not wrapped progress. -/
 def ringSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
@@ -25,18 +24,7 @@ def ringSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let sweepAngle := Float.pi * 1.5  -- 270° arc
 
     do
-      CanvasM.strokeArcInstanced #[{
-        centerX := cx
-        centerY := cy
-        startAngle := startAngle
-        sweepAngle := sweepAngle
-        radius := radius
-        strokeWidth := dims.strokeWidth
-        r := color.r
-        g := color.g
-        b := color.b
-        a := color.a
-      }]
+      CanvasM.strokeArcColor (Point.mk' cx cy) radius startAngle sweepAngle color dims.strokeWidth
 }
 
 end AfferentSpinners.Canopy.Spinner

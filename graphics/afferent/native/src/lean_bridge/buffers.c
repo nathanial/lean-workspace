@@ -279,6 +279,67 @@ LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_triangles(
     return lean_io_result_mk_ok(lean_box(0));
 }
 
+// Draw triangles with screen-space coordinates (GPU converts to NDC)
+LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_triangles_screen_coords(
+    lean_obj_arg renderer_obj,
+    lean_obj_arg vertex_data_arr,
+    lean_obj_arg indices_arr,
+    uint32_t vertex_count,
+    double canvas_width,
+    double canvas_height,
+    lean_obj_arg world
+) {
+    (void)world;
+
+    AfferentRendererRef renderer = (AfferentRendererRef)lean_get_external_data(renderer_obj);
+    if (!renderer || vertex_count == 0) {
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+
+    size_t vertex_float_count = (size_t)vertex_count * 6;
+    size_t arr_size = lean_array_size(vertex_data_arr);
+    if (arr_size < vertex_float_count) {
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+
+    float* vertex_data = malloc(vertex_float_count * sizeof(float));
+    if (!vertex_data) {
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+    for (size_t i = 0; i < vertex_float_count; i++) {
+        vertex_data[i] = (float)lean_unbox_float(lean_array_get_core(vertex_data_arr, i));
+    }
+
+    size_t index_count = lean_array_size(indices_arr);
+    if (index_count == 0) {
+        free(vertex_data);
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+
+    uint32_t* indices = malloc(index_count * sizeof(uint32_t));
+    if (!indices) {
+        free(vertex_data);
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+    for (size_t i = 0; i < index_count; i++) {
+        indices[i] = lean_unbox_uint32(lean_array_get_core(indices_arr, i));
+    }
+
+    afferent_renderer_draw_triangles_screen_coords(
+        renderer,
+        vertex_data,
+        indices,
+        vertex_count,
+        (uint32_t)index_count,
+        (float)canvas_width,
+        (float)canvas_height
+    );
+
+    free(indices);
+    free(vertex_data);
+    return lean_io_result_mk_ok(lean_box(0));
+}
+
 // Draw extruded strokes (screen-space width)
 LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_stroke(
     lean_obj_arg renderer_obj,

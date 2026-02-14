@@ -25,7 +25,6 @@ def clockSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let minuteAngle := t * Float.twoPi / 12.0 - Float.halfPi
     let hourAngle := t * Float.twoPi / 60.0 - Float.halfPi
 
-    -- Build all 3 hands as a single line batch (9 floats per line: x1, y1, x2, y2, r, g, b, a, padding)
     let hourEnd := Point.mk' (cx + radius * 0.4 * Float.cos hourAngle)
                              (cy + radius * 0.4 * Float.sin hourAngle)
     let minuteEnd := Point.mk' (cx + radius * 0.65 * Float.cos minuteAngle)
@@ -37,19 +36,17 @@ def clockSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let minuteColor := color.withAlpha 0.9
 
     do
-      -- Clock face circle (batched via GPU shader)
       CanvasM.strokeCircleColor center radius (color.withAlpha 0.3) (dims.strokeWidth * 0.5)
 
-      -- Hour hand (thickest) - strokeLineBatch is batchable
-      CanvasM.strokeLineBatch #[cx, cy, hourEnd.x, hourEnd.y, hourColor.r, hourColor.g, hourColor.b, hourColor.a, 0.0] 1 (dims.strokeWidth * 1.5)
+      -- Hour hand (thickest)
+      CanvasM.strokeLineColor center hourEnd hourColor (dims.strokeWidth * 1.5)
 
-      -- Minute hand - strokeLineBatch is batchable
-      CanvasM.strokeLineBatch #[cx, cy, minuteEnd.x, minuteEnd.y, minuteColor.r, minuteColor.g, minuteColor.b, minuteColor.a, 0.0] 1 dims.strokeWidth
+      -- Minute hand
+      CanvasM.strokeLineColor center minuteEnd minuteColor dims.strokeWidth
 
-      -- Second hand (thinnest) - strokeLineBatch is batchable
-      CanvasM.strokeLineBatch #[cx, cy, secondEnd.x, secondEnd.y, color.r, color.g, color.b, color.a, 0.0] 1 (dims.strokeWidth * 0.6)
+      -- Second hand (thinnest)
+      CanvasM.strokeLineColor center secondEnd color (dims.strokeWidth * 0.6)
 
-      -- Center dot (batchable fillCircle instead of fillPath)
       CanvasM.fillCircleColor center (dims.strokeWidth * 0.8) color
 }
 

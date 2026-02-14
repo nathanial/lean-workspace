@@ -14,9 +14,6 @@ def basic : String := include_str% "../../../../native/src/metal/shaders/basic.m
 /-- Text rendering shader -/
 def text : String := include_str% "../../../../native/src/metal/shaders/text.metal"
 
-/-- Instanced shapes shader (rects, triangles, circles) -/
-def instanced : String := include_str% "../../../../native/src/metal/shaders/instanced.metal"
-
 /-- Sprite/texture shader. -/
 def sprite : String := include_str% "../../../../native/src/metal/shaders/sprite.metal"
 
@@ -33,7 +30,6 @@ def mesh3d : String := include_str% "../../../../native/src/metal/shaders/mesh3d
 def all : Array (String × String) := #[
   ("basic", basic),
   ("text", text),
-  ("instanced", instanced),
   ("sprite", sprite),
   ("stroke", stroke),
   ("stroke_path", strokePath),

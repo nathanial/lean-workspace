@@ -27,32 +27,14 @@ structure RunnerStats where
   indexRegistrySetMs : Float := 0.0
   collectMs : Float := 0.0
   executeMs : Float := 0.0
-  executeBatchMs : Float := 0.0
+  executeDrawMs : Float := 0.0
   executeCustomMs : Float := 0.0
   executeOverheadMs : Float := 0.0
-  batchResidualMs : Float := 0.0
   endFrameMs : Float := 0.0
   accountedMs : Float := 0.0
   unaccountedMs : Float := 0.0
   commandCount : Nat := 0
-  coalescedCommandCount : Nat := 0
   drawCalls : Nat := 0
-  batchedCalls : Nat := 0
-  individualCalls : Nat := 0
-  rectsBatched : Nat := 0
-  circlesBatched : Nat := 0
-  strokeRectsBatched : Nat := 0
-  strokeRectDirectRuns : Nat := 0
-  strokeRectDirectRects : Nat := 0
-  textsBatched : Nat := 0
-  textFillCommands : Nat := 0
-  textBatchFlushes : Nat := 0
-  flattenMs : Float := 0.0
-  coalesceMs : Float := 0.0
-  batchLoopMs : Float := 0.0
-  drawCallMs : Float := 0.0
-  textPackMs : Float := 0.0
-  textFfiMs : Float := 0.0
   widgetCount : Nat := 0
   layoutCount : Nat := 0
   deriving Inhabited
@@ -90,7 +72,6 @@ structure DemoEnv where
   lineWidth : Float
   orbitalCount : Nat
   orbitalParams : FloatArray
-  orbitalBuffer : Afferent.FFI.FloatBuffer
   windowWidthF : Float
   windowHeightF : Float
   physWidthF : Float

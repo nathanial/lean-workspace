@@ -1,6 +1,6 @@
 /-
   Afferent FFI Renderer
-  GPU rendering operations including frame management, drawing, and instanced rendering.
+  GPU rendering operations including frame management and drawing.
 -/
 import Afferent.Runtime.FFI.Types
 import Afferent.Runtime.FFI.Init
@@ -109,100 +109,5 @@ opaque Renderer.setScissor
 
 @[extern "lean_afferent_renderer_reset_scissor"]
 opaque Renderer.resetScissor (renderer : @& Renderer) : IO Unit
-
--- Draw instanced shapes directly from FloatBuffer (zero-copy path)
--- shapeType: 0=rect, 1=triangle, 2=circle
-@[extern "lean_afferent_renderer_draw_instanced_shapes_buffer"]
-opaque Renderer.drawInstancedShapesBuffer
-  (renderer : @& Renderer)
-  (shapeType : UInt32)
-  (buffer : @& FloatBuffer)
-  (instanceCount : UInt32)
-  (transformA transformB transformC transformD transformTx transformTy : Float)
-  (viewportWidth viewportHeight : Float)
-  (sizeMode : UInt32)
-  (time hueSpeed : Float)
-  (colorMode : UInt32) : IO Unit
-
--- ============================================================================
--- BATCHED SHAPE RENDERING - For chart/widget optimization
--- ============================================================================
-
--- Draw multiple shapes in a single draw call.
--- kind: 0=rect, 1=circle, 2=strokeRect, 4=strokeCircle
--- instanceData: Array of 9 floats per instance [x, y, w, h, r, g, b, a, cornerRadius]
--- param0: lineWidth for strokeRect/strokeCircle, unused for rects (per-instance cornerRadius), ignored for circles
--- param1: unused for strokeRect/strokeCircle (per-instance cornerRadius), ignored otherwise
-@[extern "lean_afferent_renderer_draw_batch"]
-opaque Renderer.drawBatch
-  (renderer : @& Renderer)
-  (kind : UInt32)
-  (instanceData : @& Array Float)
-  (instanceCount : UInt32)
-  (param0 : Float)
-  (param1 : Float)
-  (canvasWidth canvasHeight : Float) : IO Unit
-
--- Draw multiple line segments in a single draw call.
--- instanceData: Array of 9 floats per line [x1, y1, x2, y2, r, g, b, a, padding]
--- lineWidth: Width of all lines in the batch
-@[extern "lean_afferent_renderer_draw_line_batch"]
-opaque Renderer.drawLineBatch
-  (renderer : @& Renderer)
-  (instanceData : @& Array Float)
-  (instanceCount : UInt32)
-  (lineWidth : Float)
-  (canvasWidth canvasHeight : Float) : IO Unit
-
--- Draw multiple line segments from a FloatBuffer (high-performance path).
--- buffer: FloatBuffer with 9 floats per line [x1, y1, x2, y2, r, g, b, a, padding]
--- lineWidth: Width of all lines in the batch
-@[extern "lean_afferent_renderer_draw_line_batch_buffer"]
-opaque Renderer.drawLineBatchBuffer
-  (renderer : @& Renderer)
-  (buffer : @& FloatBuffer)
-  (instanceCount : UInt32)
-  (lineWidth : Float)
-  (canvasWidth canvasHeight : Float) : IO Unit
-
--- Draw multiple shapes from a FloatBuffer (high-performance path).
--- kind: 0=rect, 1=circle, 2=strokeRect
--- buffer: FloatBuffer with 9 floats per instance
--- param0: unused for rects (per-instance cornerRadius), ignored for circles, lineWidth for strokeRect
--- param1: unused
-@[extern "lean_afferent_renderer_draw_batch_buffer"]
-opaque Renderer.drawBatchBuffer
-  (renderer : @& Renderer)
-  (kind : UInt32)
-  (buffer : @& FloatBuffer)
-  (instanceCount : UInt32)
-  (param0 : Float)
-  (param1 : Float)
-  (canvasWidth canvasHeight : Float) : IO Unit
-
--- ============================================================================
--- INSTANCED ARC STROKE RENDERING
--- ============================================================================
-
--- Draw multiple arc strokes in a single draw call with GPU-generated geometry.
--- instanceData: Array of 10 floats per arc [centerX, centerY, startAngle, sweepAngle,
---                                           radius, strokeWidth, r, g, b, a]
--- segments: Number of subdivisions per arc (higher = smoother)
-@[extern "lean_afferent_arc_draw_instanced"]
-opaque Renderer.drawArcInstanced
-  (renderer : @& Renderer)
-  (instanceData : @& Array Float)
-  (instanceCount : UInt32)
-  (segments : UInt32)
-  (canvasWidth canvasHeight : Float) : IO Unit
-
--- Draw multiple arc strokes from a FloatBuffer (high-performance path).
-@[extern "lean_afferent_arc_draw_instanced_buffer"]
-opaque Renderer.drawArcInstancedBuffer
-  (renderer : @& Renderer)
-  (buffer : @& FloatBuffer)
-  (instanceCount : UInt32)
-  (segments : UInt32)
-  (canvasWidth canvasHeight : Float) : IO Unit
 
 end Afferent.FFI

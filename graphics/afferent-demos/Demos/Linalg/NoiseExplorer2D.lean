@@ -73,22 +73,6 @@ private structure NoiseExplorerCache where
 
 initialize noiseExplorerCacheRef : IO.Ref NoiseExplorerCache ← IO.mkRef {}
 
-private structure NoiseExplorerRectBatchKey where
-  sampleKey : NoiseExplorerCacheKey
-  plotW : Float
-  plotH : Float
-  originX : Float
-  originY : Float
-  deriving BEq, Inhabited
-
-private structure NoiseExplorerRectBatchCache where
-  key : Option NoiseExplorerRectBatchKey := none
-  data : Array Float := #[]
-  count : Nat := 0
-  deriving Inhabited
-
-initialize noiseExplorerRectBatchCacheRef : IO.Ref NoiseExplorerRectBatchCache ← IO.mkRef {}
-
 def noiseExplorerMathViewConfig (screenScale : Float) : MathView2D.Config := {
   style := { flexItem := some (Trellis.FlexItem.growing 1) }
   scale := 80.0 * screenScale
@@ -260,52 +244,6 @@ private def getNoiseSamplesCached (state : NoiseExplorerState) (res : Nat) : IO 
       noiseExplorerCacheRef.set { key := some key, samples := samples }
       pure samples
 
-private def noiseExplorerRectBatchKey (state : NoiseExplorerState) (res : Nat)
-    (plotW plotH originX originY : Float) : NoiseExplorerRectBatchKey := {
-  sampleKey := noiseExplorerCacheKey state res
-  plotW := plotW
-  plotH := plotH
-  originX := originX
-  originY := originY
-}
-
-private def buildNoiseRectBatchData (samples : Array Float) (res : Nat)
-    (plotW plotH originX originY : Float) : Array Float := Id.run do
-  let mut data : Array Float := Array.mkEmpty (res * res * 9)
-  if res == 0 then
-    return data
-  let cellW := plotW / res.toFloat
-  let cellH := plotH / res.toFloat
-  for yi in [:res] do
-    for xi in [:res] do
-      let idx := yi * res + xi
-      let n01 := samples.getD idx 0.0
-      let x := originX + xi.toFloat * cellW
-      let y := originY + yi.toFloat * cellH
-      data := data
-        |>.push x |>.push y |>.push (cellW + 0.5) |>.push (cellH + 0.5)
-        |>.push n01 |>.push n01 |>.push n01 |>.push 1.0 |>.push 0.0
-  data
-
-private def getNoiseRectBatchDataCached (state : NoiseExplorerState) (res : Nat)
-    (samples : Array Float) (plotW plotH originX originY : Float) : IO (Array Float × Nat) := do
-  let key := noiseExplorerRectBatchKey state res plotW plotH originX originY
-  let cache ← noiseExplorerRectBatchCacheRef.get
-  match cache.key with
-  | some existing =>
-      if existing == key then
-        pure (cache.data, cache.count)
-      else
-        let data := buildNoiseRectBatchData samples res plotW plotH originX originY
-        let count := res * res
-        noiseExplorerRectBatchCacheRef.set { key := some key, data := data, count := count }
-        pure (data, count)
-  | none =>
-      let data := buildNoiseRectBatchData samples res plotW plotH originX originY
-      let count := res * res
-      noiseExplorerRectBatchCacheRef.set { key := some key, data := data, count := count }
-      pure (data, count)
-
 /-- Render only the noise visualization area (no side-panel controls). -/
 def renderNoiseExplorer2D (state : NoiseExplorerState)
     (view : MathView2D.View) (screenScale : Float) : CanvasM Unit := do
@@ -321,27 +259,15 @@ def renderNoiseExplorer2D (state : NoiseExplorerState)
   let res := Nat.max 32 (Nat.min 96 (Nat.min resX resY))
   let samples ← getNoiseSamplesCached state res
 
-  let canvas ← getCanvas
-  let t := canvas.state.transform
-  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
-  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
-
-  if axisAlignedTranslateOnly then
-    let (batchData, batchCount) ← getNoiseRectBatchDataCached state res samples plotW plotH t.tx t.ty
-    if batchCount > 0 then
-      let renderer := canvas.ctx.renderer
-      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
-      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
-  else
-    let cellW := plotW / res.toFloat
-    let cellH := plotH / res.toFloat
-    for yi in [:res] do
-      for xi in [:res] do
-        let idx := yi * res + xi
-        let n01 := samples.getD idx 0.0
-        setFillColor (Color.gray n01)
-        fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
-          (cellW + 0.5) (cellH + 0.5))
+  let cellW := plotW / res.toFloat
+  let cellH := plotH / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      setFillColor (Color.gray n01)
+      fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
+        (cellW + 0.5) (cellH + 0.5))
 
   setStrokeColor (Color.gray 0.3)
   setLineWidth 1.0

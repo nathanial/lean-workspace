@@ -90,7 +90,6 @@ void afferent_renderer_destroy(AfferentRendererRef renderer) {
             renderer->strokePipelineState = nil;
             renderer->textPipelineState = nil;
             renderer->spritePipelineState = nil;
-            renderer->instancedPipelineState = nil;
             renderer->pipeline3D = nil;
             renderer->pipeline3DOcean = nil;
             renderer->pipeline3DTextured = nil;

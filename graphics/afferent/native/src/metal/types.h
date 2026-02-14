@@ -6,7 +6,7 @@
 
 typedef AfferentTextGlyphInstanceStatic TextGlyphInstanceStatic;
 
-// Instanced text run dynamic data (per text run)
+// Text run dynamic data (per text run)
 // affine0 = [a, b, c, d], affine1 = [tx, ty], origin = [x, y]
 typedef struct __attribute__((packed)) {
     float affine0[4];
@@ -18,31 +18,6 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     float viewport[2];
 } TextInstancedUniforms;
-
-// Instance data structure (matches shader) - 32 bytes packed
-typedef struct __attribute__((packed)) {
-    float pos[2];       // Center position (world or NDC) (8 bytes)
-    float angle;        // Rotation angle in radians (4 bytes)
-    float halfSize;     // Half side length (world or pixels) (4 bytes)
-    float color[4];     // RGBA (16 bytes)
-} InstanceData;  // Total: 32 bytes
-
-// Instanced uniforms structure (matches instanced shader)
-// transform0 = [a, b, c, d], transform1 = [tx, ty, 0, 0]
-// sizeMode: 0 = world, 1 = screen (pixel size)
-// colorMode: 0 = RGBA, 1 = HSV (time-based)
-// shapeType: 0 = rect, 1 = triangle, 2 = circle
-typedef struct {
-    float transform0[4];
-    float transform1[4];
-    float viewport[2];
-    float time;
-    float hueSpeed;
-    uint32_t sizeMode;
-    uint32_t colorMode;
-    uint32_t shapeType;
-    uint32_t padding0;
-} InstancedUniforms;  // Total: 64 bytes
 
 // Stroke uniforms structure (matches stroke shader)
 typedef struct {

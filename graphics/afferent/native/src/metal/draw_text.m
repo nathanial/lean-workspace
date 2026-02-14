@@ -1,4 +1,4 @@
-// draw_text.m - Instanced text rendering and font texture management
+// draw_text.m - Text rendering and font texture management
 #import "render.h"
 #include <string.h>
 #include <limits.h>
@@ -260,8 +260,8 @@ static TextBatchCacheEntry* build_or_get_batch_cache_entry(
     return entry;
 }
 
-// Render multiple text strings with the same font in a single draw call
-AfferentResult afferent_text_render_batch(
+// Render multiple text strings with the same font in one pass.
+static AfferentResult afferent_text_render_runs(
     AfferentRendererRef renderer,
     AfferentFontRef font,
     const char** texts,
@@ -366,7 +366,7 @@ AfferentResult afferent_text_render_batch(
     }
 }
 
-// Render one text string by routing through the instanced batch path
+// Render one text string via the shared glyph-run path.
 AfferentResult afferent_text_render(
     AfferentRendererRef renderer,
     AfferentFontRef font,
@@ -392,7 +392,7 @@ AfferentResult afferent_text_render(
         float identity[6] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
         const float* transforms_ptr = transform ? transform : identity;
 
-        return afferent_text_render_batch(
+        return afferent_text_render_runs(
             renderer,
             font,
             texts,

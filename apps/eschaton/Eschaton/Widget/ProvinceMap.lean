@@ -1,18 +1,15 @@
 /-
   Province Map Widget
   An EU4-style province map widget showing provinces as filled polygons.
-  Uses pre-tessellated batched polygon rendering for high performance.
 -/
 import Afferent
 import Afferent.UI.Arbor
-import Afferent.Graphics.Render.Tessellation
 import Linalg
 import Tincture
 import Eschaton.Widget.ProvinceMap.State
 import Eschaton.Widget.ProvinceMap.HitTest
 
 open Afferent.Arbor
-open Afferent.Tessellation (TessellatedPolygon TessellatedBatch StrokeBatch tessellatePolygonForCache)
 open Tincture (Color)
 
 namespace Eschaton.Widget
@@ -28,11 +25,7 @@ private def brighten (color : Color) (amount : Float) : Color :=
     (clampMax (color.b + (1.0 - color.b) * amount) 1.0)
     color.a
 
-/-- Convert Linalg.Vec2 array to Afferent.Point array. -/
-private def vec2ArrayToPoints (verts : Array Linalg.Vec2) : Array Afferent.Point :=
-  verts.map fun v => { x := v.x, y := v.y }
-
-/-- A province in the map with pre-tessellated geometry. -/
+/-- A province in the map. -/
 structure Province where
   /-- Unique identifier for the province -/
   id : Nat
@@ -40,8 +33,6 @@ structure Province where
   name : String
   /-- Polygon vertices in normalized 0-1 coordinates (for hit testing) -/
   polygon : Linalg.Polygon2D
-  /-- Pre-tessellated polygon geometry (cached at load time) -/
-  tessellated : TessellatedPolygon
   /-- Fill color for the province -/
   fillColor : Color
   /-- Border color (defaults to dark gray) -/
@@ -50,12 +41,10 @@ structure Province where
 
 namespace Province
 
-/-- Create a province with pre-tessellated geometry. -/
+/-- Create a province. -/
 def create (id : Nat) (name : String) (polygon : Linalg.Polygon2D) (fillColor : Color)
     (borderColor : Color := Color.rgba 0.2 0.2 0.2 1.0) : Province :=
-  let points := vec2ArrayToPoints polygon.vertices
-  let tessellated := tessellatePolygonForCache points
-  { id, name, polygon, tessellated, fillColor, borderColor }
+  { id, name, polygon, fillColor, borderColor }
 
 end Province
 
@@ -73,8 +62,7 @@ structure ProvinceMapStaticConfig where
   labelColor : Color := Color.rgba 0.9 0.9 0.9 0.9
   deriving Inhabited
 
-/-- Province map widget spec using batched polygon rendering with reactive view state.
-    Uses pre-tessellated geometry for high performance (1-2 draw calls instead of ~4000). -/
+/-- Province map widget spec using direct polygon drawing with reactive view state. -/
 def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
     (viewState : ProvinceMap.ProvinceMapViewState) : Afferent.Arbor.CustomSpec := {
   skipCache := false  -- No animation, can cache when state unchanged
@@ -96,51 +84,38 @@ def provinceMapSpecWithState (staticConfig : ProvinceMapStaticConfig)
         staticConfig.backgroundColor.a)
     Afferent.CanvasM.popTransform
 
-      -- Build tessellated fill batch from all provinces
-      -- Batch uses absolute screen coordinates (rect offset is added in addPolygon)
-      let fillBatch := Id.run do
-        let mut batch := TessellatedBatch.withCapacity staticConfig.provinces.size
-        for i in [:staticConfig.provinces.size] do
-          if h : i < staticConfig.provinces.size then
-            let province := staticConfig.provinces[i]
-            let isHovered := viewState.hoveredProvince == some i
-            let isSelected := viewState.selectedProvince == some i
+    let transformToScreen (normX normY : Float) : Afferent.Point :=
+      let baseX := normX * rect.width
+      let baseY := normY * rect.height
+      let localX := centerX + (baseX - centerX) * viewState.zoom + viewState.panX
+      let localY := centerY + (baseY - centerY) * viewState.zoom + viewState.panY
+      Point.mk' (rect.x + localX) (rect.y + localY)
 
-            -- Determine fill color based on hover/selection state
-            let fillColor :=
-              if isSelected then brighten province.fillColor 0.3
-              else if isHovered then brighten province.fillColor 0.15
-              else province.fillColor
+    for i in [:staticConfig.provinces.size] do
+      if h : i < staticConfig.provinces.size then
+        let province := staticConfig.provinces[i]
+        let isHovered := viewState.hoveredProvince == some i
+        let isSelected := viewState.selectedProvince == some i
 
-            -- Add province to batch with transform and color
-            -- Pass rect.x, rect.y so positions are in absolute screen coordinates
-            batch := batch.addPolygon province.tessellated
-              rect.x rect.y viewState.panX viewState.panY viewState.zoom
-              centerX centerY rect.width rect.height
-              (Afferent.Color.rgba fillColor.r fillColor.g fillColor.b fillColor.a)
-        batch
+        let fillColor :=
+          if isSelected then brighten province.fillColor 0.3
+          else if isHovered then brighten province.fillColor 0.15
+          else province.fillColor
 
-      -- Emit single draw call for all province fills
-      if !fillBatch.isEmpty then
-        Afferent.CanvasM.fillTessellatedBatch fillBatch.vertices fillBatch.indices fillBatch.vertexCount
+        let mut path := Afferent.Path.empty
+        if province.polygon.vertices.size > 0 then
+          let first := province.polygon.vertices[0]!
+          path := path.moveTo (transformToScreen first.x first.y)
+          for vi in [1:province.polygon.vertices.size] do
+            let v := province.polygon.vertices[vi]!
+            path := path.lineTo (transformToScreen v.x v.y)
+          path := path.closePath
 
-      -- Build stroke batch from all province borders
-      -- Stroke batch also uses absolute screen coordinates
-      let strokeBatch := Id.run do
-        let mut batch := StrokeBatch.withCapacity staticConfig.provinces.size
-        for i in [:staticConfig.provinces.size] do
-          if h : i < staticConfig.provinces.size then
-            let province := staticConfig.provinces[i]
-            -- Add province border to batch (with rect offset)
-            batch := batch.addPolygonBorder province.tessellated
-              rect.x rect.y viewState.panX viewState.panY viewState.zoom
-              centerX centerY rect.width rect.height
-              (Afferent.Color.rgba province.borderColor.r province.borderColor.g province.borderColor.b province.borderColor.a)
-        batch
-
-      -- Emit single draw call for all province borders (using existing line batch)
-      if !strokeBatch.isEmpty then
-        Afferent.CanvasM.strokeLineBatch strokeBatch.data strokeBatch.lineCount staticConfig.borderWidth
+          Afferent.CanvasM.fillPathColor path
+            (Afferent.Color.rgba fillColor.r fillColor.g fillColor.b fillColor.a)
+          Afferent.CanvasM.strokePathColor path
+            (Afferent.Color.rgba province.borderColor.r province.borderColor.g province.borderColor.b province.borderColor.a)
+            staticConfig.borderWidth
 
       -- Draw labels if font provided (centered on province centroids)
       -- Labels use pushTranslate since fillText expects local coordinates

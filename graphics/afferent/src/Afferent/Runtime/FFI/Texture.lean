@@ -4,7 +4,6 @@
   Uses raster library for image decoding.
 -/
 import Afferent.Runtime.FFI.Types
-import Afferent.Runtime.FFI.FloatBuffer
 import Raster
 
 namespace Afferent.FFI
@@ -39,12 +38,13 @@ opaque Texture.destroy (texture : @& Texture) : IO Unit
 @[extern "lean_afferent_texture_get_size"]
 opaque Texture.getSize (texture : @& Texture) : IO (UInt32 × UInt32)
 
--- Draw sprites from FloatBuffer already in SpriteInstanceData layout.
-@[extern "lean_afferent_renderer_draw_sprites_instance_buffer"]
-opaque Renderer.drawSpritesInstanceBuffer
+-- Draw textured sprites from packed array data.
+-- Layout: [x, y, rotation, halfSize, alpha] × count.
+@[extern "lean_afferent_renderer_draw_sprites"]
+opaque Renderer.drawSprites
   (renderer : @& Renderer)
   (texture : @& Texture)
-  (buffer : @& FloatBuffer)
+  (data : @& Array Float)
   (count : UInt32)
   (canvasWidth : Float)
   (canvasHeight : Float) : IO Unit
@@ -61,9 +61,7 @@ def Renderer.drawTexturedRect
   let centerX := dstX + dstW * 0.5
   let centerY := dstY + dstH * 0.5
   let halfSize := dstW * 0.5
-  let buf ← FloatBuffer.create 5
-  FloatBuffer.setVec5 buf 0 centerX centerY 0.0 halfSize alpha
-  Renderer.drawSpritesInstanceBuffer renderer texture buf 1 canvasWidth canvasHeight
-  FloatBuffer.destroy buf
+  let data : Array Float := #[centerX, centerY, 0.0, halfSize, alpha]
+  Renderer.drawSprites renderer texture data 1 canvasWidth canvasHeight
 
 end Afferent.FFI

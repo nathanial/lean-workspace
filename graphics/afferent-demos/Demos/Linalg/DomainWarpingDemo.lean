@@ -126,29 +126,6 @@ private structure DomainWarpSampleCache where
 
 initialize domainWarpSampleCacheRef : IO.Ref DomainWarpSampleCache ← IO.mkRef {}
 
-private structure DomainWarpRectBatchKey where
-  sampleKey : DomainWarpSampleCacheKey
-  x : Float
-  y : Float
-  w : Float
-  h : Float
-  originX : Float
-  originY : Float
-  deriving BEq, Inhabited
-
-private structure DomainWarpRectBatchCacheEntry where
-  key : Option DomainWarpRectBatchKey := none
-  data : Array Float := #[]
-  count : Nat := 0
-  deriving Inhabited
-
-private structure DomainWarpRectBatchCache where
-  base : DomainWarpRectBatchCacheEntry := {}
-  warped : DomainWarpRectBatchCacheEntry := {}
-  deriving Inhabited
-
-initialize domainWarpRectBatchCacheRef : IO.Ref DomainWarpRectBatchCache ← IO.mkRef {}
-
 private def floorToNat (x : Float) : Nat :=
   (Float.floor x).toUInt64.toNat
 
@@ -214,64 +191,6 @@ private def getDomainWarpSamplesCached (state : DomainWarpingState) (time : Floa
         domainWarpSampleCacheRef.set { cache with base := newSlot }
       pure samples
 
-private def domainWarpRectBatchKey (state : DomainWarpingState) (time : Float) (useWarp : Bool)
-    (res : Nat) (x y w h originX originY : Float) : DomainWarpRectBatchKey := {
-  sampleKey := domainWarpSampleCacheKey state time useWarp res
-  x := x
-  y := y
-  w := w
-  h := h
-  originX := originX
-  originY := originY
-}
-
-private def buildDomainWarpRectBatchData (samples : Array Float) (x y w h : Float) (res : Nat)
-    (originX originY : Float) : Array Float := Id.run do
-  let mut data : Array Float := Array.mkEmpty (res * res * 9)
-  if res == 0 then
-    return data
-  let cellW := w / res.toFloat
-  let cellH := h / res.toFloat
-  for yi in [:res] do
-    for xi in [:res] do
-      let idx := yi * res + xi
-      let n01 := samples.getD idx 0.0
-      let px := originX + x + xi.toFloat * cellW
-      let py := originY + y + yi.toFloat * cellH
-      data := data
-        |>.push px |>.push py |>.push (cellW + 0.5) |>.push (cellH + 0.5)
-        |>.push n01 |>.push n01 |>.push n01 |>.push 1.0 |>.push 0.0
-  data
-
-private def getDomainWarpRectBatchDataCached (state : DomainWarpingState) (time : Float)
-    (useWarp : Bool) (res : Nat) (samples : Array Float)
-    (x y w h originX originY : Float) : IO (Array Float × Nat) := do
-  let key := domainWarpRectBatchKey state time useWarp res x y w h originX originY
-  let cache ← domainWarpRectBatchCacheRef.get
-  let slot := if useWarp then cache.warped else cache.base
-  match slot.key with
-  | some existing =>
-      if existing == key then
-        pure (slot.data, slot.count)
-      else
-        let data := buildDomainWarpRectBatchData samples x y w h res originX originY
-        let count := res * res
-        let newSlot : DomainWarpRectBatchCacheEntry := { key := some key, data := data, count := count }
-        if useWarp then
-          domainWarpRectBatchCacheRef.set { cache with warped := newSlot }
-        else
-          domainWarpRectBatchCacheRef.set { cache with base := newSlot }
-        pure (data, count)
-  | none =>
-      let data := buildDomainWarpRectBatchData samples x y w h res originX originY
-      let count := res * res
-      let newSlot : DomainWarpRectBatchCacheEntry := { key := some key, data := data, count := count }
-      if useWarp then
-        domainWarpRectBatchCacheRef.set { cache with warped := newSlot }
-      else
-        domainWarpRectBatchCacheRef.set { cache with base := newSlot }
-      pure (data, count)
-
 private def renderNoisePanel (x y w h : Float) (label : String)
     (state : DomainWarpingState) (time : Float)
     (screenScale : Float) (fontSmall : Font) (useWarp : Bool) : CanvasM Unit := do
@@ -284,28 +203,15 @@ private def renderNoisePanel (x y w h : Float) (label : String)
   let res := Nat.max 28 (Nat.min 72 (Nat.min resX resY))
   let samples ← getDomainWarpSamplesCached state time useWarp res
 
-  let canvas ← getCanvas
-  let t := canvas.state.transform
-  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
-  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
-
-  if axisAlignedTranslateOnly then
-    let (batchData, batchCount) ← getDomainWarpRectBatchDataCached
-      state time useWarp res samples x y w h t.tx t.ty
-    if batchCount > 0 then
-      let renderer := canvas.ctx.renderer
-      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
-      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
-  else
-    let cellW := w / res.toFloat
-    let cellH := h / res.toFloat
-    for yi in [:res] do
-      for xi in [:res] do
-        let idx := yi * res + xi
-        let n01 := samples.getD idx 0.0
-        setFillColor (Color.gray n01)
-        fillPath (Afferent.Path.rectangleXYWH (x + xi.toFloat * cellW) (y + yi.toFloat * cellH)
-          (cellW + 0.5) (cellH + 0.5))
+  let cellW := w / res.toFloat
+  let cellH := h / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      setFillColor (Color.gray n01)
+      fillPath (Afferent.Path.rectangleXYWH (x + xi.toFloat * cellW) (y + yi.toFloat * cellH)
+        (cellW + 0.5) (cellH + 0.5))
 
   setStrokeColor (Color.gray 0.35)
   setLineWidth 1.0

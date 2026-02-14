@@ -62,11 +62,12 @@ LEAN_EXPORT lean_obj_res lean_afferent_texture_get_size(
     return lean_io_result_mk_ok(pair);
 }
 
-// Draw sprites from FloatBuffer already in SpriteInstanceData layout
-LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_sprites_instance_buffer(
+// Draw sprites from Lean array in SpriteInstanceData layout:
+// [x, y, rotation, halfSize, alpha] × count
+LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_sprites(
     lean_obj_arg renderer_obj,
     lean_obj_arg texture_obj,
-    lean_obj_arg buffer_obj,
+    lean_obj_arg data_arr,
     uint32_t count,
     double canvasWidth,
     double canvasHeight,
@@ -74,12 +75,31 @@ LEAN_EXPORT lean_obj_res lean_afferent_renderer_draw_sprites_instance_buffer(
 ) {
     AfferentRendererRef renderer = (AfferentRendererRef)lean_get_external_data(renderer_obj);
     AfferentTextureRef texture = (AfferentTextureRef)lean_get_external_data(texture_obj);
-    AfferentFloatBufferRef buffer = (AfferentFloatBufferRef)lean_get_external_data(buffer_obj);
+
+    size_t arr_size = lean_array_size(data_arr);
+    size_t expected_size = (size_t)count * 5;
+    if (count == 0 || arr_size < expected_size) {
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+
+    float* data = malloc(arr_size * sizeof(float));
+    if (!data) {
+        return lean_io_result_mk_ok(lean_box(0));
+    }
+
+    for (size_t i = 0; i < arr_size; i++) {
+        data[i] = (float)lean_unbox_float(lean_array_get_core(data_arr, i));
+    }
 
     afferent_renderer_draw_sprites(
-        renderer, texture,
-        afferent_float_buffer_data(buffer),
-        count, (float)canvasWidth, (float)canvasHeight
+        renderer,
+        texture,
+        data,
+        count,
+        (float)canvasWidth,
+        (float)canvasHeight
     );
+
+    free(data);
     return lean_io_result_mk_ok(lean_box(0));
 }

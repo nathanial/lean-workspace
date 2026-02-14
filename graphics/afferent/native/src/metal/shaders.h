@@ -18,9 +18,6 @@ extern NSString *shaderSource;
 // Text rendering shader
 extern NSString *textShaderSource;
 
-// Instanced shapes shader (rects, triangles, circles)
-extern NSString *instancedShaderSource;
-
 // Sprite/texture shader
 extern NSString *spriteShaderSource;
 

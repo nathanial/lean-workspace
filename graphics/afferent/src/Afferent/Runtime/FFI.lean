@@ -8,9 +8,7 @@ import Afferent.Runtime.FFI.Window
 import Afferent.Runtime.FFI.Renderer
 import Afferent.Runtime.FFI.Renderer3D
 import Afferent.Runtime.FFI.Text
-import Afferent.Runtime.FFI.FloatBuffer
 import Afferent.Runtime.FFI.Texture
-import Afferent.Runtime.FFI.MeshCache
 import Afferent.Runtime.FFI.Fragment
 
 namespace Afferent.FFI

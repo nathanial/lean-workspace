@@ -51,7 +51,7 @@ def createCanopyApp (env : DemoEnv) : ReactiveM CanopyAppState := do
     { label := "Dashed", content := dashedLinesTabContent env },
     { label := "Lines", content := linesPerfTabContent env },
     { label := "Textures", content := textureMatrixTabContent env },
-    { label := "Orbital", content := orbitalInstancedTabContent env },
+    { label := "Orbital", content := orbitalTabContent env },
     { label := "Voxel", content := voxelWorldTabContent env },
     { label := "Fonts", content := fontShowcaseTabContent env },
     { label := "Lerp", content := vectorInterpolationTabContent env },

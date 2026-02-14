@@ -1,9 +1,7 @@
 /-
   Vane.Render.Grid - GPU-accelerated terminal cell grid rendering
 
-  Uses batched rendering to minimize draw calls:
-  - All cell backgrounds are batched into a single GPU draw call
-  - Text is rendered per-cell (text batching not yet supported)
+  Uses direct draw calls for all cell rendering.
 -/
 
 import Afferent
@@ -17,7 +15,6 @@ import Vane.App.Selection
 namespace Vane.Render.Grid
 
 open Afferent
-open Afferent (Batch)
 open Vane.Terminal
 open Vane.App (SelectionRange)
 
@@ -42,21 +39,18 @@ def cellPosition (params : RenderParams) (col row : Nat) : Point :=
   ⟨params.paddingX + col.toFloat * params.cellWidth,
    params.paddingY + row.toFloat * params.cellHeight⟩
 
-/-! ## Batched Background Rendering -/
+/-! ## Background Rendering -/
 
-/-- Build a batch of all cell backgrounds that need rendering.
+/-- Render all cell backgrounds that need drawing.
     Only includes cells with non-default background or reverse video. -/
-def buildBackgroundBatch (params : RenderParams) (buffer : Buffer)
-    (width height : Nat) (screenWidth screenHeight : Float)
-    (rowFilter : Nat → Bool := fun _ => true) : Batch := Id.run do
-  -- Estimate ~25% of cells have non-default backgrounds
-  let mut batch := Batch.withCapacity (width * height / 4)
-
+def renderBackgrounds (canvas : Canvas) (params : RenderParams) (buffer : Buffer)
+    (width height : Nat) (rowFilter : Nat → Bool := fun _ => true) : IO Canvas := do
+  let mut c := canvas
   for row in [0:height] do
     if rowFilter row then
       for col in [0:width] do
         let cell := buffer.get col row
-        -- Only batch non-default backgrounds
+        -- Only draw non-default backgrounds
         if cell.bg != .default || cell.modifier.reverse then
           let bgColor := if cell.modifier.reverse then
             vaneColorToAfferent cell.fg true
@@ -64,30 +58,21 @@ def buildBackgroundBatch (params : RenderParams) (buffer : Buffer)
             vaneColorToAfferent cell.bg false
           let x := params.paddingX + col.toFloat * params.cellWidth
           let y := params.paddingY + row.toFloat * params.cellHeight
-          batch := batch.addAxisAlignedRect x y params.cellWidth params.cellHeight
-            bgColor screenWidth screenHeight
+          let c' := c.setFillColor bgColor
+          c ← c'.fillRectXYWH x y params.cellWidth params.cellHeight
 
-  batch
-
-/-- Draw a tessellation batch using GPU buffers. -/
-def drawBatch (canvas : Canvas) (batch : Batch) : IO Unit := do
-  if batch.isEmpty then return
-  let vertexBuffer ← FFI.Buffer.createVertex canvas.ctx.renderer batch.vertices
-  let indexBuffer ← FFI.Buffer.createIndex canvas.ctx.renderer batch.indices
-  canvas.ctx.renderer.drawTriangles vertexBuffer indexBuffer batch.indexCount.toUInt32
-  FFI.Buffer.destroy indexBuffer
-  FFI.Buffer.destroy vertexBuffer
+  pure c
 
 /-! ## Selection Highlight Rendering -/
 
 /-- Selection highlight color (semi-transparent blue) -/
 def selectionColor : Afferent.Color := Color.rgba 0.3 0.5 0.8 0.4
 
-/-- Build a batch of selection highlights -/
-def buildSelectionBatch (params : RenderParams) (selection : SelectionRange)
-    (width height : Nat) (screenWidth screenHeight : Float) : Batch := Id.run do
+/-- Render selection highlights. -/
+def renderSelection (canvas : Canvas) (params : RenderParams) (selection : SelectionRange)
+    (width height : Nat) : IO Canvas := do
   let sel := selection.normalize
-  let mut batch := Batch.withCapacity ((sel.endRow - sel.startRow + 1) * 10)
+  let mut c := canvas
 
   for row in [sel.startRow : min (sel.endRow + 1) height] do
     let startCol := if row == sel.startRow then sel.startCol else 0
@@ -97,10 +82,10 @@ def buildSelectionBatch (params : RenderParams) (selection : SelectionRange)
       let x := params.paddingX + startCol.toFloat * params.cellWidth
       let y := params.paddingY + row.toFloat * params.cellHeight
       let w := (min endCol width - startCol).toFloat * params.cellWidth
-      batch := batch.addAxisAlignedRect x y w params.cellHeight
-        selectionColor screenWidth screenHeight
+      let c' := c.setFillColor selectionColor
+      c ← c'.fillRectXYWH x y w params.cellHeight
 
-  batch
+  pure c
 
 /-! ## Text Rendering -/
 
@@ -158,30 +143,23 @@ def renderCursor (canvas : Canvas) (params : RenderParams)
 
 /-! ## Main Render Functions -/
 
-/-- Render the entire terminal grid using GPU batching.
-    All backgrounds are drawn in a single GPU call, then text is rendered per-cell. -/
+/-- Render the entire terminal grid using direct draw calls. -/
 def render (canvas : Canvas) (params : RenderParams)
     (terminal : TerminalState) (cursorVisible : Bool)
     (selection : Option SelectionRange := none) : IO Canvas := do
   let buffer := terminal.currentBuffer
-  let (screenWidth, screenHeight) ← canvas.ctx.getCurrentSize
 
-  -- Phase 1: Batch and draw all backgrounds in one GPU call
-  let bgBatch := buildBackgroundBatch params buffer terminal.width terminal.height
-    screenWidth screenHeight
-  drawBatch canvas bgBatch
+  -- Phase 1: Render backgrounds
+  let mut c ← renderBackgrounds canvas params buffer terminal.width terminal.height
 
   -- Phase 1.5: Render selection highlight (after backgrounds, before text)
   match selection with
   | some sel =>
     if !sel.isEmpty then
-      let selBatch := buildSelectionBatch params sel terminal.width terminal.height
-        screenWidth screenHeight
-      drawBatch canvas selBatch
+      c ← renderSelection c params sel terminal.width terminal.height
   | none => pure ()
 
   -- Phase 2: Render all foreground characters
-  let mut c := canvas
   for row in [0:terminal.height] do
     for col in [0:terminal.width] do
       let cell := buffer.get col row
@@ -192,33 +170,26 @@ def render (canvas : Canvas) (params : RenderParams)
 
   pure c
 
-/-- Render only dirty rows using GPU batching.
-    Backgrounds for dirty rows are batched into a single GPU call. -/
+/-- Render only dirty rows using direct draw calls. -/
 def renderDirty (canvas : Canvas) (params : RenderParams)
     (terminal : TerminalState) (cursorVisible : Bool)
     (selection : Option SelectionRange := none) : IO Canvas := do
   let buffer := terminal.currentBuffer
-  let (screenWidth, screenHeight) ← canvas.ctx.getCurrentSize
 
   -- Row filter: only include dirty rows
   let isDirty := fun row => terminal.dirtyRows[row]?.getD true
 
-  -- Phase 1: Batch and draw backgrounds for dirty rows
-  let bgBatch := buildBackgroundBatch params buffer terminal.width terminal.height
-    screenWidth screenHeight isDirty
-  drawBatch canvas bgBatch
+  -- Phase 1: Render backgrounds for dirty rows
+  let mut c ← renderBackgrounds canvas params buffer terminal.width terminal.height isDirty
 
   -- Phase 1.5: Render selection highlight
   match selection with
   | some sel =>
     if !sel.isEmpty then
-      let selBatch := buildSelectionBatch params sel terminal.width terminal.height
-        screenWidth screenHeight
-      drawBatch canvas selBatch
+      c ← renderSelection c params sel terminal.width terminal.height
   | none => pure ()
 
   -- Phase 2: Render foreground for dirty rows only
-  let mut c := canvas
   for row in [0:terminal.height] do
     if isDirty row then
       for col in [0:terminal.width] do
@@ -232,7 +203,7 @@ def renderDirty (canvas : Canvas) (params : RenderParams)
 
 /-! ## Legacy Single-Cell Rendering (for reference) -/
 
-/-- Render a single cell's background (legacy, non-batched) -/
+/-- Render a single cell's background. -/
 def renderCellBackground (canvas : Canvas) (params : RenderParams)
     (col row : Nat) (cell : Cell) : IO Canvas := do
   let bgColor := if cell.modifier.reverse then

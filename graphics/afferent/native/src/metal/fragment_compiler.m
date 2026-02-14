@@ -511,7 +511,7 @@ void afferent_fragment_draw(
     // Binding for all fragment types is safe and keeps quad pipelines working.
     [encoder setFragmentBuffer:paramsBuffer offset:0 atIndex:0];
 
-    // Draw instanced quads (4 vertices per quad, triangle strip)
+    // Draw quads (4 vertices per quad, triangle strip)
     // Each instance is one circle, draw all circles from all batched params
     [encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
                 vertexStart:0

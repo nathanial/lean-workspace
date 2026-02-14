@@ -110,7 +110,7 @@ def pendulumSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec :=
         params pendulumFragment.instanceCount.toUInt32
 
       -- Rod (line from pivot to bob - not part of circle shader)
-      CanvasM.strokeLineBatch #[cx, pivotY, bobX, bobY, color.r, color.g, color.b, color.a * 0.7, 0.0] 1 (dims.strokeWidth * 0.7)
+      CanvasM.strokeLineColor (Point.mk' cx pivotY) (Point.mk' bobX bobY) (color.withAlpha (color.a * 0.7)) (dims.strokeWidth * 0.7)
 }
 
 end AfferentSpinners.Canopy.Spinner

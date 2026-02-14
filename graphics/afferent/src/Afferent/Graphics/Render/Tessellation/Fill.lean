@@ -574,7 +574,7 @@ def tessellateTransformedRectNDC
 /-- Tessellate a polygon for caching (no color, no NDC conversion).
     Takes an array of points in normalized 0-1 coordinates and returns a
     TessellatedPolygon with positions and indices that can be transformed
-    and colored later during batched rendering. -/
+    and colored later during rendering. -/
 def tessellatePolygonForCache (points : Array Point) : TessellatedPolygon :=
   if points.size < 3 then
     TessellatedPolygon.empty

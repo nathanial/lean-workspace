@@ -51,10 +51,6 @@ struct AfferentRenderer {
     __strong id<MTLRenderPipelineState> strokePathPipelineState; // GPU stroke path pipeline
     __strong id<MTLRenderPipelineState> textPipelineState;      // For text rendering
     __strong id<MTLRenderPipelineState> spritePipelineState;    // Sprite layout (5-float instances)
-    __strong id<MTLRenderPipelineState> instancedPipelineState; // For instanced shape rendering
-    __strong id<MTLRenderPipelineState> batchedPipelineState;     // Batched rect/circle/stroke pipeline
-    __strong id<MTLRenderPipelineState> meshInstancedPipelineState; // Instanced mesh (polygon) pipeline
-    __strong id<MTLRenderPipelineState> arcInstancedPipelineState;  // Instanced arc stroke pipeline
     __strong id<MTLRenderPipelineState> screenCoordsPipelineState;  // Screen-coords triangle pipeline
     __strong id<MTLSamplerState> textSampler;                   // For text texture sampling
     __strong id<MTLSamplerState> spriteSampler;                 // For sprite texture sampling
@@ -89,18 +85,6 @@ struct AfferentBuffer {
     bool persistent;
     bool pooled;
 };
-
-// Cached mesh for instanced polygon rendering
-// Stores GPU-resident vertex/index buffers for tessellated polygons
-typedef struct AfferentCachedMesh {
-    __strong id<MTLBuffer> vertexBuffer;   // NDC vertices (x, y per vertex)
-    __strong id<MTLBuffer> indexBuffer;    // Triangle indices
-    uint32_t vertexCount;
-    uint32_t indexCount;
-    float centerX, centerY;               // Centroid for rotation pivot
-} AfferentCachedMesh;
-
-typedef AfferentCachedMesh* AfferentCachedMeshRef;
 
 // ============================================================================
 // Buffer Pool - Reuse MTLBuffers across frames to avoid allocation overhead

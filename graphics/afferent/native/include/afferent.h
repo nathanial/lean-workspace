@@ -14,9 +14,7 @@ typedef struct AfferentWindow* AfferentWindowRef;
 typedef struct AfferentRenderer* AfferentRendererRef;
 typedef struct AfferentBuffer* AfferentBufferRef;
 typedef struct AfferentFont* AfferentFontRef;
-typedef struct AfferentFloatBuffer* AfferentFloatBufferRef;
 typedef struct AfferentTexture* AfferentTextureRef;
-typedef struct AfferentCachedMesh* AfferentCachedMeshRef;
 
 // Result codes
 typedef enum {
@@ -219,31 +217,6 @@ void afferent_renderer_draw_stroke_path(
     float a
 );
 
-// Instanced shape drawing (GPU-accelerated transforms)
-// shape_type: 0=rect, 1=triangle, 2=circle
-// instance_data: array of 8 floats per instance:
-//   pos.x, pos.y, angle, halfSize, r, g, b, a
-// transform: column-major affine (a, b, c, d, tx, ty)
-// sizeMode: 0 = world (offset transformed by matrix), 1 = screen (pixel size)
-void afferent_renderer_draw_instanced_shapes(
-    AfferentRendererRef renderer,
-    uint32_t shape_type,
-    const float* instance_data,
-    uint32_t instance_count,
-    float transform_a,
-    float transform_b,
-    float transform_c,
-    float transform_d,
-    float transform_tx,
-    float transform_ty,
-    float viewport_width,
-    float viewport_height,
-    uint32_t size_mode,
-    float time,
-    float hue_speed,
-    uint32_t color_mode
-);
-
 // Scissor rect for clipping (in pixel coordinates)
 void afferent_renderer_set_scissor(
     AfferentRendererRef renderer,
@@ -289,7 +262,7 @@ void afferent_text_measure(
     float* height
 );
 
-// Instanced text glyph static data (per glyph).
+// Text glyph static data (per glyph).
 // localPos/size are in pixel space relative to run origin.
 // uvMin/uvMax are atlas coordinates in [0, 1].
 typedef struct __attribute__((packed)) {
@@ -318,53 +291,6 @@ AfferentResult afferent_text_render(
     float canvas_width,
     float canvas_height
 );
-
-// Batch text rendering - render multiple strings with the same font in one draw call.
-// texts: array of C strings
-// positions: [x0, y0, x1, y1, ...] (2 floats per entry)
-// colors: [r0, g0, b0, a0, ...] (4 floats per entry)
-// transforms: [a0, b0, c0, d0, tx0, ty0, ...] (6 floats per entry)
-AfferentResult afferent_text_render_batch(
-    AfferentRendererRef renderer,
-    AfferentFontRef font,
-    const char** texts,
-    const float* positions,
-    const float* colors,
-    const float* transforms,
-    uint32_t count,
-    float canvas_width,
-    float canvas_height
-);
-
-// FloatBuffer - mutable float array for high-performance instance data
-// Lives in C memory, avoids Lean's copy-on-write array semantics
-AfferentResult afferent_float_buffer_create(size_t capacity, AfferentFloatBufferRef* out);
-void afferent_float_buffer_destroy(AfferentFloatBufferRef buf);
-void afferent_float_buffer_set(AfferentFloatBufferRef buf, size_t index, float value);
-float afferent_float_buffer_get(AfferentFloatBufferRef buf, size_t index);
-size_t afferent_float_buffer_capacity(AfferentFloatBufferRef buf);
-float* afferent_float_buffer_data(AfferentFloatBufferRef buf);
-size_t afferent_float_buffer_count(AfferentFloatBufferRef buf);
-void afferent_float_buffer_set_count(AfferentFloatBufferRef buf, size_t count);
-
-// Set 8 consecutive floats at once (reduces FFI overhead by 8x for instance data)
-void afferent_float_buffer_set_vec8(AfferentFloatBufferRef buf, size_t index,
-    float v0, float v1, float v2, float v3, float v4, float v5, float v6, float v7);
-
-// Set 9 consecutive floats at once (reduces FFI overhead for 9-float instance data)
-void afferent_float_buffer_set_vec9(AfferentFloatBufferRef buf, size_t index,
-    float v0, float v1, float v2, float v3, float v4, float v5, float v6, float v7, float v8);
-
-// Set 5 consecutive floats at once (for sprite data: x, y, rotation, halfSize, alpha)
-void afferent_float_buffer_set_vec5(AfferentFloatBufferRef buf, size_t index,
-    float v0, float v1, float v2, float v3, float v4);
-
-// Sprite system - high-performance bouncing sprites with C-side physics
-// Layout: [x, y, vx, vy, rotation] per sprite (5 floats)
-void afferent_float_buffer_init_sprites(AfferentFloatBufferRef buf, uint32_t count,
-    float screenWidth, float screenHeight, uint32_t seed);
-void afferent_float_buffer_update_sprites(AfferentFloatBufferRef buf, uint32_t count,
-    float dt, float halfSize, float screenWidth, float screenHeight);
 
 // ============================================================================
 // Texture/Sprite rendering - Create textures and render textured sprites
@@ -470,36 +396,6 @@ void afferent_renderer_draw_ocean_projected_grid_with_fog(
 );
 
 // ============================================================================
-// Batched shape rendering (for charts)
-// ============================================================================
-
-// kind: 0=rect, 1=circle, 2=stroke rect
-// instance_data: Array of 9 floats per instance
-// param0: unused for rects (per-instance cornerRadius), ignored for circles, lineWidth for stroke rects
-// param1: unused for stroke rects (per-instance cornerRadius), ignored otherwise
-void afferent_renderer_draw_batch(
-    AfferentRendererRef renderer,
-    uint32_t kind,
-    const float* instance_data,
-    uint32_t instance_count,
-    float param0,
-    float param1,
-    float canvas_width,
-    float canvas_height
-);
-
-// Draw multiple line segments in a single draw call.
-// instance_data: array of 9 floats per line [x1, y1, x2, y2, r, g, b, a, padding]
-void afferent_renderer_draw_line_batch(
-    AfferentRendererRef renderer,
-    const float* instance_data,
-    uint32_t instance_count,
-    float line_width,
-    float canvas_width,
-    float canvas_height
-);
-
-// ============================================================================
 // Textured 3D Mesh rendering
 // ============================================================================
 
@@ -522,59 +418,6 @@ void afferent_renderer_draw_mesh_3d_textured(
     float fog_start,
     float fog_end,
     AfferentTextureRef texture
-);
-
-// ============================================================================
-// Cached Mesh for Instanced Polygon Rendering
-// Tessellate a polygon once, store in GPU memory, draw many instances
-// ============================================================================
-
-// Create a cached mesh from tessellated polygon data
-// vertices: flat array of [x, y, x, y, ...] positions
-// vertex_count: number of vertices (not floats)
-// indices: triangle indices
-// index_count: number of indices
-// center_x, center_y: mesh centroid (rotation pivot)
-AfferentCachedMeshRef afferent_mesh_cache_create(
-    AfferentRendererRef renderer,
-    const float* vertices,
-    uint32_t vertex_count,
-    const uint32_t* indices,
-    uint32_t index_count,
-    float center_x,
-    float center_y
-);
-
-// Destroy a cached mesh and free GPU resources
-void afferent_mesh_cache_destroy(AfferentCachedMeshRef mesh);
-
-// Draw all instances of a cached mesh in a single draw call
-// instance_data: 8 floats per instance [x, y, rotation, scale, r, g, b, a]
-void afferent_mesh_draw_instanced(
-    AfferentRendererRef renderer,
-    AfferentCachedMeshRef mesh,
-    const float* instance_data,
-    uint32_t instance_count,
-    float canvas_width,
-    float canvas_height
-);
-
-// ============================================================================
-// Instanced Arc Stroke Rendering
-// Draw multiple arc strokes in a single draw call with GPU-generated geometry.
-// ============================================================================
-
-// Draw instanced arc strokes
-// instance_data: 10 floats per instance [centerX, centerY, startAngle, sweepAngle,
-//                                        radius, strokeWidth, r, g, b, a]
-// segments: number of subdivisions per arc (higher = smoother, default 16)
-void afferent_arc_draw_instanced(
-    AfferentRendererRef renderer,
-    const float* instance_data,
-    uint32_t instance_count,
-    uint32_t segments,
-    float canvas_width,
-    float canvas_height
 );
 
 #ifdef __cplusplus

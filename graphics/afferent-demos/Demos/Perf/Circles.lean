@@ -16,7 +16,7 @@ def renderCircleTestM (t : Float) (font : Font) (particles : Render.Dynamic.Part
     (radius : Float) : CanvasM Unit := do
   setFillColor Color.white
   fillTextXY s!"Circles: {particles.count} dynamic circles (Space to advance)" 20 30 font
-  fillDynamicInstanced 2 particles radius 0.0 t
+  fillDynamicShapes 2 particles radius 0.0 t
 
 def circlesPerfWidget (t : Float) (font : Font) (particles : Render.Dynamic.ParticleState)
     (radius : Float) : Afferent.Arbor.WidgetBuilder := do
@@ -38,7 +38,7 @@ def stepCirclesPerfFrame (c : Canvas) (dt t : Float) (font : Font)
     fillTextXY
       s!"Circles: {nextParticles.count} dynamic circles (Space to advance)"
       (20 * screenScale) (30 * screenScale) font
-    fillDynamicInstanced 2 nextParticles radius 0.0 t
+    fillDynamicShapes 2 nextParticles radius 0.0 t
   pure (c, nextParticles)
 
 end Demos

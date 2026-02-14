@@ -274,27 +274,15 @@ def renderWorleyCellular (state : WorleyCellularState)
   let res := Nat.max 32 (Nat.min 96 (Nat.min resX resY))
   let samples ← getWorleySamplesCached state scale res
 
-  let canvas ← getCanvas
-  let t := canvas.state.transform
-  let near : Float → Float → Bool := fun a b => Float.abs (a - b) < 0.0001
-  let axisAlignedTranslateOnly := near t.a 1.0 && near t.b 0.0 && near t.c 0.0 && near t.d 1.0
-
-  if axisAlignedTranslateOnly then
-    let (batchData, batchCount) ← getWorleyRectBatchDataCached state scale res samples plotW plotH t.tx t.ty
-    if batchCount > 0 then
-      let renderer := canvas.ctx.renderer
-      let (canvasW, canvasH) ← canvas.ctx.getCurrentSize
-      renderer.drawBatch 0 batchData batchCount.toUInt32 0.0 0.0 canvasW canvasH
-  else
-    let cellW := plotW / res.toFloat
-    let cellH := plotH / res.toFloat
-    for yi in [:res] do
-      for xi in [:res] do
-        let idx := yi * res + xi
-        let n01 := samples.getD idx 0.0
-        setFillColor (Color.gray n01)
-        fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
-          (cellW + 0.5) (cellH + 0.5))
+  let cellW := plotW / res.toFloat
+  let cellH := plotH / res.toFloat
+  for yi in [:res] do
+    for xi in [:res] do
+      let idx := yi * res + xi
+      let n01 := samples.getD idx 0.0
+      setFillColor (Color.gray n01)
+      fillPath (Afferent.Path.rectangleXYWH (xi.toFloat * cellW) (yi.toFloat * cellH)
+        (cellW + 0.5) (cellH + 0.5))
 
   if state.showPoints || state.showConnections then
     let minX := -0.5 * scale

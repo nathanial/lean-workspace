@@ -307,13 +307,12 @@ def unifiedDemo : IO Unit := do
             let indexEnd := indexRegistrySetEnd
 
             let executeStart ← IO.monoNanosNow
-            let ((executeBatchNs, executeCustomNs), c') ← CanvasM.run c do
-              let executeBatchStart ← IO.monoNanosNow
+            let ((executeDrawNs, executeCustomNs), c') ← CanvasM.run c do
+              let executeDrawStart ← IO.monoNanosNow
               Afferent.Widget.renderMeasuredArborWidget rs.assets.fontPack.registry measuredWidget layouts
-              let executeBatchEnd ← IO.monoNanosNow
-              pure (executeBatchEnd - executeBatchStart, 0)
+              let executeDrawEnd ← IO.monoNanosNow
+              pure (executeDrawEnd - executeDrawStart, 0)
             let executeEnd ← IO.monoNanosNow
-            let batchStats : Afferent.Widget.BatchStats := {}
             c := c'
             let endFrameStart ← IO.monoNanosNow
             c ← c.endFrame
@@ -332,11 +331,9 @@ def unifiedDemo : IO Unit := do
             let indexRegistrySetMs := (indexRegistrySetEnd - indexRegistrySetStart).toFloat / 1000000.0
             let collectMs : Float := 0.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
-            let executeBatchMs := executeBatchNs.toFloat / 1000000.0
+            let executeDrawMs := executeDrawNs.toFloat / 1000000.0
             let executeCustomMs := executeCustomNs.toFloat / 1000000.0
-            let executeOverheadMs := max 0.0 (executeMs - executeBatchMs - executeCustomMs)
-            let batchResidualMs := max 0.0
-              (executeBatchMs - batchStats.timeFlattenMs - batchStats.timeCoalesceMs - batchStats.timeBatchLoopMs)
+            let executeOverheadMs := max 0.0 (executeMs - executeDrawMs - executeCustomMs)
             let endFrameMs := (endFrameEnd - endFrameStart).toFloat / 1000000.0
             let frameMs := (frameEndNs - frameStartNs).toFloat / 1000000.0
             let fps := if frameMs > 0.0 then 1000.0 / frameMs else 0.0
@@ -345,7 +342,6 @@ def unifiedDemo : IO Unit := do
             let unaccountedMs := frameMs - accountedMs
             let widgetCount := (Afferent.Arbor.Widget.allIds measuredWidget).size
             let layoutCount := layouts.layouts.size
-            let drawCalls := batchStats.batchedCalls + batchStats.individualCalls
             statsRef.set {
               frameMs := frameMs
               fps := fps
@@ -362,32 +358,14 @@ def unifiedDemo : IO Unit := do
               indexRegistrySetMs := indexRegistrySetMs
               collectMs := collectMs
               executeMs := executeMs
-              executeBatchMs := executeBatchMs
+              executeDrawMs := executeDrawMs
               executeCustomMs := executeCustomMs
               executeOverheadMs := executeOverheadMs
-              batchResidualMs := batchResidualMs
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
               commandCount := 0
-              coalescedCommandCount := batchStats.totalCommands
-              drawCalls := drawCalls
-              batchedCalls := batchStats.batchedCalls
-              individualCalls := batchStats.individualCalls
-              rectsBatched := batchStats.rectsBatched
-              circlesBatched := batchStats.circlesBatched
-              strokeRectsBatched := batchStats.strokeRectsBatched
-              strokeRectDirectRuns := batchStats.strokeRectDirectRuns
-              strokeRectDirectRects := batchStats.strokeRectDirectRects
-              textsBatched := batchStats.textsBatched
-              textFillCommands := batchStats.textFillCommands
-              textBatchFlushes := batchStats.textBatchFlushes
-              flattenMs := batchStats.timeFlattenMs
-              coalesceMs := batchStats.timeCoalesceMs
-              batchLoopMs := batchStats.timeBatchLoopMs
-              drawCallMs := batchStats.timeDrawCallsMs
-              textPackMs := batchStats.timeTextPackMs
-              textFfiMs := batchStats.timeTextFFIMs
+              drawCalls := 0
               widgetCount := widgetCount
               layoutCount := layoutCount
             }

@@ -244,9 +244,7 @@ AfferentResult create_pipelines(struct AfferentRenderer* renderer) {
     MTLRenderPipelineDescriptor *textPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
     textPipelineDesc.vertexFunction = textVertexFunction;
     textPipelineDesc.fragmentFunction = textFragmentFunction;
-    // Compatibility descriptor: the current instanced text shader ignores vertex attributes,
-    // but stale cached shader blobs may still declare attribute-based TextVertexIn.
-    // Providing this descriptor avoids hard startup failure in that cached state.
+    // Provide a vertex descriptor for compatibility with cached shader artifacts.
     MTLVertexDescriptor *textVertexDescriptor = [[MTLVertexDescriptor alloc] init];
     textVertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;  // position
     textVertexDescriptor.attributes[0].offset = 0;
@@ -287,106 +285,6 @@ AfferentResult create_pipelines(struct AfferentRenderer* renderer) {
     spriteSamplerDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
     spriteSamplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
     renderer->spriteSampler = [renderer->device newSamplerStateWithDescriptor:spriteSamplerDesc];
-
-    // Create instanced rendering pipeline (for GPU-accelerated shapes)
-    id<MTLLibrary> instancedLibrary = [renderer->device newLibraryWithSource:instancedShaderSource
-                                                                     options:nil
-                                                                       error:&error];
-    if (!instancedLibrary) {
-        NSLog(@"Instanced shader compilation failed: %@", error);
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    id<MTLFunction> instancedVertexFunction = [instancedLibrary newFunctionWithName:@"instanced_vertex_main"];
-    id<MTLFunction> instancedFragmentFunction = [instancedLibrary newFunctionWithName:@"instanced_fragment_main"];
-
-    if (!instancedVertexFunction || !instancedFragmentFunction) {
-        NSLog(@"Failed to find instanced shader functions");
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    // Instanced pipeline - no vertex descriptor needed (we use vertex_id and instance_id)
-    MTLRenderPipelineDescriptor *instancedPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
-    instancedPipelineDesc.vertexFunction = instancedVertexFunction;
-    instancedPipelineDesc.fragmentFunction = instancedFragmentFunction;
-    instancedPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    apply_alpha_blend(instancedPipelineDesc.colorAttachments[0]);
-
-    renderer->instancedPipelineState = build_pipeline(
-        renderer->device,
-        instancedPipelineDesc,
-        "Instanced",
-        &error
-    );
-    if (!renderer->instancedPipelineState) {
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    // Create batched shapes pipeline (rects, circles, stroke rects)
-    id<MTLFunction> batchedVertexFunc = [instancedLibrary newFunctionWithName:@"batched_vertex"];
-    id<MTLFunction> batchedFragmentFunc = [instancedLibrary newFunctionWithName:@"batched_fragment"];
-    if (!batchedVertexFunc || !batchedFragmentFunc) {
-        NSLog(@"Failed to find batched shader functions");
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    MTLRenderPipelineDescriptor *batchedPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
-    batchedPipelineDesc.vertexFunction = batchedVertexFunc;
-    batchedPipelineDesc.fragmentFunction = batchedFragmentFunc;
-    batchedPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    apply_alpha_blend(batchedPipelineDesc.colorAttachments[0]);
-
-    renderer->batchedPipelineState = build_pipeline(
-        renderer->device,
-        batchedPipelineDesc,
-        "Batched",
-        &error
-    );
-    if (!renderer->batchedPipelineState) return AFFERENT_ERROR_PIPELINE_FAILED;
-
-    // Create mesh instanced pipeline (for complex polygons like gears)
-    id<MTLFunction> meshInstancedVertexFunc = [instancedLibrary newFunctionWithName:@"mesh_instanced_vertex"];
-    id<MTLFunction> meshInstancedFragmentFunc = [instancedLibrary newFunctionWithName:@"mesh_instanced_fragment"];
-    if (!meshInstancedVertexFunc || !meshInstancedFragmentFunc) {
-        NSLog(@"Failed to find mesh instanced shader functions");
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    MTLRenderPipelineDescriptor *meshInstancedPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
-    meshInstancedPipelineDesc.vertexFunction = meshInstancedVertexFunc;
-    meshInstancedPipelineDesc.fragmentFunction = meshInstancedFragmentFunc;
-    meshInstancedPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    apply_alpha_blend(meshInstancedPipelineDesc.colorAttachments[0]);
-
-    renderer->meshInstancedPipelineState = build_pipeline(
-        renderer->device,
-        meshInstancedPipelineDesc,
-        "MeshInstanced",
-        &error
-    );
-    if (!renderer->meshInstancedPipelineState) return AFFERENT_ERROR_PIPELINE_FAILED;
-
-    // Create arc instanced pipeline (for GPU-generated arc strokes)
-    id<MTLFunction> arcInstancedVertexFunc = [instancedLibrary newFunctionWithName:@"arc_instanced_vertex"];
-    id<MTLFunction> arcInstancedFragmentFunc = [instancedLibrary newFunctionWithName:@"arc_instanced_fragment"];
-    if (!arcInstancedVertexFunc || !arcInstancedFragmentFunc) {
-        NSLog(@"Failed to find arc instanced shader functions");
-        return AFFERENT_ERROR_PIPELINE_FAILED;
-    }
-
-    MTLRenderPipelineDescriptor *arcInstancedPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
-    arcInstancedPipelineDesc.vertexFunction = arcInstancedVertexFunc;
-    arcInstancedPipelineDesc.fragmentFunction = arcInstancedFragmentFunc;
-    arcInstancedPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
-    apply_alpha_blend(arcInstancedPipelineDesc.colorAttachments[0]);
-
-    renderer->arcInstancedPipelineState = build_pipeline(
-        renderer->device,
-        arcInstancedPipelineDesc,
-        "ArcInstanced",
-        &error
-    );
-    if (!renderer->arcInstancedPipelineState) return AFFERENT_ERROR_PIPELINE_FAILED;
 
     // Create sprite pipeline (textured quads)
     id<MTLLibrary> spriteLibrary = [renderer->device newLibraryWithSource:spriteShaderSource

@@ -32,11 +32,16 @@ def textureMatrixWidget (t : Float) (screenScale : Float) (windowWidth windowHei
         let refX := offsetX + wF * 0.35
         let refY := pivotY
         let scaledHalf := baseHalf * scale
-        let buf ← FFI.FloatBuffer.create 10
-        FFI.FloatBuffer.setVec5 buf 0 refX refY 0.0 baseHalf 1.0
-        FFI.FloatBuffer.setVec5 buf 5 pivotX pivotY 0.0 scaledHalf 1.0
-        FFI.Renderer.drawSpritesInstanceBuffer renderer texture buf 2 canvasW canvasH
-        FFI.FloatBuffer.destroy buf
+        FFI.Renderer.drawTexturedRect renderer texture
+          0.0 0.0 0.0 0.0
+          (refX - baseHalf) (refY - baseHalf) (baseHalf * 2.0) (baseHalf * 2.0)
+          canvasW canvasH
+          1.0
+        FFI.Renderer.drawTexturedRect renderer texture
+          0.0 0.0 0.0 0.0
+          (pivotX - scaledHalf) (pivotY - scaledHalf) (scaledHalf * 2.0) (scaledHalf * 2.0)
+          canvasW canvasH
+          1.0
         resetTransform
         setFillColor Color.white
         fillTextXY "Texture Scale Demo (CPU scaling) (Space to advance)"

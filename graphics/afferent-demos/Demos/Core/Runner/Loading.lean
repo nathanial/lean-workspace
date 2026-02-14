@@ -29,7 +29,7 @@ private def showcaseFontSpecs : Array (String × String × Nat) :=
 
 private def showcaseFontCount : Nat := 24  -- 4 families × 6 sizes
 
-private def loadingStepsTotal : Nat := 13 + showcaseFontCount  -- 37 total
+private def loadingStepsTotal : Nat := 12 + showcaseFontCount  -- 36 total
 
 private def loadingStepsDone (s : LoadingState) : Nat :=
   (if s.fontSmall.isSome then 1 else 0) +
@@ -44,8 +44,7 @@ private def loadingStepsDone (s : LoadingState) : Nat :=
   (if s.spriteTexture.isSome then 1 else 0) +
   (if s.lineSegments.isSome then 1 else 0) +
   (if s.lineBuffer.isSome then 1 else 0) +
-  (if s.orbitalParams.isSome then 1 else 0) +
-  (if s.orbitalBuffer.isSome then 1 else 0)
+  (if s.orbitalParams.isSome then 1 else 0)
 
 def loadingProgress (s : LoadingState) : Float :=
   (loadingStepsDone s).toFloat / (loadingStepsTotal.toFloat)
@@ -68,8 +67,6 @@ def loadingStatus (s : LoadingState) : String :=
     "Uploading line buffer..."
   else if s.orbitalParams.isNone then
     "Preparing orbitals..."
-  else if s.orbitalBuffer.isNone then
-    "Uploading orbitals..."
   else
     "Finalizing..."
 
@@ -148,7 +145,7 @@ def renderLoading (c : Canvas) (t : Float) (screenScale : Float)
 def advanceLoading (s0 : LoadingState) (screenScale : Float) (canvas : Canvas)
     (lineRef : IO.Ref (Option (Array Float × Nat)))
     (orbitalRef : IO.Ref (Option FloatArray))
-    (orbitalCount : Nat) : IO LoadingState := do
+    (_orbitalCount : Nat) : IO LoadingState := do
   let mut s := s0
   if s.lineSegments.isNone then
     if let some segs ← lineRef.get then
@@ -225,12 +222,6 @@ def advanceLoading (s0 : LoadingState) (screenScale : Float) (canvas : Canvas)
         let lineBuffer ← FFI.Buffer.createStrokeSegmentPersistent canvas.ctx.renderer segments
         return { s with lineBuffer := some lineBuffer }
     | none => pure ()
-  if s.orbitalBuffer.isNone then
-    match s.orbitalParams with
-    | some _ =>
-        let orbitalBuffer ← FFI.FloatBuffer.create (orbitalCount.toUSize * 8)
-        return { s with orbitalBuffer := some orbitalBuffer }
-    | none => pure ()
   return s
 
 def toLoadedAssets (s : LoadingState)
@@ -243,10 +234,10 @@ def toLoadedAssets (s : LoadingState)
     : IO (Option LoadedAssets) := do
   match s.fontSmall, s.fontMedium, s.fontLarge, s.fontHuge, s.fontCanopy, s.fontCanopySmall,
         s.layoutFont, s.fontPack, s.spriteTexture, s.lineSegments,
-        s.lineBuffer, s.orbitalParams, s.orbitalBuffer with
+        s.lineBuffer, s.orbitalParams with
   | some fontSmall, some fontMedium, some fontLarge, some fontHuge, some fontCanopy, some fontCanopySmall,
     some layoutFont, some fontPack, some spriteTexture, some (_, lineCount),
-    some lineBuffer, some orbitalParams, some orbitalBuffer =>
+    some lineBuffer, some orbitalParams =>
       let spriteHalfSize ← spriteHalfSizeFromTexture spriteTexture
       pure (some {
         screenScale
@@ -267,7 +258,6 @@ def toLoadedAssets (s : LoadingState)
         lineWidth
         orbitalCount
         orbitalParams
-        orbitalBuffer
         physWidthF
         physHeightF
         physWidth
@@ -276,7 +266,7 @@ def toLoadedAssets (s : LoadingState)
         layoutOffsetY
         layoutScale
       })
-  | _, _, _, _, _, _, _, _, _, _, _, _, _ => pure none
+  | _, _, _, _, _, _, _, _, _, _, _, _ => pure none
 
 def cleanupLoading (s : LoadingState) : IO Unit := do
   if let some font := s.fontSmall then font.destroy
@@ -291,7 +281,6 @@ def cleanupLoading (s : LoadingState) : IO Unit := do
     font.destroy
   if let some tex := s.spriteTexture then FFI.Texture.destroy tex
   if let some buf := s.lineBuffer then FFI.Buffer.destroy buf
-  if let some buf := s.orbitalBuffer then FFI.FloatBuffer.destroy buf
 
 def cleanupAssets (a : LoadedAssets) : IO Unit := do
   a.fontSmall.destroy
@@ -306,7 +295,6 @@ def cleanupAssets (a : LoadedAssets) : IO Unit := do
     font.destroy
   FFI.Texture.destroy a.spriteTexture
   FFI.Buffer.destroy a.lineBuffer
-  FFI.FloatBuffer.destroy a.orbitalBuffer
 
 def mkEnvFromAssets (a : LoadedAssets) (t dt : Float)
     (keyCode : UInt16) (clearKey : IO Unit) (window : FFI.Window)
@@ -341,7 +329,6 @@ def mkEnvFromAssets (a : LoadedAssets) (t dt : Float)
   lineWidth := a.lineWidth
   orbitalCount := a.orbitalCount
   orbitalParams := a.orbitalParams
-  orbitalBuffer := a.orbitalBuffer
   windowWidthF := a.physWidthF
   windowHeightF := a.physHeightF
   physWidthF := a.physWidthF

@@ -10,7 +10,6 @@ import Reactive
 import Raster
 import Afferent.Runtime.FFI.Texture
 import Afferent.Runtime.FFI.Renderer
-import Afferent.Runtime.FFI.FloatBuffer
 
 namespace Worldmap
 
@@ -327,13 +326,12 @@ private def fadeAlpha (state : MapState) (createdFrame : Nat) : Float :=
 /-- Render all visible tiles with fractional zoom scaling -/
 def renderTilesAt (renderer : Renderer) (state : MapState)
     (offsetX offsetY canvasWidth canvasHeight : Float) : IO Unit := do
-  let spriteBuffer ← Afferent.FFI.FloatBuffer.create 5
   let drawSprite := fun (texture : Texture) (dstX dstY size alpha : Float) => do
-    let half := size / 2.0
-    let cx := dstX + half
-    let cy := dstY + half
-    Afferent.FFI.FloatBuffer.setVec5 spriteBuffer 0 cx cy 0.0 half alpha
-    Renderer.drawSpritesInstanceBuffer renderer texture spriteBuffer 1 canvasWidth canvasHeight
+    Renderer.drawTexturedRect renderer texture
+      0.0 0.0 0.0 0.0
+      dstX dstY size size
+      canvasWidth canvasHeight
+      alpha
 
   let (minZoom, maxZoom) := zoomRange state
   let targetZoom := state.viewport.zoom
@@ -380,8 +378,6 @@ def renderTilesAt (renderer : Renderer) (state : MapState)
             else
               pure 1.0
           drawSprite entry.texture dstX dstY size alpha
-
-  Afferent.FFI.FloatBuffer.destroy spriteBuffer
 
 /-- Render all visible tiles with fractional zoom scaling -/
 def renderTiles (renderer : Renderer) (state : MapState) : IO Unit := do

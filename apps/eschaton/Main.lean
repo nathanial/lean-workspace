@@ -139,7 +139,7 @@ def main : IO Unit := do
   let mut lastTime := startTime
 
   -- Performance tracking state
-  let mut batchStats : Afferent.Widget.BatchStats := {}
+  let mut drawStats : Afferent.Widget.DrawStats := {}
   let mut cacheHits : Nat := 0
   let mut cacheMisses : Nat := 0
   let mut widgetCount : Nat := 0
@@ -291,20 +291,15 @@ def main : IO Unit := do
       let memMb : UInt64 := peakRssKb / 1024
       let cacheTotal := cacheHits + cacheMisses
       let cacheRate := if cacheTotal > 0 then (cacheHits * 100) / cacheTotal else 0
-      let totalDrawCalls := batchStats.batchedCalls + batchStats.individualCalls
       let fmt := fun (v : Float) => s!"{(v * 10).toUInt32.toFloat / 10}"
 
       let footerLine1 :=
         s!"FPS: {displayFps.toUInt32}  |  Commands: {commandCount}  |  Widgets: {widgetCount}  |  Mem: {memMb}MB  |  Cache: {cacheRate}%"
-      let totalBatched := batchStats.rectsBatched + batchStats.circlesBatched + batchStats.strokeRectsBatched + batchStats.linesBatched + batchStats.textsBatched
-      let avgBatchSize := if batchStats.batchedCalls > 0 then (totalBatched * 10 / batchStats.batchedCalls).toFloat / 10.0 else 0.0
-      let avgBatchStr := s!"{(avgBatchSize * 10).toUInt32.toFloat / 10}"
-      let batchBreakdown := s!"R:{batchStats.rectsBatched} C:{batchStats.circlesBatched} SR:{batchStats.strokeRectsBatched} L:{batchStats.linesBatched} T:{batchStats.textsBatched}"
       let footerLine2 :=
-        s!"Draw: {totalDrawCalls} (Batched: {batchStats.batchedCalls}, Avg: {avgBatchStr})  |  {batchBreakdown}"
+        s!"Draw calls: {drawStats.drawCalls}"
       let footerLine3 :=
         s!"Timing: Update {fmt timeUpdateMs}ms, Build {fmt timeBuildMs}ms, Layout {fmt timeLayoutMs}ms, Collect {fmt timeCollectMs}ms, GPU {fmt timeGpuMs}ms, Present {fmt lastPresentMs}ms"
-      let footerLine4 := s!"GPU Detail: Flatten {fmt batchStats.timeFlattenMs}ms, Coalesce {fmt batchStats.timeCoalesceMs}ms, BatchLoop {fmt batchStats.timeBatchLoopMs}ms, DrawCalls {fmt batchStats.timeDrawCallsMs}ms"
+      let footerLine4 := s!"GPU Detail: DrawCalls {drawStats.drawCalls}, Render {fmt timeGpuMs}ms"
 
       match currentScreen with
       | .title =>
@@ -336,9 +331,9 @@ def main : IO Unit := do
         timeGpuMs := newRenderStats.timeExecuteMs + newRenderStats.timeCustomMs
         cacheHits := newRenderStats.cacheHits
         cacheMisses := newRenderStats.cacheMisses
-        commandCount := newRenderStats.batch.totalCommands
+        commandCount := 0
         widgetCount := Afferent.Arbor.Widget.widgetCount measureResult.widget
-        batchStats := newRenderStats.batch
+        drawStats := newRenderStats.draw
 
         -- Title screen: show title text over starfield (in content area, excluding footer)
         let footerHeightPx := Eschaton.footerBarHeight * screenScale
@@ -457,9 +452,9 @@ def main : IO Unit := do
         timeGpuMs := newRenderStats.timeExecuteMs + newRenderStats.timeCustomMs
         cacheHits := newRenderStats.cacheHits
         cacheMisses := newRenderStats.cacheMisses
-        commandCount := newRenderStats.batch.totalCommands
+        commandCount := 0
         widgetCount := Afferent.Arbor.Widget.widgetCount provinceMapMeasure.widget
-        batchStats := newRenderStats.batch
+        drawStats := newRenderStats.draw
 
       -- Track work end time for present calculation
       lastWorkEndTime ← IO.monoMsNow

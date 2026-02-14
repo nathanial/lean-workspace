@@ -12,26 +12,9 @@ namespace Afferent.Widget
 open Afferent
 open Afferent.Arbor
 
-/-- Execution statistics.
-    Fields are retained for compatibility with historical batching metrics. -/
-structure BatchStats where
-  batchedCalls : Nat := 0
-  individualCalls : Nat := 0
-  totalCommands : Nat := 0
-  rectsBatched : Nat := 0
-  circlesBatched : Nat := 0
-  strokeRectsBatched : Nat := 0
-  strokeRectDirectRuns : Nat := 0
-  strokeRectDirectRects : Nat := 0
-  textsBatched : Nat := 0
-  textFillCommands : Nat := 0
-  textBatchFlushes : Nat := 0
-  timeFlattenMs : Float := 0.0
-  timeCoalesceMs : Float := 0.0
-  timeBatchLoopMs : Float := 0.0
-  timeDrawCallsMs : Float := 0.0
-  timeTextPackMs : Float := 0.0
-  timeTextFFIMs : Float := 0.0
+/-- Execution statistics for direct widget rendering. -/
+structure DrawStats where
+  drawCalls : Nat := 0
   deriving Repr, Inhabited
 
 private structure PreparedRender where
@@ -41,7 +24,7 @@ private structure PreparedRender where
   offsetY : Float := 0.0
 
 structure ArborRenderStats where
-  batch : BatchStats := {}
+  draw : DrawStats := {}
   timeCollectMs : Float := 0.0
   timeExecuteMs : Float := 0.0
   timeCustomMs : Float := 0.0
@@ -250,7 +233,7 @@ private def drawWithOffset (measuredWidget : Afferent.Arbor.Widget)
   withOffset offsetX offsetY (drawWidgetTree measuredWidget layouts)
 
 private def drawWithOffsetAndStats (measuredWidget : Afferent.Arbor.Widget)
-    (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM (BatchStats × Float) := do
+    (layouts : Trellis.LayoutResult) (offsetX offsetY : Float) : CanvasM (DrawStats × Float) := do
   let t0 ← IO.monoNanosNow
   withOffset offsetX offsetY (drawWidgetTree measuredWidget layouts)
   let t1 ← IO.monoNanosNow
@@ -270,10 +253,10 @@ def renderArborWidget (reg : FontRegistry) (widget : Afferent.Arbor.Widget)
     (availWidth availHeight : Float) : CanvasM ArborRenderStats := do
   let prepared ← prepareRender reg widget availWidth availHeight
   CanvasM.setFontRegistry reg
-  let (batchStats, timeExecuteMs) ←
+  let (drawStats, timeExecuteMs) ←
     drawWithOffsetAndStats prepared.measuredWidget prepared.layouts prepared.offsetX prepared.offsetY
   pure {
-    batch := batchStats
+    draw := drawStats
     timeCollectMs := 0.0
     timeExecuteMs
     timeCustomMs := 0.0

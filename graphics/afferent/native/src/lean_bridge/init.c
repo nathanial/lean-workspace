@@ -5,9 +5,7 @@ lean_external_class* g_window_class = NULL;
 lean_external_class* g_renderer_class = NULL;
 lean_external_class* g_buffer_class = NULL;
 lean_external_class* g_font_class = NULL;
-lean_external_class* g_float_buffer_class = NULL;
 lean_external_class* g_texture_class = NULL;
-lean_external_class* g_cached_mesh_class = NULL;
 lean_external_class* g_fragment_pipeline_class = NULL;
 static uint8_t g_afferent_initialized = 0;
 
@@ -37,15 +35,7 @@ static void font_finalizer(void* ptr) {
     // Same as above
 }
 
-static void float_buffer_finalizer(void* ptr) {
-    // Same as above
-}
-
 static void texture_finalizer(void* ptr) {
-    // Same as above
-}
-
-static void cached_mesh_finalizer(void* ptr) {
     // Same as above
 }
 
@@ -60,9 +50,7 @@ void afferent_ensure_initialized(void) {
     g_renderer_class = lean_register_external_class(renderer_finalizer, afferent_external_foreach);
     g_buffer_class = lean_register_external_class(buffer_finalizer, afferent_external_foreach);
     g_font_class = lean_register_external_class(font_finalizer, afferent_external_foreach);
-    g_float_buffer_class = lean_register_external_class(float_buffer_finalizer, afferent_external_foreach);
     g_texture_class = lean_register_external_class(texture_finalizer, afferent_external_foreach);
-    g_cached_mesh_class = lean_register_external_class(cached_mesh_finalizer, afferent_external_foreach);
     g_fragment_pipeline_class = lean_register_external_class(fragment_pipeline_finalizer, afferent_external_foreach);
 
     // Initialize text subsystem

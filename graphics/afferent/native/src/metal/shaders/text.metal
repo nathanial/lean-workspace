@@ -1,4 +1,4 @@
-// text.metal - Instanced text rendering shader
+// text.metal - Text rendering shader
 #include <metal_stdlib>
 using namespace metal;
 

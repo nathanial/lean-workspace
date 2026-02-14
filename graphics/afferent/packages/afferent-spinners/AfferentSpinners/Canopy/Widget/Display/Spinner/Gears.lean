@@ -10,64 +10,31 @@ open Afferent.Arbor hiding Event
 open Afferent
 open Linalg
 
-/-! ## Precomputed Gear Tessellation for Instanced Rendering -/
+/-! ## Gear Geometry -/
 
-/-- Tessellate a canonical gear (centered at origin, outer radius = 1.0) as triangles.
-    Returns (vertices, indices, centerX, centerY) for instanced rendering. -/
-private def tessellateCanonicalGear (teeth : Nat) : Array Float × Array UInt32 × Float × Float := Id.run do
+/-- Build a gear polygon at `center` with per-tooth valleys and tips. -/
+private def gearPolygonPoints (center : Point) (scale rotation : Float) (teeth : Nat) : Array Point := Id.run do
   let innerRadius : Float := 0.7   -- Inner radius as fraction of outer
   let toothDepth : Float := 0.3    -- Tooth extends outward by this fraction
   let outerRadius : Float := 1.0 + toothDepth  -- Total outer extent
   let numPoints := teeth * 4  -- 4 points per tooth
   let angleStep := Float.twoPi / numPoints.toFloat
-
-  -- Generate perimeter points (at rotation=0)
-  let mut perimeterPoints : Array (Float × Float) := Array.mkEmpty numPoints
+  let mut points : Array Point := Array.mkEmpty numPoints
   for i in [:numPoints] do
-    let angle := i.toFloat * angleStep
+    let angle := rotation + i.toFloat * angleStep
     let posInTooth := i % 4
     let r := match posInTooth with
       | 0 => innerRadius           -- Valley
       | 1 => outerRadius           -- Outer
       | 2 => outerRadius           -- Outer
       | _ => innerRadius           -- Valley
-    perimeterPoints := perimeterPoints.push (r * Float.cos angle, r * Float.sin angle)
-
-  -- Vertices: center (0,0) + perimeter points
-  -- Layout: [cx, cy, x0, y0, x1, y1, ...]
-  let mut vertices : Array Float := Array.mkEmpty ((numPoints + 1) * 2)
-  vertices := vertices.push 0.0 |>.push 0.0  -- Center vertex
-  for (x, y) in perimeterPoints do
-    vertices := vertices.push x |>.push y
-
-  -- Indices: triangle fan from center
-  -- Each triangle: center (0), point i, point (i+1) % numPoints
-  let mut indices : Array UInt32 := Array.mkEmpty (numPoints * 3)
-  for i in [:numPoints] do
-    indices := indices.push 0  -- Center
-    indices := indices.push (i + 1).toUInt32
-    indices := indices.push ((i % numPoints) + 1 + 1).toUInt32
-  -- Fix last triangle to wrap around
-  indices := indices.set! (indices.size - 1) 1
-
-  return (vertices, indices, 0.0, 0.0)
-
-/-- Pre-computed 8-tooth gear tessellation. -/
-private def gear8Tessellation : Array Float × Array UInt32 × Float × Float :=
-  tessellateCanonicalGear 8
-
-/-- Pre-computed 6-tooth gear tessellation. -/
-private def gear6Tessellation : Array Float × Array UInt32 × Float × Float :=
-  tessellateCanonicalGear 6
-
-/-- Hash for 8-tooth gear (FNV-1a of "gear8"). -/
-private def gear8Hash : UInt64 := 0x67656172385F5F5F  -- "gear8___"
-
-/-- Hash for 6-tooth gear (FNV-1a of "gear6"). -/
-private def gear6Hash : UInt64 := 0x67656172365F5F5F  -- "gear6___"
+    let x := center.x + scale * r * Float.cos angle
+    let y := center.y + scale * r * Float.sin angle
+    points := points.push (Point.mk' x y)
+  points
 
 /-- Gears: Two interlocking gears rotating in opposite directions.
-    Uses instanced rendering for high performance with many gear copies. -/
+    Draws each gear directly from procedural polygon geometry. -/
 def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
   measure := fun _ _ => (dims.size, dims.size)
   collect := fun layout =>
@@ -89,31 +56,17 @@ def gearsSpec (t : Float) (color : Color) (dims : Dimensions) : CustomSpec := {
     let gear1Angle := t * Float.twoPi
     let gear2Angle := -t * Float.twoPi * (gear1Teeth.toFloat / gear2Teeth.toFloat)
 
-    -- Get pre-computed tessellations
-    let (gear8Verts, gear8Indices, gear8CX, gear8CY) := gear8Tessellation
-    let (gear6Verts, gear6Indices, gear6CX, gear6CY) := gear6Tessellation
-
     do
-      -- Draw gear 1 (8-tooth) using instanced rendering
-      let gear1Instance : MeshInstance := {
-        x := gear1X, y := gear1Y
-        rotation := gear1Angle
-        scale := gear1Scale
-        r := color.r, g := color.g, b := color.b, a := color.a
-      }
-      CanvasM.fillPolygonInstanced gear8Hash gear8Verts gear8Indices #[gear1Instance] gear8CX gear8CY
+      -- Draw gear 1 (8-tooth)
+      let gear1Points := gearPolygonPoints (Point.mk' gear1X gear1Y) gear1Scale gear1Angle gear1Teeth
+      CanvasM.fillPolygon gear1Points color
 
-      -- Draw gear 2 (6-tooth) using instanced rendering
+      -- Draw gear 2 (6-tooth)
       let gear2Color := color.withAlpha 0.85
-      let gear2Instance : MeshInstance := {
-        x := gear2X, y := gear2Y
-        rotation := gear2Angle
-        scale := gear2Scale
-        r := gear2Color.r, g := gear2Color.g, b := gear2Color.b, a := gear2Color.a
-      }
-      CanvasM.fillPolygonInstanced gear6Hash gear6Verts gear6Indices #[gear2Instance] gear6CX gear6CY
+      let gear2Points := gearPolygonPoints (Point.mk' gear2X gear2Y) gear2Scale gear2Angle gear2Teeth
+      CanvasM.fillPolygon gear2Points gear2Color
 
-      -- Center holes (using GPU-batched circles)
+      -- Center holes
       CanvasM.fillCircleColor (Point.mk' gear1X gear1Y) (gear1Scale * 0.25) (color.withAlpha 0.3)
       CanvasM.fillCircleColor (Point.mk' gear2X gear2Y) (gear2Scale * 0.25) (color.withAlpha 0.25)
 }

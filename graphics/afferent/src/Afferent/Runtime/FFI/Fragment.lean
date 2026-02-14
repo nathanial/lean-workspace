@@ -3,7 +3,6 @@
   FFI bindings for shader fragment compilation and rendering.
 -/
 import Afferent.Runtime.FFI.Renderer
-import Afferent.Runtime.FFI.FloatBuffer
 
 namespace Afferent.FFI
 
@@ -44,17 +43,5 @@ opaque Fragment.destroy (pipeline : @& FragmentPipeline) : IO Unit
 @[extern "lean_afferent_fragment_draw"]
 opaque Fragment.draw (renderer : @& Renderer) (pipeline : @& FragmentPipeline)
     (params : @& Array Float) (canvasWidth canvasHeight : Float) : IO Unit
-
-/-- Draw using a compiled fragment pipeline with FloatBuffer for parameters.
-    More efficient than array version for repeated calls.
-
-    Parameters:
-    - `renderer`: The GPU renderer
-    - `pipeline`: Compiled fragment pipeline
-    - `paramsBuffer`: FloatBuffer containing parameter data
-    - `canvasWidth`, `canvasHeight`: Viewport dimensions -/
-@[extern "lean_afferent_fragment_draw_buffer"]
-opaque Fragment.drawBuffer (renderer : @& Renderer) (pipeline : @& FragmentPipeline)
-    (paramsBuffer : @& FloatBuffer) (canvasWidth canvasHeight : Float) : IO Unit
 
 end Afferent.FFI

@@ -5,7 +5,6 @@
 // Global shader source strings (set from Lean via FFI)
 NSString *shaderSource = nil;
 NSString *textShaderSource = nil;
-NSString *instancedShaderSource = nil;
 NSString *spriteShaderSource = nil;
 NSString *strokeShaderSource = nil;
 NSString *strokePathShaderSource = nil;
@@ -19,8 +18,6 @@ void afferent_set_shader_source(const char* name, const char* source) {
         shaderSource = sourceStr;
     } else if (strcmp(name, "text") == 0) {
         textShaderSource = sourceStr;
-    } else if (strcmp(name, "instanced") == 0) {
-        instancedShaderSource = sourceStr;
     } else if (strcmp(name, "sprite") == 0) {
         spriteShaderSource = sourceStr;
     } else if (strcmp(name, "stroke") == 0) {
@@ -34,7 +31,7 @@ void afferent_set_shader_source(const char* name, const char* source) {
 
 BOOL afferent_init_shaders(void) {
     // Verify all shaders were set from Lean
-    if (shaderSource && textShaderSource && instancedShaderSource &&
+    if (shaderSource && textShaderSource &&
         spriteShaderSource && strokeShaderSource && strokePathShaderSource &&
         shader3DSource) {
         return YES;

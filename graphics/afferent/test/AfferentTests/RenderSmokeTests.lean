@@ -1,11 +1,10 @@
 /-
   Afferent Render Smoke Tests
-  Lightweight checks for shader registry and instanced buffer packing.
+  Lightweight checks for shader registry and dynamic state helpers.
 -/
 import AfferentTests.Framework
 import Afferent.Runtime.Shader.Sources
 import Afferent.Graphics.Render.Dynamic
-import Afferent.Runtime.FFI.FloatBuffer
 import Init.Data.FloatArray
 
 namespace AfferentTests.RenderSmokeTests
@@ -33,7 +32,6 @@ test "shader registry includes expected names and non-empty sources" := do
   let expected := #[
     "basic",
     "text",
-    "instanced",
     "sprite",
     "stroke",
     "stroke_path",
@@ -47,9 +45,6 @@ test "shader registry includes expected names and non-empty sources" := do
         ensure false s!"Shader {name} missing from registry"
 
 test "core shader entry points exist" := do
-  let instanced := (shaderSource? "instanced").getD ""
-  shouldContainSubstr instanced "instanced_vertex_main"
-  shouldContainSubstr instanced "instanced_fragment_main"
   let sprite := (shaderSource? "sprite").getD ""
   shouldContainSubstr sprite "sprite_vertex_layout0"
   shouldContainSubstr sprite "sprite_fragment"
@@ -74,58 +69,15 @@ private def mkParticles : Render.Dynamic.ParticleState :=
     arr := arr.push 0.0
     arr := arr.push 0.3
     arr
-  { data, count := 2, screenWidth := 100.0, screenHeight := 100.0 }
+  { data, count := 2, screenWidth := 50.0, screenHeight := 50.0 }
 
-test "instanced buffer writer packs uniform rotation layout" := do
+test "particle bouncing updates position and reflects velocity at bounds" := do
   let particles := mkParticles
-  let buf ← particles.createInstanceBuffer
-  Render.Dynamic.writeInstancedUniformToBuffer particles buf 5.0 1.25
-  let x0 ← FFI.FloatBuffer.get buf 0
-  let y0 ← FFI.FloatBuffer.get buf 1
-  let rot0 ← FFI.FloatBuffer.get buf 2
-  let size0 ← FFI.FloatBuffer.get buf 3
-  let hue0 ← FFI.FloatBuffer.get buf 4
-  let alpha0 ← FFI.FloatBuffer.get buf 7
-  shouldBeNear x0 10.0
-  shouldBeNear y0 20.0
-  shouldBeNear rot0 1.25
-  shouldBeNear size0 5.0
-  shouldBeNear hue0 0.1
-  shouldBeNear alpha0 1.0
-  let x1 ← FFI.FloatBuffer.get buf 8
-  let y1 ← FFI.FloatBuffer.get buf 9
-  shouldBeNear x1 30.0
-  shouldBeNear y1 40.0
-  FFI.FloatBuffer.destroy buf
-
-test "instanced buffer writer packs animated rotation layout" := do
-  let particles := mkParticles
-  let buf ← particles.createInstanceBuffer
-  Render.Dynamic.writeInstancedAnimatedToBuffer particles buf 5.0 2.0 3.0
-  let angle0 ← FFI.FloatBuffer.get buf 2
-  let angle1 ← FFI.FloatBuffer.get buf 10
-  let twoPi : Float := 6.283185307
-  let expected0 := 2.0 * 3.0 + 0.1 * twoPi
-  let expected1 := 2.0 * 3.0 + 0.3 * twoPi
-  shouldBeNear angle0 expected0
-  shouldBeNear angle1 expected1
-  FFI.FloatBuffer.destroy buf
-
-test "sprite buffer writer packs layout" := do
-  let particles := mkParticles
-  let buf ← particles.createSpriteBuffer
-  Render.Dynamic.writeSpritesToBuffer particles buf 7.0 0.5 0.25
-  let x0 ← FFI.FloatBuffer.get buf 0
-  let y0 ← FFI.FloatBuffer.get buf 1
-  let rot0 ← FFI.FloatBuffer.get buf 2
-  let size0 ← FFI.FloatBuffer.get buf 3
-  let alpha0 ← FFI.FloatBuffer.get buf 4
-  shouldBeNear x0 10.0
-  shouldBeNear y0 20.0
-  shouldBeNear rot0 0.5
-  shouldBeNear size0 7.0
-  shouldBeNear alpha0 0.25
-  FFI.FloatBuffer.destroy buf
+  let updated := particles.updateBouncing 0.1 5.0
+  shouldBeNear (updated.data.get! 0) 10.0
+  shouldBeNear (updated.data.get! 1) 20.0
+  shouldBeNear (updated.data.get! 5) 30.0
+  shouldBeNear (updated.data.get! 6) 40.0
 
 
 

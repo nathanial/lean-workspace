@@ -1,4 +1,4 @@
-// sprite.metal - Textured instanced quad (sprites)
+// sprite.metal - Textured quad sprites
 // Layout: [pixelX, pixelY, rotation, halfSize, alpha] × count (5 floats)
 #include <metal_stdlib>
 using namespace metal;

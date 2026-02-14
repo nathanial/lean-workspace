@@ -25,20 +25,9 @@ opaque FontPointed : NonemptyType
 def Font : Type := FontPointed.type
 instance : Nonempty Font := FontPointed.property
 
--- FloatBuffer: High-performance mutable float array for instance data
--- Lives in C memory, avoids Lean's copy-on-write array semantics
-opaque FloatBufferPointed : NonemptyType
-def FloatBuffer : Type := FloatBufferPointed.type
-instance : Nonempty FloatBuffer := FloatBufferPointed.property
-
 -- Texture handle (GPU texture)
 opaque TexturePointed : NonemptyType
 def Texture : Type := TexturePointed.type
 instance : Nonempty Texture := TexturePointed.property
-
--- CachedMesh handle (GPU-resident tessellated polygon for instanced rendering)
-opaque CachedMeshPointed : NonemptyType
-def CachedMesh : Type := CachedMeshPointed.type
-instance : Nonempty CachedMesh := CachedMeshPointed.property
 
 end Afferent.FFI
