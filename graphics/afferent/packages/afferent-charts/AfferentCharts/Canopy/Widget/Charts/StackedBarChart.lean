@@ -94,7 +94,7 @@ def stackedBarChartSpec (data : Data) (theme : Theme)
     let actualHeight := rect.height
 
     let numCategories := data.categories.size
-    if numCategories == 0 || data.series.isEmpty then #[] else
+    if numCategories == 0 || data.series.isEmpty then pure () else
 
     -- Calculate chart area
     let legendSpace := if dims.showLegend then dims.marginRight else 20.0

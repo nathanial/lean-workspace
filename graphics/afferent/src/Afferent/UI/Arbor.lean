@@ -2,13 +2,13 @@
   Arbor - Afferent Widget Core
 
   Arbor provides the declarative widget model, layout/measurement pipeline,
-  event system, and render-command IR used by Afferent.
+  event system, and drawing DSL used by Afferent.
 
   In this repository, production rendering executes through Afferent's
-  Canvas/Metal backend in `Afferent.Widget.Backend`.
+  Canvas/Metal backend in `Afferent.Widget`.
 
   Key abstractions:
-  - RenderCommand: backend-agnostic drawing operations
+  - RenderM: immediate drawing operations over CanvasM with FontRegistry access
   - TextMeasurer: text measurement interface (implemented by Afferent fonts)
   - Widget: declarative widget tree (flex, grid, text, scroll, etc.)
 
@@ -16,8 +16,7 @@
   1. Build a widget tree using the DSL (row, column, text', box, etc.)
   2. Measure the tree with `measureWidget`
   3. Compute layout with `Trellis.layout`
-  4. Collect render commands with `collectCommands`
-  5. Execute commands with the Afferent widget backend
+  4. Render directly with `Afferent.Widget.renderMeasuredArborWidget`
 -/
 
 -- Core types

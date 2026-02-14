@@ -39,8 +39,11 @@ def minSide (r : Rect) : Float :=
 def cardLabelColor : Color :=
   Afferent.Color.gray 0.85
 
+/-- Immediate draw callback used by overview demo cards. -/
+abbrev CardDraw := Rect → RenderM Unit
+
 /-- Create a flexible custom spec with minimum size that expands. -/
-def cardSpecFlex (draw : Rect → RenderCommands) : CustomSpec :=
+def cardSpecFlex (draw : CardDraw) : CustomSpec :=
   { measure := fun _ _ => (60, 60)  -- Minimum content size
     collect := fun layout =>
       let rect := layoutRectToRect layout.borderRect
@@ -58,7 +61,7 @@ def cardStyleFlex : BoxStyle :=
     height := .percent 1.0 }
 
 /-- Build a flexible card that fills available space in a grid. -/
-def demoCardFlex (labelFont : FontId) (label : String) (draw : Rect → RenderCommands)
+def demoCardFlex (labelFont : FontId) (label : String) (draw : CardDraw)
     : WidgetBuilder := do
   column (gap := 4) (style := cardStyleFlex) #[
     -- Shape area uses flex-grow to fill remaining space after label

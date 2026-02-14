@@ -115,7 +115,7 @@ def radarChartSpec (data : Data) (theme : Theme)
     let actualHeight := rect.height
 
     let numAxes := data.axisLabels.size
-    if numAxes < 3 then #[] else  -- Need at least 3 axes for a polygon
+    if numAxes < 3 then pure () else  -- Need at least 3 axes for a polygon
 
     -- Calculate center point and radius from available space
     let legendSpace := if dims.showLegend then dims.marginRight else 20.0

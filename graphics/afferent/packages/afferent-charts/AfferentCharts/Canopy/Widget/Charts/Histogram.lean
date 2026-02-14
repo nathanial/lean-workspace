@@ -172,7 +172,7 @@ def histogramSpec (bins : Array Bin) (variant : HistogramVariant) (theme : Theme
     let chartWidth := actualWidth - dims.marginLeft - dims.marginRight
     let chartHeight := actualHeight - dims.marginTop - dims.marginBottom
 
-    if bins.isEmpty then #[] else
+    if bins.isEmpty then pure () else
 
     -- Find max frequency/density for scaling
     let maxY : Float := Id.run do
@@ -261,7 +261,7 @@ def histogramFromCountsSpec (labels : Array String) (counts : Array Nat)
     let chartHeight := actualHeight - dims.marginTop - dims.marginBottom
 
     let binCount := min labels.size counts.size
-    if binCount == 0 then #[] else
+    if binCount == 0 then pure () else
 
     -- Find max count
     let maxCount := Id.run do

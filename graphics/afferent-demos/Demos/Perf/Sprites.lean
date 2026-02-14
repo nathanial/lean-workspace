@@ -26,7 +26,7 @@ def spritesPerfWidget (screenScale : Float) (font : Font) (texture : FFI.Texture
     (particles : Render.Dynamic.ParticleState) (halfSize : Float) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun _ _ => do
         resetTransform
         setFillColor Color.white
@@ -34,7 +34,6 @@ def spritesPerfWidget (screenScale : Float) (font : Font) (texture : FFI.Texture
           s!"Sprites: {particles.count} textured sprites (Space to advance)"
           (20 * screenScale) (30 * screenScale) font
         fillDynamicSprites texture particles halfSize
-    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 def stepSpritesPerfFrame (c : Canvas) (dt : Float) (font : Font)

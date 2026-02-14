@@ -54,7 +54,7 @@ def worldmapWidgetNamed (screenScale : Float) (fontMedium fontSmall : Font)
   }
   let sidebarSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       let rect := layout.contentRect
       resetTransform
       setFillColor (Color.gray 0.1)
@@ -147,11 +147,10 @@ def worldmapWidgetNamed (screenScale : Float) (fontMedium fontSmall : Font)
       fillTextXY s!"Fallback z: {minZoom}..{maxZoom}" left y fontSmall
       y := y + line
       fillTextXY s!"Fade frames: {state.fadeFrames}" left y fontSmall
-    ]
   }
   let mapSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun _ _ => do
         let rect := layout.contentRect
         let renderer ← getRenderer
@@ -165,7 +164,6 @@ def worldmapWidgetNamed (screenScale : Float) (fontMedium fontSmall : Font)
         let zoom := state.displayZoom
         fillTextXY s!"lat={lat} lon={lon} zoom={zoom}"
           (20 * s) (55 * s) fontSmall
-    ]
   }
   let sidebarWidget :=
     if sidebarName == "" then

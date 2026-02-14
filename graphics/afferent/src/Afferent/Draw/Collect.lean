@@ -131,9 +131,11 @@ partial def collectWidget (w : Widget) (layouts : Trellis.LayoutResult) : Collec
     -- Spacers don't render anything
     pure ()
 
-  | .custom _ _ style spec _ =>
+  | .custom _ _ style _ _ =>
     collectBoxStyle borderRect style
-    CollectM.emitAll (spec.collect computed)
+    -- Legacy command collector cannot materialize immediate-mode custom draws.
+    -- Runtime rendering executes custom specs directly via `Output.Execute.Render`.
+    pure ()
 
   | .flex _ _ _ style children _ =>
     collectBoxStyle borderRect style

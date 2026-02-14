@@ -20,13 +20,13 @@ structure ShapeDef where
   path : Afferent.Arbor.Rect → Afferent.Path
   stroke : Option (Afferent.Arbor.Color × Float) := none
 
-def shapeCommands (shape : ShapeDef) (rect : Rect) : RenderCommands :=
+def shapeCommands (shape : ShapeDef) (rect : Rect) : RenderM Unit := do
   let path := shape.path rect
-  let base : RenderCommands := #[RenderCommand.fillPath path shape.color]
+  RenderM.fillPath path shape.color
   match shape.stroke with
   | some (strokeColor, strokeWidth) =>
-    base.push (RenderCommand.strokePath path strokeColor strokeWidth)
-  | none => base
+    RenderM.strokePath path strokeColor strokeWidth
+  | none => pure ()
 
 /-- Build a labeled card for a single shape. -/
 def shapeCard (labelFont : FontId) (shape : ShapeDef) : WidgetBuilder := do

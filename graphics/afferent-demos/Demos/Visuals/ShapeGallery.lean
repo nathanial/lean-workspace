@@ -193,13 +193,12 @@ def shapeGalleryWidget (idx : Nat) (screenScale : Float)
     (fontLarge fontSmall fontMedium : Font) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun w h => do
         resetTransform
         renderShapeGalleryM idx w h screenScale fontLarge fontSmall
         setFillColor Color.white
         fillTextXY "Shape Gallery (Space to advance)" (20 * screenScale) (30 * screenScale) fontMedium
-    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

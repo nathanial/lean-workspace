@@ -115,7 +115,7 @@ def candlestickChartSpec (data : Data) (theme : Theme)
     let actualHeight := rect.height
 
     let numCandles := data.candles.size
-    if numCandles == 0 then #[] else
+    if numCandles == 0 then pure () else
 
     -- Calculate chart area
     let chartX := rect.x + dims.marginLeft

@@ -139,9 +139,9 @@ def heatmapSpec (data : Data) (scale : ColorScale) (theme : Theme)
 
     -- Get matrix dimensions
     let numRows := data.values.size
-    if numRows == 0 then #[] else
+    if numRows == 0 then pure () else
     let numCols := data.values.foldl (fun acc row => max acc row.size) 0
-    if numCols == 0 then #[] else
+    if numCols == 0 then pure () else
 
     -- Find value range
     let (minVal, maxVal) := Id.run do

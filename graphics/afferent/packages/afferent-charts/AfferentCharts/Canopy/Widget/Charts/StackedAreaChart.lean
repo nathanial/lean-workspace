@@ -133,14 +133,14 @@ def stackedAreaChartSpec (data : Data) (theme : Theme)
     let actualHeight := rect.height
 
     let numSeries := data.series.size
-    if numSeries == 0 then #[] else
+    if numSeries == 0 then pure () else
 
     -- Calculate stacked values
     let stackedValues := calculateStackedValues data
-    if stackedValues.isEmpty then #[] else
+    if stackedValues.isEmpty then pure () else
 
     let maxPoints := stackedValues[0]!.size
-    if maxPoints == 0 then #[] else
+    if maxPoints == 0 then pure () else
 
     -- Calculate chart area
     let legendSpace := if dims.showLegend then dims.marginRight else 20.0

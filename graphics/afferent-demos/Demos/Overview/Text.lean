@@ -14,11 +14,11 @@ namespace Demos
 
 private structure TextCard where
   label : String
-  draw : Rect → RenderCommands
+  draw : CardDraw
 
 /-- Center a single line of text within the rect. -/
-private def centeredText (text : String) (font : FontId) (color : Color) (r : Rect) : RenderCommands :=
-  #[.fillTextBlock text r font color .center .middle]
+private def centeredText (text : String) (font : FontId) (color : Color) (r : Rect) : RenderM Unit := do
+  RenderM.fillTextBlock text r font color .center .middle
 
 /-- Text cards rendered as widgets. -/
 def textWidget (fonts : DemoFonts) : WidgetBuilder := do
@@ -49,81 +49,71 @@ def textWidget (fonts : DemoFonts) : WidgetBuilder := do
     { label := "Text on Shape",
       draw := fun r =>
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
-        #[
-          .fillRect rect Afferent.Color.blue 6,
-          .fillTextBlock "Text on Shape" rect fonts.small Afferent.Color.white .center .middle
-        ] }
+        do
+          RenderM.fillRect rect Afferent.Color.blue 6
+          RenderM.fillTextBlock "Text on Shape" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Labels",
       draw := fun r =>
         let center := rectCenter r
         let radius := minSide r * 0.3
-        #[
-          .fillPath (Afferent.Path.circle center radius) Afferent.Color.red,
-          .fillTextBlock "Labels" (Rect.mk' (center.x - radius) (center.y - 10) (radius * 2) 20)
-            fonts.small Afferent.Color.white .center .middle
-        ] }
+        do
+          RenderM.fillPath (Afferent.Path.circle center radius) Afferent.Color.red
+          RenderM.fillTextBlock "Labels" (Rect.mk' (center.x - radius) (center.y - 10) (radius * 2) 20)
+            fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Rounded Button",
       draw := fun r =>
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
-        #[
-          .fillRect rect Afferent.Color.green 10,
-          .fillTextBlock "Rounded" rect fonts.small Afferent.Color.black .center .middle
-        ] }
+        do
+          RenderM.fillRect rect Afferent.Color.green 10
+          RenderM.fillTextBlock "Rounded" rect fonts.small Afferent.Color.black .center .middle }
   ), (
     { label := "Alphabet",
       draw := fun r =>
         let x := r.origin.x + 6
         let y1 := r.origin.y + r.size.height * 0.4
         let y2 := r.origin.y + r.size.height * 0.7
-        #[
-          .fillText "ABCDEFGHIJKLMNOPQRSTUVWXYZ" x y1 fonts.small Afferent.Color.white,
-          .fillText "abcdefghijklmnopqrstuvwxyz" x y2 fonts.small Afferent.Color.white
-        ] }
+        do
+          RenderM.fillText "ABCDEFGHIJKLMNOPQRSTUVWXYZ" x y1 fonts.small Afferent.Color.white
+          RenderM.fillText "abcdefghijklmnopqrstuvwxyz" x y2 fonts.small Afferent.Color.white }
   ), (
     { label := "Digits",
       draw := fun r =>
         let x := r.origin.x + 6
         let y := r.origin.y + r.size.height * 0.55
-        #[
-          .fillText "0123456789 !@#$%^&*()" x y fonts.small Afferent.Color.white
-        ] }
+        RenderM.fillText "0123456789 !@#$%^&*()" x y fonts.small Afferent.Color.white }
   ), (
     { label := "Transparent",
       draw := fun r =>
         let x := r.origin.x + 6
         let y0 := r.origin.y + r.size.height * 0.35
         let step := r.size.height * 0.22
-        #[
-          .fillText "Semi-transparent" x y0 fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.7),
-          .fillText "More transparent" x (y0 + step) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.4),
-          .fillText "Very faint" x (y0 + step * 2) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.2)
-        ] }
+        do
+          RenderM.fillText "Semi-transparent" x y0 fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.7)
+          RenderM.fillText "More transparent" x (y0 + step) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.4)
+          RenderM.fillText "Very faint" x (y0 + step * 2) fonts.small (Afferent.Color.hsva 0.0 0.0 1.0 0.2) }
   ), (
     { label := "Error",
       draw := fun r =>
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
-        #[
-          .fillRect rect (Afferent.Color.hsva 0.0 0.75 0.8 1.0) 6,
-          .fillTextBlock "Error" rect fonts.small Afferent.Color.white .center .middle
-        ] }
+        do
+          RenderM.fillRect rect (Afferent.Color.hsva 0.0 0.75 0.8 1.0) 6
+          RenderM.fillTextBlock "Error" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Success",
       draw := fun r =>
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
-        #[
-          .fillRect rect (Afferent.Color.hsva 0.333 0.667 0.6 1.0) 6,
-          .fillTextBlock "Success" rect fonts.small Afferent.Color.white .center .middle
-        ] }
+        do
+          RenderM.fillRect rect (Afferent.Color.hsva 0.333 0.667 0.6 1.0) 6
+          RenderM.fillTextBlock "Success" rect fonts.small Afferent.Color.white .center .middle }
   ), (
     { label := "Warning",
       draw := fun r =>
         let rect := Rect.mk' (r.origin.x + 8) (r.origin.y + r.size.height * 0.3) (r.size.width - 16) (r.size.height * 0.4)
-        #[
-          .fillRect rect (Afferent.Color.hsva 0.119 0.875 0.8 1.0) 6,
-          .fillTextBlock "Warning" rect fonts.small Afferent.Color.black .center .middle
-        ] }
+        do
+          RenderM.fillRect rect (Afferent.Color.hsva 0.119 0.875 0.8 1.0) 6
+          RenderM.fillTextBlock "Warning" rect fonts.small Afferent.Color.black .center .middle }
   )]
 
   let widgets := cards.map fun card =>
@@ -131,7 +121,7 @@ def textWidget (fonts : DemoFonts) : WidgetBuilder := do
   gridFlex 4 10 4 widgets (EdgeInsets.uniform 10)
 
 /-- Curated subset of text cards for responsive grid display. -/
-def textSubset (fonts : DemoFonts) : Array (String × (Rect → RenderCommands)) := #[
+def textSubset (fonts : DemoFonts) : Array (String × CardDraw) := #[
   ("Small", fun r => centeredText "Small" fonts.small Afferent.Color.white r),
   ("Medium", fun r => centeredText "Medium" fonts.medium Afferent.Color.white r),
   ("Large", fun r => centeredText "Large" fonts.large Afferent.Color.white r),

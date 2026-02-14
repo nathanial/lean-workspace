@@ -130,7 +130,7 @@ def boxPlotSpec (summaries : Array Summary) (theme : Theme)
     let chartWidth := actualWidth - dims.marginLeft - dims.marginRight
     let chartHeight := actualHeight - dims.marginTop - dims.marginBottom
 
-    if summaries.isEmpty then #[] else
+    if summaries.isEmpty then pure () else
 
     -- Find global min/max for Y axis scaling
     let (globalMin, globalMax) := Id.run do
@@ -260,7 +260,7 @@ def horizontalBoxPlotSpec (summaries : Array Summary) (theme : Theme)
     let chartWidth := actualWidth - dims.marginLeft - dims.marginRight
     let chartHeight := actualHeight - dims.marginTop - dims.marginBottom
 
-    if summaries.isEmpty then #[] else
+    if summaries.isEmpty then pure () else
 
     -- Find global min/max for X axis scaling
     let (globalMin, globalMax) := Id.run do

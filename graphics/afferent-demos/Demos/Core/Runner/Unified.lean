@@ -306,16 +306,14 @@ def unifiedDemo : IO Unit := do
             let indexRegistrySetEnd ← IO.monoNanosNow
             let indexEnd := indexRegistrySetEnd
 
-            let collectStart ← IO.monoNanosNow
-            let commands := Afferent.Arbor.collectCommands measuredWidget layouts
-            let collectEnd ← IO.monoNanosNow
             let executeStart ← IO.monoNanosNow
-            let ((batchStats, executeBatchNs, executeCustomNs), c') ← CanvasM.run c do
+            let ((executeBatchNs, executeCustomNs), c') ← CanvasM.run c do
               let executeBatchStart ← IO.monoNanosNow
-              let batchStats ← Afferent.Widget.executeCommandsBatchedWithStats rs.assets.fontPack.registry commands
+              Afferent.Widget.renderMeasuredArborWidget rs.assets.fontPack.registry measuredWidget layouts
               let executeBatchEnd ← IO.monoNanosNow
-              pure (batchStats, executeBatchEnd - executeBatchStart, 0)
+              pure (executeBatchEnd - executeBatchStart, 0)
             let executeEnd ← IO.monoNanosNow
+            let batchStats : Afferent.Widget.BatchStats := {}
             c := c'
             let endFrameStart ← IO.monoNanosNow
             c ← c.endFrame
@@ -332,7 +330,7 @@ def unifiedDemo : IO Unit := do
             let indexSnapshotStoreMs := (indexSnapshotStoreEnd - indexSnapshotStoreStart).toFloat / 1000000.0
             let indexInteractiveIdsMs := (indexInteractiveIdsEnd - indexInteractiveIdsStart).toFloat / 1000000.0
             let indexRegistrySetMs := (indexRegistrySetEnd - indexRegistrySetStart).toFloat / 1000000.0
-            let collectMs := (collectEnd - collectStart).toFloat / 1000000.0
+            let collectMs : Float := 0.0
             let executeMs := (executeEnd - executeStart).toFloat / 1000000.0
             let executeBatchMs := executeBatchNs.toFloat / 1000000.0
             let executeCustomMs := executeCustomNs.toFloat / 1000000.0
@@ -371,7 +369,7 @@ def unifiedDemo : IO Unit := do
               endFrameMs := endFrameMs
               accountedMs := accountedMs
               unaccountedMs := unaccountedMs
-              commandCount := commands.size
+              commandCount := 0
               coalescedCommandCount := batchStats.totalCommands
               drawCalls := drawCalls
               batchedCalls := batchStats.batchedCalls

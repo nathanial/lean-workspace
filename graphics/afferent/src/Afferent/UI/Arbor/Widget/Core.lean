@@ -3,7 +3,7 @@
   Declarative widget system foundation.
 -/
 import Afferent.UI.Arbor.Core.Types
-import Afferent.Draw.Command
+import Afferent.Draw.Builder
 import Trellis
 
 namespace Afferent.Arbor
@@ -143,12 +143,12 @@ def growFill : BoxStyle :=
 end BoxStyle
 
 /-- Custom widget specification.
-    Provides measurement and render command collection. -/
+    Provides measurement and immediate render actions. -/
 structure CustomSpec where
   /-- Measure intrinsic content size given available width/height. -/
   measure : Float → Float → (Float × Float)
-  /-- Collect render commands given computed layout. -/
-  collect : Trellis.ComputedLayout → RenderCommands
+  /-- Draw using `RenderM` given computed layout. -/
+  collect : Trellis.ComputedLayout → RenderM Unit
   /-- Optional custom hit test (true if point is inside widget). -/
   hitTest : Option (Trellis.ComputedLayout → Point → Bool) := none
   /-- Cache generation number. Widgets with different generations are not cached together.
@@ -162,7 +162,7 @@ namespace CustomSpec
 
 def default : CustomSpec :=
   { measure := fun _ _ => (0, 0)
-    collect := fun _ => #[]
+    collect := fun _ => pure ()
     hitTest := none }
 
 end CustomSpec

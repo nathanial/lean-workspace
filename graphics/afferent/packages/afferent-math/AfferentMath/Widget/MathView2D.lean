@@ -219,7 +219,7 @@ def mathView2DVisual (name : Option ComponentId := none)
     (drawContent : View → CanvasM Unit) : WidgetBuilder := do
   let spec : CustomSpec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun w h => do
         resetTransform
         let view := buildView config w h
@@ -235,7 +235,6 @@ def mathView2DVisual (name : Option ComponentId := none)
         if config.showLabels then
           drawLabels view config font
         drawContent view
-    ]
   }
   match name with
   | some n => namedCustom n spec (style := config.style)

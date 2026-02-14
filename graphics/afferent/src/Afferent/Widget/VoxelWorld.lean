@@ -302,12 +302,11 @@ def voxelWorldWidget (mesh : VoxelMesh) (camera : FPSCamera)
     (style : Afferent.Arbor.BoxStyle := defaultVoxelWorldStyle) : Afferent.Arbor.WidgetBuilder := do
   Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun w h => do
         resetTransform
         let renderer ← getRenderer
         renderVoxelMesh renderer w h camera mesh config
-    ]
     skipCache := true
   }) style
 
@@ -318,12 +317,11 @@ def namedVoxelWorldWidget (name : Arbor.ComponentId)
     (style : Afferent.Arbor.BoxStyle := defaultVoxelWorldStyle) : Afferent.Arbor.WidgetBuilder := do
   Arbor.namedCustom name (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun w h => do
         resetTransform
         let renderer ← getRenderer
         renderVoxelMesh renderer w h camera mesh config
-    ]
     skipCache := true
   }) style
 

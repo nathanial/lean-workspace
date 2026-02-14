@@ -96,7 +96,7 @@ def groupedBarChartSpec (data : Data) (theme : Theme)
 
     let numCategories := data.categories.size
     let numSeries := data.series.size
-    if numCategories == 0 || numSeries == 0 then #[] else
+    if numCategories == 0 || numSeries == 0 then pure () else
 
     -- Calculate chart area
     let legendSpace := if dims.showLegend then dims.marginRight else 20.0

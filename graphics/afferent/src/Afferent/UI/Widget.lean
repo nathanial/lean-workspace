@@ -7,8 +7,7 @@
 
   Render flow:
   1. Arbor builds/measures/layouts widgets
-  2. Arbor emits RenderCommands
-  3. `Afferent.Output.Execute` executes commands through CanvasM/Metal
+  2. Arbor traverses the measured tree and draws directly via CanvasM/Metal
 
   Usage:
   ```lean

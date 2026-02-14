@@ -14,41 +14,41 @@ namespace Demos
 
 /-- Fill a rect with a linear gradient style. -/
 private def linearRect (r : Rect) (start finish : Afferent.Point) (stops : Array Afferent.GradientStop)
-    (cornerRadius : Float := 8) : RenderCommands :=
+    (cornerRadius : Float := 8) : RenderM Unit := do
   let style := Afferent.FillStyle.linearGradient start finish stops
-  #[.fillRectStyle r style cornerRadius]
+  RenderM.fillRectStyle r style cornerRadius
 
 /-- Fill a shape path with a gradient style. -/
-private def fillPathStyle (path : Afferent.Path) (style : Afferent.FillStyle) : RenderCommands :=
-  #[.fillPathStyle path style]
+private def fillPathStyle (path : Afferent.Path) (style : Afferent.FillStyle) : RenderM Unit := do
+  RenderM.fillPathStyle path style
 
 /-- Linear gradient horizontal. -/
-private def linearHorizontal (colors : Array Color) : Rect → RenderCommands := fun r =>
+private def linearHorizontal (colors : Array Color) : CardDraw := fun r =>
   let start := Afferent.Point.mk' r.origin.x (r.origin.y + r.size.height / 2)
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height / 2)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Linear gradient vertical. -/
-private def linearVertical (colors : Array Color) : Rect → RenderCommands := fun r =>
+private def linearVertical (colors : Array Color) : CardDraw := fun r =>
   let start := Afferent.Point.mk' (r.origin.x + r.size.width / 2) r.origin.y
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Diagonal linear gradient. -/
-private def linearDiagonal (colors : Array Color) : Rect → RenderCommands := fun r =>
+private def linearDiagonal (colors : Array Color) : CardDraw := fun r =>
   let start := Afferent.Point.mk' r.origin.x r.origin.y
   let finish := Afferent.Point.mk' (r.origin.x + r.size.width) (r.origin.y + r.size.height)
   linearRect r start finish (Afferent.GradientStop.distribute colors)
 
 /-- Radial gradient circle. -/
-private def radialCircle (colors : Array Color) : Rect → RenderCommands := fun r =>
+private def radialCircle (colors : Array Color) : CardDraw := fun r =>
   let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
   let radius := minSide r * 0.45
   let style := Afferent.FillStyle.radialGradient center radius (Afferent.GradientStop.distribute colors)
   fillPathStyle (Afferent.Path.circle ⟨center.x, center.y⟩ radius) style
 
 /-- Radial gradient ellipse. -/
-private def radialEllipse (colors : Array Color) : Rect → RenderCommands := fun r =>
+private def radialEllipse (colors : Array Color) : CardDraw := fun r =>
   let center := Afferent.Point.mk' (r.origin.x + r.size.width / 2) (r.origin.y + r.size.height / 2)
   let rx := r.size.width * 0.45
   let ry := r.size.height * 0.32
@@ -117,7 +117,7 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
     { position := 1.0, color := Afferent.Color.hsva 0.104 0.8 0.5 1.0 }
   )]
 
-  let cards : Array (String × (Rect → RenderCommands)) := #[(
+  let cards : Array (String × CardDraw) := #[(
     "Linear Red-Yellow", linearHorizontal #[Afferent.Color.red, Afferent.Color.yellow]
   ), (
     "Linear Blue-Cyan", linearHorizontal #[Afferent.Color.blue, Afferent.Color.cyan]
@@ -204,7 +204,7 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
       ), (
         { position := 1.0, color := Afferent.Color.hsva 0.667 1.0 0.3 1.0 }
       )]
-      #[.fillRectStyle r style 8]
+      RenderM.fillRectStyle r style 8
   ), (
     "Purple-Pink", fun r =>
       let start := Afferent.Point.mk' (r.origin.x + r.size.width) r.origin.y
@@ -217,7 +217,7 @@ def gradientsWidget (labelFont : FontId) : WidgetBuilder := do
   gridFlex 4 10 4 widgets (EdgeInsets.uniform 10)
 
 /-- Curated subset of gradients for responsive grid display. -/
-def gradientsSubset : Array (String × (Rect → RenderCommands)) := #[
+def gradientsSubset : Array (String × CardDraw) := #[
   ("Linear Red-Yellow", linearHorizontal #[Afferent.Color.red, Afferent.Color.yellow]),
   ("Linear Blue-Cyan", linearHorizontal #[Afferent.Color.blue, Afferent.Color.cyan]),
   ("Linear Vertical", linearVertical #[Afferent.Color.purple, Afferent.Color.orange]),

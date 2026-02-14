@@ -15,7 +15,7 @@ def textureMatrixWidget (t : Float) (screenScale : Float) (windowWidth windowHei
     (fontMedium fontSmall : Font) (texture : FFI.Texture) : Afferent.Arbor.WidgetBuilder := do
   Afferent.Arbor.custom (spec := {
     measure := fun _ _ => (0, 0)
-    collect := fun layout => #[Afferent.Arbor.RenderCommand.custom do
+    collect := fun layout => fun _ => do
       withContentRect layout fun w h => do
         let rect := layout.contentRect
         let canvasW := max 1.0 windowWidth
@@ -43,7 +43,6 @@ def textureMatrixWidget (t : Float) (screenScale : Float) (windowWidth windowHei
           (20 * screenScale) (30 * screenScale) fontMedium
         fillTextXY "left: baseline  |  right: scaled"
           (20 * screenScale) (60 * screenScale) fontSmall
-    ]
   }) (style := { flexItem := some (Trellis.FlexItem.growing 1) })
 
 end Demos

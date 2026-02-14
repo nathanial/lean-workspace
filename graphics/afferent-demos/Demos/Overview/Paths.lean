@@ -17,14 +17,15 @@ namespace Demos
 
 structure PathsCardDef where
   label : String
-  commands : Rect → RenderCommands
+  draw : CardDraw
 
-private def pathsCommands (path : Afferent.Path) (color : Color) : RenderCommands :=
-  #[RenderCommand.fillPath path color]
+private def pathsCommands (path : Afferent.Path) (color : Color) : RenderM Unit := do
+  RenderM.fillPath path color
 
 private def pathsCommandsStroke (path : Afferent.Path) (fillColor strokeColor : Color) (lineWidth : Float)
-    : RenderCommands :=
-  #[RenderCommand.fillPath path fillColor, RenderCommand.strokePath path strokeColor lineWidth]
+    : RenderM Unit := do
+  RenderM.fillPath path fillColor
+  RenderM.strokePath path strokeColor lineWidth
 
 private def pathsBaseRect (r : Rect) : Rect :=
   insetRect r (minSide r * 0.12)
@@ -145,59 +146,59 @@ private def pathsPillTabPath (r : Rect) : Afferent.Path :=
 private def pathsCirclePath (r : Rect) : Afferent.Path :=
   Afferent.Path.circle (rectCenter r) (minSide r * 0.38)
 
-private def pathsScaledCircleCommands (r : Rect) (sx sy : Float) (color : Color) : RenderCommands :=
+private def pathsScaledCircleCommands (r : Rect) (sx sy : Float) (color : Color) : RenderM Unit := do
   let center := rectCenter r
   let radius := minSide r * 0.28
   let path := Afferent.Path.circle ⟨0, 0⟩ radius
-  #[RenderCommand.pushTranslate center.x center.y,
-    RenderCommand.pushScale sx sy,
-    RenderCommand.fillPath path color,
-    RenderCommand.popTransform,
-    RenderCommand.popTransform]
+  RenderM.pushTranslate center.x center.y
+  RenderM.pushScale sx sy
+  RenderM.fillPath path color
+  RenderM.popTransform
+  RenderM.popTransform
 
-private def pathsRotatedPieCommands (r : Rect) : RenderCommands :=
+private def pathsRotatedPieCommands (r : Rect) : RenderM Unit := do
   let center := rectCenter r
   let radius := minSide r * 0.38
   let path := Afferent.Path.pie ⟨0, 0⟩ radius 0 Float.halfPi
-  #[RenderCommand.pushTranslate center.x center.y,
-    RenderCommand.pushRotate (Float.pi / 6),
-    RenderCommand.fillPath path (Afferent.Color.orange),
-    RenderCommand.popTransform,
-    RenderCommand.popTransform]
+  RenderM.pushTranslate center.x center.y
+  RenderM.pushRotate (Float.pi / 6)
+  RenderM.fillPath path (Afferent.Color.orange)
+  RenderM.popTransform
+  RenderM.popTransform
 
-private def pathsTransformedArcCommands (r : Rect) : RenderCommands :=
+private def pathsTransformedArcCommands (r : Rect) : RenderM Unit := do
   let center := rectCenter r
   let radius := minSide r * 0.34
   let path := Afferent.Path.arcPath ⟨0, 0⟩ radius 0 (Float.pi * 1.5)
   let lineWidth := max 1.0 (radius * 0.12)
-  #[RenderCommand.pushTranslate center.x center.y,
-    RenderCommand.pushRotate (Float.pi / 4),
-    RenderCommand.pushScale 1.5 0.75,
-    RenderCommand.fillPath path Afferent.Color.cyan,
-    RenderCommand.strokePath path Afferent.Color.white lineWidth,
-    RenderCommand.popTransform,
-    RenderCommand.popTransform,
-    RenderCommand.popTransform]
+  RenderM.pushTranslate center.x center.y
+  RenderM.pushRotate (Float.pi / 4)
+  RenderM.pushScale 1.5 0.75
+  RenderM.fillPath path Afferent.Color.cyan
+  RenderM.strokePath path Afferent.Color.white lineWidth
+  RenderM.popTransform
+  RenderM.popTransform
+  RenderM.popTransform
 
 private def pathsCards : Array PathsCardDef := #[
-  { label := "Concave Arrow", commands := fun r => pathsCommands (pathsConcaveArrowPath r) Afferent.Color.blue },
-  { label := "L-Shape", commands := fun r => pathsCommands (pathsLShapePath r) Afferent.Color.green },
-  { label := "Concave Star", commands := fun r => pathsCommands (pathsConcaveStarPath r) Afferent.Color.yellow },
-  { label := "Chevron", commands := fun r => pathsCommands (pathsChevronPath r) Afferent.Color.magenta },
-  { label := "Rounded Rect", commands := fun r => pathsCommands (pathsRoundedRectPath r) Afferent.Color.cyan },
-  { label := "Rounded Tri", commands := fun r => pathsCommands (pathsRoundedTrianglePath r) Afferent.Color.orange },
-  { label := "Pill Tab", commands := fun r => pathsCommands (pathsPillTabPath r) Afferent.Color.purple },
-  { label := "Circle 1:1", commands := fun r => pathsCommands (pathsCirclePath r) (Afferent.Color.gray 0.6) },
-  { label := "Scale 2:1", commands := fun r => pathsScaledCircleCommands r 2.0 1.0 Afferent.Color.red },
-  { label := "Scale 1:2", commands := fun r => pathsScaledCircleCommands r 1.0 2.0 Afferent.Color.green },
-  { label := "Pie 30deg", commands := fun r => pathsRotatedPieCommands r },
-  { label := "Arc 45deg", commands := fun r => pathsTransformedArcCommands r }
+  { label := "Concave Arrow", draw := fun r => pathsCommands (pathsConcaveArrowPath r) Afferent.Color.blue },
+  { label := "L-Shape", draw := fun r => pathsCommands (pathsLShapePath r) Afferent.Color.green },
+  { label := "Concave Star", draw := fun r => pathsCommands (pathsConcaveStarPath r) Afferent.Color.yellow },
+  { label := "Chevron", draw := fun r => pathsCommands (pathsChevronPath r) Afferent.Color.magenta },
+  { label := "Rounded Rect", draw := fun r => pathsCommands (pathsRoundedRectPath r) Afferent.Color.cyan },
+  { label := "Rounded Tri", draw := fun r => pathsCommands (pathsRoundedTrianglePath r) Afferent.Color.orange },
+  { label := "Pill Tab", draw := fun r => pathsCommands (pathsPillTabPath r) Afferent.Color.purple },
+  { label := "Circle 1:1", draw := fun r => pathsCommands (pathsCirclePath r) (Afferent.Color.gray 0.6) },
+  { label := "Scale 2:1", draw := fun r => pathsScaledCircleCommands r 2.0 1.0 Afferent.Color.red },
+  { label := "Scale 1:2", draw := fun r => pathsScaledCircleCommands r 1.0 2.0 Afferent.Color.green },
+  { label := "Pie 30deg", draw := fun r => pathsRotatedPieCommands r },
+  { label := "Arc 45deg", draw := fun r => pathsTransformedArcCommands r }
 ]
 
 /-- Paths rendered as cards in a grid (overview-friendly). -/
 def pathsWidgetFlex (labelFont : FontId) : WidgetBuilder := do
   let cards := pathsCards.map (fun feature =>
-    demoCardFlex labelFont feature.label feature.commands)
+    demoCardFlex labelFont feature.label feature.draw)
   gridFlex 3 4 4 cards (EdgeInsets.uniform 6)
 
 end Demos
