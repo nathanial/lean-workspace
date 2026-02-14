@@ -39,6 +39,100 @@ extern void afferent_texture_get_size(AfferentTextureRef texture, uint32_t* widt
 extern void* afferent_texture_get_metal_texture(AfferentTextureRef texture);
 extern void afferent_texture_set_metal_texture(AfferentTextureRef texture, void* metal_tex);
 
+typedef enum {
+    AFFERENT_DRAW_CMD_TRIANGLES = 0,
+    AFFERENT_DRAW_CMD_TRIANGLES_SCREEN = 1,
+    AFFERENT_DRAW_CMD_STROKE = 2,
+    AFFERENT_DRAW_CMD_STROKE_PATH = 3,
+    AFFERENT_DRAW_CMD_TEXT = 4,
+    AFFERENT_DRAW_CMD_SPRITES = 5,
+    AFFERENT_DRAW_CMD_SET_SCISSOR = 6,
+    AFFERENT_DRAW_CMD_RESET_SCISSOR = 7
+} AfferentDrawCommandType;
+
+typedef struct {
+    AfferentVertex* vertices;
+    uint32_t vertexCount;
+    uint32_t* indices;
+    uint32_t indexCount;
+} AfferentDrawTrianglesCmd;
+
+typedef struct {
+    float* vertexData;      // 6 floats per vertex
+    uint32_t vertexCount;
+    uint32_t* indices;
+    uint32_t indexCount;
+    float canvasWidth;
+    float canvasHeight;
+} AfferentDrawTrianglesScreenCmd;
+
+typedef struct {
+    AfferentStrokeVertex* vertices;
+    uint32_t vertexCount;
+    uint32_t* indices;
+    uint32_t indexCount;
+    float halfWidth;
+    float canvasWidth;
+    float canvasHeight;
+    float color[4];
+} AfferentDrawStrokeCmd;
+
+typedef struct {
+    AfferentStrokeSegment* segments;
+    uint32_t segmentCount;
+    uint32_t segmentSubdivisions;
+    float halfWidth;
+    float canvasWidth;
+    float canvasHeight;
+    float miterLimit;
+    uint32_t lineCap;
+    uint32_t lineJoin;
+    float transform[6];
+    float dashSegments[8];
+    uint32_t dashCount;
+    float dashOffset;
+    float color[4];
+} AfferentDrawStrokePathCmd;
+
+typedef struct {
+    AfferentFontRef font;
+    char* text;
+    float x;
+    float y;
+    float color[4];
+    float transform[6];
+    float canvasWidth;
+    float canvasHeight;
+} AfferentDrawTextCmd;
+
+typedef struct {
+    AfferentTextureRef texture;
+    float* data;            // 5 floats per sprite
+    uint32_t count;
+    float canvasWidth;
+    float canvasHeight;
+} AfferentDrawSpritesCmd;
+
+typedef struct {
+    uint32_t x;
+    uint32_t y;
+    uint32_t width;
+    uint32_t height;
+} AfferentDrawSetScissorCmd;
+
+typedef struct AfferentQueuedDraw {
+    AfferentDrawCommandType type;
+    union {
+        AfferentDrawTrianglesCmd triangles;
+        AfferentDrawTrianglesScreenCmd trianglesScreen;
+        AfferentDrawStrokeCmd stroke;
+        AfferentDrawStrokePathCmd strokePath;
+        AfferentDrawTextCmd text;
+        AfferentDrawSpritesCmd sprites;
+        AfferentDrawSetScissorCmd setScissor;
+    } data;
+} AfferentQueuedDraw;
+
 // Internal renderer structure
 struct AfferentRenderer {
     AfferentWindowRef window;
@@ -76,6 +170,11 @@ struct AfferentRenderer {
     NSUInteger msaaHeight;
     float screenWidth;   // Current screen dimensions for text rendering
     float screenHeight;
+    AfferentQueuedDraw* drawQueue;
+    size_t drawQueueCount;
+    size_t drawQueueCapacity;
+    bool deferDrawCommands;
+    bool flushingDrawQueue;
 };
 
 // Internal buffer structure
@@ -140,9 +239,28 @@ void ensureMSAATexture(AfferentRendererRef renderer, NSUInteger width, NSUIntege
 // Text rendering helpers (draw_text.m)
 id<MTLTexture> ensureFontTexture(AfferentRendererRef renderer, AfferentFontRef font);
 void updateFontTexture(AfferentRendererRef renderer, AfferentFontRef font);
+AfferentResult afferent_text_render_runs(
+    AfferentRendererRef renderer,
+    AfferentFontRef font,
+    const char** texts,
+    const float* positions,
+    const float* colors,
+    const float* transforms,
+    uint32_t count,
+    float canvas_width,
+    float canvas_height
+);
 
 // Sprite rendering helpers (draw_sprites.m)
 id<MTLTexture> createMetalTexture(id<MTLDevice> device, const uint8_t* data, uint32_t width, uint32_t height);
+void afferent_renderer_draw_sprites_immediate(
+    AfferentRendererRef renderer,
+    AfferentTextureRef texture,
+    const float* data,
+    uint32_t count,
+    float canvasWidth,
+    float canvasHeight
+);
 
 // 3D rendering helpers (draw_3d.m)
 void ensure_ocean_index_buffer(AfferentRendererRef renderer, uint32_t gridSize);
@@ -150,5 +268,9 @@ void ensure_ocean_index_buffer(AfferentRendererRef renderer, uint32_t gridSize);
 // Renderer internal accessors (for FFI modules)
 id<MTLDevice> afferent_renderer_get_device(AfferentRendererRef renderer);
 id<MTLRenderCommandEncoder> afferent_renderer_get_encoder(AfferentRendererRef renderer);
+bool afferent_renderer_queue_enabled(AfferentRendererRef renderer);
+bool afferent_renderer_enqueue_draw(AfferentRendererRef renderer, AfferentQueuedDraw cmd);
+void afferent_renderer_clear_draw_queue(AfferentRendererRef renderer);
+void afferent_renderer_flush_draw_queue(AfferentRendererRef renderer);
 
 #endif // AFFERENT_METAL_RENDER_H

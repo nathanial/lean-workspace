@@ -18,8 +18,43 @@ void afferent_renderer_draw_triangles(
     AfferentBufferRef index_buffer,
     uint32_t index_count
 ) {
-    if (!renderer->currentEncoder || !vertex_buffer || !index_buffer) {
+    if (!renderer || !renderer->currentEncoder || !vertex_buffer || !index_buffer) {
         return;
+    }
+
+    uint32_t draw_index_count = index_count;
+    if (draw_index_count > index_buffer->count) {
+        draw_index_count = index_buffer->count;
+    }
+    if (vertex_buffer->count == 0 || draw_index_count == 0) {
+        return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        AfferentVertex* vertices =
+            (AfferentVertex*)malloc((size_t)vertex_buffer->count * sizeof(AfferentVertex));
+        uint32_t* indices =
+            (uint32_t*)malloc((size_t)draw_index_count * sizeof(uint32_t));
+        if (vertices && indices) {
+            memcpy(vertices, [vertex_buffer->mtlBuffer contents],
+                   (size_t)vertex_buffer->count * sizeof(AfferentVertex));
+            memcpy(indices, [index_buffer->mtlBuffer contents],
+                   (size_t)draw_index_count * sizeof(uint32_t));
+            AfferentQueuedDraw cmd = {
+                .type = AFFERENT_DRAW_CMD_TRIANGLES,
+                .data.triangles = {
+                    .vertices = vertices,
+                    .vertexCount = vertex_buffer->count,
+                    .indices = indices,
+                    .indexCount = draw_index_count
+                }
+            };
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return;
+            }
+        }
+        free(vertices);
+        free(indices);
     }
 
     // Ensure we're using the basic pipeline (not text pipeline)
@@ -30,7 +65,7 @@ void afferent_renderer_draw_triangles(
     [renderer->currentEncoder setVertexBuffer:vertex_buffer->mtlBuffer offset:0 atIndex:0];
 
     [renderer->currentEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                         indexCount:index_count
+                                         indexCount:draw_index_count
                                           indexType:MTLIndexTypeUInt32
                                         indexBuffer:index_buffer->mtlBuffer
                                   indexBufferOffset:0];
@@ -58,6 +93,31 @@ void afferent_renderer_draw_triangles_screen_coords(
     if (!renderer || !renderer->currentEncoder || !vertex_data || !indices ||
         vertex_count == 0 || index_count == 0) {
         return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        float* vertexCopy = (float*)malloc((size_t)vertex_count * 6 * sizeof(float));
+        uint32_t* indexCopy = (uint32_t*)malloc((size_t)index_count * sizeof(uint32_t));
+        if (vertexCopy && indexCopy) {
+            memcpy(vertexCopy, vertex_data, (size_t)vertex_count * 6 * sizeof(float));
+            memcpy(indexCopy, indices, (size_t)index_count * sizeof(uint32_t));
+            AfferentQueuedDraw cmd = {
+                .type = AFFERENT_DRAW_CMD_TRIANGLES_SCREEN,
+                .data.trianglesScreen = {
+                    .vertexData = vertexCopy,
+                    .vertexCount = vertex_count,
+                    .indices = indexCopy,
+                    .indexCount = index_count,
+                    .canvasWidth = canvas_width,
+                    .canvasHeight = canvas_height
+                }
+            };
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return;
+            }
+        }
+        free(vertexCopy);
+        free(indexCopy);
     }
 
     if (!renderer->screenCoordsPipelineState) {
@@ -139,8 +199,46 @@ void afferent_renderer_draw_stroke(
     float b,
     float a
 ) {
-    if (!renderer->currentEncoder || !vertex_buffer || !index_buffer) {
+    if (!renderer || !renderer->currentEncoder || !vertex_buffer || !index_buffer) {
         return;
+    }
+
+    uint32_t draw_index_count = index_count;
+    if (draw_index_count > index_buffer->count) {
+        draw_index_count = index_buffer->count;
+    }
+    if (vertex_buffer->count == 0 || draw_index_count == 0) {
+        return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        AfferentStrokeVertex* vertices =
+            (AfferentStrokeVertex*)malloc((size_t)vertex_buffer->count * sizeof(AfferentStrokeVertex));
+        uint32_t* indices = (uint32_t*)malloc((size_t)draw_index_count * sizeof(uint32_t));
+        if (vertices && indices) {
+            memcpy(vertices, [vertex_buffer->mtlBuffer contents],
+                   (size_t)vertex_buffer->count * sizeof(AfferentStrokeVertex));
+            memcpy(indices, [index_buffer->mtlBuffer contents],
+                   (size_t)draw_index_count * sizeof(uint32_t));
+            AfferentQueuedDraw cmd = {
+                .type = AFFERENT_DRAW_CMD_STROKE,
+                .data.stroke = {
+                    .vertices = vertices,
+                    .vertexCount = vertex_buffer->count,
+                    .indices = indices,
+                    .indexCount = draw_index_count,
+                    .halfWidth = half_width,
+                    .canvasWidth = canvas_width,
+                    .canvasHeight = canvas_height,
+                    .color = { r, g, b, a }
+                }
+            };
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return;
+            }
+        }
+        free(vertices);
+        free(indices);
     }
 
     StrokeUniforms uniforms;
@@ -161,7 +259,7 @@ void afferent_renderer_draw_stroke(
     [renderer->currentEncoder setFragmentBytes:&uniforms length:sizeof(StrokeUniforms) atIndex:1];
 
     [renderer->currentEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                         indexCount:index_count
+                                         indexCount:draw_index_count
                                           indexType:MTLIndexTypeUInt32
                                         indexBuffer:index_buffer->mtlBuffer
                                   indexBufferOffset:0];
@@ -196,6 +294,54 @@ void afferent_renderer_draw_stroke_path(
 ) {
     if (!renderer || !renderer->currentEncoder || !segment_buffer || segment_count == 0) {
         return;
+    }
+
+    uint32_t draw_segment_count = segment_count;
+    if (draw_segment_count > segment_buffer->count) {
+        draw_segment_count = segment_buffer->count;
+    }
+    if (draw_segment_count == 0) {
+        return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        AfferentStrokeSegment* segments =
+            (AfferentStrokeSegment*)malloc((size_t)draw_segment_count * sizeof(AfferentStrokeSegment));
+        if (segments) {
+            memcpy(segments, [segment_buffer->mtlBuffer contents],
+                   (size_t)draw_segment_count * sizeof(AfferentStrokeSegment));
+            AfferentQueuedDraw cmd;
+            cmd.type = AFFERENT_DRAW_CMD_STROKE_PATH;
+            cmd.data.strokePath.segments = segments;
+            cmd.data.strokePath.segmentCount = draw_segment_count;
+            cmd.data.strokePath.segmentSubdivisions = segment_subdivisions;
+            cmd.data.strokePath.halfWidth = half_width;
+            cmd.data.strokePath.canvasWidth = canvas_width;
+            cmd.data.strokePath.canvasHeight = canvas_height;
+            cmd.data.strokePath.miterLimit = miter_limit;
+            cmd.data.strokePath.lineCap = line_cap;
+            cmd.data.strokePath.lineJoin = line_join;
+            cmd.data.strokePath.transform[0] = transform_a;
+            cmd.data.strokePath.transform[1] = transform_b;
+            cmd.data.strokePath.transform[2] = transform_c;
+            cmd.data.strokePath.transform[3] = transform_d;
+            cmd.data.strokePath.transform[4] = transform_tx;
+            cmd.data.strokePath.transform[5] = transform_ty;
+            cmd.data.strokePath.dashCount = dash_count > 8 ? 8 : dash_count;
+            for (uint32_t i = 0; i < 8; i++) {
+                cmd.data.strokePath.dashSegments[i] =
+                    (dash_segments && i < cmd.data.strokePath.dashCount) ? dash_segments[i] : 0.0f;
+            }
+            cmd.data.strokePath.dashOffset = dash_offset;
+            cmd.data.strokePath.color[0] = r;
+            cmd.data.strokePath.color[1] = g;
+            cmd.data.strokePath.color[2] = b;
+            cmd.data.strokePath.color[3] = a;
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return;
+            }
+        }
+        free(segments);
     }
 
     uint32_t subdivisions = segment_subdivisions > 0 ? segment_subdivisions : 1;
@@ -246,7 +392,7 @@ void afferent_renderer_draw_stroke_path(
     [renderer->currentEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
                                  vertexStart:0
                                  vertexCount:vertexCount
-                               instanceCount:segment_count];
+                               instanceCount:draw_segment_count];
 
     [renderer->currentEncoder setRenderPipelineState:renderer->pipelineState];
 }
@@ -260,6 +406,21 @@ void afferent_renderer_set_scissor(
 ) {
     if (!renderer || !renderer->currentEncoder) {
         return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        AfferentQueuedDraw cmd = {
+            .type = AFFERENT_DRAW_CMD_SET_SCISSOR,
+            .data.setScissor = {
+                .x = x,
+                .y = y,
+                .width = width,
+                .height = height
+            }
+        };
+        if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+            return;
+        }
     }
 
     // Clamp scissor to render target bounds
@@ -294,6 +455,13 @@ void afferent_renderer_set_scissor(
 void afferent_renderer_reset_scissor(AfferentRendererRef renderer) {
     if (!renderer || !renderer->currentEncoder) {
         return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        AfferentQueuedDraw cmd = {.type = AFFERENT_DRAW_CMD_RESET_SCISSOR};
+        if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+            return;
+        }
     }
 
     // Reset to full drawable size

@@ -1,6 +1,7 @@
 // draw_text.m - Text rendering and font texture management
 #import "render.h"
 #include <string.h>
+#include <string.h>
 #include <limits.h>
 #include <stdlib.h>
 
@@ -261,7 +262,7 @@ static TextBatchCacheEntry* build_or_get_batch_cache_entry(
 }
 
 // Render multiple text strings with the same font in one pass.
-static AfferentResult afferent_text_render_runs(
+AfferentResult afferent_text_render_runs(
     AfferentRendererRef renderer,
     AfferentFontRef font,
     const char** texts,
@@ -384,6 +385,43 @@ AfferentResult afferent_text_render(
     @autoreleasepool {
         if (!renderer || !renderer->currentEncoder || !font || !text || text[0] == '\0') {
             return AFFERENT_OK;
+        }
+
+        if (afferent_renderer_queue_enabled(renderer)) {
+            size_t len = strlen(text);
+            char* textCopy = (char*)malloc(len + 1);
+            if (!textCopy) {
+                return AFFERENT_OK;
+            }
+            memcpy(textCopy, text, len + 1);
+
+            AfferentQueuedDraw cmd;
+            cmd.type = AFFERENT_DRAW_CMD_TEXT;
+            cmd.data.text.font = font;
+            cmd.data.text.text = textCopy;
+            cmd.data.text.x = x;
+            cmd.data.text.y = y;
+            cmd.data.text.color[0] = r;
+            cmd.data.text.color[1] = g;
+            cmd.data.text.color[2] = b;
+            cmd.data.text.color[3] = a;
+            if (transform) {
+                memcpy(cmd.data.text.transform, transform, 6 * sizeof(float));
+            } else {
+                cmd.data.text.transform[0] = 1.0f;
+                cmd.data.text.transform[1] = 0.0f;
+                cmd.data.text.transform[2] = 0.0f;
+                cmd.data.text.transform[3] = 1.0f;
+                cmd.data.text.transform[4] = 0.0f;
+                cmd.data.text.transform[5] = 0.0f;
+            }
+            cmd.data.text.canvasWidth = canvas_width;
+            cmd.data.text.canvasHeight = canvas_height;
+
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return AFFERENT_OK;
+            }
+            free(textCopy);
         }
 
         const char* texts[1] = {text};

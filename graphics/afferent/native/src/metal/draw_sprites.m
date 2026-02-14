@@ -109,7 +109,7 @@ static id<MTLTexture> afferent_get_sprite_texture(AfferentRendererRef renderer, 
     return metalTex;
 }
 
-static void afferent_draw_sprites_internal(
+void afferent_renderer_draw_sprites_immediate(
     AfferentRendererRef renderer,
     AfferentTextureRef texture,
     const float* data,
@@ -171,7 +171,32 @@ void afferent_renderer_draw_sprites(
     float canvasWidth,
     float canvasHeight
 ) {
-    afferent_draw_sprites_internal(renderer, texture, data, count, canvasWidth, canvasHeight);
+    if (!renderer || !texture || !data || count == 0) {
+        return;
+    }
+
+    if (afferent_renderer_queue_enabled(renderer)) {
+        float* copy = (float*)malloc((size_t)count * 5 * sizeof(float));
+        if (copy) {
+            memcpy(copy, data, (size_t)count * 5 * sizeof(float));
+            AfferentQueuedDraw cmd = {
+                .type = AFFERENT_DRAW_CMD_SPRITES,
+                .data.sprites = {
+                    .texture = texture,
+                    .data = copy,
+                    .count = count,
+                    .canvasWidth = canvasWidth,
+                    .canvasHeight = canvasHeight
+                }
+            };
+            if (afferent_renderer_enqueue_draw(renderer, cmd)) {
+                return;
+            }
+            free(copy);
+        }
+    }
+
+    afferent_renderer_draw_sprites_immediate(renderer, texture, data, count, canvasWidth, canvasHeight);
 }
 
 // Release Metal texture associated with an AfferentTexture (called when texture is destroyed)
